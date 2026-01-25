@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
+import { PromotionBadge } from './PromotionBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 import type { UserRank } from '@/contexts/UserContext';
@@ -28,6 +29,7 @@ interface TeamMemberCardProps {
   onClick?: () => void;
   showArrow?: boolean;
   showActions?: boolean;
+  showPromotionBadge?: boolean;
   onMessage?: () => void;
   onViewTeam?: () => void;
   onRemind?: () => void;
@@ -39,6 +41,7 @@ export function TeamMemberCard({
   onClick, 
   showArrow = true,
   showActions = false,
+  showPromotionBadge = true,
   onMessage,
   onViewTeam,
   onRemind
@@ -96,22 +99,26 @@ export function TeamMemberCard({
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">
-                {language === 'ar' ? member.nameAr : member.name}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-medium truncate">
+                  {language === 'ar' ? member.nameAr : member.name}
+                </p>
+                {/* Promotion Badge */}
+                {showPromotionBadge && <PromotionBadge member={member} size="sm" />}
+              </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <RankBadge rank={member.rank} size="sm" />
                 <span className="text-xs text-muted-foreground">
                   {member.activeWeeks}/{member.totalWeeks} {language === 'ar' ? 'أسابيع' : 'wks'}
                 </span>
               </div>
-              {/* Impact indicator */}
+              {/* Impact indicator - Enhanced */}
               {member.teamSize > 0 && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  <Users className="h-3 w-3 inline me-1" />
+                <p className="text-xs text-muted-foreground mt-0.5 bg-muted/50 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <Users className="h-3 w-3" />
                   {language === 'ar' 
-                    ? `${activeUnder}/${member.teamSize} نشط تحته`
-                    : `${activeUnder}/${member.teamSize} active under`}
+                    ? `${activeUnder} نشط من ${member.teamSize} تحته`
+                    : `${activeUnder} active of ${member.teamSize} under`}
                 </p>
               )}
             </div>
