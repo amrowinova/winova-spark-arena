@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Users, ArrowLeft, Copy, Share2, CheckCircle } from 'lucide-react';
+import { Users, ArrowLeft, Copy, Share2, CheckCircle, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { TeamMemberCard, TeamMember } from './TeamMemberCard';
 import { MemberDetailPanel } from './MemberDetailPanel';
-import { SmartAlertCard } from './SmartAlertCard';
+import { QuickActionsCard } from './QuickActionsCard';
 import { TeamFilters, TeamFilter } from './TeamFilters';
+import { ReminderTemplatesDialog } from './ReminderTemplatesDialog';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
@@ -23,25 +24,37 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [filter, setFilter] = useState<TeamFilter>('all');
+  const [filter, setFilter] = useState<TeamFilter>('needs-attention');
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [reminderTarget, setReminderTarget] = useState<'inactive' | 'at-risk' | 'all'>('inactive');
 
-  // Calculate filter counts
-  const filterCounts = useMemo(() => ({
-    all: members.length,
-    active: members.filter(m => m.active).length,
-    inactive: members.filter(m => !m.active).length,
-    promotable: members.filter(m => m.rank === 'subscriber' && m.activeWeeks >= 4 && m.directTeam >= 3).length,
-  }), [members]);
+  // Calculate filter counts with new categories
+  const filterCounts = useMemo(() => {
+    const needsAttention = members.filter(m => !m.active).length;
+    const atRisk = members.filter(m => {
+      const activity = (m.activeWeeks / m.totalWeeks) * 100;
+      return m.active && activity < 50;
+    }).length;
+    const active = members.filter(m => m.active).length;
+    const hasTeam = members.filter(m => m.teamSize > 0).length;
+    
+    return { needsAttention, atRisk, active, hasTeam };
+  }, [members]);
 
   // Filter members based on selected filter
   const filteredMembers = useMemo(() => {
     switch (filter) {
+      case 'needs-attention':
+        return members.filter(m => !m.active);
+      case 'at-risk':
+        return members.filter(m => {
+          const activity = (m.activeWeeks / m.totalWeeks) * 100;
+          return m.active && activity < 50;
+        });
       case 'active':
         return members.filter(m => m.active);
-      case 'inactive':
-        return members.filter(m => !m.active);
-      case 'promotable':
-        return members.filter(m => m.rank === 'subscriber' && m.activeWeeks >= 4 && m.directTeam >= 3);
+      case 'has-team':
+        return members.filter(m => m.teamSize > 0);
       default:
         return members;
     }
@@ -75,14 +88,26 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
     }
   };
 
-  const handleRemindAll = () => {
-    const inactiveCount = members.filter(m => !m.active).length;
-    toast.success(
-      language === 'ar' 
-        ? `تم إرسال تذكير لـ ${inactiveCount} أعضاء غير نشطين!`
-        : `Reminder sent to ${inactiveCount} inactive members!`
-    );
+  const handleTakeAction = () => {
+    // Switch to needs-attention filter
+    setFilter('needs-attention');
   };
+
+  const handleRemindInactive = () => {
+    setReminderTarget('inactive');
+    setReminderDialogOpen(true);
+  };
+
+  const handleRemindAtRisk = () => {
+    setReminderTarget('at-risk');
+    setReminderDialogOpen(true);
+  };
+
+  const inactiveCount = members.filter(m => !m.active).length;
+  const atRiskCount = members.filter(m => {
+    const activity = (m.activeWeeks / m.totalWeeks) * 100;
+    return m.active && activity < 50;
+  }).length;
 
   return (
     <div className="space-y-4">
@@ -101,8 +126,36 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
         </div>
       </div>
 
-      {/* Smart Alert Card */}
-      <SmartAlertCard members={members} onRemindAll={handleRemindAll} />
+      {/* Quick Actions Card */}
+      <QuickActionsCard members={members} onTakeAction={handleTakeAction} />
+
+      {/* Smart Reminder Buttons */}
+      {(inactiveCount > 0 || atRiskCount > 0) && (
+        <div className="flex gap-2">
+          {inactiveCount > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
+              onClick={handleRemindInactive}
+            >
+              <Bell className="h-3.5 w-3.5 me-1" />
+              {language === 'ar' ? `تذكير ${inactiveCount} غير نشط` : `Remind ${inactiveCount} Inactive`}
+            </Button>
+          )}
+          {atRiskCount > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 text-xs border-warning/30 text-warning hover:bg-warning/10"
+              onClick={handleRemindAtRisk}
+            >
+              <Bell className="h-3.5 w-3.5 me-1" />
+              {language === 'ar' ? `تذكير ${atRiskCount} معرض` : `Remind ${atRiskCount} At Risk`}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Referral Code */}
       <Card className="p-3">
@@ -134,14 +187,12 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
         <Card className="p-8 text-center">
           <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
           <p className="text-muted-foreground mb-3">
-            {filter === 'all' 
-              ? (language === 'ar' ? 'لا يوجد أعضاء في فريقك المباشر' : 'No direct team members yet')
-              : (language === 'ar' ? 'لا يوجد أعضاء في هذه الفئة' : 'No members in this category')}
+            {language === 'ar' ? 'لا يوجد أعضاء في هذه الفئة' : 'No members in this category'}
           </p>
-          {filter === 'all' && (
-            <Button onClick={handleShare}>
-              {language === 'ar' ? 'ادعُ أصدقاءك' : 'Invite Friends'}
-            </Button>
+          {filter === 'needs-attention' && (
+            <p className="text-sm text-success">
+              {language === 'ar' ? '🎉 رائع! كل فريقك نشط' : '🎉 Great! Your whole team is active'}
+            </p>
           )}
         </Card>
       ) : (
@@ -153,8 +204,13 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
               index={index}
               onClick={() => handleMemberClick(member)}
               showActions={true}
+              showPromotionBadge={true}
               onViewTeam={member.teamSize > 0 ? () => onViewMemberTeam(member) : undefined}
-              onRemind={() => toast.success(language === 'ar' ? 'تم إرسال التذكير!' : 'Reminder sent!')}
+              onRemind={() => {
+                setSelectedMember(member);
+                setReminderTarget('all');
+                setReminderDialogOpen(true);
+              }}
             />
           ))}
         </div>
@@ -171,6 +227,20 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
             onViewMemberTeam(selectedMember);
           }
         }}
+      />
+
+      {/* Reminder Templates Dialog */}
+      <ReminderTemplatesDialog
+        open={reminderDialogOpen}
+        onClose={() => setReminderDialogOpen(false)}
+        targetType={reminderTarget}
+        targetCount={
+          reminderTarget === 'inactive' 
+            ? inactiveCount 
+            : reminderTarget === 'at-risk' 
+              ? atRiskCount 
+              : 1
+        }
       />
     </div>
   );

@@ -1,18 +1,18 @@
 import { motion } from 'framer-motion';
-import { Users, TrendingUp, TrendingDown, Star } from 'lucide-react';
+import { AlertTriangle, Clock, TrendingUp, Users } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-export type TeamFilter = 'all' | 'active' | 'inactive' | 'promotable';
+export type TeamFilter = 'needs-attention' | 'at-risk' | 'active' | 'has-team';
 
 interface TeamFiltersProps {
   filter: TeamFilter;
   onFilterChange: (filter: TeamFilter) => void;
   counts: {
-    all: number;
+    needsAttention: number;
+    atRisk: number;
     active: number;
-    inactive: number;
-    promotable: number;
+    hasTeam: number;
   };
 }
 
@@ -21,28 +21,32 @@ export function TeamFilters({ filter, onFilterChange, counts }: TeamFiltersProps
 
   const filters = [
     { 
-      value: 'all' as TeamFilter, 
-      label: language === 'ar' ? 'الكل' : 'All',
-      count: counts.all,
-      icon: Users 
+      value: 'needs-attention' as TeamFilter, 
+      label: language === 'ar' ? 'يحتاج اهتمام' : 'Needs Attention',
+      count: counts.needsAttention,
+      icon: AlertTriangle,
+      activeClass: 'data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground'
+    },
+    { 
+      value: 'at-risk' as TeamFilter, 
+      label: language === 'ar' ? 'معرض للخطر' : 'At Risk',
+      count: counts.atRisk,
+      icon: Clock,
+      activeClass: 'data-[state=on]:bg-warning data-[state=on]:text-warning-foreground'
     },
     { 
       value: 'active' as TeamFilter, 
       label: language === 'ar' ? 'نشط' : 'Active',
       count: counts.active,
-      icon: TrendingUp 
+      icon: TrendingUp,
+      activeClass: 'data-[state=on]:bg-success data-[state=on]:text-success-foreground'
     },
     { 
-      value: 'inactive' as TeamFilter, 
-      label: language === 'ar' ? 'غير نشط' : 'Inactive',
-      count: counts.inactive,
-      icon: TrendingDown 
-    },
-    { 
-      value: 'promotable' as TeamFilter, 
-      label: language === 'ar' ? 'مؤهل' : 'Promotable',
-      count: counts.promotable,
-      icon: Star 
+      value: 'has-team' as TeamFilter, 
+      label: language === 'ar' ? 'لديه فريق' : 'Has Team',
+      count: counts.hasTeam,
+      icon: Users,
+      activeClass: 'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground'
     },
   ];
 
@@ -58,11 +62,11 @@ export function TeamFilters({ filter, onFilterChange, counts }: TeamFiltersProps
         onValueChange={(v) => v && onFilterChange(v as TeamFilter)}
         className="justify-start gap-2 w-max"
       >
-        {filters.map(({ value, label, count, icon: Icon }) => (
+        {filters.map(({ value, label, count, icon: Icon, activeClass }) => (
           <ToggleGroupItem 
             key={value}
             value={value}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground px-3 py-2 h-auto rounded-full flex items-center gap-1.5 text-sm whitespace-nowrap"
+            className={`${activeClass} px-3 py-2 h-auto rounded-full flex items-center gap-1.5 text-sm whitespace-nowrap border border-border`}
           >
             <Icon className="h-4 w-4" />
             <span>{label}</span>

@@ -2,7 +2,10 @@ import { ArrowLeft, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { TeamMemberCard, TeamMember } from './TeamMemberCard';
+import { IndirectTeamSummaryCard } from './IndirectTeamSummaryCard';
+import { RankBadge } from '@/components/common/RankBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
 
 interface IndirectTeamListProps {
   parentMember: TeamMember;
@@ -12,8 +15,12 @@ interface IndirectTeamListProps {
 
 export function IndirectTeamList({ parentMember, members, onBack }: IndirectTeamListProps) {
   const { language } = useLanguage();
+  const { user } = useUser();
 
   const activeCount = members.filter(m => m.active).length;
+  
+  // Calculate user's total team size for impact calculation
+  const totalTeamSize = user.directTeam + user.indirectTeam;
 
   return (
     <div className="space-y-4">
@@ -34,22 +41,32 @@ export function IndirectTeamList({ parentMember, members, onBack }: IndirectTeam
         </div>
       </div>
 
-      {/* Parent Info */}
+      {/* Parent Info Card */}
       <Card className="p-3 bg-muted/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg">
             {parentMember.avatar}
           </div>
-          <div>
+          <div className="flex-1">
             <p className="font-medium text-sm">
               {language === 'ar' ? parentMember.nameAr : parentMember.name}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {parentMember.teamSize} {language === 'ar' ? 'عضو' : 'members'}
-            </p>
+            <div className="flex items-center gap-2">
+              <RankBadge rank={parentMember.rank} size="sm" />
+              <span className="text-xs text-muted-foreground">
+                {parentMember.teamSize} {language === 'ar' ? 'عضو' : 'members'}
+              </span>
+            </div>
           </div>
         </div>
       </Card>
+
+      {/* Team Impact Summary Card */}
+      <IndirectTeamSummaryCard 
+        parentMember={parentMember}
+        members={members}
+        totalTeamSize={totalTeamSize}
+      />
 
       {/* Members List */}
       {members.length === 0 ? (
@@ -67,6 +84,7 @@ export function IndirectTeamList({ parentMember, members, onBack }: IndirectTeam
               member={member}
               index={index}
               showArrow={false}
+              showPromotionBadge={true}
             />
           ))}
         </div>
