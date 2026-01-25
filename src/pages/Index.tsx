@@ -1,23 +1,38 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Trophy, Users, ArrowRight, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { Users, Wallet, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { CurrencyBadge } from '@/components/common/CurrencyBadge';
-import { RankBadge } from '@/components/common/RankBadge';
-import { CountdownTimer } from '@/components/common/CountdownTimer';
 import { ProgressRing } from '@/components/common/ProgressRing';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPricing } from '@/contexts/TransactionContext';
+
+// New Home Components
+import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
+import { UserRankingCard } from '@/components/home/UserRankingCard';
+import { ContestWinnersCard } from '@/components/home/ContestWinnersCard';
+import { LuckyWinnersCard } from '@/components/home/LuckyWinnersCard';
+import { ContestJoinCard } from '@/components/home/ContestJoinCard';
+import { useActiveUsers, useContestActiveUsers } from '@/hooks/useActiveUsers';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1 },
+    transition: { staggerChildren: 0.08 },
   },
 };
 
@@ -26,27 +41,92 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// Mock spotlight winners
-const spotlightWinners = [
-  { id: 1, name: 'سارة أحمد', prize: 18.5, avatar: '👩' },
-  { id: 2, name: 'محمد كريم', prize: 9.75, avatar: '👨' },
+// Mock contest data
+const mockContest = {
+  id: 'C-1247',
+  participants: 156,
+  prizePool: 936, // 6 Nova × 156 participants
+  stage: 'stage1' as const,
+  entryFee: 10,
+};
+
+// Mock top 5 winners (from yesterday)
+const contestWinners = [
+  { id: 1, name: 'خالد محمد', avatar: '👨', rank: 'Leader', prize: 468, position: 1 }, // 50%
+  { id: 2, name: 'فاطمة سعيد', avatar: '👩', rank: 'Marketer', prize: 187.2, position: 2 }, // 20%
+  { id: 3, name: 'عمر أحمد', avatar: '👨', rank: 'Leader', prize: 140.4, position: 3 }, // 15%
+  { id: 4, name: 'ليلى حسن', avatar: '👩', rank: 'Manager', prize: 93.6, position: 4 }, // 10%
+  { id: 5, name: 'أحمد كريم', avatar: '👨', rank: 'Marketer', prize: 46.8, position: 5 }, // 5%
+];
+
+// Mock lucky (spotlight) winners
+const luckyWinners = [
+  { id: 1, name: 'سارة أحمد', avatar: '👩', prize: 18.5 },
+  { id: 2, name: 'محمد كريم', avatar: '👨', prize: 9.75 },
 ];
 
 export default function HomePage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
-  const { user } = useUser();
+  const { user, autoConvertNovaToAura, spendAura, spendNova } = useUser();
   
-  // Next contest in 2 hours
-  const nextContest = new Date(Date.now() + 2 * 60 * 60 * 1000);
+  // Active users counters
+  const globalActiveUsers = useActiveUsers();
+  const contestActiveUsers = useContestActiveUsers();
+  
+  // Contest timing - closes at 6 PM today
+  const now = new Date();
+  const closesAt = new Date();
+  closesAt.setHours(18, 0, 0, 0);
+  if (closesAt < now) {
+    closesAt.setDate(closesAt.getDate() + 1);
+  }
+  const endsAt = new Date(closesAt.getTime() + 4 * 60 * 60 * 1000); // 4 hours after close
   
   // Get local currency info - single price per country
   const pricing = getPricing(user.country);
   const novaLocalValue = user.novaBalance * pricing.novaRate;
   const auraLocalValue = user.auraBalance * pricing.auraRate;
+  const totalLocalValue = novaLocalValue + auraLocalValue;
 
-  // Calculate personal activity percentage
-  const personalActivityPercent = Math.round((user.activeWeeks / user.currentWeek) * 100);
+  // User contest state
+  const [hasJoined, setHasJoined] = useState(false);
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  
+  // Mock user ranking data
+  const userDailyRank = 47;
+  const userVotes = 24;
+  const votesNeededForTop50 = 45;
+
+  const handleJoinContest = () => {
+    setJoinDialogOpen(true);
+  };
+
+  const confirmJoin = (useAura: boolean) => {
+    const entryFee = mockContest.entryFee;
+    
+    if (useAura) {
+      if (user.auraBalance >= entryFee) {
+        spendAura(entryFee);
+      } else if (autoConvertNovaToAura(entryFee)) {
+        // Auto-converted
+      } else {
+        toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+        return;
+      }
+    } else {
+      if (user.novaBalance >= entryFee) {
+        spendNova(entryFee);
+      } else {
+        toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+        return;
+      }
+    }
+    
+    setHasJoined(true);
+    setJoinDialogOpen(false);
+    toast.success(language === 'ar' ? '🎉 تم الانضمام للمسابقة!' : '🎉 Joined the contest!');
+  };
 
   return (
     <AppLayout>
@@ -54,54 +134,56 @@ export default function HomePage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="px-4 py-4 space-y-5"
+        className="px-4 py-4 space-y-4"
       >
-        {/* Welcome & Balance Section */}
+        {/* Global Active Users */}
+        <motion.div variants={itemVariants} className="flex justify-center">
+          <ActiveUsersCard count={globalActiveUsers} type="global" />
+        </motion.div>
+
+        {/* Wallet Cards - Single local currency display */}
         <motion.div variants={itemVariants}>
           <Card className="overflow-hidden border-0 shadow-lg">
-            <div className="bg-gradient-dark p-5">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <p className="text-secondary-foreground/70 text-sm">
-                    {t('home.welcome')}
-                  </p>
-                  <h1 className="text-secondary-foreground text-xl font-bold">
-                    {user.name}
-                  </h1>
-                </div>
-                <RankBadge rank={user.rank} size="sm" />
+            <div className="bg-gradient-dark p-4">
+              {/* Total Value in Local Currency */}
+              <div className="text-center mb-4">
+                <p className="text-secondary-foreground/60 text-xs">
+                  {language === 'ar' ? 'إجمالي رصيدك' : 'Your Total Balance'}
+                </p>
+                <p className="text-secondary-foreground text-3xl font-bold">
+                  {pricing.symbol} {totalLocalValue.toFixed(2)}
+                </p>
+                <p className="text-secondary-foreground/50 text-xs">
+                  {pricing.currency}
+                </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Nova Balance */}
-                <div className="bg-gradient-nova/20 backdrop-blur rounded-xl p-4 border border-nova/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-nova text-lg">✦</span>
-                    <span className="text-secondary-foreground/70 text-xs">
-                      Nova
-                    </span>
+                <div className="bg-gradient-nova/20 backdrop-blur rounded-xl p-3 border border-nova/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-nova">✦</span>
+                    <span className="text-secondary-foreground/70 text-xs">Nova</span>
                   </div>
-                  <p className="text-secondary-foreground text-2xl font-bold">
+                  <p className="text-secondary-foreground text-xl font-bold">
                     {user.novaBalance.toFixed(3)}
                   </p>
-                  <p className="text-secondary-foreground/60 text-xs mt-1">
-                    ≈ {pricing.symbol} {novaLocalValue.toFixed(2)}
+                  <p className="text-secondary-foreground/50 text-[10px]">
+                    = {pricing.symbol} {novaLocalValue.toFixed(2)}
                   </p>
                 </div>
 
                 {/* Aura Balance */}
-                <div className="bg-gradient-aura/20 backdrop-blur rounded-xl p-4 border border-aura/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-aura text-lg">◈</span>
-                    <span className="text-secondary-foreground/70 text-xs">
-                      Aura
-                    </span>
+                <div className="bg-gradient-aura/20 backdrop-blur rounded-xl p-3 border border-aura/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-aura">◈</span>
+                    <span className="text-secondary-foreground/70 text-xs">Aura</span>
                   </div>
-                  <p className="text-secondary-foreground text-2xl font-bold">
+                  <p className="text-secondary-foreground text-xl font-bold">
                     {user.auraBalance.toFixed(3)}
                   </p>
-                  <p className="text-secondary-foreground/60 text-xs mt-1">
-                    ≈ {pricing.symbol} {auraLocalValue.toFixed(2)}
+                  <p className="text-secondary-foreground/50 text-[10px]">
+                    = {pricing.symbol} {auraLocalValue.toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -109,125 +191,145 @@ export default function HomePage() {
           </Card>
         </motion.div>
 
-        {/* Quick Stats */}
-        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-3">
-          <Card className="p-3 text-center">
-            <Users className="h-5 w-5 mx-auto mb-1 text-primary" />
+        {/* Quick Stats Row */}
+        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-2">
+          <Card className="p-2 text-center">
+            <Users className="h-4 w-4 mx-auto mb-1 text-primary" />
             <p className="text-lg font-bold">{user.teamSize}</p>
-            <p className="text-[10px] text-muted-foreground">{t('home.teamSize')}</p>
+            <p className="text-[9px] text-muted-foreground">{t('home.teamSize')}</p>
           </Card>
           
-          <Card className="p-3 text-center">
-            <ProgressRing progress={personalActivityPercent} size={40} strokeWidth={4}>
-              <span className="text-xs font-bold">{personalActivityPercent}%</span>
+          <Card className="p-2 text-center">
+            <ProgressRing progress={user.activityPercentage} size={36} strokeWidth={3}>
+              <span className="text-[10px] font-bold">{user.activityPercentage}%</span>
             </ProgressRing>
-            <p className="text-[10px] text-muted-foreground mt-1">{t('home.weeklyActivity')}</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5">{t('home.weeklyActivity')}</p>
           </Card>
           
-          <Card className="p-3 text-center">
-            <TrendingUp className="h-5 w-5 mx-auto mb-1 text-success" />
+          <Card className="p-2 text-center">
+            <TrendingUp className="h-4 w-4 mx-auto mb-1 text-success" />
             <p className="text-lg font-bold">{user.spotlightPoints}</p>
-            <p className="text-[10px] text-muted-foreground">{t('spotlight.yourPoints')}</p>
+            <p className="text-[9px] text-muted-foreground">{t('spotlight.yourPoints')}</p>
           </Card>
         </motion.div>
 
-        {/* Contest Countdown */}
+        {/* Daily Contest Card with Join Button */}
         <motion.div variants={itemVariants}>
-          <Card className="p-5 glow-primary">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">{t('home.contestCountdown')}</h2>
-              </div>
-              <span className="text-xs text-muted-foreground pulse-glow px-2 py-1 rounded-full bg-primary/10">
-                LIVE
-              </span>
-            </div>
-            
-            <CountdownTimer 
-              targetDate={nextContest} 
-              size="md" 
-              showLabels 
-              className="mb-4"
-            />
-            
-            <Button asChild className="w-full bg-gradient-primary hover:opacity-90">
-              <Link to="/contests">
-                {t('home.joinContest')}
-                <ArrowRight className="h-4 w-4 ms-2" />
-              </Link>
-            </Button>
-          </Card>
+          <ContestJoinCard
+            prizePool={mockContest.prizePool}
+            participants={mockContest.participants}
+            stage={mockContest.stage}
+            closesAt={closesAt}
+            endsAt={endsAt}
+            entryFee={mockContest.entryFee}
+            hasJoined={hasJoined}
+            activeInContest={contestActiveUsers}
+            onJoin={handleJoinContest}
+          />
         </motion.div>
 
-        {/* Spotlight Winners */}
+        {/* User Ranking Card */}
         <motion.div variants={itemVariants}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-nova" />
-              <h2 className="font-semibold">{t('home.spotlight')}</h2>
-            </div>
-            <Link 
-              to="/spotlight" 
-              className="text-xs text-primary flex items-center gap-1"
-            >
-              {t('home.viewAll')}
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-          
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-3">
-                {t('home.todayWinners')}
-              </p>
-              <div className="space-y-3">
-                {spotlightWinners.map((winner, index) => (
-                  <motion.div
-                    key={winner.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-nova flex items-center justify-center text-lg">
-                        {winner.avatar}
-                      </div>
-                      <div>
-                        <p className="font-medium">{winner.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {language === 'ar' 
-                            ? (index === 0 ? 'الفائز الأول' : 'الفائز الثاني')
-                            : t(`spotlight.winner${index + 1}`)
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    <CurrencyBadge type="nova" amount={winner.prize} size="sm" />
-                  </motion.div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <UserRankingCard
+            dailyRank={userDailyRank}
+            currentVotes={userVotes}
+            votesNeededForTop50={votesNeededForTop50}
+          />
+        </motion.div>
+
+        {/* Contest Winners (Top 5) */}
+        <motion.div variants={itemVariants}>
+          <ContestWinnersCard
+            winners={contestWinners}
+            prizePool={mockContest.prizePool}
+            country={user.country}
+          />
+        </motion.div>
+
+        {/* Lucky Winners (Spotlight) */}
+        <motion.div variants={itemVariants}>
+          <LuckyWinnersCard
+            winners={luckyWinners}
+            country={user.country}
+          />
         </motion.div>
 
         {/* Quick Actions */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
-          <Button asChild variant="outline" className="h-auto py-4 flex-col gap-2">
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 pb-4">
+          <Button asChild variant="outline" className="h-auto py-3 flex-col gap-1">
             <Link to="/p2p">
-              <span className="text-2xl">🤝</span>
-              <span>{t('nav.p2p')}</span>
+              <span className="text-xl">🤝</span>
+              <span className="text-sm">{t('nav.p2p')}</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" className="h-auto py-4 flex-col gap-2">
+          <Button asChild variant="outline" className="h-auto py-3 flex-col gap-1">
             <Link to="/wallet">
-              <Wallet className="h-6 w-6 text-primary" />
-              <span>{t('nav.wallet')}</span>
+              <Wallet className="h-5 w-5 text-primary" />
+              <span className="text-sm">{t('nav.wallet')}</span>
             </Link>
           </Button>
         </motion.div>
       </motion.div>
+
+      {/* Join Contest Dialog */}
+      <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'انضم للمسابقة' : 'Join Contest'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ar' 
+                ? 'اختر طريقة الدفع للانضمام'
+                : 'Choose payment method to join'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3">
+            <div className="p-3 bg-muted/50 rounded-lg grid grid-cols-2 gap-3 text-center">
+              <div>
+                <p className="text-xs text-muted-foreground">Nova</p>
+                <p className="font-bold text-nova">{user.novaBalance.toFixed(3)} ✦</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Aura</p>
+                <p className="font-bold text-aura">{user.auraBalance.toFixed(3)} ◈</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <p className="text-sm text-center">
+                {language === 'ar' ? 'رسوم الدخول:' : 'Entry Fee:'} 
+                <span className="font-bold"> {mockContest.entryFee}</span>
+              </p>
+            </div>
+            
+            <Button 
+              className="w-full bg-gradient-aura text-aura-foreground"
+              onClick={() => confirmJoin(true)}
+              disabled={user.auraBalance < mockContest.entryFee && user.novaBalance < mockContest.entryFee}
+            >
+              <span className="me-2">◈</span>
+              {language === 'ar' ? 'ادفع بـ Aura' : 'Pay with Aura'}
+            </Button>
+            
+            <Button 
+              className="w-full bg-gradient-nova text-nova-foreground"
+              onClick={() => confirmJoin(false)}
+              disabled={user.novaBalance < mockContest.entryFee}
+            >
+              <span className="me-2">✦</span>
+              {language === 'ar' ? 'ادفع بـ Nova' : 'Pay with Nova'}
+            </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              {language === 'ar' 
+                ? 'إذا لم يكن لديك Aura كافٍ، سيتم التحويل تلقائياً من Nova'
+                : 'If you don\'t have enough Aura, it will auto-convert from Nova'}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
