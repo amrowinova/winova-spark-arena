@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   ShoppingCart, Plus, Clock, CheckCircle, AlertCircle, 
-  ChevronRight, Send, ArrowLeft, Copy, Timer, X
+  ChevronRight, Send, ArrowLeft, Copy, Timer, X, Star
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CurrencyBadge } from '@/components/common/CurrencyBadge';
@@ -27,6 +27,8 @@ import { useUser } from '@/contexts/UserContext';
 import { useTransactions, getPricing, Receipt } from '@/contexts/TransactionContext';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
 import { toast } from 'sonner';
+import { P2PAmountSelector, FIXED_AMOUNTS } from '@/components/p2p/P2PAmountSelector';
+import { P2PTimeSelector, FIXED_TIMES } from '@/components/p2p/P2PTimeSelector';
 
 type OrderStatus = 'open' | 'accepted' | 'paid' | 'released' | 'disputed' | 'cancelled';
 
@@ -146,16 +148,19 @@ export default function P2PPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [buyDialogOpen, setBuyDialogOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState<P2POrder | null>(null);
-  const [buyAmount, setBuyAmount] = useState('');
   const [message, setMessage] = useState('');
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   
   // Create order form
   const [orderType, setOrderType] = useState<'buy' | 'sell'>('sell');
-  const [orderAmount, setOrderAmount] = useState('');
+  const [orderAmount, setOrderAmount] = useState<number | null>(null);
+  const [orderTime, setOrderTime] = useState<number | null>(30); // Default 30 min
   const [orderPrice, setOrderPrice] = useState('');
   const [paymentDetails, setPaymentDetails] = useState('');
+  
+  // Buy dialog - fixed amount
+  const [selectedBuyAmount, setSelectedBuyAmount] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -171,9 +176,10 @@ export default function P2PPage() {
   };
 
   const handleConfirmBuy = () => {
-    if (!selectedListing || !buyAmount) return;
+    if (!selectedListing || !selectedBuyAmount) return;
     
-    const amount = parseFloat(buyAmount);
+    const amount = selectedBuyAmount;
+    const timeMinutes = orderTime || 30;
     const newOrder: P2POrder = {
       ...selectedListing,
       id: `P2P-${Date.now()}`,
@@ -189,7 +195,7 @@ export default function P2PPage() {
       },
       status: 'accepted',
       createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + timeMinutes * 60 * 1000),
       messages: [
         {
           id: 'sys-1',
@@ -207,8 +213,9 @@ export default function P2PPage() {
     setOrders(prev => [newOrder, ...prev]);
     setActiveOrder(newOrder);
     setBuyDialogOpen(false);
-    setBuyAmount('');
+    setSelectedBuyAmount(null);
     setSelectedListing(null);
+    setOrderTime(30);
     
     toast.success(language === 'ar' ? 'تم إنشاء الطلب!' : 'Order created!');
   };
@@ -216,8 +223,9 @@ export default function P2PPage() {
   const handleCreateOrder = () => {
     if (!orderAmount || !orderPrice) return;
     
-    const amount = parseFloat(orderAmount);
+    const amount = orderAmount;
     const price = parseFloat(orderPrice);
+    const timeMinutes = orderTime || 30;
     
     if (orderType === 'sell' && amount > user.novaBalance) {
       toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
@@ -236,16 +244,17 @@ export default function P2PPage() {
         : { id: '', name: '', username: '', avatar: '', rating: 0, country: '' },
       status: 'open',
       createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + timeMinutes * 60 * 1000),
       paymentDetails: orderType === 'sell' ? paymentDetails : undefined,
       messages: [],
     };
 
     setOrders(prev => [newOrder, ...prev]);
     setCreateDialogOpen(false);
-    setOrderAmount('');
+    setOrderAmount(null);
     setOrderPrice('');
     setPaymentDetails('');
+    setOrderTime(30);
     
     toast.success(language === 'ar' ? 'تم إنشاء الطلب!' : 'Order created!');
   };
@@ -756,15 +765,16 @@ export default function P2PPage() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label>{language === 'ar' ? 'الكمية' : 'Amount'}</Label>
-                <Input 
-                  type="number" 
-                  value={orderAmount}
-                  onChange={(e) => setOrderAmount(e.target.value)}
-                  placeholder="100" 
-                />
-              </div>
+              <P2PAmountSelector
+                value={orderAmount}
+                onChange={setOrderAmount}
+                maxAmount={orderType === 'sell' ? user.novaBalance : undefined}
+              />
+
+              <P2PTimeSelector
+                value={orderTime}
+                onChange={setOrderTime}
+              />
 
               <div className="space-y-2">
                 <Label>{language === 'ar' ? 'السعر لكل Nova' : 'Price per Nova'} ({pricing.currency})</Label>
@@ -791,7 +801,7 @@ export default function P2PPage() {
                 <div className="p-3 bg-success/10 rounded-lg">
                   <p className="text-sm text-muted-foreground">{language === 'ar' ? 'الإجمالي' : 'Total'}</p>
                   <p className="text-2xl font-bold text-success">
-                    {pricing.symbol} {(parseFloat(orderAmount) * parseFloat(orderPrice)).toFixed(2)}
+                    {pricing.symbol} {(orderAmount * parseFloat(orderPrice)).toFixed(2)}
                   </p>
                 </div>
               )}
@@ -799,7 +809,7 @@ export default function P2PPage() {
               <Button 
                 className="w-full"
                 onClick={handleCreateOrder}
-                disabled={!orderAmount || !orderPrice || (orderType === 'sell' && parseFloat(orderAmount) > user.novaBalance)}
+                disabled={!orderAmount || !orderPrice || !orderTime || (orderType === 'sell' && orderAmount > user.novaBalance)}
               >
                 {language === 'ar' ? 'إنشاء الطلب' : 'Create Order'}
               </Button>
@@ -819,6 +829,21 @@ export default function P2PPage() {
             
             {selectedListing && (
               <div className="space-y-4">
+                {/* Seller Info with Rating */}
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-xl">
+                    {selectedListing.seller.avatar}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">{selectedListing.seller.name}</p>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Star className="h-4 w-4 text-warning fill-warning" />
+                      <span className="font-medium text-warning">{selectedListing.seller.rating}</span>
+                      <span className="text-muted-foreground">• {selectedListing.seller.country}</span>
+                    </div>
+                  </div>
+                </div>
+
                 <Card className="p-4 bg-muted/50">
                   <h4 className="font-medium mb-2">{language === 'ar' ? 'تفاصيل الطلب' : 'Order Details'}</h4>
                   <div className="space-y-2 text-sm">
@@ -835,32 +860,32 @@ export default function P2PPage() {
                   </div>
                 </Card>
 
-                <div className="space-y-2">
-                  <Label>{language === 'ar' ? 'الكمية' : 'Amount'} (Nova)</Label>
-                  <Input 
-                    type="number" 
-                    value={buyAmount}
-                    onChange={(e) => setBuyAmount(e.target.value)}
-                    placeholder={`1 - ${selectedListing.amount}`}
-                    max={selectedListing.amount}
-                  />
-                </div>
+                <P2PAmountSelector
+                  value={selectedBuyAmount}
+                  onChange={setSelectedBuyAmount}
+                  maxAmount={selectedListing.amount}
+                />
 
-                {buyAmount && (
+                <P2PTimeSelector
+                  value={orderTime}
+                  onChange={setOrderTime}
+                />
+
+                {selectedBuyAmount && (
                   <div className="p-3 bg-success/10 rounded-lg">
                     <p className="text-sm text-muted-foreground">{language === 'ar' ? 'ستدفع' : 'You will pay'}</p>
                     <p className="text-2xl font-bold text-success">
-                      {getPricing(selectedListing.seller.country).symbol} {(parseFloat(buyAmount) * selectedListing.price).toFixed(2)}
+                      {getPricing(selectedListing.seller.country).symbol} {(selectedBuyAmount * selectedListing.price).toFixed(2)}
                     </p>
                   </div>
                 )}
 
                 <Button 
                   className="w-full bg-success text-success-foreground"
-                  disabled={!buyAmount || parseFloat(buyAmount) > selectedListing.amount || parseFloat(buyAmount) <= 0}
+                  disabled={!selectedBuyAmount || !orderTime || selectedBuyAmount > selectedListing.amount}
                   onClick={handleConfirmBuy}
                 >
-                  {language === 'ar' ? 'شراء' : 'Buy'} {buyAmount || 0} Nova
+                  {language === 'ar' ? 'شراء' : 'Buy'} {selectedBuyAmount || 0} Nova
                 </Button>
               </div>
             )}
