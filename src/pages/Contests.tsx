@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { useUser } from '@/contexts/UserContext';
-import { useTransactions, Receipt, countryPricing } from '@/contexts/TransactionContext';
+import { useTransactions, Receipt, getPricing } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   Dialog,
@@ -73,8 +73,8 @@ export default function ContestsPage() {
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
 
-  const pricing = countryPricing[user.country] || countryPricing['Saudi Arabia'];
-  const entryFeeLocal = calculateLocalAmount(contest.entryFee, user.country);
+  const pricing = getPricing(user.country);
+  const entryFeeLocal = calculateLocalAmount(contest.entryFee, user.country, 'aura');
 
   const handleJoinContest = (useAura: boolean) => {
     const hasEnough = useAura ? user.auraBalance >= contest.entryFee : user.novaBalance >= contest.entryFee;
@@ -227,7 +227,7 @@ export default function ContestsPage() {
                   </span>
                 </div>
                 <p className="text-primary-foreground/60 text-xs mt-1">
-                  ≈ {pricing.symbol} {calculateLocalAmount(contest.prizePool, user.country).amount.toFixed(2)}
+                  ≈ {pricing.symbol} {calculateLocalAmount(contest.prizePool, user.country, 'nova').amount.toFixed(2)}
                 </p>
               </div>
 
@@ -403,7 +403,7 @@ export default function ContestsPage() {
               <CardContent className="space-y-4">
                 {prizeDistribution.map((prize, index) => {
                   const prizeAmount = contest.prizePool * prize.percentage / 100;
-                  const prizeLocal = calculateLocalAmount(prizeAmount, user.country);
+                  const prizeLocal = calculateLocalAmount(prizeAmount, user.country, 'nova');
                   
                   return (
                     <div key={prize.place} className="flex items-center gap-3">

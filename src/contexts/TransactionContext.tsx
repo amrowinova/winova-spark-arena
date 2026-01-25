@@ -43,15 +43,31 @@ export interface Receipt extends Transaction {
   receiptNumber: string;
 }
 
-// Country pricing (admin-managed, single price per country)
-export const countryPricing: Record<string, { currency: string; symbol: string; rate: number }> = {
-  'Saudi Arabia': { currency: 'SAR', symbol: 'ر.س', rate: 3.75 },
-  'Egypt': { currency: 'EGP', symbol: 'ج.م', rate: 30.90 },
-  'Palestine': { currency: 'ILS', symbol: '₪', rate: 3.65 },
-  'Syria': { currency: 'SYP', symbol: 'ل.س', rate: 13000 },
-  'UAE': { currency: 'AED', symbol: 'د.إ', rate: 3.67 },
-  'Jordan': { currency: 'JOD', symbol: 'د.أ', rate: 0.71 },
-  'Kuwait': { currency: 'KWD', symbol: 'د.ك', rate: 0.31 },
+// Country pricing (admin-managed, single fixed price per country)
+// Aura is always = Nova / 2
+export const countryPricing: Record<string, { currency: string; symbol: string; novaRate: number }> = {
+  'Saudi Arabia': { currency: 'SAR', symbol: 'ر.س', novaRate: 3.75 },
+  'Egypt': { currency: 'EGP', symbol: 'ج.م', novaRate: 30.90 },
+  'Palestine': { currency: 'ILS', symbol: '₪', novaRate: 3.65 },
+  'Syria': { currency: 'SYP', symbol: 'ل.س', novaRate: 13000 },
+  'UAE': { currency: 'AED', symbol: 'د.إ', novaRate: 3.67 },
+  'Jordan': { currency: 'JOD', symbol: 'د.أ', novaRate: 0.71 },
+  'Kuwait': { currency: 'KWD', symbol: 'د.ك', novaRate: 0.31 },
+};
+
+// Helper to get Aura rate (always Nova / 2)
+export const getAuraRate = (country: string) => {
+  const pricing = countryPricing[country] || countryPricing['Saudi Arabia'];
+  return pricing.novaRate / 2;
+};
+
+// Helper to get pricing for a country
+export const getPricing = (country: string) => {
+  const pricing = countryPricing[country] || countryPricing['Saudi Arabia'];
+  return {
+    ...pricing,
+    auraRate: pricing.novaRate / 2,
+  };
 };
 
 interface TransactionContextType {
@@ -61,7 +77,8 @@ interface TransactionContextType {
   getTransactionsByType: (type: TransactionType) => Transaction[];
   getReceiptById: (id: string) => Receipt | undefined;
   getUserReceipts: (userId: string) => Receipt[];
-  calculateLocalAmount: (novaAmount: number, country: string) => { amount: number; currency: string; symbol: string };
+  calculateLocalAmount: (amount: number, country: string, currency: 'nova' | 'aura') => { amount: number; currency: string; symbol: string };
+  getNovaToAuraRate: () => number; // Always 2 Nova = 1 Aura value, but 1:1 conversion
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
@@ -85,7 +102,7 @@ const initialTransactions: Transaction[] = [
     status: 'completed',
     amount: 10,
     currency: 'aura',
-    localAmount: 37.5,
+    localAmount: 18.75, // Aura = Nova/2
     localCurrency: 'SAR',
     sender: { id: '1', name: 'أحمد', username: 'ahmed_sa', country: 'Saudi Arabia' },
     reason: 'دخول المسابقة اليومية #1247',
@@ -98,7 +115,7 @@ const initialTransactions: Transaction[] = [
     status: 'completed',
     amount: 12,
     currency: 'aura',
-    localAmount: 45,
+    localAmount: 22.5,
     localCurrency: 'SAR',
     sender: { id: '2', name: 'سارة', username: 'sara_ksa', country: 'Saudi Arabia' },
     receiver: { id: '1', name: 'أحمد', username: 'ahmed_sa', country: 'Saudi Arabia' },
@@ -130,20 +147,23 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     }))
   );
 
-  const calculateLocalAmount = (novaAmount: number, country: string) => {
+  const calculateLocalAmount = (amount: number, country: string, currency: 'nova' | 'aura' = 'nova') => {
     const pricing = countryPricing[country] || countryPricing['Saudi Arabia'];
+    const rate = currency === 'nova' ? pricing.novaRate : pricing.novaRate / 2;
     return {
-      amount: novaAmount * pricing.rate,
+      amount: amount * rate,
       currency: pricing.currency,
       symbol: pricing.symbol,
     };
   };
 
+  const getNovaToAuraRate = () => 1; // 1 Nova = 1 Aura in conversion (but Aura value is Nova/2)
+
   const createTransaction = (
     txData: Omit<Transaction, 'id' | 'createdAt' | 'localAmount' | 'localCurrency'>
   ): Receipt => {
     const country = txData.sender.country;
-    const localInfo = calculateLocalAmount(txData.amount, country);
+    const localInfo = calculateLocalAmount(txData.amount, country, txData.currency);
     
     const transaction: Transaction = {
       ...txData,
@@ -186,6 +206,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
         getReceiptById,
         getUserReceipts,
         calculateLocalAmount,
+        getNovaToAuraRate,
       }}
     >
       {children}

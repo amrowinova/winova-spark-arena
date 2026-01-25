@@ -48,7 +48,7 @@ export function TransferNovaDialog({
   const [isLoading, setIsLoading] = useState(false);
 
   const novaAmount = parseFloat(amount) || 0;
-  const localInfo = calculateLocalAmount(novaAmount, user.country);
+  const localInfo = calculateLocalAmount(novaAmount, user.country, 'nova');
   const hasEnoughBalance = novaAmount <= user.novaBalance && novaAmount > 0;
 
   const handleTransfer = async () => {

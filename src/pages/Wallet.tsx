@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Wallet as WalletIcon, Send, RefreshCw, History, ChevronRight, Info } from 'lucide-react';
+import { Wallet as WalletIcon, Send, RefreshCw, History, Info } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/contexts/UserContext';
-import { useTransactions, countryPricing } from '@/contexts/TransactionContext';
+import { useTransactions, countryPricing, getPricing } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ReceiptCard, ReceiptDialog } from '@/components/common/ReceiptCard';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
@@ -26,10 +26,10 @@ export default function WalletPage() {
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
 
-  // Get local currency info
-  const pricing = countryPricing[user.country] || countryPricing['Saudi Arabia'];
-  const novaLocalValue = calculateLocalAmount(user.novaBalance, user.country);
-  const auraLocalValue = calculateLocalAmount(user.auraBalance, user.country);
+  // Get local currency info - single price per country
+  const pricing = getPricing(user.country);
+  const novaLocalValue = calculateLocalAmount(user.novaBalance, user.country, 'nova');
+  const auraLocalValue = calculateLocalAmount(user.auraBalance, user.country, 'aura');
   const totalLocalValue = novaLocalValue.amount + auraLocalValue.amount;
 
   // Filter user receipts
@@ -137,8 +137,8 @@ export default function WalletPage() {
               <Info className="h-4 w-4 text-aura mt-0.5 shrink-0" />
               <p className="text-xs text-aura">
                 {language === 'ar' 
-                  ? 'Aura غير قابلة للتحويل بين المستخدمين. تُستخدم فقط في المسابقات والتصويت.'
-                  : 'Aura cannot be transferred between users. It can only be used for contests and voting.'}
+                  ? 'Aura غير قابلة للتحويل. تُستخدم فقط في المسابقات والتصويت. قيمة Aura = نصف قيمة Nova.'
+                  : 'Aura cannot be transferred. Used only for contests and voting. Aura value = half of Nova.'}
               </p>
             </div>
           </Card>
@@ -189,13 +189,21 @@ export default function WalletPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="p-3">
+          <Card className="p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                {language === 'ar' ? 'سعر Nova الرسمي' : 'Official Nova Price'}
+                {language === 'ar' ? 'سعر Nova' : 'Nova Price'}
               </span>
-              <span className="font-bold text-primary">
-                1 ✦ = {pricing.symbol} {pricing.rate.toFixed(2)} {pricing.currency}
+              <span className="font-bold text-nova">
+                1 ✦ = {pricing.symbol} {pricing.novaRate.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {language === 'ar' ? 'سعر Aura' : 'Aura Price'}
+              </span>
+              <span className="font-bold text-aura">
+                1 ◈ = {pricing.symbol} {pricing.auraRate.toFixed(2)}
               </span>
             </div>
           </Card>
