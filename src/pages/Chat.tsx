@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Pin, Search, ArrowLeft, DollarSign, X, CheckCircle } from 'lucide-react';
+import { MessageCircle, Send, Pin, Search, X } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,19 +13,12 @@ import { useUser } from '@/contexts/UserContext';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { Receipt } from '@/contexts/TransactionContext';
-
-interface Message {
-  id: string;
-  sender: string;
-  senderId: string;
-  content: string;
-  time: string;
-  isMine: boolean;
-  isSystem?: boolean;
-  systemType?: 'vote' | 'transfer' | 'info' | 'contest';
-  pinned?: boolean;
-  receipt?: Receipt;
-}
+import { ChatHeader } from '@/components/chat/ChatHeader';
+import { MessageBubble, ChatMessage } from '@/components/chat/MessageBubble';
+import { ForwardDialog } from '@/components/chat/ForwardDialog';
+import { ReplyBar } from '@/components/chat/ReplyBar';
+import { toast } from '@/hooks/use-toast';
+import type { UserRank } from '@/contexts/UserContext';
 
 interface Conversation {
   id: string;
@@ -33,15 +26,18 @@ interface Conversation {
   name: string;
   username?: string;
   avatar: string;
+  rank?: UserRank;
+  isOnline?: boolean;
+  lastSeen?: string;
   lastMessage: string;
   time: string;
   unread: number;
   isSystem?: boolean;
-  messages: Message[];
-  pinnedMessages: Message[];
+  messages: ChatMessage[];
+  pinnedMessages: ChatMessage[];
 }
 
-// Mock conversations with messages
+// Mock conversations with enhanced messages
 const initialConversations: Conversation[] = [
   {
     id: '1',
@@ -49,14 +45,43 @@ const initialConversations: Conversation[] = [
     name: 'سارة أحمد',
     username: 'sara_ahmed',
     avatar: '👩',
+    rank: 'marketer',
+    isOnline: true,
     lastMessage: 'شكراً على التصويت!',
     time: '2m',
     unread: 2,
     messages: [
-      { id: 'm1', sender: 'سارة أحمد', senderId: '2', content: 'مرحباً! كيف حالك؟', time: '10:30 AM', isMine: false },
-      { id: 'm2', sender: 'أنت', senderId: '1', content: 'الحمد لله بخير، وأنتِ؟', time: '10:32 AM', isMine: true },
-      { id: 'm3', sender: 'System', senderId: 'system', content: 'لقد صوّت لك سارة 12 صوت – المرحلة الأولى', time: '10:33 AM', isMine: false, isSystem: true, systemType: 'vote' },
-      { id: 'm4', sender: 'سارة أحمد', senderId: '2', content: 'شكراً على التصويت!', time: '10:35 AM', isMine: false },
+      { 
+        id: 'm1', 
+        sender: 'سارة أحمد', 
+        senderId: '2', 
+        content: 'مرحباً! كيف حالك؟', 
+        time: '10:30 AM', 
+        isMine: false,
+        reactions: [{ emoji: '👋', count: 1, userReacted: true }]
+      },
+      { 
+        id: 'm2', 
+        sender: 'أنت', 
+        senderId: '1', 
+        content: 'الحمد لله بخير، وأنتِ؟', 
+        time: '10:32 AM', 
+        isMine: true,
+        read: true
+      },
+      { 
+        id: 'm3', 
+        sender: 'سارة أحمد', 
+        senderId: '2', 
+        content: 'شكراً على التصويت!', 
+        time: '10:35 AM', 
+        isMine: false,
+        transaction: {
+          type: 'vote',
+          amount: 12,
+          description: 'صوّت لك سارة – المرحلة الأولى',
+        }
+      },
     ],
     pinnedMessages: [],
   },
@@ -70,8 +95,7 @@ const initialConversations: Conversation[] = [
     unread: 5,
     messages: [
       { id: 't1', sender: 'محمد خالد', senderId: '3', content: 'السلام عليكم', time: '09:00 AM', isMine: false },
-      { id: 't2', sender: 'System', senderId: 'system', content: 'انضم عضو جديد: ليلى محمد', time: '09:15 AM', isMine: false, isSystem: true, systemType: 'info' },
-      { id: 't3', sender: 'أنت', senderId: '1', content: 'أهلاً بكم جميعاً!', time: '09:30 AM', isMine: true },
+      { id: 't3', sender: 'أنت', senderId: '1', content: 'أهلاً بكم جميعاً!', time: '09:30 AM', isMine: true, read: true },
       { id: 't4', sender: 'محمد خالد', senderId: '3', content: 'مبروك للجميع على الإنجاز!', time: '10:00 AM', isMine: false, pinned: true },
     ],
     pinnedMessages: [
@@ -87,9 +111,27 @@ const initialConversations: Conversation[] = [
     time: '1h',
     unread: 0,
     messages: [
-      { id: 'p1', sender: 'System', senderId: 'system', content: 'تم إنشاء طلب P2P جديد: 100 Nova', time: '08:00 AM', isMine: false, isSystem: true, systemType: 'info' },
-      { id: 'p2', sender: 'عمر البدر', senderId: '4', content: 'مرحباً، سأقوم بالتحويل الآن', time: '08:05 AM', isMine: false },
-      { id: 'p3', sender: 'System', senderId: 'system', content: 'تم تأكيد الدفع من قبل عمر', time: '08:30 AM', isMine: false, isSystem: true, systemType: 'transfer' },
+      { 
+        id: 'p2', 
+        sender: 'عمر البدر', 
+        senderId: '4', 
+        content: 'مرحباً، سأقوم بالتحويل الآن', 
+        time: '08:05 AM', 
+        isMine: false 
+      },
+      { 
+        id: 'p3', 
+        sender: 'عمر البدر', 
+        senderId: '4', 
+        content: 'تم التحويل',
+        time: '08:30 AM', 
+        isMine: false,
+        transaction: {
+          type: 'transfer',
+          amount: 100,
+          description: 'تحويل P2P من عمر',
+        }
+      },
     ],
     pinnedMessages: [],
   },
@@ -103,20 +145,31 @@ const initialConversations: Conversation[] = [
     unread: 3,
     isSystem: true,
     messages: [
-      { id: 's1', sender: 'System', senderId: 'system', content: 'مرحباً بك في WINOVA!', time: 'Yesterday', isMine: false, isSystem: true, systemType: 'info' },
-      { id: 's2', sender: 'System', senderId: 'system', content: 'باقي 8 أصوات لتدخل Top 50', time: '3h ago', isMine: false, isSystem: true, systemType: 'contest' },
-      { id: 's3', sender: 'System', senderId: 'system', content: 'حصلت على 10 Aura من مكافآت التصويت', time: '2h ago', isMine: false, isSystem: true, systemType: 'vote' },
+      { 
+        id: 's2', 
+        sender: 'System', 
+        senderId: 'system', 
+        content: 'باقي 8 أصوات لتدخل Top 50', 
+        time: '3h ago', 
+        isMine: false 
+      },
+      { 
+        id: 's3', 
+        sender: 'System', 
+        senderId: 'system', 
+        content: '',
+        time: '2h ago', 
+        isMine: false,
+        transaction: {
+          type: 'aura',
+          amount: 10,
+          description: 'مكافآت التصويت',
+        }
+      },
     ],
     pinnedMessages: [],
   },
 ];
-
-const systemMessageColors = {
-  vote: 'bg-aura/10 border-aura/30 text-aura',
-  transfer: 'bg-nova/10 border-nova/30 text-nova',
-  info: 'bg-primary/10 border-primary/30 text-primary',
-  contest: 'bg-success/10 border-success/30 text-success',
-};
 
 export default function ChatPage() {
   const { t } = useTranslation();
@@ -131,6 +184,8 @@ export default function ChatPage() {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -146,13 +201,15 @@ export default function ChatPage() {
   const handleSend = () => {
     if (!message.trim() || !activeChat) return;
     
-    const newMessage: Message = {
+    const newMessage: ChatMessage = {
       id: `msg-${Date.now()}`,
       sender: user.name,
       senderId: user.id,
       content: message,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMine: true,
+      read: false,
+      replyTo: replyTo ? { id: replyTo.id, sender: replyTo.sender, content: replyTo.content } : undefined,
     };
 
     setConversations(prev => 
@@ -168,45 +225,92 @@ export default function ChatPage() {
     );
     
     setMessage('');
+    setReplyTo(null);
   };
 
   const handleTransferComplete = (receipt: Receipt) => {
     if (!activeChat) return;
     
-    // Add system message with receipt
-    const systemMessage: Message = {
-      id: `sys-${Date.now()}`,
-      sender: 'System',
-      senderId: 'system',
-      content: language === 'ar' 
-        ? `تم تحويل ${receipt.amount.toFixed(3)} Nova إلى ${activeChat.name}`
-        : `Transferred ${receipt.amount.toFixed(3)} Nova to ${activeChat.name}`,
+    const transactionMessage: ChatMessage = {
+      id: `tx-${Date.now()}`,
+      sender: user.name,
+      senderId: user.id,
+      content: '',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMine: false,
-      isSystem: true,
-      systemType: 'transfer',
-      receipt: receipt,
+      isMine: true,
+      transaction: {
+        type: 'transfer',
+        amount: receipt.amount,
+        description: language === 'ar' 
+          ? `تحويل إلى ${activeChat.name}`
+          : `Transfer to ${activeChat.name}`,
+        receipt: receipt,
+      },
     };
 
     setConversations(prev => 
       prev.map(conv => 
         conv.id === activeChat.id 
-          ? { ...conv, messages: [...conv.messages, systemMessage] }
+          ? { ...conv, messages: [...conv.messages, transactionMessage] }
           : conv
       )
     );
     
     setActiveChat(prev => 
-      prev ? { ...prev, messages: [...prev.messages, systemMessage] } : prev
+      prev ? { ...prev, messages: [...prev.messages, transactionMessage] } : prev
     );
   };
 
-  const handlePinMessage = (msg: Message) => {
+  const handleReply = (msg: ChatMessage) => {
+    setReplyTo(msg);
+  };
+
+  const handleForward = (msg: ChatMessage) => {
+    setForwardMessage(msg);
+  };
+
+  const handleForwardSubmit = (contactIds: string[]) => {
+    toast({
+      title: language === 'ar' ? 'تم الإرسال' : 'Forwarded',
+      description: language === 'ar' 
+        ? `تم إعادة التوجيه إلى ${contactIds.length} جهة اتصال`
+        : `Forwarded to ${contactIds.length} contacts`,
+    });
+  };
+
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast({
+      title: language === 'ar' ? 'تم النسخ' : 'Copied',
+    });
+  };
+
+  const handleDelete = (messageId: string) => {
+    if (!activeChat) return;
+    
+    setConversations(prev => 
+      prev.map(conv => 
+        conv.id === activeChat.id 
+          ? { ...conv, messages: conv.messages.filter(m => m.id !== messageId) }
+          : conv
+      )
+    );
+    
+    setActiveChat(prev => 
+      prev ? { ...prev, messages: prev.messages.filter(m => m.id !== messageId) } : prev
+    );
+  };
+
+  const handlePin = (msg: ChatMessage) => {
     if (!activeChat) return;
     
     const currentPinned = activeChat.pinnedMessages || [];
     if (currentPinned.length >= 3 && !msg.pinned) {
-      return; // Max 3 pinned messages
+      toast({
+        title: language === 'ar' ? 'الحد الأقصى 3 رسائل' : 'Maximum 3 pinned messages',
+        variant: 'destructive',
+      });
+      return;
     }
 
     const updatedPinned = msg.pinned 
@@ -238,42 +342,64 @@ export default function ChatPage() {
     );
   };
 
+  const handleReact = (messageId: string, emoji: string) => {
+    if (!activeChat) return;
+
+    const updateReactions = (messages: ChatMessage[]) => 
+      messages.map(m => {
+        if (m.id !== messageId) return m;
+        
+        const currentReactions = m.reactions || [];
+        const existingIndex = currentReactions.findIndex(r => r.emoji === emoji);
+        
+        let newReactions;
+        if (existingIndex >= 0) {
+          const existing = currentReactions[existingIndex];
+          if (existing.userReacted) {
+            newReactions = currentReactions.map((r, i) => 
+              i === existingIndex ? { ...r, count: r.count - 1, userReacted: false } : r
+            ).filter(r => r.count > 0);
+          } else {
+            newReactions = currentReactions.map((r, i) => 
+              i === existingIndex ? { ...r, count: r.count + 1, userReacted: true } : r
+            );
+          }
+        } else {
+          newReactions = [...currentReactions, { emoji, count: 1, userReacted: true }];
+        }
+        
+        return { ...m, reactions: newReactions };
+      });
+
+    setConversations(prev => 
+      prev.map(conv => 
+        conv.id === activeChat.id 
+          ? { ...conv, messages: updateReactions(conv.messages) }
+          : conv
+      )
+    );
+    
+    setActiveChat(prev => 
+      prev ? { ...prev, messages: updateReactions(prev.messages) } : prev
+    );
+  };
+
   // Active Chat View
   if (activeChat) {
     return (
       <AppLayout title={activeChat.name} showNav={false}>
         <div className="flex flex-col h-[calc(100vh-60px)]">
           {/* Chat Header */}
-          <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3 shrink-0">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setActiveChat(null)}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg">
-              {activeChat.avatar}
-            </div>
-            <div className="flex-1">
-              <p className="font-medium">{activeChat.name}</p>
-              {activeChat.username && (
-                <p className="text-xs text-muted-foreground">@{activeChat.username}</p>
-              )}
-            </div>
-            
-            {/* Transfer Button (DM only) */}
-            {activeChat.type === 'dm' && (
-              <Button 
-                size="sm" 
-                onClick={() => setTransferDialogOpen(true)}
-                className="bg-gradient-nova text-nova-foreground"
-              >
-                <DollarSign className="h-4 w-4 me-1" />
-                {language === 'ar' ? 'تحويل' : 'Transfer'}
-              </Button>
-            )}
-          </div>
+          <ChatHeader
+            name={activeChat.name}
+            username={activeChat.username}
+            avatar={activeChat.avatar}
+            rank={activeChat.rank}
+            isOnline={activeChat.isOnline}
+            lastSeen={activeChat.lastSeen}
+            onBack={() => setActiveChat(null)}
+            onTransfer={() => setTransferDialogOpen(true)}
+          />
 
           {/* Pinned Messages Bar */}
           {activeChat.pinnedMessages && activeChat.pinnedMessages.length > 0 && (
@@ -292,7 +418,7 @@ export default function ChatPage() {
                   >
                     <span className="truncate">{msg.content}</span>
                     <button 
-                      onClick={() => handlePinMessage(msg)}
+                      onClick={() => handlePin(msg)}
                       className="text-muted-foreground hover:text-destructive"
                     >
                       <X className="h-3 w-3" />
@@ -305,73 +431,34 @@ export default function ChatPage() {
 
           {/* Messages */}
           <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
+            <div className="space-y-1">
               {activeChat.messages.map((msg) => (
-                <motion.div
+                <MessageBubble
                   key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[85%] ${msg.isMine ? 'order-2' : ''}`}>
-                    {/* System Message */}
-                    {msg.isSystem ? (
-                      <div 
-                        className={`px-4 py-3 rounded-xl border cursor-pointer ${
-                          systemMessageColors[msg.systemType || 'info']
-                        }`}
-                        onClick={() => {
-                          if (msg.receipt) {
-                            setSelectedReceipt(msg.receipt);
-                            setReceiptDialogOpen(true);
-                          }
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 shrink-0" />
-                          <p className="text-sm font-medium">{msg.content}</p>
-                        </div>
-                        {msg.receipt && (
-                          <p className="text-xs mt-1 opacity-70">
-                            {language === 'ar' ? 'اضغط لعرض الإيصال' : 'Tap to view receipt'}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <>
-                        {/* Pinned indicator */}
-                        {msg.pinned && (
-                          <div className="flex items-center gap-1 text-xs text-primary mb-1">
-                            <Pin className="h-3 w-3" />
-                            {language === 'ar' ? 'مثبت' : 'Pinned'}
-                          </div>
-                        )}
-                        
-                        {/* Regular Message */}
-                        <div 
-                          className={`px-4 py-2 rounded-2xl ${
-                            msg.isMine 
-                              ? 'bg-primary text-primary-foreground rounded-br-sm' 
-                              : 'bg-muted rounded-bl-sm'
-                          }`}
-                          onDoubleClick={() => !msg.isSystem && handlePinMessage(msg)}
-                        >
-                          {!msg.isMine && (
-                            <p className="text-xs font-medium mb-1 opacity-70">{msg.sender}</p>
-                          )}
-                          <p className="text-sm">{msg.content}</p>
-                        </div>
-                      </>
-                    )}
-                    <p className={`text-[10px] text-muted-foreground mt-1 ${msg.isMine ? 'text-end' : ''}`}>
-                      {msg.time}
-                    </p>
-                  </div>
-                </motion.div>
+                  message={msg}
+                  onReply={handleReply}
+                  onForward={handleForward}
+                  onCopy={handleCopy}
+                  onDelete={handleDelete}
+                  onPin={handlePin}
+                  onReact={handleReact}
+                  onTransactionClick={(receipt) => {
+                    setSelectedReceipt(receipt);
+                    setReceiptDialogOpen(true);
+                  }}
+                />
               ))}
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
+
+          {/* Reply Bar */}
+          {replyTo && (
+            <ReplyBar
+              replyTo={{ sender: replyTo.sender, content: replyTo.content }}
+              onCancel={() => setReplyTo(null)}
+            />
+          )}
 
           {/* Input */}
           <div className="p-4 border-t border-border bg-card safe-bottom">
@@ -387,9 +474,6 @@ export default function ChatPage() {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1 text-center">
-              {language === 'ar' ? 'اضغط مرتين على رسالة لتثبيتها' : 'Double-tap message to pin'}
-            </p>
           </div>
 
           {/* Transfer Dialog */}
@@ -400,6 +484,14 @@ export default function ChatPage() {
             recipientName={activeChat.name}
             recipientUsername={activeChat.username}
             onTransferComplete={handleTransferComplete}
+          />
+
+          {/* Forward Dialog */}
+          <ForwardDialog
+            open={!!forwardMessage}
+            onClose={() => setForwardMessage(null)}
+            onForward={handleForwardSubmit}
+            messagePreview={forwardMessage?.content || ''}
           />
 
           {/* Receipt Dialog */}
@@ -474,6 +566,9 @@ export default function ChatPage() {
                         conv.isSystem ? 'bg-primary/20' : 'bg-muted'
                       }`}>
                         {conv.avatar}
+                        {conv.isOnline && (
+                          <span className="absolute bottom-0 end-0 w-3 h-3 bg-success rounded-full border-2 border-card" />
+                        )}
                         {conv.unread > 0 && (
                           <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
                             {conv.unread}
