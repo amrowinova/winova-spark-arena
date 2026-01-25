@@ -430,17 +430,20 @@ export default function ChatPage() {
 
         {/* Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all" className="text-xs">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="all" className="text-[10px] px-1">
               {language === 'ar' ? 'الكل' : 'All'}
             </TabsTrigger>
-            <TabsTrigger value="dm" className="text-xs">
+            <TabsTrigger value="dm" className="text-[10px] px-1">
               {language === 'ar' ? 'خاص' : 'DM'}
             </TabsTrigger>
-            <TabsTrigger value="team" className="text-xs">
+            <TabsTrigger value="team" className="text-[10px] px-1">
               {language === 'ar' ? 'الفريق' : 'Team'}
             </TabsTrigger>
-            <TabsTrigger value="system" className="text-xs">
+            <TabsTrigger value="p2p" className="text-[10px] px-1">
+              P2P
+            </TabsTrigger>
+            <TabsTrigger value="system" className="text-[10px] px-1">
               {language === 'ar' ? 'النظام' : 'System'}
             </TabsTrigger>
           </TabsList>

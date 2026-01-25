@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
-import { useTransactions, countryPricing, Receipt } from '@/contexts/TransactionContext';
+import { useTransactions, getPricing, Receipt } from '@/contexts/TransactionContext';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
 import { toast } from 'sonner';
 
@@ -163,7 +163,7 @@ export default function P2PPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeOrder?.messages]);
 
-  const pricing = countryPricing[user.country] || countryPricing['Saudi Arabia'];
+  const pricing = getPricing(user.country);
 
   const handleBuyFromListing = (listing: P2POrder) => {
     setSelectedListing(listing);
@@ -578,7 +578,7 @@ export default function P2PPage() {
               {language === 'ar' ? 'سعر Nova الرسمي' : 'Official Nova Price'}
             </span>
             <span className="font-bold text-primary">
-              1 ✦ = {pricing.symbol} {pricing.rate.toFixed(2)} {pricing.currency}
+              1 ✦ = {pricing.symbol} {pricing.novaRate.toFixed(2)} {pricing.currency}
             </span>
           </div>
         </Card>
@@ -626,7 +626,7 @@ export default function P2PPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">{language === 'ar' ? 'السعر' : 'Price'}</p>
                         <p className="text-lg font-bold text-success">
-                          {countryPricing[listing.seller.country]?.symbol} {listing.price}
+                          {getPricing(listing.seller.country).symbol} {listing.price}
                         </p>
                       </div>
                       <div>
@@ -772,7 +772,7 @@ export default function P2PPage() {
                   type="number" 
                   value={orderPrice}
                   onChange={(e) => setOrderPrice(e.target.value)}
-                  placeholder={pricing.rate.toString()} 
+                  placeholder={pricing.novaRate.toString()} 
                 />
               </div>
 
@@ -825,7 +825,7 @@ export default function P2PPage() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{language === 'ar' ? 'السعر' : 'Price'}</span>
                       <span className="font-medium">
-                        {countryPricing[selectedListing.seller.country]?.symbol} {selectedListing.price} / Nova
+                        {getPricing(selectedListing.seller.country).symbol} {selectedListing.price} / Nova
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -850,7 +850,7 @@ export default function P2PPage() {
                   <div className="p-3 bg-success/10 rounded-lg">
                     <p className="text-sm text-muted-foreground">{language === 'ar' ? 'ستدفع' : 'You will pay'}</p>
                     <p className="text-2xl font-bold text-success">
-                      {countryPricing[selectedListing.seller.country]?.symbol} {(parseFloat(buyAmount) * selectedListing.price).toFixed(2)}
+                      {getPricing(selectedListing.seller.country).symbol} {(parseFloat(buyAmount) * selectedListing.price).toFixed(2)}
                     </p>
                   </div>
                 )}

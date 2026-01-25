@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { countryPricing } from '@/contexts/TransactionContext';
+import { getPricing } from '@/contexts/TransactionContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -40,10 +40,13 @@ export default function HomePage() {
   // Next contest in 2 hours
   const nextContest = new Date(Date.now() + 2 * 60 * 60 * 1000);
   
-  // Get local currency info
-  const pricing = countryPricing[user.country] || countryPricing['Saudi Arabia'];
-  const novaLocalValue = user.novaBalance * pricing.rate;
-  const auraLocalValue = user.auraBalance * pricing.rate;
+  // Get local currency info - single price per country
+  const pricing = getPricing(user.country);
+  const novaLocalValue = user.novaBalance * pricing.novaRate;
+  const auraLocalValue = user.auraBalance * pricing.auraRate;
+
+  // Calculate personal activity percentage
+  const personalActivityPercent = Math.round((user.activeWeeks / user.currentWeek) * 100);
 
   return (
     <AppLayout>
@@ -115,8 +118,8 @@ export default function HomePage() {
           </Card>
           
           <Card className="p-3 text-center">
-            <ProgressRing progress={user.activityPercentage} size={40} strokeWidth={4}>
-              <span className="text-xs font-bold">{user.activityPercentage}%</span>
+            <ProgressRing progress={personalActivityPercent} size={40} strokeWidth={4}>
+              <span className="text-xs font-bold">{personalActivityPercent}%</span>
             </ProgressRing>
             <p className="text-[10px] text-muted-foreground mt-1">{t('home.weeklyActivity')}</p>
           </Card>

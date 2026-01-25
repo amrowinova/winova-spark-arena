@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Users, UserPlus, Copy, Share2, ChevronRight, Target, Star, Crown, CheckCircle } from 'lucide-react';
+import { Users, UserPlus, Copy, Share2, ChevronRight, Target, Star, Crown, CheckCircle, Calendar, TrendingUp } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { RankBadge } from '@/components/common/RankBadge';
 import { ProgressRing } from '@/components/common/ProgressRing';
@@ -10,28 +10,60 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, UserRank } from '@/contexts/UserContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
 // Promotion requirements
-const promotionRequirements: Record<UserRank, { nextRank: UserRank | null; directRequired: number; description: string }> = {
-  subscriber: { nextRank: 'marketer', directRequired: 3, description: 'Bring 3 active subscribers' },
-  marketer: { nextRank: 'leader', directRequired: 10, description: 'Bring 10 direct marketers' },
-  leader: { nextRank: 'manager', directRequired: 10, description: 'Bring 10 direct leaders' },
-  manager: { nextRank: 'president', directRequired: 10, description: '10+ managers + highest spotlight points' },
-  president: { nextRank: null, directRequired: 0, description: 'Top rank achieved!' },
+const promotionRequirements: Record<UserRank, { 
+  nextRank: UserRank | null; 
+  directRequired: number; 
+  descriptionEn: string;
+  descriptionAr: string;
+}> = {
+  subscriber: { 
+    nextRank: 'marketer', 
+    directRequired: 3, 
+    descriptionEn: 'Bring 3 active subscribers',
+    descriptionAr: 'أحضر 3 مشتركين نشطين'
+  },
+  marketer: { 
+    nextRank: 'leader', 
+    directRequired: 10, 
+    descriptionEn: 'Bring 10 direct marketers',
+    descriptionAr: 'أحضر 10 مسوّقين مباشرين'
+  },
+  leader: { 
+    nextRank: 'manager', 
+    directRequired: 10, 
+    descriptionEn: 'Bring 10 direct leaders',
+    descriptionAr: 'أحضر 10 قادة مباشرين'
+  },
+  manager: { 
+    nextRank: 'president', 
+    directRequired: 10, 
+    descriptionEn: '10+ managers + highest spotlight points',
+    descriptionAr: '10+ مديرين + أعلى نقاط أضواء'
+  },
+  president: { 
+    nextRank: null, 
+    directRequired: 0, 
+    descriptionEn: 'Top rank achieved!',
+    descriptionAr: 'أعلى رتبة!'
+  },
 };
 
 // Mock team members
 const teamMembers = [
-  { id: 1, name: 'Sara A.', rank: 'marketer' as UserRank, active: true, avatar: '👩' },
-  { id: 2, name: 'Mohammed K.', rank: 'subscriber' as UserRank, active: true, avatar: '👨' },
-  { id: 3, name: 'Layla H.', rank: 'subscriber' as UserRank, active: false, avatar: '👩' },
-  { id: 4, name: 'Omar B.', rank: 'marketer' as UserRank, active: true, avatar: '👨' },
-  { id: 5, name: 'Nora M.', rank: 'subscriber' as UserRank, active: true, avatar: '👩' },
+  { id: 1, name: 'Sara A.', nameAr: 'سارة أ.', rank: 'marketer' as UserRank, active: true, avatar: '👩', activeWeeks: 5, totalWeeks: 7 },
+  { id: 2, name: 'Mohammed K.', nameAr: 'محمد ك.', rank: 'subscriber' as UserRank, active: true, avatar: '👨', activeWeeks: 6, totalWeeks: 7 },
+  { id: 3, name: 'Layla H.', nameAr: 'ليلى ح.', rank: 'subscriber' as UserRank, active: false, avatar: '👩', activeWeeks: 2, totalWeeks: 7 },
+  { id: 4, name: 'Omar B.', nameAr: 'عمر ب.', rank: 'marketer' as UserRank, active: true, avatar: '👨', activeWeeks: 7, totalWeeks: 7 },
+  { id: 5, name: 'Nora M.', nameAr: 'نورا م.', rank: 'subscriber' as UserRank, active: true, avatar: '👩', activeWeeks: 4, totalWeeks: 7 },
 ];
 
 export default function TeamPage() {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const { user } = useUser();
   const [selectedTab, setSelectedTab] = useState('overview');
   const [copied, setCopied] = useState(false);
@@ -42,10 +74,13 @@ export default function TeamPage() {
     ? Math.min(100, (activeDirectMembers / currentPromotion.directRequired) * 100)
     : 100;
 
+  // Calculate personal activity: activeWeeks / currentWeek
+  const personalActivityPercent = Math.round((user.activeWeeks / user.currentWeek) * 100);
+
   const handleCopyCode = () => {
     navigator.clipboard.writeText(user.referralCode);
     setCopied(true);
-    toast.success(t('team.copied'));
+    toast.success(language === 'ar' ? 'تم النسخ!' : 'Copied!');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -53,7 +88,9 @@ export default function TeamPage() {
     if (navigator.share) {
       navigator.share({
         title: 'Join WINOVA',
-        text: `Join me on WINOVA! Use my referral code: ${user.referralCode}`,
+        text: language === 'ar' 
+          ? `انضم إلي في WINOVA! استخدم كود الدعوة: ${user.referralCode}`
+          : `Join me on WINOVA! Use my referral code: ${user.referralCode}`,
         url: 'https://winova.app',
       });
     } else {
@@ -100,31 +137,81 @@ export default function TeamPage() {
           </Card>
         </motion.div>
 
-        {/* Activity Cards */}
+        {/* Personal Activity - Clear display of weeks active / 14 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 gap-3"
         >
-          <Card className="p-4 text-center">
-            <ProgressRing progress={user.activityPercentage} size={70} strokeWidth={5}>
-              <span className="text-lg font-bold">{user.activityPercentage}%</span>
-            </ProgressRing>
-            <p className="text-sm text-muted-foreground mt-2">{t('team.myActivity')}</p>
-            <p className="text-xs text-muted-foreground">
-              {user.activeWeeks}/{user.totalWeeks} weeks
-            </p>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">{t('team.myActivity')}</h3>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <ProgressRing progress={personalActivityPercent} size={80} strokeWidth={6}>
+                <span className="text-lg font-bold">{personalActivityPercent}%</span>
+              </ProgressRing>
+              
+              <div className="flex-1">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">
+                    {language === 'ar' ? 'الأسابيع النشطة' : 'Active Weeks'}
+                  </span>
+                  <span className="font-bold text-primary">
+                    {user.activeWeeks} / {user.totalWeeks}
+                  </span>
+                </div>
+                
+                <Progress value={(user.activeWeeks / user.totalWeeks) * 100} className="h-3 mb-2" />
+                
+                <p className="text-xs text-muted-foreground">
+                  {language === 'ar' 
+                    ? `الأسبوع ${user.currentWeek} من 14 في الدورة الحالية`
+                    : `Week ${user.currentWeek} of 14 in current cycle`}
+                </p>
+              </div>
+            </div>
           </Card>
-          
-          <Card className="p-4 text-center">
-            <ProgressRing progress={user.teamActivityPercentage} size={70} strokeWidth={5}>
-              <span className="text-lg font-bold">{user.teamActivityPercentage}%</span>
-            </ProgressRing>
-            <p className="text-sm text-muted-foreground mt-2">{t('team.teamActivity')}</p>
-            <p className="text-xs text-muted-foreground">
-              {activeDirectMembers}/{teamMembers.length} active
-            </p>
+        </motion.div>
+
+        {/* Team Activity */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="h-5 w-5 text-success" />
+              <h3 className="font-semibold">{t('team.teamActivity')}</h3>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <ProgressRing progress={user.teamActivityPercentage} size={80} strokeWidth={6}>
+                <span className="text-lg font-bold">{user.teamActivityPercentage}%</span>
+              </ProgressRing>
+              
+              <div className="flex-1">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">
+                    {language === 'ar' ? 'الأعضاء النشطون' : 'Active Members'}
+                  </span>
+                  <span className="font-bold text-success">
+                    {activeDirectMembers} / {teamMembers.length}
+                  </span>
+                </div>
+                
+                <Progress value={(activeDirectMembers / teamMembers.length) * 100} className="h-3 mb-2" />
+                
+                <p className="text-xs text-muted-foreground">
+                  {language === 'ar' 
+                    ? 'الأعضاء الذين شاركوا في مسابقة وصوّتوا هذا الأسبوع'
+                    : 'Members who joined a contest and voted this week'}
+                </p>
+              </div>
+            </div>
           </Card>
         </motion.div>
 
@@ -143,7 +230,7 @@ export default function TeamPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-3">
                   <RankBadge rank={user.rank} size="sm" />
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   <RankBadge rank={currentPromotion.nextRank} size="sm" />
@@ -151,14 +238,24 @@ export default function TeamPage() {
                 
                 <Progress value={promotionProgress} className="h-3 mb-2" />
                 
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{activeDirectMembers} / {currentPromotion.directRequired} {t('team.directRequired')}</span>
+                <div className="flex justify-between text-xs text-muted-foreground mb-3">
+                  <span>
+                    {activeDirectMembers} / {currentPromotion.directRequired} {' '}
+                    {language === 'ar' ? 'أعضاء نشطين' : 'active members'}
+                  </span>
                   <span>{Math.round(promotionProgress)}%</span>
                 </div>
                 
-                <p className="text-xs text-muted-foreground mt-2 p-2 bg-muted rounded-lg">
-                  {currentPromotion.description}
-                </p>
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                  <p className="text-sm font-medium text-primary mb-1">
+                    {language === 'ar' ? 'المتطلبات:' : 'Requirements:'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'ar' 
+                      ? currentPromotion.descriptionAr 
+                      : currentPromotion.descriptionEn}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -168,7 +265,7 @@ export default function TeamPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.25 }}
         >
           <Card className="p-4">
             <p className="text-sm text-muted-foreground mb-2">{t('team.inviteCode')}</p>
@@ -194,39 +291,58 @@ export default function TeamPage() {
           </TabsList>
 
           <TabsContent value="overview" className="mt-4 space-y-3">
-            {teamMembers.map((member, index) => (
-              <motion.div
-                key={member.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card>
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg">
-                      {member.avatar}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{member.name}</p>
-                      <RankBadge rank={member.rank} size="sm" />
-                    </div>
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      member.active 
-                        ? 'bg-success/20 text-success' 
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {member.active ? t('home.active') : 'Inactive'}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+            {teamMembers.map((member, index) => {
+              const memberActivity = Math.round((member.activeWeeks / member.totalWeeks) * 100);
+              return (
+                <motion.div
+                  key={member.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card>
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg">
+                        {member.avatar}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">
+                          {language === 'ar' ? member.nameAr : member.name}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <RankBadge rank={member.rank} size="sm" />
+                          <span className="text-xs text-muted-foreground">
+                            {member.activeWeeks}/{member.totalWeeks} {language === 'ar' ? 'أسابيع' : 'wks'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-end">
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          member.active 
+                            ? 'bg-success/20 text-success' 
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {member.active 
+                            ? (language === 'ar' ? 'نشط' : 'Active')
+                            : (language === 'ar' ? 'غير نشط' : 'Inactive')}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {memberActivity}%
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </TabsContent>
 
           <TabsContent value="indirect" className="mt-4">
             <Card className="p-8 text-center">
               <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-              <p className="text-muted-foreground">{user.indirectTeam} indirect team members</p>
+              <p className="text-muted-foreground">
+                {user.indirectTeam} {language === 'ar' ? 'عضو غير مباشر' : 'indirect team members'}
+              </p>
             </Card>
           </TabsContent>
         </Tabs>

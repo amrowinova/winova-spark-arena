@@ -5,6 +5,7 @@ export type UserRank = 'subscriber' | 'marketer' | 'leader' | 'manager' | 'presi
 export interface User {
   id: string;
   name: string;
+  username: string;
   avatar?: string;
   novaBalance: number;
   auraBalance: number;
@@ -21,7 +22,8 @@ export interface User {
   city: string;
   hasJoinedWithNova: boolean;
   activeWeeks: number;
-  totalWeeks: number;
+  totalWeeks: number; // Always 14 in a cycle
+  currentWeek: number; // Current week in cycle (1-14)
 }
 
 interface UserContextType {
@@ -31,11 +33,14 @@ interface UserContextType {
   addAura: (amount: number) => void;
   spendNova: (amount: number) => boolean;
   spendAura: (amount: number) => boolean;
+  // Auto-convert Nova to Aura for contests/voting (1:1 ratio)
+  autoConvertNovaToAura: (auraNeeded: number) => boolean;
 }
 
 const defaultUser: User = {
   id: '1',
   name: 'Ahmed',
+  username: 'ahmed_sa',
   novaBalance: 150,
   auraBalance: 320,
   rank: 'marketer',
@@ -43,7 +48,7 @@ const defaultUser: User = {
   directTeam: 12,
   indirectTeam: 35,
   weeklyActive: true,
-  activityPercentage: 78,
+  activityPercentage: 71, // 5 active weeks / 7 weeks passed = 71%
   teamActivityPercentage: 65,
   spotlightPoints: 1250,
   referralCode: 'WINOVA-AH7X9',
@@ -51,7 +56,8 @@ const defaultUser: User = {
   city: 'Riyadh',
   hasJoinedWithNova: true,
   activeWeeks: 5,
-  totalWeeks: 7,
+  totalWeeks: 14,
+  currentWeek: 7,
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -87,8 +93,43 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  // Auto-convert Nova to Aura when user doesn't have enough Aura
+  // Conversion rate: 1 Nova = 1 Aura
+  const autoConvertNovaToAura = (auraNeeded: number): boolean => {
+    // First, check if user has enough Aura
+    if (user.auraBalance >= auraNeeded) {
+      return spendAura(auraNeeded);
+    }
+    
+    // Calculate how much more Aura is needed
+    const auraDeficit = auraNeeded - user.auraBalance;
+    
+    // Check if user has enough Nova to cover the deficit
+    if (user.novaBalance >= auraDeficit) {
+      // Spend all available Aura first
+      const auraSpent = user.auraBalance;
+      // Convert Nova to cover the rest
+      setUser((prev) => ({
+        ...prev,
+        auraBalance: 0,
+        novaBalance: prev.novaBalance - auraDeficit,
+      }));
+      return true;
+    }
+    
+    return false;
+  };
+
   return (
-    <UserContext.Provider value={{ user, updateUser, addNova, addAura, spendNova, spendAura }}>
+    <UserContext.Provider value={{ 
+      user, 
+      updateUser, 
+      addNova, 
+      addAura, 
+      spendNova, 
+      spendAura,
+      autoConvertNovaToAura 
+    }}>
       {children}
     </UserContext.Provider>
   );
