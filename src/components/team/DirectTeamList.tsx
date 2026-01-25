@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Users, ArrowLeft, Copy, Share2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { TeamMemberCard, TeamMember } from './TeamMemberCard';
 import { MemberDetailPanel } from './MemberDetailPanel';
+import { SmartAlertCard } from './SmartAlertCard';
+import { TeamFilters, TeamFilter } from './TeamFilters';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
@@ -21,6 +23,29 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [filter, setFilter] = useState<TeamFilter>('all');
+
+  // Calculate filter counts
+  const filterCounts = useMemo(() => ({
+    all: members.length,
+    active: members.filter(m => m.active).length,
+    inactive: members.filter(m => !m.active).length,
+    promotable: members.filter(m => m.rank === 'subscriber' && m.activeWeeks >= 4 && m.directTeam >= 3).length,
+  }), [members]);
+
+  // Filter members based on selected filter
+  const filteredMembers = useMemo(() => {
+    switch (filter) {
+      case 'active':
+        return members.filter(m => m.active);
+      case 'inactive':
+        return members.filter(m => !m.active);
+      case 'promotable':
+        return members.filter(m => m.rank === 'subscriber' && m.activeWeeks >= 4 && m.directTeam >= 3);
+      default:
+        return members;
+    }
+  }, [members, filter]);
 
   const activeCount = members.filter(m => m.active).length;
 
@@ -50,6 +75,15 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
     }
   };
 
+  const handleRemindAll = () => {
+    const inactiveCount = members.filter(m => !m.active).length;
+    toast.success(
+      language === 'ar' 
+        ? `تم إرسال تذكير لـ ${inactiveCount} أعضاء غير نشطين!`
+        : `Reminder sent to ${inactiveCount} inactive members!`
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -66,6 +100,9 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
           </p>
         </div>
       </div>
+
+      {/* Smart Alert Card */}
+      <SmartAlertCard members={members} onRemindAll={handleRemindAll} />
 
       {/* Referral Code */}
       <Card className="p-3">
@@ -85,25 +122,39 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
         </div>
       </Card>
 
+      {/* Filter Buttons */}
+      <TeamFilters 
+        filter={filter} 
+        onFilterChange={setFilter} 
+        counts={filterCounts}
+      />
+
       {/* Members List */}
-      {members.length === 0 ? (
+      {filteredMembers.length === 0 ? (
         <Card className="p-8 text-center">
           <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
           <p className="text-muted-foreground mb-3">
-            {language === 'ar' ? 'لا يوجد أعضاء في فريقك المباشر' : 'No direct team members yet'}
+            {filter === 'all' 
+              ? (language === 'ar' ? 'لا يوجد أعضاء في فريقك المباشر' : 'No direct team members yet')
+              : (language === 'ar' ? 'لا يوجد أعضاء في هذه الفئة' : 'No members in this category')}
           </p>
-          <Button onClick={handleShare}>
-            {language === 'ar' ? 'ادعُ أصدقاءك' : 'Invite Friends'}
-          </Button>
+          {filter === 'all' && (
+            <Button onClick={handleShare}>
+              {language === 'ar' ? 'ادعُ أصدقاءك' : 'Invite Friends'}
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="space-y-3">
-          {members.map((member, index) => (
+          {filteredMembers.map((member, index) => (
             <TeamMemberCard
               key={member.id}
               member={member}
               index={index}
               onClick={() => handleMemberClick(member)}
+              showActions={true}
+              onViewTeam={member.teamSize > 0 ? () => onViewMemberTeam(member) : undefined}
+              onRemind={() => toast.success(language === 'ar' ? 'تم إرسال التذكير!' : 'Reminder sent!')}
             />
           ))}
         </div>
