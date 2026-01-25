@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { TransactionProvider } from "@/contexts/TransactionContext";
+import { P2PProvider } from "@/contexts/P2PContext";
 import "@/lib/i18n";
 
 // Pages
@@ -25,23 +26,25 @@ const App = () => (
     <LanguageProvider>
       <UserProvider>
         <TransactionProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/contests" element={<Contests />} />
-                <Route path="/team" element={<Team />} />
-                <Route path="/wallet" element={<Wallet />} />
-                <Route path="/chat" element={<Chat />} />
-                <Route path="/p2p" element={<P2P />} />
-                <Route path="/spotlight" element={<Spotlight />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
+          <P2PProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/contests" element={<Contests />} />
+                  <Route path="/team" element={<Team />} />
+                  <Route path="/wallet" element={<Wallet />} />
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="/p2p" element={<P2P />} />
+                  <Route path="/spotlight" element={<Spotlight />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </P2PProvider>
         </TransactionProvider>
       </UserProvider>
     </LanguageProvider>

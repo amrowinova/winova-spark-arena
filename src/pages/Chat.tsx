@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Pin, Search, X } from 'lucide-react';
+import { MessageCircle, Send, Pin, Search, X, Image, Paperclip } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
+import { useP2P, P2PChat, P2PMessage } from '@/contexts/P2PContext';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { Receipt } from '@/contexts/TransactionContext';
@@ -20,6 +21,13 @@ import { SystemMessageBubble, SystemMessageData } from '@/components/chat/System
 import { ForwardDialog } from '@/components/chat/ForwardDialog';
 import { ReplyBar } from '@/components/chat/ReplyBar';
 import { TeamInfoSheet, TeamChatMember } from '@/components/chat/TeamInfoSheet';
+import { 
+  P2PChatHeader, 
+  P2POrderCard, 
+  P2PPaymentCard, 
+  P2PActionButtons,
+  P2PSystemMessage 
+} from '@/components/p2p';
 import { toast } from '@/hooks/use-toast';
 import type { UserRank } from '@/contexts/UserContext';
 
@@ -51,6 +59,8 @@ interface Conversation {
     rank: UserRank;
     active?: boolean;
   };
+  // P2P-specific
+  p2pChatId?: string;
 }
 
 // Mock conversations with enhanced messages
@@ -146,39 +156,6 @@ const initialConversations: Conversation[] = [
     },
   },
   {
-    id: '3',
-    type: 'p2p',
-    name: 'P2P: طلب #1234',
-    avatar: '🤝',
-    lastMessage: 'تم تأكيد الدفع',
-    time: '1h',
-    unread: 0,
-    messages: [
-      { 
-        id: 'p2', 
-        sender: 'عمر البدر', 
-        senderId: '4', 
-        content: 'مرحباً، سأقوم بالتحويل الآن', 
-        time: '08:05 AM', 
-        isMine: false 
-      },
-      { 
-        id: 'p3', 
-        sender: 'عمر البدر', 
-        senderId: '4', 
-        content: 'تم التحويل',
-        time: '08:30 AM', 
-        isMine: false,
-        transaction: {
-          type: 'transfer',
-          amount: 100,
-          description: 'تحويل P2P من عمر',
-        }
-      },
-    ],
-    pinnedMessages: [],
-  },
-  {
     id: '4',
     type: 'system',
     name: 'إشعارات النظام',
@@ -218,6 +195,7 @@ export default function ChatPage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { user } = useUser();
+  const { chats: p2pChats, activeChat: activeP2PChat, activeOrder, setActiveChat: setActiveP2PChat, setActiveOrder, sendMessage: sendP2PMessage } = useP2P();
   
   const [selectedTab, setSelectedTab] = useState('all');
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
@@ -230,15 +208,41 @@ export default function ChatPage() {
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(null);
   const [teamInfoOpen, setTeamInfoOpen] = useState(false);
+  const [showP2PDetails, setShowP2PDetails] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeChat?.messages]);
+  }, [activeChat?.messages, activeP2PChat?.messages]);
 
-  const filteredConversations = conversations.filter(conv => {
+  // Convert P2P chats to conversation format for the list
+  const p2pConversations: Conversation[] = p2pChats.map(chat => {
+    const otherParty = chat.buyer.id === user.id ? chat.seller : chat.buyer;
+    const latestOrder = chat.orders[chat.orders.length - 1];
+    const lastMessage = chat.messages[chat.messages.length - 1];
+    
+    return {
+      id: `p2p-${chat.id}`,
+      type: 'p2p' as const,
+      name: language === 'ar' ? otherParty.nameAr : otherParty.name,
+      username: otherParty.username,
+      avatar: '🤝',
+      lastMessage: lastMessage?.isSystem 
+        ? (language === 'ar' ? lastMessage.systemMessage?.contentAr || '' : lastMessage.systemMessage?.content || '')
+        : lastMessage?.content || (language === 'ar' ? 'طلب P2P جديد' : 'New P2P order'),
+      time: new Date(chat.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      unread: chat.unreadCount,
+      messages: [],
+      pinnedMessages: [],
+      p2pChatId: chat.id,
+    };
+  });
+
+  const allConversations = [...conversations, ...p2pConversations];
+
+  const filteredConversations = allConversations.filter(conv => {
     // System notifications excluded from chat - they go to bell icon only
     if (conv.type === 'system') return false;
     if (selectedTab === 'all') return true;
@@ -246,7 +250,16 @@ export default function ChatPage() {
   });
 
   const handleSend = () => {
-    if (!message.trim() || !activeChat) return;
+    if (!message.trim()) return;
+    
+    // P2P Chat
+    if (activeP2PChat) {
+      sendP2PMessage(activeP2PChat.id, message);
+      setMessage('');
+      return;
+    }
+    
+    if (!activeChat) return;
     
     const newMessage: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -477,6 +490,22 @@ export default function ChatPage() {
     });
   };
 
+  const handleOpenConversation = (conv: Conversation) => {
+    if (conv.type === 'p2p' && conv.p2pChatId) {
+      setActiveP2PChat(conv.p2pChatId);
+      setActiveChat(null);
+    } else {
+      setActiveChat(conv);
+      setActiveP2PChat(null);
+    }
+  };
+
+  const handleBackFromChat = () => {
+    setActiveChat(null);
+    setActiveP2PChat(null);
+    setShowP2PDetails(false);
+  };
+
   // Merge human messages and system messages for team chat
   const getTeamChatContent = () => {
     if (activeChat?.type !== 'team' || !activeChat.systemMessages) {
@@ -504,7 +533,102 @@ export default function ChatPage() {
     return { humanMessages: activeChat.messages, allContent };
   };
 
-  // Active Chat View
+  // P2P Chat Active View
+  if (activeP2PChat) {
+    return (
+      <AppLayout title="P2P Chat" showNav={false}>
+        <div className="flex flex-col h-[calc(100vh-60px)]">
+          {/* P2P Chat Header */}
+          <P2PChatHeader
+            chat={activeP2PChat}
+            currentOrder={activeOrder}
+            currentUserId={user.id}
+            onBack={handleBackFromChat}
+            onViewOrderDetails={() => setShowP2PDetails(!showP2PDetails)}
+          />
+
+          {/* Order Card & Payment Details (Collapsible) */}
+          {showP2PDetails && activeOrder && (
+            <div className="px-4 py-3 bg-muted/30 border-b border-border space-y-3">
+              <P2POrderCard order={activeOrder} isActive />
+              {activeOrder.status !== 'completed' && activeOrder.status !== 'cancelled' && (
+                <P2PPaymentCard paymentDetails={activeOrder.paymentDetails} />
+              )}
+            </div>
+          )}
+
+          {/* Messages */}
+          <ScrollArea className="flex-1 p-4">
+            <div className="space-y-2">
+              {activeP2PChat.messages.map((msg) => (
+                <div key={msg.id}>
+                  {msg.isSystem && msg.systemMessage ? (
+                    <P2PSystemMessage message={msg.systemMessage} />
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'} mb-2`}
+                    >
+                      <div className={`max-w-[85%] px-3 py-2 rounded-2xl ${
+                        msg.isMine 
+                          ? 'bg-primary text-primary-foreground rounded-br-sm' 
+                          : 'bg-muted rounded-bl-sm'
+                      }`}>
+                        {!msg.isMine && (
+                          <p className="text-xs font-medium mb-1 opacity-70">{msg.senderName}</p>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                        <span className="text-[10px] opacity-60 block text-end mt-1">{msg.time}</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Action Buttons (based on role and order status) */}
+          {activeOrder && (
+            <P2PActionButtons 
+              order={activeOrder} 
+              currentUserId={user.id}
+              isSupport={activeP2PChat.supportPresent && user.id === 'support'}
+            />
+          )}
+
+          {/* Input */}
+          <div className="p-4 border-t border-border bg-card safe-bottom">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="shrink-0">
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={language === 'ar' ? 'اكتب رسالة...' : 'Type a message...'}
+                className="flex-1"
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              />
+              <Button size="icon" onClick={handleSend} disabled={!message.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Receipt Dialog */}
+          <ReceiptDialog
+            receipt={selectedReceipt}
+            open={receiptDialogOpen}
+            onClose={() => setReceiptDialogOpen(false)}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Active Chat View (DM / Team)
   if (activeChat) {
     const isTeamChat = activeChat.type === 'team';
     const teamContent = getTeamChatContent();
@@ -522,7 +646,7 @@ export default function ChatPage() {
               memberCount={totalMembers}
               activeCount={activeMembers}
               isMuted={activeChat.isMuted || false}
-              onBack={() => setActiveChat(null)}
+              onBack={handleBackFromChat}
               onOpenInfo={() => setTeamInfoOpen(true)}
               onToggleMute={handleToggleMute}
               onRemindInactive={handleRemindInactive}
@@ -535,7 +659,7 @@ export default function ChatPage() {
               rank={activeChat.rank}
               isOnline={activeChat.isOnline}
               lastSeen={activeChat.lastSeen}
-              onBack={() => setActiveChat(null)}
+              onBack={handleBackFromChat}
               onTransfer={() => setTransferDialogOpen(true)}
             />
           )}
@@ -606,7 +730,7 @@ export default function ChatPage() {
                   )
                 ))
               ) : (
-                // DM/P2P Chat: Only human messages
+                // DM Chat: Only human messages
                 activeChat.messages.map((msg) => (
                   <div
                     key={msg.id}
@@ -754,12 +878,12 @@ export default function ChatPage() {
                 >
                   <Card 
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setActiveChat(conv)}
+                    onClick={() => handleOpenConversation(conv)}
                   >
                     <CardContent className="p-3 flex items-center gap-3">
                       {/* Avatar */}
                       <div className={`relative w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                        conv.isSystem ? 'bg-primary/20' : 'bg-muted'
+                        conv.isSystem ? 'bg-primary/20' : conv.type === 'p2p' ? 'bg-success/20' : 'bg-muted'
                       }`}>
                         {conv.avatar}
                         {conv.isOnline && (
@@ -775,7 +899,14 @@ export default function ChatPage() {
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <p className="font-medium truncate">{conv.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate">{conv.name}</p>
+                            {conv.type === 'p2p' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-success/20 text-success rounded">
+                                P2P
+                              </span>
+                            )}
+                          </div>
                           <span className="text-xs text-muted-foreground whitespace-nowrap">
                             {conv.time}
                           </span>
