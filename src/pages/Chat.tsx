@@ -188,12 +188,15 @@ export default function ChatPage() {
   const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChat?.messages]);
 
   const filteredConversations = conversations.filter(conv => {
+    // System notifications excluded from chat - they go to bell icon only
+    if (conv.type === 'system') return false;
     if (selectedTab === 'all') return true;
     return conv.type === selectedTab;
   });
@@ -270,12 +273,25 @@ export default function ChatPage() {
   };
 
   const handleForwardSubmit = (contactIds: string[]) => {
+    if (!forwardMessage || !activeChat) return;
+    
+    // Create forwarded copies for each contact (mock implementation)
     toast({
       title: language === 'ar' ? 'تم الإرسال' : 'Forwarded',
       description: language === 'ar' 
         ? `تم إعادة التوجيه إلى ${contactIds.length} جهة اتصال`
         : `Forwarded to ${contactIds.length} contacts`,
     });
+  };
+
+  const scrollToMessage = (messageId: string) => {
+    const element = messageRefs.current.get(messageId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Flash effect
+      element.classList.add('bg-primary/20');
+      setTimeout(() => element.classList.remove('bg-primary/20'), 1500);
+    }
   };
 
   const handleCopy = (content: string) => {
@@ -401,7 +417,7 @@ export default function ChatPage() {
             onTransfer={() => setTransferDialogOpen(true)}
           />
 
-          {/* Pinned Messages Bar */}
+          {/* Pinned Messages Bar - clickable */}
           {activeChat.pinnedMessages && activeChat.pinnedMessages.length > 0 && (
             <div className="px-4 py-2 bg-muted/50 border-b border-border">
               <div className="flex items-center gap-2 text-xs">
@@ -414,12 +430,16 @@ export default function ChatPage() {
                 {activeChat.pinnedMessages.map(msg => (
                   <div 
                     key={msg.id}
-                    className="px-2 py-1 bg-card rounded text-xs truncate max-w-[150px] flex items-center gap-1"
+                    onClick={() => scrollToMessage(msg.id)}
+                    className="px-2 py-1 bg-card rounded text-xs truncate max-w-[150px] flex items-center gap-1 cursor-pointer hover:bg-muted transition-colors"
                   >
-                    <span className="truncate">{msg.content}</span>
+                    <span className="truncate">{msg.content || (language === 'ar' ? 'معاملة' : 'Transaction')}</span>
                     <button 
-                      onClick={() => handlePin(msg)}
-                      className="text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePin(msg);
+                      }}
+                      className="text-muted-foreground hover:text-destructive shrink-0"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -433,20 +453,28 @@ export default function ChatPage() {
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-1">
               {activeChat.messages.map((msg) => (
-                <MessageBubble
+                <div
                   key={msg.id}
-                  message={msg}
-                  onReply={handleReply}
-                  onForward={handleForward}
-                  onCopy={handleCopy}
-                  onDelete={handleDelete}
-                  onPin={handlePin}
-                  onReact={handleReact}
-                  onTransactionClick={(receipt) => {
-                    setSelectedReceipt(receipt);
-                    setReceiptDialogOpen(true);
+                  ref={(el) => {
+                    if (el) messageRefs.current.set(msg.id, el);
                   }}
-                />
+                  className="transition-colors duration-500 rounded-lg"
+                >
+                  <MessageBubble
+                    message={msg}
+                    onReply={handleReply}
+                    onForward={handleForward}
+                    onCopy={handleCopy}
+                    onDelete={handleDelete}
+                    onPin={handlePin}
+                    onReact={handleReact}
+                    onScrollToMessage={scrollToMessage}
+                    onTransactionClick={(receipt) => {
+                      setSelectedReceipt(receipt);
+                      setReceiptDialogOpen(true);
+                    }}
+                  />
+                </div>
               ))}
               <div ref={messagesEndRef} />
             </div>
@@ -522,21 +550,18 @@ export default function ChatPage() {
 
         {/* Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all" className="text-[10px] px-1">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="all" className="text-xs px-2">
               {language === 'ar' ? 'الكل' : 'All'}
             </TabsTrigger>
-            <TabsTrigger value="dm" className="text-[10px] px-1">
+            <TabsTrigger value="dm" className="text-xs px-2">
               {language === 'ar' ? 'خاص' : 'DM'}
             </TabsTrigger>
-            <TabsTrigger value="team" className="text-[10px] px-1">
+            <TabsTrigger value="team" className="text-xs px-2">
               {language === 'ar' ? 'الفريق' : 'Team'}
             </TabsTrigger>
-            <TabsTrigger value="p2p" className="text-[10px] px-1">
+            <TabsTrigger value="p2p" className="text-xs px-2">
               P2P
-            </TabsTrigger>
-            <TabsTrigger value="system" className="text-[10px] px-1">
-              {language === 'ar' ? 'النظام' : 'System'}
             </TabsTrigger>
           </TabsList>
 

@@ -37,6 +37,7 @@ export interface ChatMessage {
   time: string;
   isMine: boolean;
   pinned?: boolean;
+  forwarded?: boolean;
   replyTo?: {
     id: string;
     sender: string;
@@ -62,6 +63,7 @@ interface MessageBubbleProps {
   onPin: (message: ChatMessage) => void;
   onReact: (messageId: string, emoji: string) => void;
   onTransactionClick?: (receipt: Receipt) => void;
+  onScrollToMessage?: (messageId: string) => void;
 }
 
 export function MessageBubble({
@@ -73,9 +75,16 @@ export function MessageBubble({
   onPin,
   onReact,
   onTransactionClick,
+  onScrollToMessage,
 }: MessageBubbleProps) {
   const { language } = useLanguage();
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+
+  const handleReplyClick = () => {
+    if (message.replyTo?.id && onScrollToMessage) {
+      onScrollToMessage(message.replyTo.id);
+    }
+  };
 
   const handleReact = (emoji: string) => {
     onReact(message.id, emoji);
@@ -123,13 +132,24 @@ export function MessageBubble({
           </div>
         )}
 
-        {/* Reply preview */}
+        {/* Forwarded label */}
+        {message.forwarded && (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
+            <Forward className="h-3 w-3" />
+            {language === 'ar' ? 'مُعاد توجيهها' : 'Forwarded'}
+          </div>
+        )}
+
+        {/* Reply preview - clickable to scroll */}
         {message.replyTo && (
-          <div className={`mb-1 px-3 py-1.5 rounded-lg text-xs border-s-2 ${
-            message.isMine 
-              ? 'bg-primary/20 border-primary-foreground/50' 
-              : 'bg-muted border-primary'
-          }`}>
+          <div 
+            onClick={handleReplyClick}
+            className={`mb-1 px-3 py-1.5 rounded-lg text-xs border-s-2 cursor-pointer hover:opacity-80 transition-opacity ${
+              message.isMine 
+                ? 'bg-primary/20 border-primary-foreground/50' 
+                : 'bg-muted border-primary'
+            }`}
+          >
             <p className="font-medium text-[10px] opacity-70">{message.replyTo.sender}</p>
             <p className="truncate">{message.replyTo.content}</p>
           </div>
