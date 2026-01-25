@@ -14,9 +14,12 @@ import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { Receipt } from '@/contexts/TransactionContext';
 import { ChatHeader } from '@/components/chat/ChatHeader';
+import { TeamChatHeader } from '@/components/chat/TeamChatHeader';
 import { MessageBubble, ChatMessage } from '@/components/chat/MessageBubble';
+import { SystemMessageBubble, SystemMessageData } from '@/components/chat/SystemMessageBubble';
 import { ForwardDialog } from '@/components/chat/ForwardDialog';
 import { ReplyBar } from '@/components/chat/ReplyBar';
+import { TeamInfoSheet, TeamChatMember } from '@/components/chat/TeamInfoSheet';
 import { toast } from '@/hooks/use-toast';
 import type { UserRank } from '@/contexts/UserContext';
 
@@ -24,6 +27,7 @@ interface Conversation {
   id: string;
   type: 'dm' | 'team' | 'p2p' | 'system';
   name: string;
+  nameAr?: string;
   username?: string;
   avatar: string;
   rank?: UserRank;
@@ -33,8 +37,19 @@ interface Conversation {
   time: string;
   unread: number;
   isSystem?: boolean;
+  isMuted?: boolean;
   messages: ChatMessage[];
   pinnedMessages: ChatMessage[];
+  // Team-specific
+  systemMessages?: SystemMessageData[];
+  teamMembers?: TeamChatMember[];
+  manager?: {
+    id: string;
+    name: string;
+    nameAr: string;
+    avatar: string;
+    rank: UserRank;
+  };
 }
 
 // Mock conversations with enhanced messages
@@ -88,11 +103,13 @@ const initialConversations: Conversation[] = [
   {
     id: '2',
     type: 'team',
-    name: 'دردشة الفريق',
+    name: 'Team Alpha',
+    nameAr: 'فريق ألفا',
     avatar: '👥',
     lastMessage: 'مبروك للجميع على الإنجاز!',
     time: '15m',
     unread: 5,
+    isMuted: false,
     messages: [
       { id: 't1', sender: 'محمد خالد', senderId: '3', content: 'السلام عليكم', time: '09:00 AM', isMine: false },
       { id: 't3', sender: 'أنت', senderId: '1', content: 'أهلاً بكم جميعاً!', time: '09:30 AM', isMine: true, read: true },
@@ -101,6 +118,30 @@ const initialConversations: Conversation[] = [
     pinnedMessages: [
       { id: 't4', sender: 'محمد خالد', senderId: '3', content: 'مبروك للجميع على الإنجاز!', time: '10:00 AM', isMine: false, pinned: true },
     ],
+    // System messages (automated events)
+    systemMessages: [
+      { id: 'sys1', type: 'member_joined', memberName: 'Layla Hassan', memberNameAr: 'ليلى حسن', time: '08:00 AM' },
+      { id: 'sys2', type: 'contest_entered', memberName: 'Omar Ali', memberNameAr: 'عمر علي', time: '09:15 AM', contestName: 'Daily Contest', contestNameAr: 'مسابقة اليوم' },
+      { id: 'sys3', type: 'member_won', memberName: 'Sarah Ahmed', memberNameAr: 'سارة أحمد', time: '11:00 AM', prizeAmount: 50 },
+      { id: 'sys4', type: 'member_promoted', memberName: 'Khaled Mahmoud', memberNameAr: 'خالد محمود', time: '02:00 PM', newRank: 'marketer' },
+      { id: 'sys5', type: 'vote_request', memberName: 'Nour El-Din', memberNameAr: 'نور الدين', time: '03:30 PM' },
+    ],
+    // Team members
+    teamMembers: [
+      { id: 'tm1', name: 'Omar Ali', nameAr: 'عمر علي', username: 'omar_ali', rank: 'marketer', active: true, avatar: '👨', directCount: 5, activityRanking: 1 },
+      { id: 'tm2', name: 'Sarah Ahmed', nameAr: 'سارة أحمد', username: 'sara_ahmed', rank: 'marketer', active: true, avatar: '👩', directCount: 3, activityRanking: 2 },
+      { id: 'tm3', name: 'Khaled Mahmoud', nameAr: 'خالد محمود', username: 'khaled_m', rank: 'marketer', active: true, avatar: '👨', directCount: 2, activityRanking: 3 },
+      { id: 'tm4', name: 'Layla Hassan', nameAr: 'ليلى حسن', username: 'layla_h', rank: 'subscriber', active: true, avatar: '👩', directCount: 0, activityRanking: 4 },
+      { id: 'tm5', name: 'Nour El-Din', nameAr: 'نور الدين', username: 'nour_d', rank: 'subscriber', active: false, avatar: '👨', directCount: 0, activityRanking: 5 },
+      { id: 'tm6', name: 'Fatima Zahra', nameAr: 'فاطمة الزهراء', username: 'fatima_z', rank: 'subscriber', active: false, avatar: '👩', directCount: 1, activityRanking: 6 },
+    ],
+    manager: {
+      id: 'mgr1',
+      name: 'Ahmed Hassan',
+      nameAr: 'أحمد حسن',
+      avatar: '👑',
+      rank: 'leader',
+    },
   },
   {
     id: '3',
@@ -186,6 +227,7 @@ export default function ChatPage() {
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(null);
+  const [teamInfoOpen, setTeamInfoOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -400,22 +442,101 @@ export default function ChatPage() {
     );
   };
 
+  const handleToggleMute = () => {
+    if (!activeChat) return;
+    
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.id === activeChat.id
+          ? { ...conv, isMuted: !conv.isMuted }
+          : conv
+      )
+    );
+    
+    setActiveChat(prev =>
+      prev ? { ...prev, isMuted: !prev.isMuted } : prev
+    );
+
+    toast({
+      title: activeChat.isMuted 
+        ? (language === 'ar' ? 'تم إلغاء الكتم' : 'Unmuted')
+        : (language === 'ar' ? 'تم الكتم' : 'Muted'),
+    });
+  };
+
+  const handleRemindInactive = () => {
+    if (!activeChat?.teamMembers) return;
+    const inactiveCount = activeChat.teamMembers.filter(m => !m.active).length;
+    toast({
+      title: language === 'ar' ? 'تم إرسال التذكير' : 'Reminder Sent',
+      description: language === 'ar'
+        ? `تم إرسال تذكير إلى ${inactiveCount} عضو غير نشط`
+        : `Sent reminder to ${inactiveCount} inactive members`,
+    });
+  };
+
+  // Merge human messages and system messages for team chat
+  const getTeamChatContent = () => {
+    if (activeChat?.type !== 'team' || !activeChat.systemMessages) {
+      return { humanMessages: activeChat?.messages || [], allContent: [] };
+    }
+    
+    // Create a combined timeline with both message types
+    const humanMessages = activeChat.messages.map(m => ({ ...m, isSystem: false }));
+    const sysMessages = activeChat.systemMessages.map(s => ({ ...s, isSystem: true }));
+    
+    // For simplicity, interleave them (in real app, sort by timestamp)
+    const allContent: Array<{ type: 'human' | 'system'; data: any }> = [];
+    
+    // Add system messages first (as they appear at specific times)
+    sysMessages.forEach((s, i) => {
+      if (i < 2) allContent.push({ type: 'system', data: s });
+    });
+    
+    // Add human messages
+    humanMessages.forEach(m => allContent.push({ type: 'human', data: m }));
+    
+    // Add remaining system messages
+    sysMessages.slice(2).forEach(s => allContent.push({ type: 'system', data: s }));
+    
+    return { humanMessages: activeChat.messages, allContent };
+  };
+
   // Active Chat View
   if (activeChat) {
+    const isTeamChat = activeChat.type === 'team';
+    const teamContent = getTeamChatContent();
+    const activeMembers = activeChat.teamMembers?.filter(m => m.active).length || 0;
+    const totalMembers = activeChat.teamMembers?.length || 0;
+
     return (
       <AppLayout title={activeChat.name} showNav={false}>
         <div className="flex flex-col h-[calc(100vh-60px)]">
-          {/* Chat Header */}
-          <ChatHeader
-            name={activeChat.name}
-            username={activeChat.username}
-            avatar={activeChat.avatar}
-            rank={activeChat.rank}
-            isOnline={activeChat.isOnline}
-            lastSeen={activeChat.lastSeen}
-            onBack={() => setActiveChat(null)}
-            onTransfer={() => setTransferDialogOpen(true)}
-          />
+          {/* Chat Header - Different for Team vs DM */}
+          {isTeamChat ? (
+            <TeamChatHeader
+              teamName={activeChat.name}
+              teamNameAr={activeChat.nameAr || activeChat.name}
+              memberCount={totalMembers}
+              activeCount={activeMembers}
+              isMuted={activeChat.isMuted || false}
+              onBack={() => setActiveChat(null)}
+              onOpenInfo={() => setTeamInfoOpen(true)}
+              onToggleMute={handleToggleMute}
+              onRemindInactive={handleRemindInactive}
+            />
+          ) : (
+            <ChatHeader
+              name={activeChat.name}
+              username={activeChat.username}
+              avatar={activeChat.avatar}
+              rank={activeChat.rank}
+              isOnline={activeChat.isOnline}
+              lastSeen={activeChat.lastSeen}
+              onBack={() => setActiveChat(null)}
+              onTransfer={() => setTransferDialogOpen(true)}
+            />
+          )}
 
           {/* Pinned Messages Bar - clickable */}
           {activeChat.pinnedMessages && activeChat.pinnedMessages.length > 0 && (
@@ -452,30 +573,63 @@ export default function ChatPage() {
           {/* Messages */}
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-1">
-              {activeChat.messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  ref={(el) => {
-                    if (el) messageRefs.current.set(msg.id, el);
-                  }}
-                  className="transition-colors duration-500 rounded-lg"
-                >
-                  <MessageBubble
-                    message={msg}
-                    onReply={handleReply}
-                    onForward={handleForward}
-                    onCopy={handleCopy}
-                    onDelete={handleDelete}
-                    onPin={handlePin}
-                    onReact={handleReact}
-                    onScrollToMessage={scrollToMessage}
-                    onTransactionClick={(receipt) => {
-                      setSelectedReceipt(receipt);
-                      setReceiptDialogOpen(true);
+              {isTeamChat ? (
+                // Team Chat: Mixed human + system messages
+                teamContent.allContent.map((item, idx) => (
+                  item.type === 'system' ? (
+                    <SystemMessageBubble key={`sys-${item.data.id}`} message={item.data} />
+                  ) : (
+                    <div
+                      key={item.data.id}
+                      ref={(el) => {
+                        if (el) messageRefs.current.set(item.data.id, el);
+                      }}
+                      className="transition-colors duration-500 rounded-lg"
+                    >
+                      <MessageBubble
+                        message={item.data}
+                        onReply={handleReply}
+                        onForward={handleForward}
+                        onCopy={handleCopy}
+                        onDelete={handleDelete}
+                        onPin={handlePin}
+                        onReact={handleReact}
+                        onScrollToMessage={scrollToMessage}
+                        onTransactionClick={(receipt) => {
+                          setSelectedReceipt(receipt);
+                          setReceiptDialogOpen(true);
+                        }}
+                      />
+                    </div>
+                  )
+                ))
+              ) : (
+                // DM/P2P Chat: Only human messages
+                activeChat.messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    ref={(el) => {
+                      if (el) messageRefs.current.set(msg.id, el);
                     }}
-                  />
-                </div>
-              ))}
+                    className="transition-colors duration-500 rounded-lg"
+                  >
+                    <MessageBubble
+                      message={msg}
+                      onReply={handleReply}
+                      onForward={handleForward}
+                      onCopy={handleCopy}
+                      onDelete={handleDelete}
+                      onPin={handlePin}
+                      onReact={handleReact}
+                      onScrollToMessage={scrollToMessage}
+                      onTransactionClick={(receipt) => {
+                        setSelectedReceipt(receipt);
+                        setReceiptDialogOpen(true);
+                      }}
+                    />
+                  </div>
+                ))
+              )}
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
@@ -504,15 +658,17 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Transfer Dialog */}
-          <TransferNovaDialog 
-            open={transferDialogOpen}
-            onClose={() => setTransferDialogOpen(false)}
-            recipientId={activeChat.type === 'dm' ? '2' : undefined}
-            recipientName={activeChat.name}
-            recipientUsername={activeChat.username}
-            onTransferComplete={handleTransferComplete}
-          />
+          {/* Transfer Dialog (DM only) */}
+          {!isTeamChat && (
+            <TransferNovaDialog 
+              open={transferDialogOpen}
+              onClose={() => setTransferDialogOpen(false)}
+              recipientId={activeChat.type === 'dm' ? '2' : undefined}
+              recipientName={activeChat.name}
+              recipientUsername={activeChat.username}
+              onTransferComplete={handleTransferComplete}
+            />
+          )}
 
           {/* Forward Dialog */}
           <ForwardDialog
@@ -528,6 +684,19 @@ export default function ChatPage() {
             open={receiptDialogOpen}
             onClose={() => setReceiptDialogOpen(false)}
           />
+
+          {/* Team Info Sheet */}
+          {isTeamChat && activeChat.manager && activeChat.teamMembers && (
+            <TeamInfoSheet
+              open={teamInfoOpen}
+              onClose={() => setTeamInfoOpen(false)}
+              teamName={activeChat.name}
+              teamNameAr={activeChat.nameAr || activeChat.name}
+              manager={activeChat.manager}
+              members={activeChat.teamMembers}
+              onRemindInactive={handleRemindInactive}
+            />
+          )}
         </div>
       </AppLayout>
     );
