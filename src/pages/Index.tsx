@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Trophy, Users, ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
+import { Trophy, Users, ArrowRight, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CurrencyBadge } from '@/components/common/CurrencyBadge';
@@ -10,6 +10,8 @@ import { ProgressRing } from '@/components/common/ProgressRing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { countryPricing } from '@/contexts/TransactionContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,16 +28,22 @@ const itemVariants = {
 
 // Mock spotlight winners
 const spotlightWinners = [
-  { id: 1, name: 'Sara A.', prize: 18.5, avatar: '👩' },
-  { id: 2, name: 'Mohammed K.', prize: 9.75, avatar: '👨' },
+  { id: 1, name: 'سارة أحمد', prize: 18.5, avatar: '👩' },
+  { id: 2, name: 'محمد كريم', prize: 9.75, avatar: '👨' },
 ];
 
 export default function HomePage() {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const { user } = useUser();
   
   // Next contest in 2 hours
   const nextContest = new Date(Date.now() + 2 * 60 * 60 * 1000);
+  
+  // Get local currency info
+  const pricing = countryPricing[user.country] || countryPricing['Saudi Arabia'];
+  const novaLocalValue = user.novaBalance * pricing.rate;
+  const auraLocalValue = user.auraBalance * pricing.rate;
 
   return (
     <AppLayout>
@@ -63,28 +71,34 @@ export default function HomePage() {
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Nova Balance */}
-                <div className="bg-card/10 backdrop-blur rounded-xl p-4">
+                <div className="bg-gradient-nova/20 backdrop-blur rounded-xl p-4 border border-nova/20">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-nova text-lg">✦</span>
                     <span className="text-secondary-foreground/70 text-xs">
-                      {t('home.nova')}
+                      Nova
                     </span>
                   </div>
                   <p className="text-secondary-foreground text-2xl font-bold">
-                    {user.novaBalance.toLocaleString()}
+                    {user.novaBalance.toFixed(3)}
+                  </p>
+                  <p className="text-secondary-foreground/60 text-xs mt-1">
+                    ≈ {pricing.symbol} {novaLocalValue.toFixed(2)}
                   </p>
                 </div>
 
                 {/* Aura Balance */}
-                <div className="bg-card/10 backdrop-blur rounded-xl p-4">
+                <div className="bg-gradient-aura/20 backdrop-blur rounded-xl p-4 border border-aura/20">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-aura text-lg">◈</span>
                     <span className="text-secondary-foreground/70 text-xs">
-                      {t('home.aura')}
+                      Aura
                     </span>
                   </div>
                   <p className="text-secondary-foreground text-2xl font-bold">
-                    {user.auraBalance.toLocaleString()}
+                    {user.auraBalance.toFixed(3)}
+                  </p>
+                  <p className="text-secondary-foreground/60 text-xs mt-1">
+                    ≈ {pricing.symbol} {auraLocalValue.toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -180,7 +194,10 @@ export default function HomePage() {
                       <div>
                         <p className="font-medium">{winner.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {t(`spotlight.winner${index + 1}`)}
+                          {language === 'ar' 
+                            ? (index === 0 ? 'الفائز الأول' : 'الفائز الثاني')
+                            : t(`spotlight.winner${index + 1}`)
+                          }
                         </p>
                       </div>
                     </div>
@@ -202,7 +219,7 @@ export default function HomePage() {
           </Button>
           <Button asChild variant="outline" className="h-auto py-4 flex-col gap-2">
             <Link to="/wallet">
-              <span className="text-2xl">💰</span>
+              <Wallet className="h-6 w-6 text-primary" />
               <span>{t('nav.wallet')}</span>
             </Link>
           </Button>
