@@ -49,6 +49,7 @@ interface Conversation {
     nameAr: string;
     avatar: string;
     rank: UserRank;
+    active?: boolean;
   };
 }
 
@@ -141,6 +142,7 @@ const initialConversations: Conversation[] = [
       nameAr: 'أحمد حسن',
       avatar: '👑',
       rank: 'leader',
+      active: true,
     },
   },
   {
