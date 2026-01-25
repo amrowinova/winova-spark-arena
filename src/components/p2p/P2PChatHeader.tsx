@@ -1,4 +1,4 @@
-import { ArrowLeft, MoreVertical, AlertTriangle, Shield } from 'lucide-react';
+import { ArrowLeft, MoreVertical, AlertTriangle, Shield, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -72,10 +72,13 @@ export function P2PChatHeader({
                   {otherPartyLabel}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>@{otherParty.username}</span>
-                <span>•</span>
-                <span>⭐ {otherParty.rating.toFixed(1)}</span>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">@{otherParty.username}</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="flex items-center gap-1 text-warning font-medium">
+                  <Star className="h-3 w-3 fill-warning" />
+                  {otherParty.rating.toFixed(1)}
+                </span>
               </div>
             </div>
           </div>
