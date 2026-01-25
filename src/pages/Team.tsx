@@ -1,351 +1,160 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { Users, UserPlus, Copy, Share2, ChevronRight, Target, Star, Crown, CheckCircle, Calendar, TrendingUp } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { RankBadge } from '@/components/common/RankBadge';
-import { ProgressRing } from '@/components/common/ProgressRing';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UserIdentityCard } from '@/components/team/UserIdentityCard';
+import { TeamSizeCard } from '@/components/team/TeamSizeCard';
+import { ActivityCard } from '@/components/team/ActivityCard';
+import { PromotionCard } from '@/components/team/PromotionCard';
+import { WarningCard } from '@/components/team/WarningCard';
+import { DirectTeamList } from '@/components/team/DirectTeamList';
+import { IndirectTeamList } from '@/components/team/IndirectTeamList';
+import { TeamMember } from '@/components/team/TeamMemberCard';
 import { useUser, UserRank } from '@/contexts/UserContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
 
-// Promotion requirements
-const promotionRequirements: Record<UserRank, { 
-  nextRank: UserRank | null; 
-  directRequired: number; 
-  descriptionEn: string;
-  descriptionAr: string;
-}> = {
-  subscriber: { 
-    nextRank: 'marketer', 
-    directRequired: 3, 
-    descriptionEn: 'Bring 3 active subscribers',
-    descriptionAr: 'أحضر 3 مشتركين نشطين'
+// Mock direct team members
+const directTeamMembers: TeamMember[] = [
+  { 
+    id: '1', name: 'Sara A.', nameAr: 'سارة أ.', username: 'sara_a',
+    rank: 'marketer' as UserRank, active: true, avatar: '👩', 
+    activeWeeks: 5, totalWeeks: 7, directTeam: 4, indirectTeam: 8, teamSize: 12
   },
-  marketer: { 
-    nextRank: 'leader', 
-    directRequired: 10, 
-    descriptionEn: 'Bring 10 direct marketers',
-    descriptionAr: 'أحضر 10 مسوّقين مباشرين'
+  { 
+    id: '2', name: 'Mohammed K.', nameAr: 'محمد ك.', username: 'mohammed_k',
+    rank: 'subscriber' as UserRank, active: true, avatar: '👨', 
+    activeWeeks: 6, totalWeeks: 7, directTeam: 2, indirectTeam: 0, teamSize: 2
   },
-  leader: { 
-    nextRank: 'manager', 
-    directRequired: 10, 
-    descriptionEn: 'Bring 10 direct leaders',
-    descriptionAr: 'أحضر 10 قادة مباشرين'
+  { 
+    id: '3', name: 'Layla H.', nameAr: 'ليلى ح.', username: 'layla_h',
+    rank: 'subscriber' as UserRank, active: false, avatar: '👩', 
+    activeWeeks: 2, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0
   },
-  manager: { 
-    nextRank: 'president', 
-    directRequired: 10, 
-    descriptionEn: '10+ managers + highest spotlight points',
-    descriptionAr: '10+ مديرين + أعلى نقاط أضواء'
+  { 
+    id: '4', name: 'Omar B.', nameAr: 'عمر ب.', username: 'omar_b',
+    rank: 'marketer' as UserRank, active: true, avatar: '👨', 
+    activeWeeks: 7, totalWeeks: 7, directTeam: 6, indirectTeam: 15, teamSize: 21
   },
-  president: { 
-    nextRank: null, 
-    directRequired: 0, 
-    descriptionEn: 'Top rank achieved!',
-    descriptionAr: 'أعلى رتبة!'
+  { 
+    id: '5', name: 'Nora M.', nameAr: 'نورا م.', username: 'nora_m',
+    rank: 'subscriber' as UserRank, active: true, avatar: '👩', 
+    activeWeeks: 4, totalWeeks: 7, directTeam: 1, indirectTeam: 0, teamSize: 1
   },
+];
+
+// Mock indirect team (nested under direct members)
+const getMemberTeam = (memberId: string): TeamMember[] => {
+  const teams: Record<string, TeamMember[]> = {
+    '1': [
+      { id: '1-1', name: 'Ali M.', nameAr: 'علي م.', username: 'ali_m', rank: 'subscriber', active: true, avatar: '👨', activeWeeks: 4, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+      { id: '1-2', name: 'Fatima K.', nameAr: 'فاطمة ك.', username: 'fatima_k', rank: 'subscriber', active: true, avatar: '👩', activeWeeks: 5, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+      { id: '1-3', name: 'Hassan R.', nameAr: 'حسن ر.', username: 'hassan_r', rank: 'subscriber', active: false, avatar: '👨', activeWeeks: 2, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+      { id: '1-4', name: 'Mona S.', nameAr: 'منى س.', username: 'mona_s', rank: 'subscriber', active: true, avatar: '👩', activeWeeks: 3, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+    ],
+    '2': [
+      { id: '2-1', name: 'Khaled A.', nameAr: 'خالد أ.', username: 'khaled_a', rank: 'subscriber', active: true, avatar: '👨', activeWeeks: 6, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+      { id: '2-2', name: 'Rana B.', nameAr: 'رنا ب.', username: 'rana_b', rank: 'subscriber', active: false, avatar: '👩', activeWeeks: 1, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+    ],
+    '4': [
+      { id: '4-1', name: 'Youssef T.', nameAr: 'يوسف ت.', username: 'youssef_t', rank: 'subscriber', active: true, avatar: '👨', activeWeeks: 7, totalWeeks: 7, directTeam: 2, indirectTeam: 0, teamSize: 2 },
+      { id: '4-2', name: 'Dina F.', nameAr: 'دينا ف.', username: 'dina_f', rank: 'marketer', active: true, avatar: '👩', activeWeeks: 5, totalWeeks: 7, directTeam: 3, indirectTeam: 5, teamSize: 8 },
+      { id: '4-3', name: 'Amr G.', nameAr: 'عمرو ج.', username: 'amr_g', rank: 'subscriber', active: true, avatar: '👨', activeWeeks: 4, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+      { id: '4-4', name: 'Salma H.', nameAr: 'سلمى ح.', username: 'salma_h', rank: 'subscriber', active: false, avatar: '👩', activeWeeks: 2, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+      { id: '4-5', name: 'Ibrahim K.', nameAr: 'إبراهيم ك.', username: 'ibrahim_k', rank: 'subscriber', active: true, avatar: '👨', activeWeeks: 6, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+      { id: '4-6', name: 'Huda L.', nameAr: 'هدى ل.', username: 'huda_l', rank: 'subscriber', active: true, avatar: '👩', activeWeeks: 3, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+    ],
+    '5': [
+      { id: '5-1', name: 'Ziad N.', nameAr: 'زياد ن.', username: 'ziad_n', rank: 'subscriber', active: true, avatar: '👨', activeWeeks: 5, totalWeeks: 7, directTeam: 0, indirectTeam: 0, teamSize: 0 },
+    ],
+  };
+  return teams[memberId] || [];
 };
 
-// Mock team members
-const teamMembers = [
-  { id: 1, name: 'Sara A.', nameAr: 'سارة أ.', rank: 'marketer' as UserRank, active: true, avatar: '👩', activeWeeks: 5, totalWeeks: 7 },
-  { id: 2, name: 'Mohammed K.', nameAr: 'محمد ك.', rank: 'subscriber' as UserRank, active: true, avatar: '👨', activeWeeks: 6, totalWeeks: 7 },
-  { id: 3, name: 'Layla H.', nameAr: 'ليلى ح.', rank: 'subscriber' as UserRank, active: false, avatar: '👩', activeWeeks: 2, totalWeeks: 7 },
-  { id: 4, name: 'Omar B.', nameAr: 'عمر ب.', rank: 'marketer' as UserRank, active: true, avatar: '👨', activeWeeks: 7, totalWeeks: 7 },
-  { id: 5, name: 'Nora M.', nameAr: 'نورا م.', rank: 'subscriber' as UserRank, active: true, avatar: '👩', activeWeeks: 4, totalWeeks: 7 },
-];
+type ViewLevel = 'overview' | 'direct' | 'indirect';
 
 export default function TeamPage() {
   const { t } = useTranslation();
-  const { language } = useLanguage();
   const { user } = useUser();
-  const [selectedTab, setSelectedTab] = useState('overview');
-  const [copied, setCopied] = useState(false);
+  
+  const [viewLevel, setViewLevel] = useState<ViewLevel>('overview');
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
-  const currentPromotion = promotionRequirements[user.rank];
-  const activeDirectMembers = teamMembers.filter(m => m.active).length;
-  const promotionProgress = currentPromotion.nextRank 
-    ? Math.min(100, (activeDirectMembers / currentPromotion.directRequired) * 100)
-    : 100;
+  const activeDirectCount = directTeamMembers.filter(m => m.active).length;
+  const inactiveCount = directTeamMembers.length - activeDirectCount;
 
-  // Calculate personal activity: activeWeeks / currentWeek
-  const personalActivityPercent = Math.round((user.activeWeeks / user.currentWeek) * 100);
-
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(user.referralCode);
-    setCopied(true);
-    toast.success(language === 'ar' ? 'تم النسخ!' : 'Copied!');
-    setTimeout(() => setCopied(false), 2000);
+  const handleViewDirect = () => {
+    setViewLevel('direct');
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: 'Join WINOVA',
-        text: language === 'ar' 
-          ? `انضم إلي في WINOVA! استخدم كود الدعوة: ${user.referralCode}`
-          : `Join me on WINOVA! Use my referral code: ${user.referralCode}`,
-        url: 'https://winova.app',
-      });
+  const handleViewIndirect = (member: TeamMember) => {
+    setSelectedMember(member);
+    setViewLevel('indirect');
+  };
+
+  const handleBack = () => {
+    if (viewLevel === 'indirect') {
+      setViewLevel('direct');
+      setSelectedMember(null);
     } else {
-      handleCopyCode();
+      setViewLevel('overview');
     }
   };
 
+  // Level 3: Indirect Team View
+  if (viewLevel === 'indirect' && selectedMember) {
+    const memberTeam = getMemberTeam(selectedMember.id);
+    return (
+      <AppLayout title={t('team.title')} showNav={false}>
+        <div className="px-4 py-4">
+          <IndirectTeamList
+            parentMember={selectedMember}
+            members={memberTeam}
+            onBack={handleBack}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Level 2: Direct Team View
+  if (viewLevel === 'direct') {
+    return (
+      <AppLayout title={t('team.title')} showNav={false}>
+        <div className="px-4 py-4">
+          <DirectTeamList
+            members={directTeamMembers}
+            onBack={handleBack}
+            onViewMemberTeam={handleViewIndirect}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Level 1: Overview
   return (
     <AppLayout title={t('team.title')}>
-      <div className="px-4 py-4 space-y-5">
-        {/* Team Overview Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card className="overflow-hidden border-0 shadow-lg">
-            <div className="bg-gradient-dark p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Users className="h-6 w-6 text-secondary-foreground" />
-                  <h1 className="text-secondary-foreground text-lg font-bold">
-                    {t('team.title')}
-                  </h1>
-                </div>
-                <RankBadge rank={user.rank} size="sm" />
-              </div>
+      <div className="px-4 py-4 space-y-4">
+        {/* User Identity Card */}
+        <UserIdentityCard />
 
-              {/* Team Stats */}
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="bg-card/10 rounded-lg p-3">
-                  <p className="text-secondary-foreground text-2xl font-bold">{user.teamSize}</p>
-                  <p className="text-secondary-foreground/60 text-xs">{t('team.totalMembers')}</p>
-                </div>
-                <div className="bg-card/10 rounded-lg p-3">
-                  <p className="text-secondary-foreground text-2xl font-bold">{user.directTeam}</p>
-                  <p className="text-secondary-foreground/60 text-xs">{t('team.directTeam')}</p>
-                </div>
-                <div className="bg-card/10 rounded-lg p-3">
-                  <p className="text-secondary-foreground text-2xl font-bold">{user.indirectTeam}</p>
-                  <p className="text-secondary-foreground/60 text-xs">{t('team.indirectTeam')}</p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
+        {/* Team Size Card */}
+        <TeamSizeCard 
+          onDirectClick={handleViewDirect}
+        />
 
-        {/* Personal Activity - Clear display of weeks active / 14 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">{t('team.myActivity')}</h3>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <ProgressRing progress={personalActivityPercent} size={80} strokeWidth={6}>
-                <span className="text-lg font-bold">{personalActivityPercent}%</span>
-              </ProgressRing>
-              
-              <div className="flex-1">
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">
-                    {language === 'ar' ? 'الأسابيع النشطة' : 'Active Weeks'}
-                  </span>
-                  <span className="font-bold text-primary">
-                    {user.activeWeeks} / {user.totalWeeks}
-                  </span>
-                </div>
-                
-                <Progress value={(user.activeWeeks / user.totalWeeks) * 100} className="h-3 mb-2" />
-                
-                <p className="text-xs text-muted-foreground">
-                  {language === 'ar' 
-                    ? `الأسبوع ${user.currentWeek} من 14 في الدورة الحالية`
-                    : `Week ${user.currentWeek} of 14 in current cycle`}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
+        {/* Activity Card */}
+        <ActivityCard 
+          directTeamActiveCount={activeDirectCount}
+          directTeamTotalCount={directTeamMembers.length}
+        />
 
-        {/* Team Activity */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="h-5 w-5 text-success" />
-              <h3 className="font-semibold">{t('team.teamActivity')}</h3>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <ProgressRing progress={user.teamActivityPercentage} size={80} strokeWidth={6}>
-                <span className="text-lg font-bold">{user.teamActivityPercentage}%</span>
-              </ProgressRing>
-              
-              <div className="flex-1">
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">
-                    {language === 'ar' ? 'الأعضاء النشطون' : 'Active Members'}
-                  </span>
-                  <span className="font-bold text-success">
-                    {activeDirectMembers} / {teamMembers.length}
-                  </span>
-                </div>
-                
-                <Progress value={(activeDirectMembers / teamMembers.length) * 100} className="h-3 mb-2" />
-                
-                <p className="text-xs text-muted-foreground">
-                  {language === 'ar' 
-                    ? 'الأعضاء الذين شاركوا في مسابقة وصوّتوا هذا الأسبوع'
-                    : 'Members who joined a contest and voted this week'}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
+        {/* Promotion Card */}
+        <PromotionCard activeDirectCount={activeDirectCount} />
 
-        {/* Promotion Progress */}
-        {currentPromotion.nextRank && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  {t('team.promotionProgress')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between mb-3">
-                  <RankBadge rank={user.rank} size="sm" />
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  <RankBadge rank={currentPromotion.nextRank} size="sm" />
-                </div>
-                
-                <Progress value={promotionProgress} className="h-3 mb-2" />
-                
-                <div className="flex justify-between text-xs text-muted-foreground mb-3">
-                  <span>
-                    {activeDirectMembers} / {currentPromotion.directRequired} {' '}
-                    {language === 'ar' ? 'أعضاء نشطين' : 'active members'}
-                  </span>
-                  <span>{Math.round(promotionProgress)}%</span>
-                </div>
-                
-                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                  <p className="text-sm font-medium text-primary mb-1">
-                    {language === 'ar' ? 'المتطلبات:' : 'Requirements:'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === 'ar' 
-                      ? currentPromotion.descriptionAr 
-                      : currentPromotion.descriptionEn}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Referral Code */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-        >
-          <Card className="p-4">
-            <p className="text-sm text-muted-foreground mb-2">{t('team.inviteCode')}</p>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 px-4 py-3 bg-muted rounded-lg font-mono text-center font-bold tracking-wider">
-                {user.referralCode}
-              </div>
-              <Button size="icon" variant="outline" onClick={handleCopyCode}>
-                {copied ? <CheckCircle className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-              </Button>
-              <Button size="icon" onClick={handleShare}>
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Team Members */}
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="overview">{t('team.directTeam')}</TabsTrigger>
-            <TabsTrigger value="indirect">{t('team.indirectTeam')}</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-4 space-y-3">
-            {teamMembers.map((member, index) => {
-              const memberActivity = Math.round((member.activeWeeks / member.totalWeeks) * 100);
-              return (
-                <motion.div
-                  key={member.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card>
-                    <CardContent className="p-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg">
-                        {member.avatar}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">
-                          {language === 'ar' ? member.nameAr : member.name}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <RankBadge rank={member.rank} size="sm" />
-                          <span className="text-xs text-muted-foreground">
-                            {member.activeWeeks}/{member.totalWeeks} {language === 'ar' ? 'أسابيع' : 'wks'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-end">
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          member.active 
-                            ? 'bg-success/20 text-success' 
-                            : 'bg-muted text-muted-foreground'
-                        }`}>
-                          {member.active 
-                            ? (language === 'ar' ? 'نشط' : 'Active')
-                            : (language === 'ar' ? 'غير نشط' : 'Inactive')}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {memberActivity}%
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </TabsContent>
-
-          <TabsContent value="indirect" className="mt-4">
-            <Card className="p-8 text-center">
-              <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-              <p className="text-muted-foreground">
-                {user.indirectTeam} {language === 'ar' ? 'عضو غير مباشر' : 'indirect team members'}
-              </p>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* Warning Card (dynamic) */}
+        <WarningCard 
+          inactiveCount={inactiveCount}
+          directTeamCount={directTeamMembers.length}
+        />
       </div>
     </AppLayout>
   );
