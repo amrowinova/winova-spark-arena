@@ -121,6 +121,7 @@ export default function Profile() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const menuItems = [
+    { icon: Trophy, labelKey: 'profile.winnersHistory', path: '/winners' },
     { icon: Users, labelKey: 'nav.team', path: '/team' },
     { icon: ArrowLeftRight, labelKey: 'nav.p2p', path: '/p2p' },
     { icon: Sparkles, labelKey: 'profile.luckyPoints', path: '/spotlight' },
