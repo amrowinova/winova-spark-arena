@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export type UserRank = 'subscriber' | 'marketer' | 'leader' | 'manager' | 'president';
 
+// Engagement status based on weekly activity
+export type EngagementStatus = 'both' | 'contest' | 'vote' | 'none';
+
 export interface User {
   id: string;
   name: string;
@@ -14,6 +17,7 @@ export interface User {
   directTeam: number;
   indirectTeam: number;
   weeklyActive: boolean;
+  engagementStatus: EngagementStatus; // New: tracks what user did this week
   activityPercentage: number;
   teamActivityPercentage: number;
   spotlightPoints: number;
@@ -48,6 +52,7 @@ const defaultUser: User = {
   directTeam: 12,
   indirectTeam: 35,
   weeklyActive: true,
+  engagementStatus: 'both', // User joined contest AND voted this week
   activityPercentage: 71, // 5 active weeks / 7 weeks passed = 71%
   teamActivityPercentage: 65,
   spotlightPoints: 1250,

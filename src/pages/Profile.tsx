@@ -227,7 +227,7 @@ export default function Profile() {
               </AvatarFallback>
             </Avatar>
 
-            {/* Username + Rank */}
+          {/* Username + Rank */}
             <div className="mt-4 flex items-center gap-2">
               <span className="text-lg font-semibold text-foreground">
                 @{user.username}
@@ -238,29 +238,56 @@ export default function Profile() {
               </span>
             </div>
 
+            {/* Followers / Following - TikTok Style */}
+            <div className="mt-3 flex items-center gap-4">
+              <div className="text-center">
+                <span className="text-lg font-bold text-foreground">
+                  {mockStats.followers}
+                </span>
+                <span className="text-sm text-muted-foreground mx-1">
+                  {t('profile.followers')}
+                </span>
+              </div>
+              <div className="h-4 w-px bg-border" />
+              <div className="text-center">
+                <span className="text-lg font-bold text-foreground">
+                  {mockStats.following}
+                </span>
+                <span className="text-sm text-muted-foreground mx-1">
+                  {t('profile.following')}
+                </span>
+              </div>
+            </div>
+
             {/* Country + City */}
-            <div className="mt-2 flex items-center gap-1.5 text-muted-foreground">
+            <div className="mt-3 flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="h-4 w-4" />
               <span className="text-sm">
                 {user.country} · {user.city}
               </span>
             </div>
 
-            {/* Activity Status */}
+            {/* Engagement Status */}
             <Badge 
               className={cn(
                 "mt-3 px-3 py-1",
-                user.weeklyActive 
-                  ? "bg-success/15 text-success border-success/30 hover:bg-success/20" 
-                  : "bg-warning/15 text-warning border-warning/30 hover:bg-warning/20"
+                user.engagementStatus === 'both' 
+                  ? "bg-success/15 text-success border-success/30" 
+                  : user.engagementStatus === 'contest' || user.engagementStatus === 'vote'
+                    ? "bg-primary/15 text-primary border-primary/30"
+                    : "bg-muted/50 text-muted-foreground border-border"
               )}
               variant="outline"
             >
               <span className={cn(
                 "h-2 w-2 rounded-full mr-2",
-                user.weeklyActive ? "bg-success" : "bg-warning"
+                user.engagementStatus === 'both' 
+                  ? "bg-success" 
+                  : user.engagementStatus === 'contest' || user.engagementStatus === 'vote'
+                    ? "bg-primary"
+                    : "bg-muted-foreground"
               )} />
-              {user.weeklyActive ? t('profile.active') : t('profile.inactive')}
+              {t(`profile.engagement.${user.engagementStatus}`)}
             </Badge>
           </motion.div>
 
@@ -332,40 +359,6 @@ export default function Profile() {
             />
           </motion.section>
 
-          {/* Social Section */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <h2 className="text-lg font-semibold mb-4">{t('profile.network')}</h2>
-            
-            <Card className="border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-around">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-foreground">
-                      {mockStats.followers}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {t('profile.followers')}
-                    </p>
-                  </div>
-                  
-                  <div className="h-10 w-px bg-border" />
-                  
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-foreground">
-                      {mockStats.following}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {t('profile.following')}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.section>
         </div>
       </div>
     </AppLayout>
