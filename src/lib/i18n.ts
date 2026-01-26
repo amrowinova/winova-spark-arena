@@ -25,6 +25,8 @@ const resources = {
         followers: 'Followers',
         following: 'Following',
         policies: 'Policies',
+        winsHistory: 'My Wins',
+        scrollForMore: 'Scroll for more',
         stats: {
           contests: 'Contests',
           wins: 'Wins',
@@ -32,6 +34,16 @@ const resources = {
           voted: 'Voted',
           received: 'Received',
           lucky: 'Lucky Wins',
+        },
+        p2p: {
+          reputation: 'P2P Reputation',
+          completed: 'Completed',
+          avgTime: 'Avg. Time',
+          disputes: 'Disputes',
+          positive: 'Positive',
+          negative: 'Negative',
+          recentComments: 'Recent Comments',
+          viewAllRatings: 'View All Ratings',
         },
       },
       // Home
@@ -241,6 +253,8 @@ const resources = {
         followers: 'المتابعون',
         following: 'المتابَعون',
         policies: 'السياسات',
+        winsHistory: 'انتصاراتي',
+        scrollForMore: 'مرر لعرض المزيد',
         stats: {
           contests: 'المسابقات',
           wins: 'الفوز',
@@ -248,6 +262,16 @@ const resources = {
           voted: 'صوّت',
           received: 'استلم',
           lucky: 'الفوز المحظوظ',
+        },
+        p2p: {
+          reputation: 'سمعة P2P',
+          completed: 'مكتمل',
+          avgTime: 'متوسط الوقت',
+          disputes: 'النزاعات',
+          positive: 'إيجابي',
+          negative: 'سلبي',
+          recentComments: 'آخر التعليقات',
+          viewAllRatings: 'عرض كل التقييمات',
         },
       },
       // Home

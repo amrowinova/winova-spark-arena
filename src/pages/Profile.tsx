@@ -30,6 +30,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { WinsHistoryCard, P2PReputationCard } from '@/components/profile';
 
 // Mock stats data
 const mockStats = {
@@ -40,6 +41,76 @@ const mockStats = {
   luckyWins: 2,
   followers: 234,
   following: 156,
+};
+
+// Mock wins history
+const mockWins = [
+  {
+    id: '1',
+    contestName: 'Daily Photo Contest',
+    contestDate: '2025-01-20',
+    position: 1 as const,
+    prizeAmount: 45,
+    prizeType: 'nova' as const,
+    userName: 'Ahmed',
+    username: 'ahmed_sa',
+  },
+  {
+    id: '2',
+    contestName: 'Weekly Art Challenge',
+    contestDate: '2025-01-15',
+    position: 2 as const,
+    prizeAmount: 18,
+    prizeType: 'nova' as const,
+    userName: 'Ahmed',
+    username: 'ahmed_sa',
+  },
+  {
+    id: '3',
+    contestName: 'Creative Design',
+    contestDate: '2025-01-10',
+    position: 3 as const,
+    prizeAmount: 13.5,
+    prizeType: 'nova' as const,
+    userName: 'Ahmed',
+    username: 'ahmed_sa',
+  },
+];
+
+// Mock P2P reputation
+const mockP2PReputation = {
+  overallRating: 94,
+  totalTransactions: 47,
+  avgExecutionTime: '8 min',
+  disputeCount: 1,
+  positiveCount: 44,
+  negativeCount: 2,
+  recentComments: [
+    {
+      id: '1',
+      userName: 'Mohammed',
+      comment: 'Fast payment, very professional!',
+      rating: 'positive' as const,
+      date: '2 days ago',
+      tags: ['Fast', 'Professional'],
+    },
+    {
+      id: '2',
+      userName: 'Sara',
+      comment: 'Quick and smooth transaction',
+      rating: 'positive' as const,
+      date: '5 days ago',
+      tags: ['Fast'],
+    },
+    {
+      id: '3',
+      userName: 'Omar',
+      comment: 'Good experience overall',
+      rating: 'positive' as const,
+      date: '1 week ago',
+      tags: ['Reliable'],
+    },
+  ],
 };
 
 export default function Profile() {
@@ -235,11 +306,37 @@ export default function Profile() {
             </div>
           </motion.section>
 
+          {/* Wins History Section */}
+          {mockWins.length > 0 && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <WinsHistoryCard 
+                wins={mockWins} 
+                onViewContest={(id) => console.log('View contest:', id)}
+              />
+            </motion.section>
+          )}
+
+          {/* P2P Reputation Section */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <P2PReputationCard 
+              reputation={mockP2PReputation}
+              onViewAllRatings={() => console.log('View all ratings')}
+            />
+          </motion.section>
+
           {/* Social Section */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.4 }}
           >
             <h2 className="text-lg font-semibold mb-4">{t('profile.network')}</h2>
             
