@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Send, Pin, Search, X, Image, Paperclip } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -21,6 +22,7 @@ import { SystemMessageBubble, SystemMessageData } from '@/components/chat/System
 import { ForwardDialog } from '@/components/chat/ForwardDialog';
 import { ReplyBar } from '@/components/chat/ReplyBar';
 import { TeamInfoSheet, TeamChatMember } from '@/components/chat/TeamInfoSheet';
+import { ChatSearchResults, ConversationResult, UserResult } from '@/components/chat/ChatSearchResults';
 import { 
   P2PChatHeader, 
   P2POrderCard, 
@@ -191,9 +193,19 @@ const initialConversations: Conversation[] = [
   },
 ];
 
+// Mock users for search
+const mockPlatformUsers: UserResult[] = [
+  { id: 'u1', name: 'Mohammed Ali', nameAr: 'محمد علي', username: 'mohammed_ali', isOnline: true },
+  { id: 'u2', name: 'Fatima Hassan', nameAr: 'فاطمة حسن', username: 'fatima_h', isOnline: false, lastSeen: '10 min ago', lastSeenAr: 'منذ 10 دقائق' },
+  { id: 'u3', name: 'Omar Khaled', nameAr: 'عمر خالد', username: 'omar_k', isOnline: true },
+  { id: 'u4', name: 'Layla Ahmed', nameAr: 'ليلى أحمد', username: 'layla_a', isOnline: false, lastSeen: '2 hours ago', lastSeenAr: 'منذ ساعتين' },
+  { id: 'u5', name: 'Yusuf Ibrahim', nameAr: 'يوسف ابراهيم', username: 'yusuf_i', isOnline: true },
+];
+
 export default function ChatPage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
+  const navigate = useNavigate();
   const { user } = useUser();
   const { chats: p2pChats, activeChat: activeP2PChat, activeOrder, setActiveChat: setActiveP2PChat, setActiveOrder, sendMessage: sendP2PMessage } = useP2P();
   
@@ -828,6 +840,33 @@ export default function ChatPage() {
     );
   }
 
+  // Convert conversations to search format
+  const conversationsForSearch: ConversationResult[] = allConversations
+    .filter(conv => conv.type !== 'system')
+    .map(conv => ({
+      id: conv.id,
+      type: conv.type as 'dm' | 'team' | 'p2p',
+      name: conv.name,
+      nameAr: conv.nameAr,
+      avatar: conv.avatar,
+      lastMessage: conv.lastMessage,
+      time: conv.time,
+      unread: conv.unread,
+    }));
+
+  const handleSelectConversationFromSearch = (conv: ConversationResult) => {
+    const fullConv = allConversations.find(c => c.id === conv.id);
+    if (fullConv) {
+      handleOpenConversation(fullConv);
+    }
+    setSearchQuery('');
+  };
+
+  const handleSelectUserFromSearch = (user: UserResult) => {
+    // Navigate to public profile - user can start DM or send Nova from there
+    setSearchQuery('');
+  };
+
   // Conversations List
   return (
     <AppLayout title={t('chat.title')}>
@@ -841,87 +880,108 @@ export default function ChatPage() {
             placeholder={t('common.search')}
             className="ps-10"
           />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={() => setSearchQuery('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
-        {/* Tabs */}
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all" className="text-xs px-2">
-              {language === 'ar' ? 'الكل' : 'All'}
-            </TabsTrigger>
-            <TabsTrigger value="dm" className="text-xs px-2">
-              {language === 'ar' ? 'خاص' : 'DM'}
-            </TabsTrigger>
-            <TabsTrigger value="team" className="text-xs px-2">
-              {language === 'ar' ? 'الفريق' : 'Team'}
-            </TabsTrigger>
-            <TabsTrigger value="p2p" className="text-xs px-2">
-              P2P
-            </TabsTrigger>
-          </TabsList>
+        {/* Search Results */}
+        {searchQuery.trim() ? (
+          <ChatSearchResults
+            searchQuery={searchQuery}
+            conversations={conversationsForSearch}
+            users={mockPlatformUsers}
+            onSelectConversation={handleSelectConversationFromSearch}
+            onSelectUser={handleSelectUserFromSearch}
+          />
+        ) : (
+          /* Tabs - Only show when not searching */
+          <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="all" className="text-xs px-2">
+                {language === 'ar' ? 'الكل' : 'All'}
+              </TabsTrigger>
+              <TabsTrigger value="dm" className="text-xs px-2">
+                {language === 'ar' ? 'خاص' : 'DM'}
+              </TabsTrigger>
+              <TabsTrigger value="team" className="text-xs px-2">
+                {language === 'ar' ? 'الفريق' : 'Team'}
+              </TabsTrigger>
+              <TabsTrigger value="p2p" className="text-xs px-2">
+                P2P
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value={selectedTab} className="mt-4 space-y-3">
-            {filteredConversations.length === 0 ? (
-              <Card className="p-8 text-center">
-                <MessageCircle className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                <p className="text-muted-foreground">
-                  {language === 'ar' ? 'لا توجد محادثات' : 'No conversations'}
-                </p>
-              </Card>
-            ) : (
-              filteredConversations.map((conv, index) => (
-                <motion.div
-                  key={conv.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => handleOpenConversation(conv)}
+            <TabsContent value={selectedTab} className="mt-4 space-y-3">
+              {filteredConversations.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                  <p className="text-muted-foreground">
+                    {language === 'ar' ? 'لا توجد محادثات' : 'No conversations'}
+                  </p>
+                </Card>
+              ) : (
+                filteredConversations.map((conv, index) => (
+                  <motion.div
+                    key={conv.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    <CardContent className="p-3 flex items-center gap-3">
-                      {/* Avatar */}
-                      <div className={`relative w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                        conv.isSystem ? 'bg-primary/20' : conv.type === 'p2p' ? 'bg-success/20' : 'bg-muted'
-                      }`}>
-                        {conv.avatar}
-                        {conv.isOnline && (
-                          <span className="absolute bottom-0 end-0 w-3 h-3 bg-success rounded-full border-2 border-card" />
-                        )}
-                        {conv.unread > 0 && (
-                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                            {conv.unread}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium truncate">{conv.name}</p>
-                            {conv.type === 'p2p' && (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-success/20 text-success rounded">
-                                P2P
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {conv.time}
-                          </span>
+                    <Card 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleOpenConversation(conv)}
+                    >
+                      <CardContent className="p-3 flex items-center gap-3">
+                        {/* Avatar */}
+                        <div className={`relative w-12 h-12 rounded-full flex items-center justify-center text-xl ${
+                          conv.isSystem ? 'bg-primary/20' : conv.type === 'p2p' ? 'bg-success/20' : 'bg-muted'
+                        }`}>
+                          {conv.avatar}
+                          {conv.isOnline && (
+                            <span className="absolute bottom-0 end-0 w-3 h-3 bg-success rounded-full border-2 border-card" />
+                          )}
+                          {conv.unread > 0 && (
+                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+                              {conv.unread}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conv.lastMessage}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium truncate">{conv.name}</p>
+                              {conv.type === 'p2p' && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-success/20 text-success rounded">
+                                  P2P
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {conv.time}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {conv.lastMessage}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </AppLayout>
   );

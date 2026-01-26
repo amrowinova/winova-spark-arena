@@ -18,6 +18,7 @@ import Chat from "./pages/Chat";
 import P2P from "./pages/P2P";
 import Spotlight from "./pages/Spotlight";
 import Profile from "./pages/Profile";
+import PublicProfile from "./pages/PublicProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
                   <Route path="/p2p" element={<P2P />} />
                   <Route path="/spotlight" element={<Spotlight />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/user/:userId" element={<PublicProfile />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

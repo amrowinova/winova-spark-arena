@@ -49,6 +49,37 @@ const resources = {
           viewAllRatings: 'View All Ratings',
         },
       },
+      // Public Profile
+      publicProfile: {
+        title: 'Profile',
+        contestActive: 'Contest Active',
+        contestInactive: 'Contest Inactive',
+        votingActive: 'Voting Active',
+        votingInactive: 'Voting Inactive',
+        onlineNow: 'Online now',
+        lastSeen: 'Last seen',
+        achievements: 'Achievements',
+        luckyWinner: 'Lucky Winner',
+        p2pSummary: 'P2P Summary',
+        rating: 'Rating',
+        trades: 'Trades',
+        latestReview: 'Latest Review',
+        viewP2PDetails: 'View P2P Details',
+        sendMessage: 'Send Message',
+        sendNova: 'Send Nova',
+        stats: {
+          contestsJoined: 'Contests Joined',
+          contestsWon: 'Contests Won',
+          luckyWins: 'Lucky Wins',
+          paidVotesReceived: 'Paid Votes Received',
+        },
+      },
+      // Chat Search
+      chatSearch: {
+        noResults: 'No results found',
+        conversations: 'Conversations',
+        users: 'Users',
+      },
       // Home
       home: {
         welcome: 'Welcome back',
@@ -279,6 +310,37 @@ const resources = {
           recentComments: 'آخر التعليقات',
           viewAllRatings: 'عرض كل التقييمات',
         },
+      },
+      // Public Profile
+      publicProfile: {
+        title: 'الملف الشخصي',
+        contestActive: 'نشط في المسابقات',
+        contestInactive: 'غير نشط في المسابقات',
+        votingActive: 'نشط في التصويت',
+        votingInactive: 'غير نشط في التصويت',
+        onlineNow: 'متصل الآن',
+        lastSeen: 'آخر ظهور',
+        achievements: 'الإنجازات',
+        luckyWinner: 'فائز محظوظ',
+        p2pSummary: 'ملخص P2P',
+        rating: 'التقييم',
+        trades: 'الصفقات',
+        latestReview: 'آخر تقييم',
+        viewP2PDetails: 'عرض تفاصيل P2P',
+        sendMessage: 'إرسال رسالة',
+        sendNova: 'إرسال Nova',
+        stats: {
+          contestsJoined: 'المسابقات المنضمة',
+          contestsWon: 'المسابقات الفائزة',
+          luckyWins: 'الفوز المحظوظ',
+          paidVotesReceived: 'الأصوات المدفوعة المستلمة',
+        },
+      },
+      // Chat Search
+      chatSearch: {
+        noResults: 'لا توجد نتائج',
+        conversations: 'المحادثات',
+        users: 'المستخدمون',
       },
       // Home
       home: {
