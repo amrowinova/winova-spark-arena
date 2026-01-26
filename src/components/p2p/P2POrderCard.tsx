@@ -19,9 +19,9 @@ const statusConfig: Record<P2POrderStatus, {
   icon: React.ElementType;
 }> = {
   created: { 
-    en: 'Created', 
-    ar: 'تم الإنشاء', 
-    color: 'bg-muted text-muted-foreground',
+    en: 'In Progress', 
+    ar: 'جارٍ التنفيذ', 
+    color: 'bg-info/20 text-info border-info/30',
     icon: Clock,
   },
   waiting_payment: { 
@@ -32,8 +32,8 @@ const statusConfig: Record<P2POrderStatus, {
   },
   paid: { 
     en: 'Paid', 
-    ar: 'تم الدفع', 
-    color: 'bg-info/20 text-info border-info/30',
+    ar: 'مدفوع', 
+    color: 'bg-nova/20 text-nova border-nova/30',
     icon: CheckCircle2,
   },
   released: { 
@@ -49,15 +49,21 @@ const statusConfig: Record<P2POrderStatus, {
     icon: CheckCircle2,
   },
   dispute: { 
-    en: 'Dispute', 
-    ar: 'نزاع مفتوح', 
+    en: 'Support Review', 
+    ar: 'مراجعة الدعم', 
     color: 'bg-destructive/20 text-destructive border-destructive/30',
     icon: AlertTriangle,
   },
   cancelled: { 
     en: 'Cancelled', 
     ar: 'ملغي', 
-    color: 'bg-muted text-muted-foreground',
+    color: 'bg-muted text-muted-foreground border-muted',
+    icon: XCircle,
+  },
+  expired: { 
+    en: 'Expired', 
+    ar: 'منتهي', 
+    color: 'bg-muted text-muted-foreground border-muted',
     icon: XCircle,
   },
 };

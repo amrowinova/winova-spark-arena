@@ -9,7 +9,8 @@ export type P2POrderStatus =
   | 'released'
   | 'completed'
   | 'dispute'
-  | 'cancelled';
+  | 'cancelled'
+  | 'expired';
 
 export interface P2PParticipant {
   id: string;

@@ -27,7 +27,7 @@ export interface P2POrderListItem {
   total: number;
   currency: string;
   currencySymbol: string;
-  status: 'created' | 'waiting_payment' | 'paid' | 'released' | 'completed' | 'dispute' | 'cancelled';
+  status: 'created' | 'waiting_payment' | 'paid' | 'released' | 'completed' | 'dispute' | 'cancelled' | 'expired';
   counterparty: {
     name: string;
     nameAr: string;
@@ -44,9 +44,9 @@ const statusConfig: Record<P2POrderListItem['status'], {
   icon: React.ElementType;
 }> = {
   created: { 
-    en: 'Created', 
-    ar: 'تم الإنشاء', 
-    color: 'bg-muted text-muted-foreground',
+    en: 'In Progress', 
+    ar: 'جارٍ التنفيذ', 
+    color: 'bg-info/20 text-info',
     icon: Clock,
   },
   waiting_payment: { 
@@ -57,8 +57,8 @@ const statusConfig: Record<P2POrderListItem['status'], {
   },
   paid: { 
     en: 'Paid', 
-    ar: 'تم الدفع', 
-    color: 'bg-info/20 text-info',
+    ar: 'مدفوع', 
+    color: 'bg-nova/20 text-nova',
     icon: CheckCircle2,
   },
   released: { 
@@ -74,8 +74,8 @@ const statusConfig: Record<P2POrderListItem['status'], {
     icon: CheckCircle2,
   },
   dispute: { 
-    en: 'Dispute', 
-    ar: 'نزاع', 
+    en: 'Support Review', 
+    ar: 'مراجعة الدعم', 
     color: 'bg-destructive/20 text-destructive',
     icon: AlertTriangle,
   },
@@ -85,12 +85,18 @@ const statusConfig: Record<P2POrderListItem['status'], {
     color: 'bg-muted text-muted-foreground',
     icon: XCircle,
   },
+  expired: { 
+    en: 'Expired', 
+    ar: 'منتهي', 
+    color: 'bg-muted text-muted-foreground',
+    icon: XCircle,
+  },
 };
 
 const filterToStatuses: Record<OrderStatusFilter, P2POrderListItem['status'][]> = {
   active: ['created', 'waiting_payment', 'paid', 'released'],
   completed: ['completed'],
-  cancelled: ['cancelled'],
+  cancelled: ['cancelled', 'expired'],
   dispute: ['dispute'],
 };
 
