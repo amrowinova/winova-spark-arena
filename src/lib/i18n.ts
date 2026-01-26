@@ -12,6 +12,27 @@ const resources = {
         wallet: 'Wallet',
         chat: 'Chat',
         p2p: 'P2P',
+        profile: 'Profile',
+      },
+      // Profile
+      profile: {
+        title: 'Profile',
+        menu: 'Menu',
+        active: 'Active',
+        inactive: 'Inactive',
+        myStats: 'My Stats',
+        network: 'Network',
+        followers: 'Followers',
+        following: 'Following',
+        policies: 'Policies',
+        stats: {
+          contests: 'Contests',
+          wins: 'Wins',
+          votes: 'Votes',
+          voted: 'Voted',
+          received: 'Received',
+          lucky: 'Lucky Wins',
+        },
       },
       // Home
       home: {
@@ -207,6 +228,27 @@ const resources = {
         wallet: 'المحفظة',
         chat: 'الدردشة',
         p2p: 'P2P',
+        profile: 'الملف',
+      },
+      // Profile
+      profile: {
+        title: 'الملف الشخصي',
+        menu: 'القائمة',
+        active: 'نشط',
+        inactive: 'غير نشط',
+        myStats: 'إنجازاتي',
+        network: 'الشبكة',
+        followers: 'المتابعون',
+        following: 'المتابَعون',
+        policies: 'السياسات',
+        stats: {
+          contests: 'المسابقات',
+          wins: 'الفوز',
+          votes: 'الأصوات',
+          voted: 'صوّت',
+          received: 'استلم',
+          lucky: 'الفوز المحظوظ',
+        },
       },
       // Home
       home: {
