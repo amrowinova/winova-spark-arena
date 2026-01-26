@@ -14,184 +14,191 @@
 
 @layer base {
   :root {
+    /* === WINOVA Design System - Clean & Minimal === */
+    
     /* Core Backgrounds - Pure White */
     --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+    --foreground: 220 13% 9%;
 
-    /* Card & Surface - White */
+    /* Card & Surface - Pure White + Subtle Shadow */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 220 13% 9%;
     --card-elevated: 0 0% 100%;
 
-    /* Popover */
+    /* Popover - White */
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 220 13% 9%;
 
-    /* Primary - Green (main action color) */
-    --primary: 152 76% 40%;
+    /* Primary - Green #22C55E */
+    --primary: 142 71% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 152 76% 50%;
+    --primary-glow: 142 71% 55%;
 
-    /* Secondary - Neutral Gray */
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
+    /* Secondary - Light Gray for secondary buttons */
+    --secondary: 0 0% 98%;
+    --secondary-foreground: 220 13% 9%;
 
-    /* Muted - Light Gray */
+    /* Muted - For secondary text #9CA3AF */
     --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted-foreground: 218 11% 65%;
 
-    /* Accent - Light Gray */
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
+    /* Accent - Very light green for stage cards #ECFDF5 */
+    --accent: 151 81% 96%;
+    --accent-foreground: 160 84% 20%;
 
-    /* Destructive */
+    /* Destructive - Red #EF4444 */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     /* Success - Green (same as primary) */
-    --success: 152 76% 40%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning - Amber */
-    --warning: 38 92% 50%;
+    /* Warning - Gold for prizes #F5B301 */
+    --warning: 43 97% 48%;
     --warning-foreground: 0 0% 100%;
 
-    /* Nova Currency - Gold (wins, prizes, Nova) */
-    --nova: 45 93% 47%;
+    /* Nova Currency - Gold #F5B301 (prizes, wins, Top 5) */
+    --nova: 43 97% 48%;
     --nova-foreground: 0 0% 100%;
-    --nova-glow: 45 100% 55%;
+    --nova-glow: 43 100% 55%;
 
-    /* Aura Currency - Purple (Aura details only) */
+    /* Aura Currency - Purple (minimal use) */
     --aura: 270 70% 55%;
     --aura-foreground: 0 0% 100%;
     --aura-glow: 270 80% 65%;
 
-    /* Border & Input - Light Gray */
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 152 76% 40%;
+    /* Border & Input - Very light */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 142 71% 45%;
 
-    --radius: 1rem;
+    --radius: 0.75rem;
 
-    /* Sidebar */
+    /* Sidebar - White */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 9%;
-    --sidebar-primary: 152 76% 40%;
+    --sidebar-foreground: 220 13% 9%;
+    --sidebar-primary: 142 71% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 96%;
-    --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 152 76% 40%;
+    --sidebar-accent-foreground: 220 13% 9%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 142 71% 45%;
     --sidebar: 0 0% 100%;
 
-    /* Charts - Grayscale + Accent */
-    --chart-1: 152 76% 40%;
-    --chart-2: 270 70% 55%;
-    --chart-3: 45 93% 47%;
-    --chart-4: 0 0% 60%;
-    --chart-5: 0 0% 40%;
+    /* Charts */
+    --chart-1: 142 71% 45%;
+    --chart-2: 43 97% 48%;
+    --chart-3: 0 84% 60%;
+    --chart-4: 218 11% 65%;
+    --chart-5: 220 13% 46%;
 
-    /* Typography */
+    /* Typography - Dark colors for readability */
+    /* Headings: #111827 = 220 13% 9% */
+    /* Body: #374151 = 220 13% 26% */
+    /* Secondary: #9CA3AF = 218 11% 65% */
+
     --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
     --font-arabic: 'Cairo', 'Inter', ui-sans-serif, system-ui, sans-serif;
-
-    /* Shadows - Subtle */
-    --shadow-sm: 0 1px 2px 0px hsl(0 0% 0% / 0.05);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.08);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.08);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.08);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1);
-    --shadow-glow: 0 0 15px hsl(152 76% 40% / 0.2);
-    --shadow-nova: 0 0 15px hsl(45 93% 47% / 0.3);
-    --shadow-aura: 0 0 15px hsl(270 70% 55% / 0.3);
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(152 76% 40%), hsl(152 76% 35%));
-    --gradient-nova: linear-gradient(135deg, hsl(45 93% 50%), hsl(40 95% 45%));
-    --gradient-aura: linear-gradient(135deg, hsl(270 70% 55%), hsl(280 75% 50%));
-    --gradient-dark: linear-gradient(135deg, hsl(0 0% 15%), hsl(0 0% 20%));
-    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.95), hsl(0 0% 100% / 0.85));
     --font-serif: 'Merriweather', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+    /* Shadows - Very subtle (rgba(0,0,0,0.05)) */
     --shadow-2xs: 0 1px 2px 0px hsl(0 0% 0% / 0.03);
     --shadow-xs: 0 1px 2px 0px hsl(0 0% 0% / 0.04);
-    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.15);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.05), 0 1px 2px -1px hsl(0 0% 0% / 0.03);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.05);
+    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.1);
+    --shadow-glow: 0 0 10px hsl(142 71% 45% / 0.15);
+    --shadow-nova: 0 0 10px hsl(43 97% 48% / 0.2);
+    --shadow-aura: 0 0 10px hsl(270 70% 55% / 0.2);
+
+    /* Gradients - Minimal use */
+    --gradient-primary: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 40%));
+    --gradient-nova: linear-gradient(135deg, hsl(43 97% 50%), hsl(40 95% 45%));
+    --gradient-aura: linear-gradient(135deg, hsl(270 70% 55%), hsl(280 75% 50%));
+    --gradient-dark: linear-gradient(135deg, hsl(220 13% 9%), hsl(220 13% 15%));
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100%), hsl(0 0% 100%));
+
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
 
   .dark {
-    /* Dark mode - Clean dark theme */
-    --background: 0 0% 7%;
+    /* Dark mode - Clean dark theme (optional) */
+    --background: 220 13% 8%;
     --foreground: 0 0% 98%;
 
-    --card: 0 0% 10%;
+    --card: 220 13% 11%;
     --card-foreground: 0 0% 98%;
-    --card-elevated: 0 0% 12%;
+    --card-elevated: 220 13% 13%;
 
-    --popover: 0 0% 10%;
+    --popover: 220 13% 11%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 152 76% 45%;
+    --primary: 142 71% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 152 76% 55%;
+    --primary-glow: 142 71% 60%;
 
-    --secondary: 0 0% 15%;
+    --secondary: 220 13% 15%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 220 13% 18%;
+    --muted-foreground: 0 0% 70%;
 
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 151 30% 15%;
+    --accent-foreground: 142 71% 70%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 76% 45%;
+    --success: 142 71% 50%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 55%;
+    --warning: 43 97% 55%;
     --warning-foreground: 0 0% 100%;
 
-    --nova: 45 100% 55%;
+    --nova: 43 100% 55%;
     --nova-foreground: 0 0% 100%;
-    --nova-glow: 45 100% 65%;
+    --nova-glow: 43 100% 65%;
 
-    --aura: 270 75% 60%;
+    --aura: 270 75% 65%;
     --aura-foreground: 0 0% 100%;
-    --aura-glow: 270 85% 70%;
+    --aura-glow: 270 85% 75%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 152 76% 45%;
+    --border: 220 13% 20%;
+    --input: 220 13% 20%;
+    --ring: 142 71% 50%;
 
-    --sidebar-background: 0 0% 7%;
+    --sidebar-background: 220 13% 8%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 152 76% 45%;
+    --sidebar-primary: 142 71% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent: 220 13% 15%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 152 76% 45%;
-    --sidebar: 0 0% 10%;
+    --sidebar-border: 220 13% 20%;
+    --sidebar-ring: 142 71% 50%;
+    --sidebar: 220 13% 11%;
 
-    --gradient-glass: linear-gradient(135deg, hsl(0 0% 10% / 0.95), hsl(0 0% 10% / 0.85));
+    --gradient-glass: linear-gradient(135deg, hsl(220 13% 11%), hsl(220 13% 11%));
 
-    --chart-1: 152 76% 45%;
-    --chart-2: 270 75% 60%;
-    --chart-3: 45 100% 55%;
-    --chart-4: 0 0% 50%;
-    --chart-5: 0 0% 35%;
+    --chart-1: 142 71% 50%;
+    --chart-2: 43 100% 55%;
+    --chart-3: 0 84% 60%;
+    --chart-4: 0 0% 55%;
+    --chart-5: 0 0% 40%;
 
-    --shadow-2xs: 0 1px 2px 0px hsl(0 0% 0% / 0.2);
-    --shadow-xs: 0 1px 2px 0px hsl(0 0% 0% / 0.25);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.3);
-    --shadow: 0 2px 4px 0px hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 8px -1px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 10px 20px -3px hsl(0 0% 0% / 0.3);
-    --shadow-xl: 0 20px 30px -5px hsl(0 0% 0% / 0.35);
-    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.5);
+    --shadow-2xs: 0 1px 2px 0px hsl(0 0% 0% / 0.3);
+    --shadow-xs: 0 1px 2px 0px hsl(0 0% 0% / 0.35);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.4);
+    --shadow: 0 2px 4px 0px hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 8px -1px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 10px 20px -3px hsl(0 0% 0% / 0.4);
+    --shadow-xl: 0 20px 30px -5px hsl(0 0% 0% / 0.45);
+    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.6);
   }
 
   /* RTL Support */
@@ -220,25 +227,21 @@
 }
 
 @layer components {
-  /* Glass morphism cards */
+  /* Clean card style - white bg + subtle shadow */
   .glass-card {
-    @apply bg-card/80 backdrop-blur-lg border border-border/50 shadow-lg;
+    @apply bg-card border border-border shadow-sm;
   }
 
-  /* Currency badges */
+  /* Currency badges - minimal style */
   .nova-badge {
-    background: var(--gradient-nova);
-    box-shadow: var(--shadow-nova);
-    @apply text-nova-foreground font-semibold;
+    @apply bg-nova text-nova-foreground font-semibold;
   }
 
   .aura-badge {
-    background: var(--gradient-aura);
-    box-shadow: var(--shadow-aura);
-    @apply text-aura-foreground font-semibold;
+    @apply bg-aura text-aura-foreground font-semibold;
   }
 
-  /* Glow effects */
+  /* Glow effects - subtle */
   .glow-primary {
     box-shadow: var(--shadow-glow);
   }
@@ -251,7 +254,7 @@
     box-shadow: var(--shadow-aura);
   }
 
-  /* Gradient backgrounds */
+  /* Gradient backgrounds - use sparingly */
   .bg-gradient-primary {
     background: var(--gradient-primary);
   }
@@ -268,23 +271,50 @@
     background: var(--gradient-dark);
   }
 
-  /* Animated pulse for timers */
+  /* Stage card - light green background */
+  .stage-card {
+    @apply bg-accent border border-primary/10;
+  }
+
+  .stage-card-title {
+    @apply text-accent-foreground font-bold;
+  }
+
+  .stage-card-number {
+    @apply text-primary font-bold;
+  }
+
+  /* Participated badge */
+  .badge-participated {
+    @apply bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+
+  .badge-not-participated {
+    @apply bg-muted text-muted-foreground text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+
+  /* Winner rank badge (Top 5 - Gold) */
+  .badge-winner {
+    @apply bg-nova text-nova-foreground font-bold;
+  }
+
+  /* Animated pulse for timers - subtle */
   .pulse-glow {
     animation: pulseGlow 2s ease-in-out infinite;
   }
 
   @keyframes pulseGlow {
     0%, 100% {
-      box-shadow: 0 0 10px hsl(217 91% 60% / 0.3);
+      box-shadow: 0 0 8px hsl(142 71% 45% / 0.2);
     }
     50% {
-      box-shadow: 0 0 25px hsl(217 91% 60% / 0.6);
+      box-shadow: 0 0 16px hsl(142 71% 45% / 0.4);
     }
   }
 
   /* Contest stage progress */
   .stage-indicator {
-    @apply relative overflow-hidden rounded-full;
+    @apply relative overflow-hidden rounded-full bg-primary/20;
   }
 
   .stage-indicator::after {
@@ -298,20 +328,20 @@
     100% { transform: translateX(100%); }
   }
 
-  /* Rank badges */
-  .rank-subscriber { @apply bg-muted text-muted-foreground; }
-  .rank-marketer { @apply bg-success/20 text-success border border-success/30; }
-  .rank-leader { @apply bg-primary/20 text-primary border border-primary/30; }
-  .rank-manager { @apply bg-aura/20 text-aura border border-aura/30; }
-  .rank-president { background: var(--gradient-nova); @apply text-nova-foreground shadow-lg; }
+  /* Rank badges - minimal */
+  .rank-subscriber { @apply bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full; }
+  .rank-marketer { @apply bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full; }
+  .rank-leader { @apply bg-primary/15 text-primary text-xs px-2 py-0.5 rounded-full font-medium; }
+  .rank-manager { @apply bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full font-semibold; }
+  .rank-president { @apply bg-nova text-nova-foreground text-xs px-2 py-0.5 rounded-full font-bold; }
 
-  /* Bottom navigation */
+  /* Bottom navigation - clean white */
   .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border shadow-lg;
+    @apply fixed bottom-0 left-0 right-0 bg-card border-t border-border;
   }
 
   .bottom-nav-item {
-    @apply flex flex-col items-center justify-center gap-1 py-2 px-3 text-muted-foreground transition-all duration-200;
+    @apply flex flex-col items-center justify-center gap-1 py-2 px-3 text-muted-foreground transition-colors duration-200;
   }
 
   .bottom-nav-item.active {
