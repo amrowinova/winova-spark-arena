@@ -150,28 +150,28 @@ export default function HomePage() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Nova Balance */}
                 <div className="bg-gradient-nova/20 backdrop-blur rounded-xl p-3 border border-nova/20">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-nova text-lg">✦</span>
-                    <span className="text-secondary-foreground/70 text-xs font-medium">Nova</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-secondary-foreground/70 text-xs font-medium uppercase tracking-wide">Nova</span>
+                    <span className="text-nova text-2xl font-bold">И</span>
                   </div>
                   <p className="text-secondary-foreground text-2xl font-bold">
                     {formatBalance(user.novaBalance)}
                   </p>
-                  <p className="text-secondary-foreground/50 text-[11px] mt-0.5">
+                  <p className="text-secondary-foreground/50 text-[11px] mt-1">
                     = {pricing.symbol} {formatBalance(novaLocalValue)}
                   </p>
                 </div>
 
                 {/* Aura Balance - No local currency equivalent */}
                 <div className="bg-gradient-aura/20 backdrop-blur rounded-xl p-3 border border-aura/20">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-aura text-lg">◈</span>
-                    <span className="text-secondary-foreground/70 text-xs font-medium">Aura</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-secondary-foreground/70 text-xs font-medium uppercase tracking-wide">Aura</span>
+                    <span className="text-aura text-2xl font-bold">✧</span>
                   </div>
                   <p className="text-secondary-foreground text-2xl font-bold">
                     {formatBalance(user.auraBalance)}
                   </p>
-                  <p className="text-secondary-foreground/50 text-[11px] mt-0.5 invisible">
+                  <p className="text-secondary-foreground/50 text-[11px] mt-1 invisible">
                     &nbsp;
                   </p>
                 </div>
