@@ -12,6 +12,7 @@ import "@/lib/i18n";
 // Pages
 import Index from "./pages/Index";
 import Contests from "./pages/Contests";
+import Winners from "./pages/Winners";
 import Team from "./pages/Team";
 import Wallet from "./pages/Wallet";
 import Chat from "./pages/Chat";
@@ -36,6 +37,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/contests" element={<Contests />} />
+                  <Route path="/winners" element={<Winners />} />
                   <Route path="/team" element={<Team />} />
                   <Route path="/wallet" element={<Wallet />} />
                   <Route path="/chat" element={<Chat />} />
