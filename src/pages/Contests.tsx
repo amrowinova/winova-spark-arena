@@ -220,14 +220,11 @@ export default function ContestsPage() {
                 <p className="text-primary-foreground/70 text-sm mb-1">
                   {language === 'ar' ? 'مجموع الجوائز' : 'Prize Pool'}
                 </p>
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-nova text-2xl">✦</span>
-                  <span className="text-primary-foreground text-4xl font-bold">
-                    {contest.prizePool}
-                  </span>
-                </div>
+                <p className="text-primary-foreground text-4xl font-bold">
+                  И {contest.prizePool} <span className="text-2xl">Nova</span>
+                </p>
                 <p className="text-primary-foreground/60 text-xs mt-1">
-                  ≈ {pricing.symbol} {calculateLocalAmount(contest.prizePool, user.country, 'nova').amount.toFixed(2)}
+                  ≈ {pricing.symbol} {calculateLocalAmount(contest.prizePool, user.country, 'nova').amount.toFixed(0)}
                 </p>
               </div>
 
@@ -268,18 +265,13 @@ export default function ContestsPage() {
               {!contest.userJoined ? (
                 <div className="space-y-3">
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-center">
-                      {language === 'ar' ? 'رسوم الدخول:' : 'Entry Fee:'}
-                      <span className="font-bold mx-2">
-                        {contest.entryFee} <span className="text-aura">◈</span> Aura
-                      </span>
-                      {language === 'ar' ? 'أو' : 'or'}
-                      <span className="font-bold mx-2">
-                        {contest.entryFee} <span className="text-nova">✦</span> Nova
-                      </span>
+                    <p className="text-sm text-center font-bold">
+                      {language === 'ar' ? 'رسوم الدخول:' : 'Entry Fee:'} И {contest.entryFee} Nova
                     </p>
-                    <p className="text-xs text-muted-foreground text-center mt-1">
-                      ≈ {pricing.symbol} {entryFeeLocal.amount.toFixed(2)}
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      {language === 'ar' 
+                        ? 'يمكن الدخول باستخدام Nova أو Aura بقيمة تعادل 10 Nova'
+                        : 'Pay with Nova or Aura (1 Nova = 2 Aura)'}
                     </p>
                   </div>
                   
@@ -337,7 +329,7 @@ export default function ContestsPage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-primary">
-                    {language === 'ar' ? 'ترتيبك الحالي' : 'Your Current Rank'}
+                    {language === 'ar' ? 'ترتيبك اليوم' : 'Your Rank Today'}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {userVotes} {language === 'ar' ? 'صوت' : 'votes'} • 
@@ -425,9 +417,9 @@ export default function ContestsPage() {
                         <Progress value={prize.percentage} className="h-2" />
                       </div>
                       <div className="text-end">
-                        <p className="font-bold text-nova">{prizeAmount.toFixed(1)} ✦</p>
+                        <p className="font-bold text-nova">И {prizeAmount.toFixed(0)} Nova</p>
                         <p className="text-xs text-muted-foreground">
-                          {pricing.symbol} {prizeLocal.amount.toFixed(2)}
+                          ≈ {pricing.symbol} {prizeLocal.amount.toFixed(0)}
                         </p>
                       </div>
                     </div>
@@ -465,21 +457,22 @@ export default function ContestsPage() {
               <div className="p-3 bg-muted/50 rounded-lg grid grid-cols-2 gap-3 text-center">
                 <div>
                   <p className="text-xs text-muted-foreground">Nova</p>
-                  <p className="font-bold text-nova">{user.novaBalance.toFixed(3)} ✦</p>
+                  <p className="font-bold text-nova">И {user.novaBalance % 1 === 0 ? user.novaBalance.toFixed(0) : user.novaBalance.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Aura</p>
-                  <p className="font-bold text-aura">{user.auraBalance.toFixed(3)} ◈</p>
+                  <p className="font-bold text-aura">✧ {user.auraBalance % 1 === 0 ? user.auraBalance.toFixed(0) : user.auraBalance.toFixed(2)}</p>
                 </div>
               </div>
 
               <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                <p className="text-sm text-center">
-                  {language === 'ar' ? 'رسوم الدخول:' : 'Entry Fee:'} 
-                  <span className="font-bold"> {contest.entryFee}</span>
+                <p className="text-sm text-center font-bold">
+                  {language === 'ar' ? 'رسوم الدخول:' : 'Entry Fee:'} И {contest.entryFee} Nova
                 </p>
-                <p className="text-xs text-muted-foreground text-center">
-                  ≈ {pricing.symbol} {entryFeeLocal.amount.toFixed(2)}
+                <p className="text-xs text-muted-foreground text-center mt-1">
+                  {language === 'ar' 
+                    ? 'يمكن الدخول باستخدام Nova أو Aura بقيمة تعادل 10 Nova'
+                    : 'Pay with Nova or Aura (1 Nova = 2 Aura)'}
                 </p>
               </div>
               
@@ -503,8 +496,8 @@ export default function ContestsPage() {
 
               <p className="text-xs text-muted-foreground text-center">
                 {language === 'ar' 
-                  ? 'عند الدفع بـ Nova، يتم تحويلها تلقائياً إلى Aura'
-                  : 'When paying with Nova, it auto-converts to Aura'}
+                  ? 'النظام يحول تلقائياً بين العملات (1 Nova = 2 Aura)'
+                  : 'System auto-converts between currencies (1 Nova = 2 Aura)'}
               </p>
             </div>
           </DialogContent>
@@ -534,7 +527,7 @@ export default function ContestsPage() {
                 onClick={() => handleConfirmVote('nova', 1)}
                 disabled={user.novaBalance < 1}
               >
-                <span className="me-2">✦</span>
+                <span className="me-2">И</span>
                 {language === 'ar' ? 'صوت بـ 1 Nova' : 'Vote with 1 Nova'}
               </Button>
               
@@ -543,7 +536,7 @@ export default function ContestsPage() {
                 onClick={() => handleConfirmVote('aura', 1)}
                 disabled={user.auraBalance < 1}
               >
-                <span className="me-2">◈</span>
+                <span className="me-2">✧</span>
                 {language === 'ar' ? 'صوت بـ 1 Aura' : 'Vote with 1 Aura'}
               </Button>
 
