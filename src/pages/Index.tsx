@@ -103,30 +103,38 @@ export default function HomePage() {
     setJoinDialogOpen(true);
   };
 
-  const confirmJoin = (useAura: boolean) => {
+  const confirmJoin = () => {
     const entryFee = mockContest.entryFee;
+    const auraEquivalent = entryFee * 2; // 1 Nova = 2 Aura
     
-    if (useAura) {
-      if (user.auraBalance >= entryFee) {
-        spendAura(entryFee);
-      } else if (autoConvertNovaToAura(entryFee)) {
-        // Auto-converted
+    // Auto-deduction logic: Try Aura first, then Nova, then mix
+    if (user.auraBalance >= auraEquivalent) {
+      // Pay fully with Aura
+      spendAura(auraEquivalent);
+    } else if (user.novaBalance >= entryFee) {
+      // Pay fully with Nova
+      spendNova(entryFee);
+    } else if (user.auraBalance > 0 && user.novaBalance > 0) {
+      // Mix: Use all Aura first, then Nova for the rest
+      const auraToUse = user.auraBalance;
+      const novaEquivalentFromAura = auraToUse / 2;
+      const remainingNovaNeeded = entryFee - novaEquivalentFromAura;
+      
+      if (user.novaBalance >= remainingNovaNeeded) {
+        spendAura(auraToUse);
+        spendNova(remainingNovaNeeded);
       } else {
         toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
         return;
       }
     } else {
-      if (user.novaBalance >= entryFee) {
-        spendNova(entryFee);
-      } else {
-        toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
-        return;
-      }
+      toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+      return;
     }
     
     setHasJoined(true);
     setJoinDialogOpen(false);
-    toast.success(language === 'ar' ? '🎉 تم الانضمام للمسابقة!' : '🎉 Joined the contest!');
+    toast.success(language === 'ar' ? '🎉 تم الانضمام للمسابقة بنجاح!' : '🎉 Successfully joined the contest!');
   };
 
   return (
@@ -164,11 +172,11 @@ export default function HomePage() {
                 {/* Aura Balance - No local currency equivalent */}
                 <div className="bg-gradient-aura/20 backdrop-blur rounded-xl p-3 border border-aura/20">
                   <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-aura text-lg font-bold">✧</span>
+                    <span className="text-aura text-lg font-bold">✦</span>
                     <span className="text-secondary-foreground/70 text-xs font-medium">Aura</span>
                   </div>
                   <p className="text-secondary-foreground text-2xl font-bold">
-                    ✧ {formatBalance(user.auraBalance)}
+                    ✦ {formatBalance(user.auraBalance)}
                   </p>
                   <p className="text-secondary-foreground/50 text-[11px] mt-1 invisible">
                     &nbsp;
@@ -177,6 +185,22 @@ export default function HomePage() {
               </div>
             </div>
           </Card>
+        </motion.div>
+
+        {/* Quick Actions - Wallet & P2P - Directly below balance */}
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
+          <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
+            <Link to="/wallet">
+              <Wallet className="h-4 w-4 text-nova" />
+              <span className="text-sm font-medium">{language === 'ar' ? 'محفظتي' : 'My Wallet'}</span>
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
+            <Link to="/p2p">
+              <span className="text-base">🤝</span>
+              <span className="text-sm font-medium">{language === 'ar' ? 'تحويل فوري P2P' : 'P2P Transfer'}</span>
+            </Link>
+          </Button>
         </motion.div>
 
         {/* Daily Contest Card - Most prominent */}
@@ -221,78 +245,58 @@ export default function HomePage() {
           />
         </motion.div>
 
-        {/* Quick Actions - Wallet & P2P */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 pb-4">
-          <Button asChild variant="outline" className="h-12 flex items-center justify-center gap-2">
-            <Link to="/wallet">
-              <Wallet className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium">{t('nav.wallet')}</span>
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="h-12 flex items-center justify-center gap-2">
-            <Link to="/p2p">
-              <span className="text-lg">🤝</span>
-              <span className="text-sm font-medium">{t('nav.p2p')}</span>
-            </Link>
-          </Button>
-        </motion.div>
       </motion.div>
 
-      {/* Join Contest Dialog */}
+      {/* Join Contest Dialog - Simplified Single Payment */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-xs">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-center">
               {language === 'ar' ? 'انضم للمسابقة' : 'Join Contest'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-center">
               {language === 'ar' 
-                ? 'اختر طريقة الدفع للانضمام'
-                : 'Choose payment method to join'}
+                ? 'سيتم الخصم تلقائياً من رصيدك'
+                : 'Will be automatically deducted from your balance'}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-3">
-            <div className="p-3 bg-muted/50 rounded-lg grid grid-cols-2 gap-3 text-center">
-              <div>
-                <p className="text-xs text-muted-foreground">Nova</p>
-                <p className="font-bold text-nova">{formatBalance(user.novaBalance)} ✦</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Aura</p>
-                <p className="font-bold text-aura">{formatBalance(user.auraBalance)} ◈</p>
-              </div>
-            </div>
-
-            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-              <p className="text-sm text-center">
-                {language === 'ar' ? 'رسوم الدخول:' : 'Entry Fee:'} 
-                <span className="font-bold"> {mockContest.entryFee}</span>
+          <div className="space-y-4">
+            {/* Combined Balance Box */}
+            <div className="p-4 bg-gradient-to-r from-aura/10 to-nova/10 rounded-xl border border-border/50">
+              <p className="text-xs text-muted-foreground text-center mb-2">
+                {language === 'ar' ? 'رصيدك الحالي' : 'Your Balance'}
               </p>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-aura font-bold text-lg">✦ {formatBalance(user.auraBalance)}</span>
+                <span className="text-muted-foreground">/</span>
+                <span className="text-nova font-bold text-lg">И {formatBalance(user.novaBalance)}</span>
+              </div>
+            </div>
+
+            {/* Entry Fee */}
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center">
+              <p className="text-xs text-muted-foreground mb-1">
+                {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+              </p>
+              <p className="text-xl font-bold text-primary">И 10</p>
             </div>
             
+            {/* Single Payment Button */}
             <Button 
-              className="w-full bg-gradient-aura text-aura-foreground"
-              onClick={() => confirmJoin(true)}
-              disabled={user.auraBalance < mockContest.entryFee && user.novaBalance < mockContest.entryFee}
+              className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
+              onClick={confirmJoin}
+              disabled={
+                (user.novaBalance + (user.auraBalance / 2)) < mockContest.entryFee
+              }
             >
-              <span className="me-2">◈</span>
-              {language === 'ar' ? 'ادفع بـ Aura' : 'Pay with Aura'}
-            </Button>
-            
-            <Button 
-              className="w-full bg-gradient-nova text-nova-foreground"
-              onClick={() => confirmJoin(false)}
-              disabled={user.novaBalance < mockContest.entryFee}
-            >
-              <span className="me-2">✦</span>
-              {language === 'ar' ? 'ادفع بـ Nova' : 'Pay with Nova'}
+              {language === 'ar' ? 'ادفع الآن' : 'Pay Now'}
             </Button>
 
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
               {language === 'ar' 
-                ? 'إذا لم يكن لديك Aura كافٍ، سيتم التحويل تلقائياً من Nova'
-                : 'If you don\'t have enough Aura, it will auto-convert from Nova'}
+                ? 'يتم الخصم تلقائياً من Aura أولاً ثم Nova'
+                : 'Auto-deducts from Aura first, then Nova'}
             </p>
           </div>
         </DialogContent>
