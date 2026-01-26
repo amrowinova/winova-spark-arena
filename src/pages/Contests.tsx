@@ -33,6 +33,7 @@ import {
   ContestHistoryCard,
   ContestDetailsDialog,
   ContestHistoryItem,
+  VoteDialog,
 } from '@/components/contest';
 
 // Mock contest data
@@ -154,6 +155,12 @@ export default function ContestsPage() {
   const [userRank, setUserRank] = useState(47);
   const [hasJoined, setHasJoined] = useState(true);
   
+  // Voting state
+  const [usedVotesStage1, setUsedVotesStage1] = useState(0);
+  const [usedVotesFinal, setUsedVotesFinal] = useState(0);
+  const [freeVoteUsed, setFreeVoteUsed] = useState(false);
+  const [freeVoteActive, setFreeVoteActive] = useState(true); // Simulating free vote is active
+  
   // Dialog states
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
@@ -238,74 +245,80 @@ export default function ContestsPage() {
     setVoteDialogOpen(true);
   };
 
-  const handleConfirmVote = (voteType: 'free' | 'nova' | 'aura', voteCount: number = 1) => {
+  const handleConfirmVote = (voteCount: number, isFreeVote: boolean) => {
     if (!selectedParticipant) return;
 
-    // No free votes in final stage
-    if (isFinal && voteType === 'free') {
-      toast.error(language === 'ar' ? 'لا يوجد صوت مجاني في المرحلة النهائية' : 'No free votes in Final Stage');
-      return;
+    if (!isFreeVote) {
+      // Calculate cost: each vote = 1 Aura = 0.5 Nova
+      // Deduct from Aura first, then Nova
+      let remainingVotes = voteCount;
+      
+      if (user.auraBalance >= remainingVotes) {
+        spendAura(remainingVotes);
+      } else {
+        const auraToUse = user.auraBalance;
+        spendAura(auraToUse);
+        remainingVotes -= auraToUse;
+        // Each remaining vote costs 0.5 Nova
+        const novaCost = remainingVotes / 2;
+        spendNova(novaCost);
+      }
+
+      // Update used votes for current stage
+      if (isStage1) {
+        setUsedVotesStage1(prev => prev + voteCount);
+      } else {
+        setUsedVotesFinal(prev => prev + voteCount);
+      }
     }
 
-    if (voteType === 'nova' && user.novaBalance < voteCount) {
-      toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
-      return;
-    }
+    // Update participant votes and re-sort
+    const updatedParticipants = participants.map(p => 
+      p.id === selectedParticipant.id 
+        ? { ...p, votes: p.votes + (isFreeVote ? 1 : voteCount) }
+        : p
+    ).sort((a, b) => b.votes - a.votes).map((p, i) => ({ ...p, rank: i + 1 }));
 
-    if (voteType === 'aura' && user.auraBalance < voteCount) {
-      toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
-      return;
-    }
+    setParticipants(updatedParticipants);
 
-    if (voteType === 'nova') {
-      spendNova(voteCount);
-    } else if (voteType === 'aura') {
-      spendAura(voteCount);
-    }
-
-    if (voteType !== 'free') {
-      const receipt = createTransaction({
-        type: 'vote_sent',
-        status: 'completed',
-        amount: voteCount,
-        currency: voteType as 'nova' | 'aura',
-        sender: {
-          id: user.id,
-          name: user.name,
-          username: `${user.name.toLowerCase()}_user`,
-          country: user.country,
-        },
-        receiver: {
-          id: selectedParticipant.id,
-          name: selectedParticipant.name,
-          username: selectedParticipant.username,
-          country: selectedParticipant.country,
-        },
-        reason: language === 'ar' 
-          ? `تصويت ${voteCount} صوت لـ ${selectedParticipant.name}`
-          : `Voted ${voteCount} for ${selectedParticipant.name}`,
-        contestId: contest.id,
-      });
-      setSelectedReceipt(receipt);
-    }
-
-    setParticipants(prev => 
-      prev.map(p => 
-        p.id === selectedParticipant.id 
-          ? { ...p, votes: p.votes + voteCount }
-          : p
-      ).sort((a, b) => b.votes - a.votes).map((p, i) => ({ ...p, rank: i + 1 }))
-    );
+    // Find new rank of the voted participant
+    const newParticipantData = updatedParticipants.find(p => p.id === selectedParticipant.id);
+    const newRank = newParticipantData?.rank || selectedParticipant.rank;
 
     setVoteDialogOpen(false);
-    
-    if (voteType !== 'free') {
-      setReceiptDialogOpen(true);
-    }
 
-    toast.success(language === 'ar' 
-      ? `تم التصويت ${voteCount} صوت لـ ${selectedParticipant.name}!`
-      : `Voted ${voteCount} for ${selectedParticipant.name}!`
+    // Show success notification
+    const votesText = isFreeVote ? 1 : voteCount;
+    toast.success(
+      language === 'ar' 
+        ? `رائع! نجحت بالتصويت لـ ${selectedParticipant.name} بـ ${votesText} صوت وأصبح الآن #${newRank}`
+        : `Great! You voted for ${selectedParticipant.name} with ${votesText} vote${votesText > 1 ? 's' : ''} and is now #${newRank}`
+    );
+  };
+
+  const handleUseFreeVote = () => {
+    if (!selectedParticipant || freeVoteUsed || !freeVoteActive) return;
+
+    setFreeVoteUsed(true);
+    
+    // Update participant votes
+    const updatedParticipants = participants.map(p => 
+      p.id === selectedParticipant.id 
+        ? { ...p, votes: p.votes + 1 }
+        : p
+    ).sort((a, b) => b.votes - a.votes).map((p, i) => ({ ...p, rank: i + 1 }));
+
+    setParticipants(updatedParticipants);
+
+    const newParticipantData = updatedParticipants.find(p => p.id === selectedParticipant.id);
+    const newRank = newParticipantData?.rank || selectedParticipant.rank;
+
+    setVoteDialogOpen(false);
+
+    toast.success(
+      language === 'ar' 
+        ? `🎁 رائع! استخدمت صوتك المجاني لـ ${selectedParticipant.name} وأصبح الآن #${newRank}`
+        : `🎁 Great! You used your free vote for ${selectedParticipant.name} and is now #${newRank}`
     );
   };
 
@@ -437,9 +450,9 @@ export default function ContestsPage() {
             {isStage1 && <ContestInfoBox variant="qualification-rules" />}
             
             {isFinal && (
-              <Alert className="bg-amber-500/5 border-amber-500/20">
-                <Info className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-xs text-amber-700">
+              <Alert className="bg-warning/5 border-warning/20">
+                <Info className="h-4 w-4 text-warning" />
+                <AlertDescription className="text-xs text-warning">
                   {language === 'ar' 
                     ? 'أفضل 5 متسابقين (👑 فائز مؤقت) يفوزون بالجوائز عند انتهاء الوقت'
                     : 'Top 5 contestants (👑 Winning) win the prizes when time ends'}
@@ -566,53 +579,20 @@ export default function ContestsPage() {
       </Dialog>
 
       {/* Vote Dialog */}
-      <Dialog open={voteDialogOpen} onOpenChange={setVoteDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-center">
-              {language === 'ar' ? 'صوّت لـ' : 'Vote for'} {selectedParticipant?.name}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-3">
-            {/* Free vote only in Stage 1 */}
-            {isStage1 && (
-              <Button 
-                className="w-full" 
-                variant="outline"
-                onClick={() => handleConfirmVote('free')}
-              >
-                <span className="me-2">🆓</span>
-                {language === 'ar' ? 'تصويت مجاني (مرة يومياً)' : 'Free Vote (1x daily)'}
-              </Button>
-            )}
-            
-            <Button 
-              className="w-full bg-gradient-nova text-nova-foreground"
-              onClick={() => handleConfirmVote('nova', 1)}
-              disabled={user.novaBalance < 1}
-            >
-              <span className="me-2">И</span>
-              {language === 'ar' ? 'صوت بـ 1 Nova' : 'Vote with 1 Nova'}
-            </Button>
-            
-            <Button 
-              className="w-full bg-gradient-aura text-aura-foreground"
-              onClick={() => handleConfirmVote('aura', 1)}
-              disabled={user.auraBalance < 1}
-            >
-              <span className="me-2">✦</span>
-              {language === 'ar' ? 'صوت بـ 1 Aura' : 'Vote with 1 Aura'}
-            </Button>
-
-            <p className="text-xs text-muted-foreground text-center">
-              {language === 'ar' 
-                ? 'كل تصويت مدفوع يولّد إيصال'
-                : 'Each paid vote generates a receipt'}
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <VoteDialog
+        open={voteDialogOpen}
+        onClose={() => setVoteDialogOpen(false)}
+        contestant={selectedParticipant}
+        stage={contest.stage}
+        auraBalance={user.auraBalance}
+        novaBalance={user.novaBalance}
+        usedVotesStage1={usedVotesStage1}
+        usedVotesFinal={usedVotesFinal}
+        freeVoteUsed={freeVoteUsed}
+        freeVoteActive={freeVoteActive && isStage1}
+        onVote={handleConfirmVote}
+        onUseFreeVote={handleUseFreeVote}
+      />
 
       {/* History Details Dialog */}
       <ContestDetailsDialog
