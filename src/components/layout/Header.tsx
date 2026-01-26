@@ -5,7 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
 import { motion } from 'framer-motion';
-import winovaLogo from '@/assets/winova-logo-final-dark.png';
+import winovaLogo from '@/assets/winova-logo-dual-purple.png';
 
 interface HeaderProps {
   title?: string;
