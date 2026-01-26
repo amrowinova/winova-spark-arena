@@ -8,6 +8,7 @@ interface CountdownTimerProps {
   onComplete?: () => void;
   size?: 'sm' | 'md' | 'lg';
   showLabels?: boolean;
+  hideDays?: boolean; // Convert days to hours
   className?: string;
 }
 
@@ -23,6 +24,7 @@ export function CountdownTimer({
   onComplete,
   size = 'md',
   showLabels = true,
+  hideDays = false,
   className,
 }: CountdownTimerProps) {
   const { t } = useTranslation();
@@ -74,12 +76,23 @@ export function CountdownTimer({
     lg: 'w-16 h-16 text-2xl',
   };
 
-  const timeUnits = [
-    { value: timeLeft.days, label: t('common.days'), show: timeLeft.days > 0 },
-    { value: timeLeft.hours, label: t('common.hours'), show: true },
-    { value: timeLeft.minutes, label: t('common.minutes'), show: true },
-    { value: timeLeft.seconds, label: t('common.seconds'), show: true },
-  ];
+  // When hideDays is true, convert days to hours
+  const displayHours = hideDays 
+    ? timeLeft.hours + (timeLeft.days * 24) 
+    : timeLeft.hours;
+
+  const timeUnits = hideDays
+    ? [
+        { value: displayHours, label: t('common.hours'), show: true },
+        { value: timeLeft.minutes, label: t('common.minutes'), show: true },
+        { value: timeLeft.seconds, label: t('common.seconds'), show: true },
+      ]
+    : [
+        { value: timeLeft.days, label: t('common.days'), show: timeLeft.days > 0 },
+        { value: timeLeft.hours, label: t('common.hours'), show: true },
+        { value: timeLeft.minutes, label: t('common.minutes'), show: true },
+        { value: timeLeft.seconds, label: t('common.seconds'), show: true },
+      ];
 
   return (
     <div className={cn('flex items-center justify-center', sizeClasses[size], className)}>
