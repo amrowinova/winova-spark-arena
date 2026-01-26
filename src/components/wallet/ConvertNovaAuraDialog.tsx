@@ -11,8 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useUser } from '@/contexts/UserContext';
-import { useTransactions, Receipt } from '@/contexts/TransactionContext';
-import { ReceiptDialog } from '@/components/common/ReceiptCard';
+import { useTransactions } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
@@ -32,8 +31,6 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
   const { createTransaction } = useTransactions();
 
   const [amount, setAmount] = useState('');
-  const [showReceipt, setShowReceipt] = useState(false);
-  const [generatedReceipt, setGeneratedReceipt] = useState<Receipt | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const novaAmount = parseFloat(amount) || 0;
@@ -58,8 +55,8 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
 
     addAura(auraAmount);
 
-    // Create transaction and receipt
-    const receipt = createTransaction({
+    // Record in transaction history (no receipt dialog)
+    createTransaction({
       type: 'convert_nova_aura',
       status: 'completed',
       amount: novaAmount,
@@ -75,22 +72,22 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
         : `Convert ${formatBalance(novaAmount)} Nova to ${formatBalance(auraAmount)} Aura`,
     });
 
-    setGeneratedReceipt(receipt);
-    setShowReceipt(true);
     setIsLoading(false);
 
-    toast.success(language === 'ar' ? 'تم التحويل بنجاح!' : 'Conversion successful!');
-  };
+    // Show success toast with clear message
+    toast.success(
+      language === 'ar' 
+        ? `تم تحويل ${formatBalance(novaAmount)} Nova (И) إلى ${formatBalance(auraAmount)} Aura (✦) بنجاح`
+        : `Successfully converted ${formatBalance(novaAmount)} Nova (И) to ${formatBalance(auraAmount)} Aura (✦)`
+    );
 
-  const handleCloseReceipt = () => {
-    setShowReceipt(false);
+    // Reset and close
     setAmount('');
     onClose();
   };
 
   return (
-    <>
-      <Dialog open={open && !showReceipt} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -188,12 +185,5 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
           </div>
         </DialogContent>
       </Dialog>
-
-      <ReceiptDialog
-        receipt={generatedReceipt}
-        open={showReceipt}
-        onClose={handleCloseReceipt}
-      />
-    </>
   );
 }

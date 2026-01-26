@@ -45,12 +45,12 @@ export default function WalletPage() {
   const filteredReceipts = userReceipts.filter(r => {
     if (selectedTab === 'all') return true;
     if (selectedTab === 'nova') {
-      // Nova operations: transfers, P2P, contest entry (paid in Nova)
-      return r.type === 'transfer_nova' || r.type === 'p2p_buy' || r.type === 'p2p_sell' || r.type === 'contest_entry';
+      // Nova operations: transfers, P2P, Nova→Aura conversion (Nova deducted)
+      return r.type === 'transfer_nova' || r.type === 'p2p_buy' || r.type === 'p2p_sell' || r.type === 'convert_nova_aura';
     }
     if (selectedTab === 'aura') {
-      // Aura operations: conversion, voting
-      return r.type === 'convert_nova_aura' || r.type === 'vote_received' || r.type === 'vote_sent';
+      // Aura operations: contest entry, voting (all paid with Aura)
+      return r.type === 'contest_entry' || r.type === 'vote_received' || r.type === 'vote_sent';
     }
     return true;
   });
