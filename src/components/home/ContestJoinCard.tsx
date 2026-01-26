@@ -36,6 +36,9 @@ export function ContestJoinCard({
   const { user } = useUser();
   const pricing = getPricing(user.country);
   
+  // Calculate total balance in Nova equivalent (1 Nova = 2 Aura)
+  const totalNovaEquivalent = user.novaBalance + (user.auraBalance / 2);
+  
   const [minutesLeft, setMinutesLeft] = useState(0);
   const [canJoin, setCanJoin] = useState(true);
 
@@ -91,7 +94,7 @@ export function ContestJoinCard({
               transition={{ repeat: Infinity, duration: 1.5 }}
               className="text-primary-foreground text-3xl font-bold"
             >
-              {prizePool} ✦
+              И {prizePool} Nova
             </motion.p>
             <p className="text-primary-foreground/60 text-xs">
               ≈ {pricing.symbol} {(prizePool * pricing.novaRate).toFixed(0)}
@@ -146,6 +149,7 @@ export function ContestJoinCard({
                 <Button 
                   className="w-full bg-gradient-primary text-primary-foreground font-bold"
                   onClick={onJoin}
+                  disabled={totalNovaEquivalent < entryFee}
                 >
                   {language === 'ar' 
                     ? `انضم الآن (${minutesLeft} دقيقة متبقية)`
@@ -155,7 +159,16 @@ export function ContestJoinCard({
                 </Button>
 
                 <p className="text-center text-xs text-muted-foreground mt-2">
-                  {language === 'ar' ? 'رسوم الدخول:' : 'Entry:'} {entryFee} ◈ Aura
+                  {language === 'ar' 
+                    ? `رسوم الدخول: И ${entryFee} Nova`
+                    : `Entry Fee: И ${entryFee} Nova`
+                  }
+                </p>
+                <p className="text-center text-[10px] text-muted-foreground mt-1">
+                  {language === 'ar' 
+                    ? 'يمكن الدخول باستخدام Nova أو Aura بقيمة تعادل 10 Nova'
+                    : 'Pay with Nova or Aura (1 Nova = 2 Aura)'
+                  }
                 </p>
               </>
             ) : (

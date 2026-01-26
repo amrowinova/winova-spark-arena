@@ -25,7 +25,7 @@ export function UserRankingCard({ dailyRank, currentVotes, votesNeededForTop50 }
           <div className="flex items-center gap-2">
             <Target className={`h-5 w-5 ${isInTop50 ? 'text-success' : 'text-warning'}`} />
             <span className="font-semibold">
-              {language === 'ar' ? 'ترتيبك اليوم' : 'Your Daily Rank'}
+              {language === 'ar' ? 'ترتيبك في المسابقة' : 'Your Contest Rank'}
             </span>
           </div>
           <motion.div 
