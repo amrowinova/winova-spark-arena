@@ -32,7 +32,7 @@ export function LuckyWinnersCard({ winners, country }: LuckyWinnersCardProps) {
           >
             <Sparkles className="h-4 w-4 text-nova" />
           </motion.div>
-          {language === 'ar' ? 'الفائزون المحظوظون' : 'Lucky Winners'}
+          {language === 'ar' ? 'المحظوظون' : 'Lucky Winners'}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-4">
@@ -66,7 +66,7 @@ export function LuckyWinnersCard({ winners, country }: LuckyWinnersCardProps) {
               
               <div className="text-center">
                 <span className="text-sm font-bold text-nova">
-                  {winner.prize >= 1 ? Math.floor(winner.prize) : winner.prize.toFixed(1)} ✦
+                  И {winner.prize >= 1 ? Math.floor(winner.prize) : winner.prize.toFixed(1)}
                 </span>
               </div>
             </motion.div>

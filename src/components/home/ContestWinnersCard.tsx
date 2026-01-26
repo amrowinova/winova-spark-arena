@@ -73,16 +73,16 @@ export function ContestWinnersCard({ winners, prizePool, country, limit = 3 }: C
               {/* Prize */}
               <div className="text-end">
                 <p className="font-bold text-nova text-sm">
-                  {winner.prize >= 1 ? Math.floor(winner.prize) : winner.prize.toFixed(1)} ✦
+                  И {winner.prize >= 1 ? Math.floor(winner.prize) : winner.prize.toFixed(1)}
                 </p>
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* See More Button */}
+        {/* See More Button - Navigate to Contests */}
         <Button asChild variant="ghost" size="sm" className="w-full mt-3 text-primary">
-          <Link to="/spotlight" className="flex items-center justify-center gap-1">
+          <Link to="/contests" className="flex items-center justify-center gap-1">
             {language === 'ar' ? 'شاهد المزيد' : 'See More'}
             <ChevronRight className="h-4 w-4" />
           </Link>

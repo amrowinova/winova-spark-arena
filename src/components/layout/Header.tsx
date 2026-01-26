@@ -40,13 +40,13 @@ export function Header({ title }: HeaderProps) {
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="text-xs text-muted-foreground">
-                  {language === 'ar' ? 'ترتيبك:' : 'Your Rank:'}
+                  {language === 'ar' ? 'ترتيبك في التطبيق:' : 'App Rank:'}
                 </span>
                 <span className="text-xs font-bold text-primary">
                   #{weeklyRank}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  {language === 'ar' ? '• ضمن الأقوى' : '• Top Performer'}
+                  {language === 'ar' ? '(ضمن الأقوى)' : '(Top Performer)'}
                 </span>
               </div>
             </div>
