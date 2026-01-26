@@ -13,7 +13,8 @@ import {
   Target,
   Vote,
   Clover,
-  MapPin
+  MapPin,
+  Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -122,6 +123,7 @@ export default function Profile() {
   const menuItems = [
     { icon: Users, labelKey: 'nav.team', path: '/team' },
     { icon: ArrowLeftRight, labelKey: 'nav.p2p', path: '/p2p' },
+    { icon: Sparkles, labelKey: 'profile.luckyPoints', path: '/spotlight' },
     { icon: Settings, labelKey: 'settings.title', path: '/settings' },
     { icon: HelpCircle, labelKey: 'settings.help', path: '/support' },
     { icon: FileText, labelKey: 'profile.policies', path: '/policies' },
