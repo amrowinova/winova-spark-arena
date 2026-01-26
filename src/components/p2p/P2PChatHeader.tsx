@@ -19,13 +19,14 @@ interface P2PChatHeaderProps {
 }
 
 const statusConfig: Record<P2POrderStatus, { en: string; ar: string; color: string }> = {
-  created: { en: 'Created', ar: 'تم الإنشاء', color: 'bg-muted text-muted-foreground' },
+  created: { en: 'In Progress', ar: 'جارٍ التنفيذ', color: 'bg-info/20 text-info' },
   waiting_payment: { en: 'Waiting Payment', ar: 'بانتظار الدفع', color: 'bg-warning/20 text-warning' },
-  paid: { en: 'Paid', ar: 'تم الدفع', color: 'bg-info/20 text-info' },
+  paid: { en: 'Paid', ar: 'مدفوع', color: 'bg-nova/20 text-nova' },
   released: { en: 'Released', ar: 'تم التحرير', color: 'bg-success/20 text-success' },
   completed: { en: 'Completed', ar: 'مكتمل', color: 'bg-success/20 text-success' },
-  dispute: { en: 'Dispute', ar: 'نزاع', color: 'bg-destructive/20 text-destructive' },
+  dispute: { en: 'Support Review', ar: 'مراجعة الدعم', color: 'bg-destructive/20 text-destructive' },
   cancelled: { en: 'Cancelled', ar: 'ملغي', color: 'bg-muted text-muted-foreground' },
+  expired: { en: 'Expired', ar: 'منتهي', color: 'bg-muted text-muted-foreground' },
 };
 
 export function P2PChatHeader({ 
@@ -45,7 +46,7 @@ export function P2PChatHeader({
     : (language === 'ar' ? 'المشتري' : 'Buyer');
 
   const activeOrdersCount = chat.orders.filter(o => 
-    !['completed', 'cancelled'].includes(o.status)
+    !['completed', 'cancelled', 'expired'].includes(o.status)
   ).length;
 
   const hasDispute = chat.orders.some(o => o.status === 'dispute');
