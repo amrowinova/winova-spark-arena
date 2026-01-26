@@ -16,7 +16,7 @@ import { UserRankingCard } from '@/components/home/UserRankingCard';
 import { ContestWinnersCard } from '@/components/home/ContestWinnersCard';
 import { LuckyWinnersCard } from '@/components/home/LuckyWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
-import { useActiveUsers, useContestActiveUsers } from '@/hooks/useActiveUsers';
+import { useActiveUsers } from '@/hooks/useActiveUsers';
 
 import {
   Dialog,
@@ -76,7 +76,6 @@ export default function HomePage() {
   
   // Active users counter - updates every 30 seconds
   const globalActiveUsers = useActiveUsers();
-  const contestActiveUsers = useContestActiveUsers();
   
   // Contest timing - closes at 6 PM today
   const now = new Date();
@@ -190,7 +189,7 @@ export default function HomePage() {
             endsAt={endsAt}
             entryFee={mockContest.entryFee}
             hasJoined={hasJoined}
-            activeInContest={contestActiveUsers}
+            userRank={hasJoined ? userDailyRank : undefined}
             onJoin={handleJoinContest}
           />
         </motion.div>
