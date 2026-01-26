@@ -9,7 +9,7 @@ interface ActiveUsersConfig {
 export function useActiveUsers(config: ActiveUsersConfig = {
   baseCount: 30000,
   variance: 500,
-  updateInterval: 60000, // 60 seconds
+  updateInterval: 30000, // 30 seconds - updated more frequently
 }) {
   const [activeUsers, setActiveUsers] = useState(() => {
     // Initial random value around base
