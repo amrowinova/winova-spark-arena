@@ -22,3 +22,8 @@ export type { P2POrderListItem, OrderStatusFilter } from './P2POrdersList';
 // Dialogs
 export { P2PCreateOrderDialog } from './P2PCreateOrderDialog';
 export { P2PBuyDialog } from './P2PBuyDialog';
+export { P2PRatingDialog } from './P2PRatingDialog';
+
+// Payment Management
+export { P2PPaymentMethodsManager } from './P2PPaymentMethodsManager';
+export type { SavedPaymentMethod } from './P2PPaymentMethodsManager';
