@@ -141,10 +141,12 @@ export function ContestJoinCard({
           <div className="flex items-center gap-2 mb-2 text-sm">
             <Clock className="h-4 w-4 text-warning" />
             <span className="text-muted-foreground">
-              {language === 'ar' ? 'تنتهي بعد:' : 'Ends in:'}
+              {stage === 'stage1'
+                ? (language === 'ar' ? 'تنتهي المرحلة الأولى بعد:' : 'Stage 1 ends in:')
+                : (language === 'ar' ? 'تنتهي المرحلة النهائية بعد:' : 'Final Stage ends in:')}
             </span>
           </div>
-          <CountdownTimer targetDate={endsAt} size="sm" showLabels />
+          <CountdownTimer targetDate={endsAt} size="sm" showLabels hideDays />
         </div>
 
         {/* User Rank (only if joined) */}
