@@ -14,7 +14,8 @@ import {
   Vote,
   Clover,
   MapPin,
-  Sparkles
+  Sparkles,
+  Pencil
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -31,7 +32,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { WinsHistoryCard, P2PReputationCard } from '@/components/profile';
+import { WinsHistoryCard, P2PReputationCard, ProfileEditSheet } from '@/components/profile';
 
 // Mock stats data
 const mockStats = {
@@ -119,6 +120,7 @@ export default function Profile() {
   const { user } = useUser();
   const isRTL = i18n.language === 'ar';
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const menuItems = [
     { icon: Trophy, labelKey: 'profile.winnersHistory', path: '/winners' },
@@ -230,7 +232,7 @@ export default function Profile() {
               </AvatarFallback>
             </Avatar>
 
-          {/* Username + Rank */}
+          {/* Username + Rank + Edit Button */}
             <div className="mt-4 flex items-center gap-2">
               <span className="text-lg font-semibold text-foreground">
                 @{user.username}
@@ -239,6 +241,14 @@ export default function Profile() {
               <span className="text-lg font-medium text-primary">
                 {t(`ranks.${user.rank}`)}
               </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 ml-1"
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil className="h-4 w-4 text-muted-foreground" />
+              </Button>
             </div>
 
             {/* Followers / Following - TikTok Style */}
@@ -363,6 +373,12 @@ export default function Profile() {
           </motion.section>
 
         </div>
+
+        {/* Profile Edit Sheet */}
+        <ProfileEditSheet 
+          open={editOpen} 
+          onClose={() => setEditOpen(false)} 
+        />
       </div>
     </AppLayout>
   );
