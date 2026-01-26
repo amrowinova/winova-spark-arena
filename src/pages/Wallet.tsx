@@ -44,9 +44,14 @@ export default function WalletPage() {
 
   const filteredReceipts = userReceipts.filter(r => {
     if (selectedTab === 'all') return true;
-    if (selectedTab === 'transfers') return r.type === 'transfer_nova' || r.type === 'convert_nova_aura';
-    if (selectedTab === 'contests') return r.type === 'contest_entry' || r.type === 'vote_received' || r.type === 'vote_sent';
-    if (selectedTab === 'p2p') return r.type === 'p2p_buy' || r.type === 'p2p_sell';
+    if (selectedTab === 'nova') {
+      // Nova operations: transfers, P2P, contest entry (paid in Nova)
+      return r.type === 'transfer_nova' || r.type === 'p2p_buy' || r.type === 'p2p_sell' || r.type === 'contest_entry';
+    }
+    if (selectedTab === 'aura') {
+      // Aura operations: conversion, voting
+      return r.type === 'convert_nova_aura' || r.type === 'vote_received' || r.type === 'vote_sent';
+    }
     return true;
   });
 
@@ -112,12 +117,19 @@ export default function WalletPage() {
           </Card>
         </motion.div>
 
-        {/* Aura Info - Simple text */}
-        <p className="text-xs text-muted-foreground px-1 text-center">
-          {language === 'ar' 
-            ? '1 Nova = 2 Aura • Aura تُستخدم للمسابقات والتصويت فقط'
-            : '1 Nova = 2 Aura • Aura is for contests & voting only'}
-        </p>
+        {/* Conversion Info - Clear explanation */}
+        <Card className="p-3 bg-muted/20 border border-border">
+          <p className="text-xs text-muted-foreground text-center font-medium mb-1">
+            {language === 'ar' ? 'سعر التحويل:' : 'Conversion Rate:'}
+          </p>
+          <div className="text-xs text-foreground text-center space-y-0.5">
+            <p>1 Nova (<span className="text-nova font-bold">И</span>) = 2 Aura</p>
+            <p>1 Aura = 0.5 Nova ({language === 'ar' ? 'نصف Nova' : 'half Nova'})</p>
+          </div>
+          <p className="text-xs text-muted-foreground text-center mt-1">
+            {language === 'ar' ? 'تُستخدم Aura فقط في المسابقات والتصويت' : 'Aura is only used for contests & voting'}
+          </p>
+        </Card>
 
         {/* Action Buttons - 2 columns only (History is below) */}
         <motion.div
@@ -149,7 +161,7 @@ export default function WalletPage() {
           </Button>
         </motion.div>
 
-        {/* Price Info - Only Nova has real value */}
+        {/* Price Info - Nova rate display */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -161,7 +173,7 @@ export default function WalletPage() {
                 {language === 'ar' ? 'سعر Nova' : 'Nova Rate'}
               </span>
               <span className="font-semibold text-foreground">
-                1 <span className="text-nova">✦</span> = {pricing.symbol} {pricing.novaRate.toFixed(2)}
+                <span className="text-nova">И</span> 1 = {pricing.symbol} {pricing.novaRate.toFixed(2)}
               </span>
             </div>
           </Card>
@@ -174,18 +186,15 @@ export default function WalletPage() {
           </h2>
           
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
               <TabsTrigger value="all" className="text-xs">
                 {language === 'ar' ? 'الكل' : 'All'}
               </TabsTrigger>
-              <TabsTrigger value="transfers" className="text-xs">
-                {language === 'ar' ? 'تحويلات' : 'Transfers'}
+              <TabsTrigger value="nova" className="text-xs">
+                Nova (<span className="text-nova">И</span>)
               </TabsTrigger>
-              <TabsTrigger value="contests" className="text-xs">
-                {language === 'ar' ? 'مسابقات' : 'Contests'}
-              </TabsTrigger>
-              <TabsTrigger value="p2p" className="text-xs">
-                P2P
+              <TabsTrigger value="aura" className="text-xs">
+                Aura
               </TabsTrigger>
             </TabsList>
 
