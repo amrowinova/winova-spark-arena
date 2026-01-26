@@ -41,8 +41,13 @@ export default function SpotlightPage() {
   const { user } = useUser();
 
   return (
-    <AppLayout title={t('spotlight.title')}>
+    <AppLayout title={t('spotlight.luckyPointsTitle')}>
       <div className="px-4 py-4 space-y-5">
+        {/* Explanation Text */}
+        <p className="text-sm text-muted-foreground text-center">
+          {t('spotlight.luckyPointsDescription')}
+        </p>
+
         {/* Header Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -53,7 +58,7 @@ export default function SpotlightPage() {
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="h-6 w-6 text-nova-foreground" />
                 <h1 className="text-nova-foreground text-lg font-bold">
-                  {t('spotlight.title')}
+                  {t('spotlight.luckyPointsTitle')}
                 </h1>
               </div>
 

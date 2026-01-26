@@ -22,6 +22,7 @@ const resources = {
         followers: 'Followers',
         following: 'Following',
         policies: 'Policies',
+        luckyPoints: 'Lucky Points',
         winsHistory: 'My Wins',
         scrollForMore: 'Scroll for more',
         engagement: {
@@ -220,6 +221,8 @@ const resources = {
       // Spotlight
       spotlight: {
         title: 'Spotlight',
+        luckyPointsTitle: 'Lucky Points',
+        luckyPointsDescription: 'Lucky Points are awarded randomly and are not based on ranking or votes',
         dailyPool: 'Daily Pool',
         weeklyPool: 'Weekly Pool',
         cyclePool: 'Cycle Pool',
@@ -284,6 +287,7 @@ const resources = {
         followers: 'المتابعون',
         following: 'أتابع',
         policies: 'السياسات',
+        luckyPoints: 'نقاط المحظوظين',
         winsHistory: 'انتصاراتي',
         scrollForMore: 'مرر لعرض المزيد',
         engagement: {
@@ -482,6 +486,8 @@ const resources = {
       // Spotlight
       spotlight: {
         title: 'الأضواء',
+        luckyPointsTitle: 'نقاط المحظوظين',
+        luckyPointsDescription: 'نقاط المحظوظين يتم منحها عشوائيًا ولا تعتمد على الترتيب أو الأصوات',
         dailyPool: 'المجموع اليومي',
         weeklyPool: 'المجموع الأسبوعي',
         cyclePool: 'مجموع الدورة',
