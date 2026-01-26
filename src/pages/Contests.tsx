@@ -54,6 +54,72 @@ const prizeDistribution = [
   { place: '5th', percentage: 5 },
 ];
 
+// Mock contest history data (newest to oldest)
+interface ContestHistoryItem {
+  id: string;
+  date: string;
+  prizePool: number;
+  participants: number;
+  userRank: number | null;
+  participated: boolean;
+  winners: { name: string; prize: number; rank: number }[];
+}
+
+const mockContestHistory: ContestHistoryItem[] = [
+  {
+    id: 'C-1246',
+    date: '25 يناير 2026',
+    prizePool: 936,
+    participants: 156,
+    userRank: 12,
+    participated: true,
+    winners: [
+      { name: 'خالد محمد', prize: 468, rank: 1 },
+      { name: 'فاطمة سعيد', prize: 187, rank: 2 },
+      { name: 'عمر أحمد', prize: 140, rank: 3 },
+    ],
+  },
+  {
+    id: 'C-1245',
+    date: '24 يناير 2026',
+    prizePool: 840,
+    participants: 140,
+    userRank: 35,
+    participated: true,
+    winners: [
+      { name: 'سارة علي', prize: 420, rank: 1 },
+      { name: 'أحمد كريم', prize: 168, rank: 2 },
+      { name: 'ليلى حسن', prize: 126, rank: 3 },
+    ],
+  },
+  {
+    id: 'C-1244',
+    date: '23 يناير 2026',
+    prizePool: 780,
+    participants: 130,
+    userRank: null,
+    participated: false,
+    winners: [
+      { name: 'محمد سالم', prize: 390, rank: 1 },
+      { name: 'نورا بكر', prize: 156, rank: 2 },
+      { name: 'يوسف عادل', prize: 117, rank: 3 },
+    ],
+  },
+  {
+    id: 'C-1243',
+    date: '22 يناير 2026',
+    prizePool: 900,
+    participants: 150,
+    userRank: 8,
+    participated: true,
+    winners: [
+      { name: 'فاطمة أحمد', prize: 450, rank: 1 },
+      { name: 'خالد سعيد', prize: 180, rank: 2 },
+      { name: 'مريم حسن', prize: 135, rank: 3 },
+    ],
+  },
+];
+
 export default function ContestsPage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
@@ -72,9 +138,19 @@ export default function ContestsPage() {
   
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+  
+  // Contest history state
+  const [contestHistory] = useState<ContestHistoryItem[]>(mockContestHistory);
+  const [historyDetailsOpen, setHistoryDetailsOpen] = useState(false);
+  const [selectedHistoryContest, setSelectedHistoryContest] = useState<ContestHistoryItem | null>(null);
 
   const pricing = getPricing(user.country);
   const entryFeeLocal = calculateLocalAmount(contest.entryFee, user.country, 'aura');
+  
+  const handleViewHistoryDetails = (historyItem: ContestHistoryItem) => {
+    setSelectedHistoryContest(historyItem);
+    setHistoryDetailsOpen(true);
+  };
 
   const handleJoinContest = (useAura: boolean) => {
     const hasEnough = useAura ? user.auraBalance >= contest.entryFee : user.novaBalance >= contest.entryFee;
@@ -385,43 +461,56 @@ export default function ContestsPage() {
             </AnimatePresence>
           </TabsContent>
 
-          <TabsContent value="prizes" className="mt-4">
+          <TabsContent value="prizes" className="mt-4 space-y-3">
+            {/* Section Title */}
+            <p className="text-sm text-muted-foreground text-center">
+              {language === 'ar' 
+                ? 'توزيع جوائز المسابقة اليومية (Nova)'
+                : 'Daily Contest Prize Distribution (Nova)'}
+            </p>
+            
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {language === 'ar' ? 'توزيع الجوائز' : 'Prize Distribution'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-4 space-y-4">
                 {prizeDistribution.map((prize, index) => {
                   const prizeAmount = contest.prizePool * prize.percentage / 100;
                   const prizeLocal = calculateLocalAmount(prizeAmount, user.country, 'nova');
                   
                   return (
-                    <div key={prize.place} className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        index < 3 ? 'bg-gradient-nova text-nova-foreground' : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between mb-1">
+                    <div key={prize.place} className="space-y-2">
+                      {/* Row Header: Rank + Percentage */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                            {index + 1}
+                          </div>
                           <span className="text-sm font-medium">
                             {language === 'ar' 
                               ? ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس'][index]
                               : prize.place
                             }
                           </span>
-                          <span className="text-sm text-muted-foreground">{prize.percentage}%</span>
                         </div>
-                        <Progress value={prize.percentage} className="h-2" />
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          {prize.percentage}%
+                        </span>
                       </div>
-                      <div className="text-end">
-                        <p className="font-bold text-nova">И {prizeAmount.toFixed(0)} Nova</p>
+                      
+                      {/* Progress Bar - Consistent color */}
+                      <Progress value={prize.percentage} className="h-2" />
+                      
+                      {/* Prize Amount */}
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-nova">
+                          И {prizeAmount % 1 === 0 ? prizeAmount.toFixed(0) : prizeAmount.toFixed(1)} Nova
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           ≈ {pricing.symbol} {prizeLocal.amount.toFixed(0)}
                         </p>
                       </div>
+                      
+                      {index < prizeDistribution.length - 1 && (
+                        <div className="border-b border-border/50 pt-2" />
+                      )}
                     </div>
                   );
                 })}
@@ -429,13 +518,87 @@ export default function ContestsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="history" className="mt-4">
-            <Card className="p-8 text-center">
-              <Trophy className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-              <p className="text-muted-foreground">
-                {language === 'ar' ? 'سيظهر سجل المسابقات هنا' : 'Contest history will appear here'}
-              </p>
-            </Card>
+          <TabsContent value="history" className="mt-4 space-y-3">
+            {/* Intro Text */}
+            <p className="text-sm text-muted-foreground text-center">
+              {language === 'ar' 
+                ? 'هنا تجد جميع المسابقات التي شاركت بها سابقًا'
+                : 'Here you can find all contests you participated in'}
+            </p>
+            
+            {/* Mock Contest History */}
+            {contestHistory.length > 0 ? (
+              <div className="space-y-3">
+                {contestHistory.map((historyItem) => {
+                  const historyPrizeLocal = calculateLocalAmount(historyItem.prizePool, user.country, 'nova');
+                  
+                  return (
+                    <Card key={historyItem.id} className="overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-sm">
+                              {language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'}
+                            </h3>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                              📅 {historyItem.date}
+                            </p>
+                          </div>
+                          {historyItem.participated && (
+                            <span className="px-2 py-1 bg-success/10 text-success text-xs rounded-full">
+                              {language === 'ar' ? 'شاركت' : 'Participated'}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div className="bg-muted/50 rounded-lg p-2">
+                            <p className="text-xs text-muted-foreground">
+                              {language === 'ar' ? 'مجموع الجوائز' : 'Prize Pool'}
+                            </p>
+                            <p className="font-bold text-nova">И {historyItem.prizePool} Nova</p>
+                          </div>
+                          <div className="bg-muted/50 rounded-lg p-2">
+                            <p className="text-xs text-muted-foreground">
+                              {language === 'ar' ? 'مركزك' : 'Your Rank'}
+                            </p>
+                            <p className="font-bold">
+                              {historyItem.participated 
+                                ? `#${historyItem.userRank}`
+                                : (language === 'ar' ? '—' : '—')
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {historyItem.participated ? (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => handleViewHistoryDetails(historyItem)}
+                          >
+                            {language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
+                            <ChevronRight className="h-4 w-4 ms-1" />
+                          </Button>
+                        ) : (
+                          <p className="text-xs text-muted-foreground text-center py-2">
+                            {language === 'ar' ? 'لم تشارك في هذه المسابقة' : 'You did not participate in this contest'}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <Card className="p-8 text-center">
+                <Trophy className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                <p className="text-muted-foreground">
+                  {language === 'ar' ? 'لا توجد مسابقات سابقة' : 'No past contests'}
+                </p>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
 
@@ -546,6 +709,106 @@ export default function ContestsPage() {
                   : 'Each paid vote generates a receipt'}
               </p>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* History Details Dialog */}
+        <Dialog open={historyDetailsOpen} onOpenChange={setHistoryDetailsOpen}>
+          <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {language === 'ar' ? 'تفاصيل المسابقة' : 'Contest Details'}
+              </DialogTitle>
+              <DialogDescription>
+                📅 {selectedHistoryContest?.date}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedHistoryContest && (
+              <div className="space-y-4">
+                {/* Prize Pool */}
+                <div className="p-3 bg-gradient-primary/10 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === 'ar' ? 'مجموع الجوائز' : 'Prize Pool'}
+                  </p>
+                  <p className="text-2xl font-bold text-nova">
+                    И {selectedHistoryContest.prizePool} Nova
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedHistoryContest.participants} {language === 'ar' ? 'مشترك' : 'participants'}
+                  </p>
+                </div>
+                
+                {/* User Rank */}
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                  <p className="text-xs text-muted-foreground text-center mb-1">
+                    {language === 'ar' ? 'مركزك في هذه المسابقة' : 'Your Rank in this Contest'}
+                  </p>
+                  <p className="text-2xl font-bold text-center text-primary">
+                    #{selectedHistoryContest.userRank}
+                  </p>
+                </div>
+                
+                {/* Winners */}
+                <div>
+                  <p className="text-sm font-medium mb-2">
+                    {language === 'ar' ? 'الفائزون' : 'Winners'}
+                  </p>
+                  <div className="space-y-2">
+                    {selectedHistoryContest.winners.map((winner, index) => {
+                      const prizeLocal = calculateLocalAmount(winner.prize, user.country, 'nova');
+                      return (
+                        <div key={index} className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                            {winner.rank}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{winner.name}</p>
+                          </div>
+                          <div className="text-end">
+                            <p className="text-sm font-bold text-nova">И {winner.prize} Nova</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              ≈ {pricing.symbol} {prizeLocal.amount.toFixed(0)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                {/* Prize Distribution */}
+                <div>
+                  <p className="text-sm font-medium mb-2">
+                    {language === 'ar' ? 'توزيع الجوائز' : 'Prize Distribution'}
+                  </p>
+                  <div className="space-y-2">
+                    {prizeDistribution.map((prize, index) => {
+                      const prizeAmount = selectedHistoryContest.prizePool * prize.percentage / 100;
+                      return (
+                        <div key={index} className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">
+                            {language === 'ar' 
+                              ? ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس'][index]
+                              : prize.place
+                            } ({prize.percentage}%)
+                          </span>
+                          <span className="font-medium text-nova">
+                            И {prizeAmount % 1 === 0 ? prizeAmount.toFixed(0) : prizeAmount.toFixed(1)} Nova
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                <p className="text-[10px] text-muted-foreground text-center">
+                  {language === 'ar' 
+                    ? 'هذه البيانات ثابتة ولا تتغير'
+                    : 'This data is frozen and will not change'}
+                </p>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
