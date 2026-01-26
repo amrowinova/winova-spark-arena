@@ -14,12 +14,14 @@ import {
   MapPin,
   ThumbsUp,
   ThumbsDown,
-  Clock,
-  AlertTriangle,
-  Star
+  Star,
+  UserPlus,
+  UserMinus,
+  Users
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +30,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { CurrencyBadge } from '@/components/common/CurrencyBadge';
+import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 
 // Mock user data for public profile
 const getMockPublicUser = (userId: string) => ({
@@ -46,6 +49,9 @@ const getMockPublicUser = (userId: string) => ({
   lastSeenAr: 'منذ 5 دقائق',
   contestEngagement: 'active' as 'active' | 'inactive',
   votingEngagement: 'active' as 'active' | 'inactive',
+  followers: 1250,
+  following: 342,
+  isFollowedByMe: false,
   stats: {
     contestsJoined: 48,
     contestsWon: 7,
@@ -101,10 +107,22 @@ export default function PublicProfile() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { language } = useLanguage();
+  const { user: currentUser } = useUser();
   const isRTL = language === 'ar';
   
   // Get mock user data
-  const publicUser = getMockPublicUser(userId || '1');
+  const initialUser = getMockPublicUser(userId || '1');
+  
+  // State for follow status and counts
+  const [isFollowing, setIsFollowing] = useState(initialUser.isFollowedByMe);
+  const [followersCount, setFollowersCount] = useState(initialUser.followers);
+  const [followingCount] = useState(initialUser.following);
+  
+  // State for Nova transfer dialog
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  
+  // Check if viewing own profile
+  const isOwnProfile = currentUser.id === userId;
 
   const handleBack = () => {
     navigate(-1);
@@ -112,12 +130,21 @@ export default function PublicProfile() {
 
   const handleSendMessage = () => {
     // Navigate to DM or create new chat
-    navigate('/chat', { state: { openDmWith: publicUser.id } });
+    navigate('/chat', { state: { openDmWith: initialUser.id } });
   };
 
   const handleSendNova = () => {
-    // Open transfer flow + auto-create chat
-    navigate('/chat', { state: { openDmWith: publicUser.id, openTransfer: true } });
+    // Open transfer dialog directly
+    setShowTransferDialog(true);
+  };
+  
+  const handleFollowToggle = () => {
+    if (isFollowing) {
+      setFollowersCount(prev => prev - 1);
+    } else {
+      setFollowersCount(prev => prev + 1);
+    }
+    setIsFollowing(!isFollowing);
   };
 
   const handleViewP2PDetails = () => {
@@ -129,28 +156,28 @@ export default function PublicProfile() {
     {
       icon: Target,
       labelKey: 'publicProfile.stats.contestsJoined',
-      value: publicUser.stats.contestsJoined,
+      value: initialUser.stats.contestsJoined,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
     },
     {
       icon: Trophy,
       labelKey: 'publicProfile.stats.contestsWon',
-      value: publicUser.stats.contestsWon,
+      value: initialUser.stats.contestsWon,
       color: 'text-nova',
       bgColor: 'bg-nova/10',
     },
     {
       icon: Clover,
       labelKey: 'publicProfile.stats.luckyWins',
-      value: publicUser.stats.luckyWins,
+      value: initialUser.stats.luckyWins,
       color: 'text-success',
       bgColor: 'bg-success/10',
     },
     {
       icon: Vote,
       labelKey: 'publicProfile.stats.paidVotesReceived',
-      value: publicUser.stats.paidVotesReceived,
+      value: initialUser.stats.paidVotesReceived,
       color: 'text-aura',
       bgColor: 'bg-aura/10',
     },
@@ -205,49 +232,90 @@ export default function PublicProfile() {
             className="flex flex-col items-center text-center"
           >
             <Avatar className="h-24 w-24 border-4 border-primary/20">
-              <AvatarImage src={publicUser.avatar} alt={publicUser.name} />
+              <AvatarImage src={initialUser.avatar} alt={initialUser.name} />
               <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                {publicUser.name.charAt(0).toUpperCase()}
+                {initialUser.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
             {/* Name + Rank */}
             <div className="mt-4 flex items-center gap-2">
               <span className="text-xl font-bold text-foreground">
-                {language === 'ar' ? publicUser.nameAr : publicUser.name}
+                {language === 'ar' ? initialUser.nameAr : initialUser.name}
               </span>
               <Badge variant="secondary" className="text-xs">
-                {t(`ranks.${publicUser.rank}`)}
+                {t(`ranks.${initialUser.rank}`)}
               </Badge>
             </div>
 
             {/* Username */}
             <span className="text-muted-foreground mt-1">
-              @{publicUser.username}
+              @{initialUser.username}
             </span>
 
+            {/* Followers / Following - TikTok Style */}
+            <div className="mt-3 flex items-center gap-6">
+              <div className="text-center">
+                <span className="text-lg font-bold text-foreground">{followersCount.toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground ms-1">
+                  {language === 'ar' ? 'متابِع' : 'Followers'}
+                </span>
+              </div>
+              <div className="text-center">
+                <span className="text-lg font-bold text-foreground">{followingCount.toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground ms-1">
+                  {language === 'ar' ? 'أتابع' : 'Following'}
+                </span>
+              </div>
+            </div>
+
+            {/* Follow Button - Hidden for own profile */}
+            {!isOwnProfile && (
+              <Button
+                variant={isFollowing ? "outline" : "default"}
+                size="sm"
+                className={cn(
+                  "mt-3 gap-2",
+                  isFollowing && "border-primary text-primary"
+                )}
+                onClick={handleFollowToggle}
+              >
+                {isFollowing ? (
+                  <>
+                    <UserMinus className="h-4 w-4" />
+                    {language === 'ar' ? 'إلغاء المتابعة' : 'Unfollow'}
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    {language === 'ar' ? 'متابعة' : 'Follow'}
+                  </>
+                )}
+              </Button>
+            )}
+
             {/* Country / City */}
-            <div className="mt-2 flex items-center gap-1.5 text-muted-foreground">
+            <div className="mt-3 flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="h-4 w-4" />
               <span className="text-sm">
-                {language === 'ar' ? publicUser.countryAr : publicUser.country} · {language === 'ar' ? publicUser.cityAr : publicUser.city}
+                {language === 'ar' ? initialUser.countryAr : initialUser.country} · {language === 'ar' ? initialUser.cityAr : initialUser.city}
               </span>
             </div>
 
             {/* Status Section */}
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="mt-3 flex flex-col gap-2">
               {/* Engagement Status */}
               <div className="flex items-center gap-2 flex-wrap justify-center">
                 <Badge 
                   variant="outline"
                   className={cn(
                     "text-xs",
-                    publicUser.contestEngagement === 'active'
+                    initialUser.contestEngagement === 'active'
                       ? "bg-success/15 text-success border-success/30"
                       : "bg-muted/50 text-muted-foreground border-border"
                   )}
                 >
-                  {publicUser.contestEngagement === 'active' 
+                  {initialUser.contestEngagement === 'active' 
                     ? t('publicProfile.contestActive')
                     : t('publicProfile.contestInactive')
                   }
@@ -256,12 +324,12 @@ export default function PublicProfile() {
                   variant="outline"
                   className={cn(
                     "text-xs",
-                    publicUser.votingEngagement === 'active'
+                    initialUser.votingEngagement === 'active'
                       ? "bg-success/15 text-success border-success/30"
                       : "bg-muted/50 text-muted-foreground border-border"
                   )}
                 >
-                  {publicUser.votingEngagement === 'active' 
+                  {initialUser.votingEngagement === 'active' 
                     ? t('publicProfile.votingActive')
                     : t('publicProfile.votingInactive')
                   }
@@ -272,12 +340,12 @@ export default function PublicProfile() {
               <div className="flex items-center justify-center gap-1.5">
                 <span className={cn(
                   "h-2 w-2 rounded-full",
-                  publicUser.isOnline ? "bg-success" : "bg-muted-foreground"
+                  initialUser.isOnline ? "bg-success" : "bg-muted-foreground"
                 )} />
                 <span className="text-sm text-muted-foreground">
-                  {publicUser.isOnline 
+                  {initialUser.isOnline 
                     ? t('publicProfile.onlineNow')
-                    : `${t('publicProfile.lastSeen')} ${language === 'ar' ? publicUser.lastSeenAr : publicUser.lastSeen}`
+                    : `${t('publicProfile.lastSeen')} ${language === 'ar' ? initialUser.lastSeenAr : initialUser.lastSeen}`
                   }
                 </span>
               </div>
@@ -310,7 +378,7 @@ export default function PublicProfile() {
           </motion.section>
 
           {/* Achievements Section */}
-          {publicUser.achievements.length > 0 && (
+          {initialUser.achievements.length > 0 && (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -319,7 +387,7 @@ export default function PublicProfile() {
               <h3 className="text-lg font-semibold mb-4">{t('publicProfile.achievements')}</h3>
               <ScrollArea className="w-full">
                 <div className="flex gap-3 pb-2">
-                  {publicUser.achievements.map((achievement) => (
+                  {initialUser.achievements.map((achievement) => (
                     <Card key={achievement.id} className="min-w-[280px] border-border/50">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3">
@@ -387,7 +455,7 @@ export default function PublicProfile() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="text-3xl font-bold text-success">
-                      {publicUser.p2p.rating}%
+                      {initialUser.p2p.rating}%
                     </div>
                     <span className="text-muted-foreground">
                       {t('publicProfile.rating')}
@@ -395,7 +463,7 @@ export default function PublicProfile() {
                   </div>
                   <div className="text-end">
                     <span className="text-lg font-semibold text-foreground">
-                      {publicUser.p2p.tradesCount}
+                      {initialUser.p2p.tradesCount}
                     </span>
                     <span className="text-muted-foreground ms-1">
                       {t('publicProfile.trades')}
@@ -406,7 +474,7 @@ export default function PublicProfile() {
                 <Separator />
 
                 {/* Latest Review */}
-                {publicUser.p2p.latestReview && (
+                {initialUser.p2p.latestReview && (
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
                       {t('publicProfile.latestReview')}
@@ -414,11 +482,11 @@ export default function PublicProfile() {
                     <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
                       <div className={cn(
                         "h-8 w-8 rounded-full flex items-center justify-center",
-                        publicUser.p2p.latestReview.rating === 'positive'
+                        initialUser.p2p.latestReview.rating === 'positive'
                           ? "bg-success/10"
                           : "bg-destructive/10"
                       )}>
-                        {publicUser.p2p.latestReview.rating === 'positive' ? (
+                        {initialUser.p2p.latestReview.rating === 'positive' ? (
                           <ThumbsUp className="h-4 w-4 text-success" />
                         ) : (
                           <ThumbsDown className="h-4 w-4 text-destructive" />
@@ -427,14 +495,14 @@ export default function PublicProfile() {
                       <div className="flex-1">
                         <p className="font-medium text-sm text-foreground">
                           {language === 'ar' 
-                            ? publicUser.p2p.latestReview.userNameAr 
-                            : publicUser.p2p.latestReview.userName
+                            ? initialUser.p2p.latestReview.userNameAr 
+                            : initialUser.p2p.latestReview.userName
                           }
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {language === 'ar' 
-                            ? publicUser.p2p.latestReview.commentAr 
-                            : publicUser.p2p.latestReview.comment
+                            ? initialUser.p2p.latestReview.commentAr 
+                            : initialUser.p2p.latestReview.comment
                           }
                         </p>
                       </div>
@@ -474,6 +542,15 @@ export default function PublicProfile() {
             </Button>
           </div>
         </div>
+
+        {/* Nova Transfer Dialog */}
+        <TransferNovaDialog
+          open={showTransferDialog}
+          onClose={() => setShowTransferDialog(false)}
+          recipientId={initialUser.id}
+          recipientName={language === 'ar' ? initialUser.nameAr : initialUser.name}
+          recipientUsername={initialUser.username}
+        />
       </div>
     </AppLayout>
   );
