@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Wallet as WalletIcon, Send, RefreshCw, History, Info } from 'lucide-react';
+import { Wallet as WalletIcon, Send, RefreshCw, History } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,6 +13,11 @@ import { ReceiptCard, ReceiptDialog } from '@/components/common/ReceiptCard';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ConvertNovaAuraDialog } from '@/components/wallet/ConvertNovaAuraDialog';
 import type { Receipt } from '@/contexts/TransactionContext';
+
+// Format number - remove decimals if whole number (matches Home)
+const formatBalance = (value: number): string => {
+  return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
+};
 
 export default function WalletPage() {
   const { t } = useTranslation();
@@ -73,34 +78,30 @@ export default function WalletPage() {
                 </span>
               </div>
 
-              {/* Nova & Aura Balances - Clean Cards */}
+              {/* Nova & Aura Balances - Matching Home layout */}
               <div className="grid grid-cols-2 gap-4">
-                {/* Nova Balance - Gold accent */}
+                {/* Nova Balance - Gold accent with И symbol */}
                 <div className="bg-nova/5 border border-nova/20 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-nova text-lg">✦</span>
-                    <span className="text-foreground/70 text-xs font-medium">
-                      Nova
-                    </span>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-nova text-lg font-bold">И</span>
+                    <span className="text-foreground/70 text-xs font-medium">Nova</span>
                   </div>
                   <p className="text-foreground text-2xl font-bold">
-                    {user.novaBalance.toFixed(2)}
+                    {formatBalance(user.novaBalance)}
                   </p>
                   <p className="text-muted-foreground text-xs mt-1">
-                    ≈ {pricing.symbol} {novaLocalValue.amount.toFixed(2)}
+                    ≈ {pricing.symbol} {formatBalance(novaLocalValue.amount)}
                   </p>
                 </div>
 
-                {/* Aura Balance - Purple accent, NO local currency */}
+                {/* Aura Balance - Purple accent with ✦ symbol, NO local currency */}
                 <div className="bg-aura/5 border border-aura/20 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-aura text-lg">◈</span>
-                    <span className="text-foreground/70 text-xs font-medium">
-                      Aura
-                    </span>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-aura text-lg font-bold">✦</span>
+                    <span className="text-foreground/70 text-xs font-medium">Aura</span>
                   </div>
                   <p className="text-foreground text-2xl font-bold">
-                    {user.auraBalance.toFixed(0)}
+                    {formatBalance(user.auraBalance)}
                   </p>
                   <p className="text-muted-foreground text-xs mt-1">
                     {language === 'ar' ? 'نقاط تصويت' : 'Voting Points'}
@@ -111,22 +112,19 @@ export default function WalletPage() {
           </Card>
         </motion.div>
 
-        {/* Aura Info - Simple text with icon */}
-        <div className="flex items-center gap-2 px-1">
-          <Info className="h-4 w-4 text-muted-foreground shrink-0" />
-          <p className="text-xs text-muted-foreground">
-            {language === 'ar' 
-              ? 'Aura تُستخدم فقط في المسابقات والتصويت • 1 Nova = 2 Aura'
-              : 'Aura is used only for contests & voting • 1 Nova = 2 Aura'}
-          </p>
-        </div>
+        {/* Aura Info - Simple text */}
+        <p className="text-xs text-muted-foreground px-1 text-center">
+          {language === 'ar' 
+            ? '1 Nova = 2 Aura • Aura تُستخدم للمسابقات والتصويت فقط'
+            : '1 Nova = 2 Aura • Aura is for contests & voting only'}
+        </p>
 
-        {/* Action Buttons - Consistent styling */}
+        {/* Action Buttons - 2 columns only (History is below) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-3 gap-3"
+          className="grid grid-cols-2 gap-3"
         >
           <Button 
             onClick={() => setTransferDialogOpen(true)}
@@ -147,17 +145,6 @@ export default function WalletPage() {
             <RefreshCw className="h-5 w-5 mb-1 text-aura" />
             <span className="text-xs text-foreground text-center leading-tight">
               Nova → Aura
-            </span>
-          </Button>
-          
-          <Button 
-            variant="outline"
-            className="flex-col h-auto py-4 border-border hover:bg-muted/30"
-            onClick={() => document.getElementById('transactions')?.scrollIntoView({ behavior: 'smooth' })}
-          >
-            <History className="h-5 w-5 mb-1 text-muted-foreground" />
-            <span className="text-xs text-foreground">
-              {language === 'ar' ? 'السجل' : 'History'}
             </span>
           </Button>
         </motion.div>

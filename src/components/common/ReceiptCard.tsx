@@ -1,6 +1,5 @@
-import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Receipt, FileText, Download, Share2, X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { FileText, Download, Share2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -10,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Receipt as ReceiptType, countryPricing } from '@/contexts/TransactionContext';
+import { Receipt as ReceiptType } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ReceiptCardProps {
@@ -25,9 +24,14 @@ interface ReceiptDialogProps {
   onClose: () => void;
 }
 
+// Format number - remove decimals if whole number
+const formatAmount = (value: number): string => {
+  return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
+};
+
 const transactionTypeLabels: Record<string, { en: string; ar: string }> = {
   transfer_nova: { en: 'Nova Transfer', ar: 'تحويل Nova' },
-  convert_nova_aura: { en: 'Nova → Aura Conversion', ar: 'تحويل Nova → Aura' },
+  convert_nova_aura: { en: 'Nova → Aura', ar: 'تحويل Nova → Aura' },
   contest_entry: { en: 'Contest Entry', ar: 'دخول مسابقة' },
   vote_received: { en: 'Votes Received', ar: 'أصوات مستلمة' },
   vote_sent: { en: 'Votes Sent', ar: 'أصوات مرسلة' },
@@ -45,10 +49,17 @@ const statusIcons = {
 };
 
 const statusColors = {
-  completed: 'text-success',
+  completed: 'text-primary',
   pending: 'text-warning',
   failed: 'text-destructive',
   cancelled: 'text-muted-foreground',
+};
+
+const statusLabels: Record<string, { en: string; ar: string }> = {
+  completed: { en: 'Completed', ar: 'مكتمل' },
+  pending: { en: 'Pending', ar: 'قيد الانتظار' },
+  failed: { en: 'Failed', ar: 'فشل' },
+  cancelled: { en: 'Cancelled', ar: 'ملغي' },
 };
 
 export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardProps) {
@@ -69,28 +80,28 @@ export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardPr
   if (compact) {
     return (
       <motion.div
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
         onClick={onClick}
         className="cursor-pointer"
       >
-        <Card className="p-3 hover:bg-muted/50 transition-colors">
+        <Card className="p-3 hover:bg-muted/30 transition-colors border-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
               <FileText className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{typeLabel}</p>
+              <p className="font-medium text-sm truncate text-foreground">{typeLabel}</p>
               <p className="text-xs text-muted-foreground truncate">
                 {receipt.receiptNumber}
               </p>
             </div>
             <div className="text-end">
-              <p className="font-bold text-sm">
-                {receipt.amount.toFixed(3)} ✦
+              <p className="font-bold text-sm text-foreground">
+                <span className="text-nova">И</span> {formatAmount(receipt.amount)}
               </p>
               <p className="text-xs text-muted-foreground">
-                {receipt.localAmount.toFixed(2)} {receipt.localCurrency}
+                {formatAmount(receipt.localAmount)} {receipt.localCurrency}
               </p>
             </div>
             <StatusIcon className={`h-4 w-4 ${statusColors[receipt.status]}`} />
@@ -101,16 +112,15 @@ export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardPr
   }
 
   return (
-    <Card onClick={onClick} className={onClick ? 'cursor-pointer hover:bg-muted/50' : ''}>
+    <Card onClick={onClick} className={`border-border ${onClick ? 'cursor-pointer hover:bg-muted/30' : ''}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-primary" />
+          <CardTitle className="text-base text-foreground">
             {typeLabel}
           </CardTitle>
           <span className={`flex items-center gap-1 text-xs ${statusColors[receipt.status]}`}>
             <StatusIcon className="h-3 w-3" />
-            {receipt.status}
+            {statusLabels[receipt.status]?.[language] || receipt.status}
           </span>
         </div>
         <p className="text-xs text-muted-foreground font-mono">
@@ -118,13 +128,13 @@ export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardPr
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Amount */}
-        <div className="text-center p-4 bg-muted/50 rounded-lg">
-          <p className="text-3xl font-bold text-primary">
-            {receipt.amount.toFixed(3)} <span className="text-nova">✦</span>
+        {/* Amount - Clean, no icon inside number */}
+        <div className="text-center p-4 bg-muted/30 rounded-lg">
+          <p className="text-3xl font-bold text-foreground">
+            <span className="text-nova">И</span> {formatAmount(receipt.amount)}
           </p>
-          <p className="text-sm text-muted-foreground">
-            ≈ {receipt.localAmount.toFixed(2)} {receipt.localCurrency}
+          <p className="text-sm text-muted-foreground mt-1">
+            ≈ {formatAmount(receipt.localAmount)} {receipt.localCurrency}
           </p>
         </div>
 
@@ -137,10 +147,10 @@ export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardPr
           </p>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">{receipt.sender.name}</p>
+              <p className="font-medium text-foreground">{receipt.sender.name}</p>
               <p className="text-xs text-muted-foreground">@{receipt.sender.username}</p>
             </div>
-            <span className="text-xs px-2 py-1 bg-muted rounded-full">
+            <span className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
               {receipt.sender.country}
             </span>
           </div>
@@ -156,10 +166,10 @@ export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardPr
               </p>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">{receipt.receiver.name}</p>
+                  <p className="font-medium text-foreground">{receipt.receiver.name}</p>
                   <p className="text-xs text-muted-foreground">@{receipt.receiver.username}</p>
                 </div>
-                <span className="text-xs px-2 py-1 bg-muted rounded-full">
+                <span className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
                   {receipt.receiver.country}
                 </span>
               </div>
@@ -174,11 +184,11 @@ export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardPr
           <p className="text-xs text-muted-foreground">
             {language === 'ar' ? 'السبب' : 'Reason'}
           </p>
-          <p className="text-sm">{receipt.reason}</p>
+          <p className="text-sm text-foreground">{receipt.reason}</p>
         </div>
 
         {/* Date */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
           <span>{language === 'ar' ? 'التاريخ' : 'Date'}</span>
           <span>{formatDate(receipt.createdAt)}</span>
         </div>
@@ -196,7 +206,7 @@ export function ReceiptDialog({ receipt, open, onClose }: ReceiptDialogProps) {
     if (navigator.share) {
       navigator.share({
         title: `WINOVA Receipt - ${receipt.receiptNumber}`,
-        text: `Receipt for ${receipt.amount.toFixed(3)} Nova`,
+        text: `Receipt for ${formatAmount(receipt.amount)} Nova`,
       });
     }
   };
@@ -216,8 +226,7 @@ export function ReceiptDialog({ receipt, open, onClose }: ReceiptDialogProps) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-primary" />
+          <DialogTitle>
             {language === 'ar' ? 'إيصال العملية' : 'Transaction Receipt'}
           </DialogTitle>
         </DialogHeader>

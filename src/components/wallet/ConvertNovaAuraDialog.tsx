@@ -21,6 +21,11 @@ interface ConvertNovaAuraDialogProps {
   onClose: () => void;
 }
 
+// Format number - remove .000 if whole number
+const formatBalance = (value: number): string => {
+  return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
+};
+
 export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogProps) {
   const { language } = useLanguage();
   const { user, spendNova, addAura } = useUser();
@@ -32,7 +37,7 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
   const [isLoading, setIsLoading] = useState(false);
 
   const novaAmount = parseFloat(amount) || 0;
-  const auraAmount = novaAmount; // 1:1 conversion rate
+  const auraAmount = novaAmount * 2; // 1 Nova = 2 Aura
   const hasEnoughBalance = novaAmount <= user.novaBalance && novaAmount > 0;
 
   const handleConvert = async () => {
@@ -66,8 +71,8 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
         country: user.country,
       },
       reason: language === 'ar' 
-        ? `تحويل ${novaAmount.toFixed(3)} Nova إلى ${auraAmount.toFixed(3)} Aura`
-        : `Convert ${novaAmount.toFixed(3)} Nova to ${auraAmount.toFixed(3)} Aura`,
+        ? `تحويل ${formatBalance(novaAmount)} Nova إلى ${formatBalance(auraAmount)} Aura`
+        : `Convert ${formatBalance(novaAmount)} Nova to ${formatBalance(auraAmount)} Aura`,
     });
 
     setGeneratedReceipt(receipt);
@@ -89,7 +94,7 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <RefreshCw className="h-5 w-5 text-primary" />
+              <RefreshCw className="h-5 w-5 text-aura" />
               {language === 'ar' ? 'تحويل Nova → Aura' : 'Convert Nova → Aura'}
             </DialogTitle>
             <DialogDescription>
@@ -100,52 +105,45 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Current Balances */}
+            {/* Current Balances - Side by side */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-gradient-nova/10 rounded-lg border border-nova/20">
+              <div className="p-3 bg-nova/5 rounded-lg border border-nova/20">
                 <p className="text-xs text-muted-foreground mb-1">Nova</p>
                 <p className="text-xl font-bold">
-                  {user.novaBalance.toFixed(3)} <span className="text-nova">✦</span>
+                  <span className="text-nova">И</span> {formatBalance(user.novaBalance)}
                 </p>
               </div>
-              <div className="p-3 bg-gradient-aura/10 rounded-lg border border-aura/20">
+              <div className="p-3 bg-aura/5 rounded-lg border border-aura/20">
                 <p className="text-xs text-muted-foreground mb-1">Aura</p>
                 <p className="text-xl font-bold">
-                  {user.auraBalance.toFixed(3)} <span className="text-aura">◈</span>
+                  <span className="text-aura">✦</span> {formatBalance(user.auraBalance)}
                 </p>
               </div>
             </div>
 
-            {/* Conversion Info */}
-            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-sm">
-              <p className="text-muted-foreground">
-                {language === 'ar' 
-                  ? '⚠️ Aura غير قابلة للتحويل بين المستخدمين. تُستخدم فقط في المسابقات والتصويت.'
-                  : '⚠️ Aura cannot be transferred between users. It can only be used for contests and voting.'}
-              </p>
-            </div>
+            {/* Conversion Info - Simple text */}
+            <p className="text-xs text-muted-foreground text-center">
+              {language === 'ar' 
+                ? '⚠️ Aura غير قابلة للتحويل بين المستخدمين'
+                : '⚠️ Aura cannot be transferred between users'}
+            </p>
 
-            {/* Amount Input */}
+            {/* Amount Input - Clean, no icon */}
             <div className="space-y-2">
               <Label>{language === 'ar' ? 'مبلغ Nova للتحويل' : 'Nova Amount to Convert'}</Label>
-              <div className="relative">
-                <Input
-                  type="number"
-                  step="0.001"
-                  min="0.001"
-                  max={user.novaBalance}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.000"
-                  className="text-lg font-bold pe-12"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-nova font-bold">
-                  ✦
-                </span>
-              </div>
+              <Input
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={user.novaBalance}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0"
+                className="text-2xl font-bold h-14 text-center"
+              />
 
               {!hasEnoughBalance && novaAmount > 0 && (
-                <p className="text-sm text-destructive flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center justify-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance'}
                 </p>
@@ -154,11 +152,11 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
 
             {/* Conversion Preview */}
             {novaAmount > 0 && hasEnoughBalance && (
-              <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="p-4 bg-muted/30 rounded-lg border border-border">
                 <div className="flex items-center justify-center gap-4">
                   <div className="text-center">
                     <p className="text-2xl font-bold text-nova">
-                      {novaAmount.toFixed(3)} ✦
+                      И {formatBalance(novaAmount)}
                     </p>
                     <p className="text-xs text-muted-foreground">Nova</p>
                   </div>
@@ -167,19 +165,19 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
                   
                   <div className="text-center">
                     <p className="text-2xl font-bold text-aura">
-                      {auraAmount.toFixed(3)} ◈
+                      ✦ {formatBalance(auraAmount)}
                     </p>
                     <p className="text-xs text-muted-foreground">Aura</p>
                   </div>
                 </div>
                 <p className="text-center text-xs text-muted-foreground mt-2">
-                  {language === 'ar' ? 'معدل التحويل: 1 Nova = 1 Aura' : 'Rate: 1 Nova = 1 Aura'}
+                  1 Nova = 2 Aura
                 </p>
               </div>
             )}
 
             <Button
-              className="w-full bg-gradient-aura text-aura-foreground"
+              className="w-full h-12 bg-aura hover:bg-aura/90 text-aura-foreground font-bold"
               disabled={!hasEnoughBalance || novaAmount <= 0 || isLoading}
               onClick={handleConvert}
             >
