@@ -5,6 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
 import { motion } from 'framer-motion';
+import winovaLogo from '@/assets/winova-logo-dark.png';
 
 interface HeaderProps {
   title?: string;
@@ -28,8 +29,8 @@ export function Header({ title }: HeaderProps) {
           className="flex items-center gap-3"
         >
           <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">W</span>
+            <div className="h-10 w-10 rounded-xl overflow-hidden">
+              <img src={winovaLogo} alt="Winova" className="h-full w-full object-cover" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
