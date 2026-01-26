@@ -40,7 +40,7 @@ export function ContestWinnersCard({ winners, prizePool, country, limit = 3 }: C
       <CardHeader className="pb-2 pt-4 px-4">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <Trophy className="h-4 w-4 text-primary" />
-          {language === 'ar' ? 'الفائزون اليوم' : "Today's Winners"}
+          {language === 'ar' ? '🏆 الفائزون' : '🏆 Winners'}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-4">
@@ -80,9 +80,9 @@ export function ContestWinnersCard({ winners, prizePool, country, limit = 3 }: C
           ))}
         </div>
 
-        {/* See More Button - Navigate to Contests */}
+        {/* See More Button - Navigate to Winners */}
         <Button asChild variant="ghost" size="sm" className="w-full mt-3 text-primary">
-          <Link to="/contests" className="flex items-center justify-center gap-1">
+          <Link to="/winners" className="flex items-center justify-center gap-1">
             {language === 'ar' ? 'شاهد المزيد' : 'See More'}
             <ChevronRight className="h-4 w-4" />
           </Link>

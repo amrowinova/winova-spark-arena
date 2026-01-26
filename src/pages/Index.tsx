@@ -12,7 +12,6 @@ import { getPricing } from '@/contexts/TransactionContext';
 
 // Home Components
 import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
-import { UserRankingCard } from '@/components/home/UserRankingCard';
 import { ContestWinnersCard } from '@/components/home/ContestWinnersCard';
 import { LuckyWinnersCard } from '@/components/home/LuckyWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
@@ -40,6 +39,11 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
+// Format number - remove decimals if whole number
+const formatBalance = (value: number): string => {
+  return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
+};
+
 // Mock contest data
 const mockContest = {
   id: 'C-1247',
@@ -64,8 +68,7 @@ const luckyWinners = [
   { id: 2, name: 'محمد كريم', avatar: '👨', prize: 9.75 },
 ];
 
-// Format number - remove decimals if whole number
-const formatBalance = (value: number): string => {
+const formatBalanceOld = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
 };
 
@@ -93,11 +96,6 @@ export default function HomePage() {
   // User contest state
   const [hasJoined, setHasJoined] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
-  
-  // Mock user ranking data
-  const userDailyRank = 47;
-  const userVotes = 24;
-  const votesNeededForTop50 = 45;
 
   const handleJoinContest = () => {
     setJoinDialogOpen(true);
@@ -213,17 +211,7 @@ export default function HomePage() {
             endsAt={endsAt}
             entryFee={mockContest.entryFee}
             hasJoined={hasJoined}
-            userRank={hasJoined ? userDailyRank : undefined}
             onJoin={handleJoinContest}
-          />
-        </motion.div>
-
-        {/* User Ranking Card with motivational message */}
-        <motion.div variants={itemVariants}>
-          <UserRankingCard
-            dailyRank={userDailyRank}
-            currentVotes={userVotes}
-            votesNeededForTop50={votesNeededForTop50}
           />
         </motion.div>
 
