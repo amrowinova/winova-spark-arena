@@ -53,157 +53,128 @@ export default function WalletPage() {
   return (
     <AppLayout title={t('wallet.title')}>
       <div className="px-4 py-4 space-y-5">
-        {/* Balance Card */}
+        {/* Balance Card - Clean White Design */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card className="overflow-hidden border-0 shadow-lg">
-            <div className="bg-gradient-dark p-5">
-              <div className="flex items-center justify-between mb-4">
+          <Card className="overflow-hidden border border-border bg-card shadow-sm">
+            <div className="p-5">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                  <WalletIcon className="h-6 w-6 text-secondary-foreground" />
-                  <h1 className="text-secondary-foreground text-lg font-bold">
+                  <WalletIcon className="h-5 w-5 text-foreground" />
+                  <h1 className="text-foreground text-lg font-bold">
                     {t('wallet.title')}
                   </h1>
                 </div>
-                <span className="px-2 py-1 bg-card/20 rounded text-secondary-foreground/80 text-xs">
+                <span className="px-2 py-1 bg-muted/30 rounded text-muted-foreground text-xs font-medium">
                   {pricing.currency}
                 </span>
               </div>
 
-              {/* Local Currency Total */}
-              <div className="text-center mb-4">
-                <p className="text-secondary-foreground/70 text-sm mb-1">
-                  {language === 'ar' ? 'القيمة الإجمالية' : 'Total Value'}
-                </p>
-                <p className="text-secondary-foreground text-3xl font-bold">
-                  {pricing.symbol} {totalLocalValue.toFixed(2)}
-                </p>
-              </div>
-
-              {/* Nova & Aura Balances */}
+              {/* Nova & Aura Balances - Clean Cards */}
               <div className="grid grid-cols-2 gap-4">
-                {/* Nova Balance */}
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-nova rounded-xl p-4 glow-nova"
-                >
+                {/* Nova Balance - Gold accent */}
+                <div className="bg-nova/5 border border-nova/20 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">✦</span>
-                    <span className="text-nova-foreground/80 text-xs font-medium">
+                    <span className="text-nova text-lg">✦</span>
+                    <span className="text-foreground/70 text-xs font-medium">
                       Nova
                     </span>
                   </div>
-                  <p className="text-nova-foreground text-2xl font-bold">
-                    {user.novaBalance.toFixed(3)}
+                  <p className="text-foreground text-2xl font-bold">
+                    {user.novaBalance.toFixed(2)}
                   </p>
-                  <p className="text-nova-foreground/70 text-xs mt-1">
+                  <p className="text-muted-foreground text-xs mt-1">
                     ≈ {pricing.symbol} {novaLocalValue.amount.toFixed(2)}
                   </p>
-                </motion.div>
+                </div>
 
-                {/* Aura Balance */}
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-aura rounded-xl p-4 glow-aura"
-                >
+                {/* Aura Balance - Purple accent, NO local currency */}
+                <div className="bg-aura/5 border border-aura/20 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">◈</span>
-                    <span className="text-aura-foreground/80 text-xs font-medium">
+                    <span className="text-aura text-lg">◈</span>
+                    <span className="text-foreground/70 text-xs font-medium">
                       Aura
                     </span>
                   </div>
-                  <p className="text-aura-foreground text-2xl font-bold">
-                    {user.auraBalance.toFixed(3)}
+                  <p className="text-foreground text-2xl font-bold">
+                    {user.auraBalance.toFixed(0)}
                   </p>
-                  <p className="text-aura-foreground/70 text-xs mt-1">
-                    ≈ {pricing.symbol} {auraLocalValue.amount.toFixed(2)}
+                  <p className="text-muted-foreground text-xs mt-1">
+                    {language === 'ar' ? 'نقاط تصويت' : 'Voting Points'}
                   </p>
-                </motion.div>
+                </div>
               </div>
             </div>
           </Card>
         </motion.div>
 
-        {/* Aura Info */}
+        {/* Aura Info - Simple text with icon */}
+        <div className="flex items-center gap-2 px-1">
+          <Info className="h-4 w-4 text-muted-foreground shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            {language === 'ar' 
+              ? 'Aura تُستخدم فقط في المسابقات والتصويت • 1 Nova = 2 Aura'
+              : 'Aura is used only for contests & voting • 1 Nova = 2 Aura'}
+          </p>
+        </div>
+
+        {/* Action Buttons - Consistent styling */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-        >
-          <Card className="p-3 bg-aura/5 border-aura/20">
-            <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 text-aura mt-0.5 shrink-0" />
-              <p className="text-xs text-aura">
-                {language === 'ar' 
-                  ? 'Aura غير قابلة للتحويل. تُستخدم فقط في المسابقات والتصويت. قيمة Aura = نصف قيمة Nova.'
-                  : 'Aura cannot be transferred. Used only for contests and voting. Aura value = half of Nova.'}
-              </p>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Action Buttons - Only 3 as specified */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
           className="grid grid-cols-3 gap-3"
         >
           <Button 
             onClick={() => setTransferDialogOpen(true)}
-            className="flex-col h-auto py-4 bg-gradient-nova text-nova-foreground hover:opacity-90"
+            variant="outline"
+            className="flex-col h-auto py-4 border-nova/30 hover:bg-nova/5 hover:border-nova/50"
           >
-            <Send className="h-5 w-5 mb-1" />
-            <span className="text-xs">
+            <Send className="h-5 w-5 mb-1 text-nova" />
+            <span className="text-xs text-foreground">
               {language === 'ar' ? 'تحويل Nova' : 'Transfer Nova'}
             </span>
           </Button>
           
           <Button 
             onClick={() => setConvertDialogOpen(true)}
-            className="flex-col h-auto py-4 bg-gradient-aura text-aura-foreground hover:opacity-90"
+            variant="outline"
+            className="flex-col h-auto py-4 border-aura/30 hover:bg-aura/5 hover:border-aura/50"
           >
-            <RefreshCw className="h-5 w-5 mb-1" />
-            <span className="text-xs text-center leading-tight">
-              {language === 'ar' ? 'Nova → Aura' : 'Nova → Aura'}
+            <RefreshCw className="h-5 w-5 mb-1 text-aura" />
+            <span className="text-xs text-foreground text-center leading-tight">
+              Nova → Aura
             </span>
           </Button>
           
           <Button 
-            variant="secondary"
-            className="flex-col h-auto py-4"
+            variant="outline"
+            className="flex-col h-auto py-4 border-border hover:bg-muted/30"
             onClick={() => document.getElementById('transactions')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            <History className="h-5 w-5 mb-1" />
-            <span className="text-xs">
+            <History className="h-5 w-5 mb-1 text-muted-foreground" />
+            <span className="text-xs text-foreground">
               {language === 'ar' ? 'السجل' : 'History'}
             </span>
           </Button>
         </motion.div>
 
-        {/* Price Info */}
+        {/* Price Info - Only Nova has real value */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.2 }}
         >
-          <Card className="p-3 space-y-2">
+          <Card className="p-3 bg-card border border-border">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                {language === 'ar' ? 'سعر Nova' : 'Nova Price'}
+                {language === 'ar' ? 'سعر Nova' : 'Nova Rate'}
               </span>
-              <span className="font-bold text-nova">
-                1 ✦ = {pricing.symbol} {pricing.novaRate.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {language === 'ar' ? 'سعر Aura' : 'Aura Price'}
-              </span>
-              <span className="font-bold text-aura">
-                1 ◈ = {pricing.symbol} {pricing.auraRate.toFixed(2)}
+              <span className="font-semibold text-foreground">
+                1 <span className="text-nova">✦</span> = {pricing.symbol} {pricing.novaRate.toFixed(2)}
               </span>
             </div>
           </Card>
