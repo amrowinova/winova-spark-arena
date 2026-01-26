@@ -25,5 +25,5 @@ export { P2PBuyDialog } from './P2PBuyDialog';
 export { P2PRatingDialog } from './P2PRatingDialog';
 
 // Payment Management
-export { P2PPaymentMethodsManager } from './P2PPaymentMethodsManager';
-export type { SavedPaymentMethod } from './P2PPaymentMethodsManager';
+export { P2PPaymentMethodsManager, useSavedPaymentMethods, PAYMENT_METHOD_TYPES, COUNTRY_PROVIDERS } from './P2PPaymentMethodsManager';
+export type { SavedPaymentMethod, PaymentMethodType, PaymentProvider } from './P2PPaymentMethodsManager';
