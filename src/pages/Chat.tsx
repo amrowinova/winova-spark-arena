@@ -648,8 +648,8 @@ export default function ChatPage() {
     const totalMembers = activeChat.teamMembers?.length || 0;
 
     return (
-      <AppLayout title={activeChat.name} showNav={false}>
-        <div className="flex flex-col h-[calc(100vh-60px)]">
+      <AppLayout title={activeChat.name} showNav={false} showHeader={false}>
+        <div className="flex flex-col h-screen">
           {/* Chat Header - Different for Team vs DM */}
           {isTeamChat ? (
             <TeamChatHeader

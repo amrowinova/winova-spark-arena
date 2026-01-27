@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, DollarSign, MoreVertical } from 'lucide-react';
+import { ArrowLeft, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -122,11 +122,11 @@ export function ChatHeader({
         <Button 
           size="sm" 
           onClick={onTransfer}
-          className="gap-1"
+          className="gap-1.5"
         >
-          <DollarSign className="h-4 w-4" />
+          <span className="text-sm font-bold">И</span>
           <span className="hidden sm:inline">
-            {language === 'ar' ? 'تحويل' : 'Send'} И
+            {language === 'ar' ? 'تحويل' : 'Send'}
           </span>
         </Button>
 

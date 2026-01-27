@@ -12,7 +12,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import type { UserRank } from '@/contexts/UserContext';
 import { RankBadge } from '@/components/common/RankBadge';
 import {
-  DollarSign,
   User,
   MessageCircle,
   BellOff,
@@ -157,8 +156,8 @@ export function GroupMemberSheet({
             className="flex-col gap-1 h-auto py-3"
             onClick={handleTransfer}
           >
-            <DollarSign className="h-5 w-5" />
-            <span className="text-xs">{language === 'ar' ? 'تحويل' : 'Send'} И</span>
+            <span className="text-lg font-bold text-primary">И</span>
+            <span className="text-xs">{language === 'ar' ? 'تحويل' : 'Send'}</span>
           </Button>
         </div>
 
