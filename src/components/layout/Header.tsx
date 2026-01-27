@@ -60,15 +60,31 @@ export function Header({ title }: HeaderProps) {
                 </span>
                 <RankBadge rank={user.rank} size="sm" />
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs text-muted-foreground">
-                  {language === 'ar' ? 'ترتيبك في التطبيق:' : 'App Rank:'}
+                  {language === 'ar' ? 'ترتيبك:' : 'Rank:'}
                 </span>
                 <span className="text-xs font-bold text-primary">
                   #{weeklyRank}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
-                  {language === 'ar' ? '(ضمن الأقوى)' : '(Top Performer)'}
+                <span className="mx-1 text-muted-foreground/30">|</span>
+                {/* Contest Engagement Status */}
+                <span className={`text-[10px] font-medium flex items-center gap-0.5 ${
+                  user.engagementStatus === 'both' || user.engagementStatus === 'contest' 
+                    ? 'text-green-600' 
+                    : 'text-destructive'
+                }`}>
+                  {user.engagementStatus === 'both' || user.engagementStatus === 'contest' ? '✓' : '✗'}
+                  <span>{language === 'ar' ? 'مسابقة' : 'Contest'}</span>
+                </span>
+                {/* Vote Engagement Status */}
+                <span className={`text-[10px] font-medium flex items-center gap-0.5 ${
+                  user.engagementStatus === 'both' || user.engagementStatus === 'vote' 
+                    ? 'text-green-600' 
+                    : 'text-destructive'
+                }`}>
+                  {user.engagementStatus === 'both' || user.engagementStatus === 'vote' ? '✓' : '✗'}
+                  <span>{language === 'ar' ? 'تصويت' : 'Vote'}</span>
                 </span>
               </div>
             </div>
