@@ -1,11 +1,12 @@
 import { Bell, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion } from 'framer-motion';
-import winovaLogo from '@/assets/winova-logo-dual-green.png';
 
 interface HeaderProps {
   title?: string;
@@ -16,9 +17,14 @@ export function Header({ title }: HeaderProps) {
   const { t } = useTranslation();
   const { language, toggleLanguage } = useLanguage();
   const { user } = useUser();
+  const navigate = useNavigate();
 
   // Weekly rank (would come from backend)
   const weeklyRank = 47;
+
+  const handleAvatarClick = () => {
+    navigate('/profile');
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-lg border-b border-border safe-top">
@@ -29,9 +35,18 @@ export function Header({ title }: HeaderProps) {
           className="flex items-center gap-3"
         >
           <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-xl overflow-hidden">
-              <img src={winovaLogo} alt="Winova" className="h-full w-full object-cover" />
-            </div>
+            {/* User Avatar - Clickable to Profile */}
+            <button 
+              onClick={handleAvatarClick}
+              className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-primary/20 hover:ring-primary/40 transition-all"
+            >
+              <Avatar className="h-full w-full">
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                  {user.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+            </button>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-foreground text-base">
