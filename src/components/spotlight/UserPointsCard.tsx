@@ -1,0 +1,98 @@
+import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
+import { Sparkles, TrendingUp } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { RankBadge } from '@/components/common/RankBadge';
+import type { UserRank } from '@/contexts/UserContext';
+
+interface UserPointsCardProps {
+  dailyPoints: number;
+  weeklyPoints: number;
+  cyclePoints: number;
+  userRank: UserRank;
+  rankPosition: number;
+  totalInRank: number;
+}
+
+const rankLabels: Record<UserRank, { ar: string; en: string }> = {
+  subscriber: { ar: 'مشترك', en: 'Subscriber' },
+  marketer: { ar: 'مسوّق', en: 'Marketer' },
+  leader: { ar: 'قائد', en: 'Leader' },
+  manager: { ar: 'مدير', en: 'Manager' },
+  president: { ar: 'رئيس', en: 'President' },
+};
+
+export function UserPointsCard({
+  dailyPoints,
+  weeklyPoints,
+  cyclePoints,
+  userRank,
+  rankPosition,
+  totalInRank,
+}: UserPointsCardProps) {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
+  const isRTL = language === 'ar';
+
+  return (
+    <Card className="overflow-hidden border-0 shadow-lg">
+      <div className="bg-gradient-nova p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-nova-foreground" />
+            <h1 className="text-nova-foreground text-lg font-bold">
+              {isRTL ? 'نقاطك' : 'Your Points'}
+            </h1>
+          </div>
+        </div>
+
+        {/* Points Grid */}
+        <div className="grid grid-cols-3 gap-3 text-center mb-4">
+          <div className="bg-card/20 rounded-lg p-3">
+            <p className="text-nova-foreground text-2xl font-bold">
+              {dailyPoints.toLocaleString()}
+            </p>
+            <p className="text-nova-foreground/60 text-xs">
+              {isRTL ? 'اليوم' : 'Today'}
+            </p>
+          </div>
+          <div className="bg-card/20 rounded-lg p-3">
+            <p className="text-nova-foreground text-2xl font-bold">
+              {weeklyPoints.toLocaleString()}
+            </p>
+            <p className="text-nova-foreground/60 text-xs">
+              {isRTL ? 'الأسبوع' : 'Week'}
+            </p>
+          </div>
+          <div className="bg-card/20 rounded-lg p-3">
+            <p className="text-nova-foreground text-2xl font-bold">
+              {cyclePoints.toLocaleString()}
+            </p>
+            <p className="text-nova-foreground/60 text-xs">
+              {isRTL ? 'الدورة' : 'Cycle'}
+            </p>
+          </div>
+        </div>
+
+        {/* Rank Position */}
+        <div className="bg-card/20 rounded-lg p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-nova-foreground" />
+            <span className="text-nova-foreground text-sm">
+              {isRTL ? 'ترتيبك' : 'Your Rank'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-nova-foreground font-bold">
+              {isRTL ? rankLabels[userRank].ar : rankLabels[userRank].en} #{rankPosition}
+            </span>
+            <span className="text-nova-foreground/60 text-xs">
+              / {totalInRank}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
