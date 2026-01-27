@@ -79,54 +79,43 @@ export function ContestJoinCard({
     : (language === 'ar' ? 'التنافس على Top 5' : 'Compete for Top 5');
 
   return (
-    <Card className="overflow-hidden border-0 shadow-xl">
-      {/* Gradient Header */}
-      <div className="bg-gradient-primary p-4 relative overflow-hidden">
-        {/* Animated background pulse */}
-        <motion.div
-          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="absolute inset-0 bg-white/10"
-        />
-        
+    <Card className="overflow-hidden border border-border shadow-sm">
+      {/* Clean Header */}
+      <div className="bg-card p-4 border-b border-border">
         <div className="relative z-10">
           {/* Stage Status */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-primary-foreground" />
+              <Trophy className="h-5 w-5 text-primary" />
               <div className="flex flex-col">
-                <span className="text-primary-foreground font-bold">
+                <span className="text-foreground font-bold">
                   {stageLabel}
                 </span>
-                <span className="text-primary-foreground/70 text-xs">
+                <span className="text-muted-foreground text-xs">
                   {stageGoal}
                 </span>
               </div>
             </div>
-            <span className="px-2 py-1 bg-white/20 rounded-full text-primary-foreground text-xs font-medium">
+            <span className="px-2 py-1 bg-primary/10 rounded-full text-primary text-xs font-medium">
               {language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'}
             </span>
           </div>
 
           {/* Prize Pool */}
           <div className="text-center mb-3">
-            <p className="text-primary-foreground/70 text-xs">
+            <p className="text-muted-foreground text-xs">
               {language === 'ar' ? 'مجموع الجوائز' : 'Prize Pool'}
             </p>
-            <motion.p 
-              animate={{ scale: [1, 1.02, 1] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-              className="text-primary-foreground text-3xl font-bold"
-            >
+            <p className="text-foreground text-3xl font-bold">
               И {prizePool} Nova
-            </motion.p>
-            <p className="text-primary-foreground/60 text-xs">
+            </p>
+            <p className="text-muted-foreground text-xs">
               ≈ {pricing.symbol} {(prizePool * pricing.novaRate).toFixed(0)}
             </p>
           </div>
 
           {/* Participants Count */}
-          <div className="flex justify-center text-primary-foreground/80 text-xs">
+          <div className="flex justify-center text-muted-foreground text-xs">
             <div className="flex items-center gap-1">
               <Users className="h-3 w-3" />
               <span>{participants} {language === 'ar' ? 'مشترك' : 'participants'}</span>
@@ -189,7 +178,7 @@ export function ContestJoinCard({
                 </motion.div>
 
                 <Button 
-                  className="w-full bg-gradient-primary text-primary-foreground font-bold"
+                  className="w-full"
                   onClick={onJoin}
                   disabled={totalNovaEquivalent < entryFee}
                 >

@@ -342,10 +342,10 @@ export default function ContestsPage() {
                 <p className="text-sm text-muted-foreground mb-1">
                   {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
                 </p>
-                <p className="text-xl font-bold text-nova">И {contest.entryFee}</p>
+                <p className="text-xl font-bold text-primary">И {contest.entryFee}</p>
               </div>
               <Button 
-                className="w-full bg-gradient-primary"
+                className="w-full"
                 onClick={() => setJoinDialogOpen(true)}
                 disabled={(user.novaBalance + (user.auraBalance / 2)) < contest.entryFee}
               >
