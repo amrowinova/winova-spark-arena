@@ -106,7 +106,7 @@ export function P2PRatingDialog({
             {isRTL ? 'تقييم الصفقة' : 'Rate Transaction'}
           </DialogTitle>
           <DialogDescription>
-            {isRTL ? 'طلب رقم' : 'Order'} #{orderId} • {orderAmount} ✦
+            {isRTL ? 'طلب رقم' : 'Order'} #{orderId} • И {orderAmount}
           </DialogDescription>
         </DialogHeader>
 

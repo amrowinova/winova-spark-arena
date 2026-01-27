@@ -355,7 +355,7 @@ export default function P2PPage() {
               {isRTL ? 'سعر Nova الرسمي' : 'Official Nova Price'}
             </span>
             <span className="font-bold text-nova">
-              1 ✦ = {selectedCountry.currencySymbol} {selectedCountry.novaRate.toFixed(2)}
+              И 1 = {selectedCountry.currencySymbol} {selectedCountry.novaRate.toFixed(2)}
             </span>
           </div>
         </Card>

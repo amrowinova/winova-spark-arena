@@ -110,7 +110,7 @@ export function P2POrderCard({ order, isActive, onClick }: P2POrderCardProps) {
           <div>
             <p className="text-[10px] text-muted-foreground uppercase">Nova</p>
             <p className="font-bold text-lg text-nova">
-              {order.amount.toFixed(3)} ✦
+              И {order.amount.toFixed(0)}
             </p>
           </div>
           <div>

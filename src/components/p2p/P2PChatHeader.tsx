@@ -143,7 +143,7 @@ export function P2PChatHeader({
           </div>
           <div className="text-xs">
             <span className="text-nova font-bold">
-              {currentOrder.amount.toFixed(3)} ✦
+              И {currentOrder.amount.toFixed(0)}
             </span>
             <span className="text-muted-foreground mx-1">→</span>
             <span className="text-success font-medium">
