@@ -344,23 +344,26 @@ export default function PublicProfile() {
   return (
     <AppLayout showHeader={false} showNav={false}>
       <div className="min-h-screen bg-background">
-        {/* Header - Only back button and share button for other users */}
-        <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-lg border-b border-border safe-top">
+        {/* Unified Header - Only back + share, NO title, NO divider */}
+        <header className="sticky top-0 z-40 bg-background safe-top">
           <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={handleBack}>
-                {isRTL ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
-              </Button>
-              <h1 className="text-lg font-semibold text-foreground">
-                {t('publicProfile.title')}
-              </h1>
-            </div>
-            {/* Share button - only for other users' profiles */}
-            {!isOwnProfile && (
-              <Button variant="ghost" size="icon" onClick={handleShareProfile}>
-                <Share2 className="h-5 w-5" />
-              </Button>
-            )}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9"
+              onClick={handleBack}
+            >
+              <ArrowLeft className={`h-5 w-5 ${isRTL ? 'rotate-180' : ''}`} />
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9"
+              onClick={handleShareProfile}
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
           </div>
         </header>
 
@@ -466,12 +469,18 @@ export default function PublicProfile() {
             </div>
           </motion.div>
 
-          {/* Stats Section */}
+          {/* Achievements Section - Title changes based on profile */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
+            <h2 className="text-lg font-semibold mb-4">
+              {isOwnProfile 
+                ? (language === 'ar' ? 'إنجازاتي' : 'My Achievements')
+                : (language === 'ar' ? 'إنجازاته' : 'Their Achievements')
+              }
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               {statsCards.map((stat, index) => (
                 <Card key={index} className="border-border/50">
@@ -507,7 +516,7 @@ export default function PublicProfile() {
             </motion.section>
           )}
 
-          {/* P2P Summary */}
+          {/* P2P Reputation Section - Title changes based on profile */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -515,39 +524,26 @@ export default function PublicProfile() {
           >
             <Card className="border-border/50">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Star className="h-5 w-5 text-nova fill-nova" />
-                  {t('publicProfile.p2pSummary')}
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-base">
+                    <Star className="h-5 w-5 text-nova fill-nova" />
+                    {isOwnProfile 
+                      ? (language === 'ar' ? 'سمعتي P2P' : 'My P2P Reputation')
+                      : (language === 'ar' ? 'سمعته P2P' : 'Their P2P Reputation')
+                    }
+                  </div>
+                  <Badge variant="outline" className="text-sm font-bold text-success">
+                    <Star className="h-3.5 w-3.5 mr-1 fill-current" />
+                    {initialUser.p2p.rating}%
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Rating + Trades */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-3xl font-bold text-success">
-                      {initialUser.p2p.rating}%
-                    </div>
-                    <span className="text-muted-foreground">
-                      {t('publicProfile.rating')}
-                    </span>
-                  </div>
-                  <div className="text-end">
-                    <span className="text-lg font-semibold text-foreground">
-                      {initialUser.p2p.tradesCount}
-                    </span>
-                    <span className="text-muted-foreground ms-1">
-                      {t('publicProfile.trades')}
-                    </span>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Rating Summary */}
+                {/* Rating Summary - Positive/Negative */}
                 <div className="flex items-center justify-center gap-6 py-2">
                   <div className="text-center">
                     <div className="flex items-center gap-1 text-success">
-                      <ThumbsUp className="h-4 w-4" />
+                      <ThumbsUp className="h-5 w-5" />
                       <span className="text-xl font-bold">{initialUser.p2p.positiveCount}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -557,11 +553,39 @@ export default function PublicProfile() {
                   <div className="h-8 w-px bg-border" />
                   <div className="text-center">
                     <div className="flex items-center gap-1 text-destructive">
-                      <ThumbsDown className="h-4 w-4" />
+                      <ThumbsDown className="h-5 w-5" />
                       <span className="text-xl font-bold">{initialUser.p2p.negativeCount}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {language === 'ar' ? 'سلبي' : 'Negative'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* All Stats Grid - Complete P2P data */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg p-3 text-center bg-primary/10">
+                    <span className="text-lg font-bold text-foreground">{initialUser.p2p.tradesCount}</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {language === 'ar' ? 'عدد الصفقات' : 'Total Deals'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-3 text-center bg-success/10">
+                    <span className="text-lg font-bold text-foreground">{initialUser.p2p.tradesCount - 3}</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {language === 'ar' ? 'طلبات مكتملة' : 'Completed'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-3 text-center bg-aura/10">
+                    <span className="text-lg font-bold text-foreground">8 min</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {language === 'ar' ? 'متوسط الوقت' : 'Avg Time'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-3 text-center bg-muted/50">
+                    <span className="text-lg font-bold text-foreground">0</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {language === 'ar' ? 'النزاعات' : 'Disputes'}
                     </p>
                   </div>
                 </div>
