@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPricing } from '@/contexts/TransactionContext';
+import { getPlatformUserById } from '@/lib/platformUsers';
 
 // Home Components
 import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
@@ -53,19 +54,19 @@ const mockContest = {
   entryFee: 10,
 };
 
-// Mock top 5 winners (from yesterday)
+// Mock top 5 winners (from yesterday) - using PLATFORM_USERS IDs
 const contestWinners = [
-  { id: 1, name: 'خالد محمد', avatar: '👨', rank: 'Leader', prize: 468, position: 1 },
-  { id: 2, name: 'فاطمة سعيد', avatar: '👩', rank: 'Marketer', prize: 187.2, position: 2 },
-  { id: 3, name: 'عمر أحمد', avatar: '👨', rank: 'Leader', prize: 140.4, position: 3 },
-  { id: 4, name: 'ليلى حسن', avatar: '👩', rank: 'Manager', prize: 93.6, position: 4 },
-  { id: 5, name: 'أحمد كريم', avatar: '👨', rank: 'Marketer', prize: 46.8, position: 5 },
+  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', avatar: getPlatformUserById('4')?.avatar || '👥', rank: 'Leader', prize: 468, position: 1 },
+  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', avatar: getPlatformUserById('5')?.avatar || '👤', rank: 'Marketer', prize: 187.2, position: 2 },
+  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', avatar: getPlatformUserById('6')?.avatar || '👥', rank: 'Leader', prize: 140.4, position: 3 },
+  { id: '7', name: getPlatformUserById('7')?.nameAr || 'ليلى حسن', avatar: getPlatformUserById('7')?.avatar || '👤', rank: 'Manager', prize: 93.6, position: 4 },
+  { id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', avatar: getPlatformUserById('8')?.avatar || '👤', rank: 'Marketer', prize: 46.8, position: 5 },
 ];
 
-// Mock lucky (spotlight) winners
+// Mock lucky (spotlight) winners - using PLATFORM_USERS IDs
 const luckyWinners = [
-  { id: 1, name: 'سارة أحمد', avatar: '👩', prize: 18.5 },
-  { id: 2, name: 'محمد كريم', avatar: '👨', prize: 9.75 },
+  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', avatar: getPlatformUserById('2')?.avatar || '👤', prize: 18.5 },
+  { id: '3', name: getPlatformUserById('3')?.nameAr || 'محمد كريم', avatar: getPlatformUserById('3')?.avatar || '👤', prize: 9.75 },
 ];
 
 const formatBalanceOld = (value: number): string => {

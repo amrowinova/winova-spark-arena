@@ -7,7 +7,7 @@ import { getPricing } from '@/contexts/TransactionContext';
 import { Link, useNavigate } from 'react-router-dom';
 
 interface Winner {
-  id: number;
+  id: string;
   name: string;
   avatar: string;
   rank: string;
@@ -27,7 +27,7 @@ export function ContestWinnersCard({ winners, prizePool, country, limit = 3 }: C
   const navigate = useNavigate();
   const pricing = getPricing(country);
 
-  const handleProfileClick = (userId: number) => {
+  const handleProfileClick = (userId: string) => {
     navigate(`/user/${userId}`);
   };
 

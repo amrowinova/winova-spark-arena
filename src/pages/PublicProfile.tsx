@@ -622,10 +622,10 @@ export default function PublicProfile() {
           </motion.section>
         </div>
 
-        {/* Fixed Action Buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border p-4 safe-bottom">
-          <div className="flex gap-3 max-w-lg mx-auto">
-            {!isOwnProfile && !hideSendMessage && (
+        {/* Fixed Action Buttons - Always show both for other users */}
+        {!isOwnProfile && (
+          <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border p-4 safe-bottom">
+            <div className="flex gap-3 max-w-lg mx-auto">
               <Button 
                 variant="outline" 
                 className="flex-1 gap-2"
@@ -634,16 +634,16 @@ export default function PublicProfile() {
                 <Send className="h-4 w-4" />
                 {t('publicProfile.sendMessage')}
               </Button>
-            )}
-            <Button 
-              className="flex-1 gap-2 bg-nova text-nova-foreground hover:bg-nova/90"
-              onClick={handleSendNova}
-            >
-              <Coins className="h-4 w-4" />
-              {t('publicProfile.sendNova')}
-            </Button>
+              <Button 
+                className="flex-1 gap-2 bg-nova text-nova-foreground hover:bg-nova/90"
+                onClick={handleSendNova}
+              >
+                <Coins className="h-4 w-4" />
+                {t('publicProfile.sendNova')}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Nova Transfer Dialog */}
         <TransferNovaDialog

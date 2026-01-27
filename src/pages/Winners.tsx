@@ -12,8 +12,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { getPricing } from '@/contexts/TransactionContext';
 import { ContestDetailsDialog, type ContestHistoryItem } from '@/components/contest';
+import { getPlatformUserById } from '@/lib/platformUsers';
 
-// Mock data for latest finished contest
+// Mock data for latest finished contest - using PLATFORM_USERS IDs
 const latestContest = {
   id: 'C-1246',
   date: '2026-01-25',
@@ -22,15 +23,15 @@ const latestContest = {
   userParticipated: true,
   userRank: 12,
   winners: [
-    { rank: 1, name: 'خالد محمد', votes: 156, prize: 425, percentage: 50 },
-    { rank: 2, name: 'فاطمة سعيد', votes: 134, prize: 170, percentage: 20 },
-    { rank: 3, name: 'عمر أحمد', votes: 121, prize: 127.5, percentage: 15 },
-    { rank: 4, name: 'ليلى حسن', votes: 98, prize: 85, percentage: 10 },
-    { rank: 5, name: 'أحمد كريم', votes: 87, prize: 42.5, percentage: 5 },
+    { rank: 1, id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', votes: 156, prize: 425, percentage: 50 },
+    { rank: 2, id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', votes: 134, prize: 170, percentage: 20 },
+    { rank: 3, id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', votes: 121, prize: 127.5, percentage: 15 },
+    { rank: 4, id: '7', name: getPlatformUserById('7')?.nameAr || 'ليلى حسن', votes: 98, prize: 85, percentage: 10 },
+    { rank: 5, id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', votes: 87, prize: 42.5, percentage: 5 },
   ],
 };
 
-// Mock data for contest history
+// Mock data for contest history - using PLATFORM_USERS IDs
 const contestHistory: ContestHistoryItem[] = [
   {
     id: 'C-1246',
@@ -40,11 +41,11 @@ const contestHistory: ContestHistoryItem[] = [
     userRank: 12,
     participated: true,
     winners: [
-      { rank: 1, name: 'خالد محمد', votes: 156, prize: 425 },
-      { rank: 2, name: 'فاطمة سعيد', votes: 134, prize: 170 },
-      { rank: 3, name: 'عمر أحمد', votes: 121, prize: 127.5 },
-      { rank: 4, name: 'ليلى حسن', votes: 98, prize: 85 },
-      { rank: 5, name: 'أحمد كريم', votes: 87, prize: 42.5 },
+      { rank: 1, id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', votes: 156, prize: 425 },
+      { rank: 2, id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', votes: 134, prize: 170 },
+      { rank: 3, id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', votes: 121, prize: 127.5 },
+      { rank: 4, id: '7', name: getPlatformUserById('7')?.nameAr || 'ليلى حسن', votes: 98, prize: 85 },
+      { rank: 5, id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', votes: 87, prize: 42.5 },
     ],
   },
   {
@@ -55,11 +56,11 @@ const contestHistory: ContestHistoryItem[] = [
     userRank: null,
     participated: false,
     winners: [
-      { rank: 1, name: 'سارة أحمد', votes: 145, prize: 360 },
-      { rank: 2, name: 'محمد علي', votes: 128, prize: 144 },
-      { rank: 3, name: 'نور حسين', votes: 112, prize: 108 },
-      { rank: 4, name: 'يوسف كمال', votes: 95, prize: 72 },
-      { rank: 5, name: 'هدى سمير', votes: 82, prize: 36 },
+      { rank: 1, id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', votes: 145, prize: 360 },
+      { rank: 2, id: '9', name: getPlatformUserById('9')?.nameAr || 'محمد خالد', votes: 128, prize: 144 },
+      { rank: 3, id: '10', name: getPlatformUserById('10')?.nameAr || 'نور الدين', votes: 112, prize: 108 },
+      { rank: 4, id: '3', name: getPlatformUserById('3')?.nameAr || 'محمد كريم', votes: 95, prize: 72 },
+      { rank: 5, id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', votes: 82, prize: 36 },
     ],
   },
   {
@@ -70,11 +71,11 @@ const contestHistory: ContestHistoryItem[] = [
     userRank: 8,
     participated: true,
     winners: [
-      { rank: 1, name: 'كريم فوزي', votes: 167, prize: 340 },
-      { rank: 2, name: 'منى عادل', votes: 142, prize: 136 },
-      { rank: 3, name: 'طارق نبيل', votes: 125, prize: 102 },
-      { rank: 4, name: 'سلمى رشدي', votes: 108, prize: 68 },
-      { rank: 5, name: 'باسم وليد', votes: 91, prize: 34 },
+      { rank: 1, id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', votes: 167, prize: 340 },
+      { rank: 2, id: '1', name: getPlatformUserById('1')?.nameAr || 'أحمد', votes: 142, prize: 136 },
+      { rank: 3, id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', votes: 125, prize: 102 },
+      { rank: 4, id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', votes: 108, prize: 68 },
+      { rank: 5, id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', votes: 91, prize: 34 },
     ],
   },
 ];
@@ -114,10 +115,8 @@ export default function Winners() {
     setDetailsOpen(true);
   };
 
-  const handleProfileClick = (name: string) => {
-    // Generate a simple ID from the name for now
-    const id = name.replace(/\s+/g, '-').toLowerCase();
-    navigate(`/user/${id}`);
+  const handleProfileClick = (winnerId: string) => {
+    navigate(`/user/${winnerId}`);
   };
 
   return (
@@ -204,11 +203,13 @@ export default function Winners() {
                       </div>
 
                       {/* Winner Info - Clickable */}
-                      <div 
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => handleProfileClick(winner.name)}
-                      >
-                        <p className="font-medium text-sm truncate hover:text-primary transition-colors">{winner.name}</p>
+                      <div className="flex-1 min-w-0">
+                        <p 
+                          className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleProfileClick(winner.id)}
+                        >
+                          {winner.name}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
                         </p>

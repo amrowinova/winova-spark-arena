@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Info, Ban } from 'lucide-react';
@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useBanner } from '@/contexts/BannerContext';
+import { PLATFORM_USERS, getPlatformUserById } from '@/lib/platformUsers';
 
 // Contest Components
 import {
@@ -45,31 +46,46 @@ const mockContest = {
   entryFee: 10,
 };
 
-// Generate participants
+// Generate participants using PLATFORM_USERS for stable IDs
 const generateParticipants = () => {
-  const names = [
-    'خالد محمد', 'فاطمة سعيد', 'عمر أحمد', 'ليلى حسن', 'أحمد كريم',
-    'نورا بكر', 'سارة علي', 'محمد سالم', 'مريم حسن', 'يوسف عادل',
-    'هدى أحمد', 'علي سعيد', 'رنا محمد', 'كريم فؤاد', 'دينا حسام',
+  // First add all platform users with stable IDs
+  const platformParticipants = PLATFORM_USERS.map((user, i) => ({
+    id: user.id,
+    name: user.nameAr,
+    username: user.username,
+    votes: Math.max(1, 95 - i * 8 + Math.floor(Math.random() * 5)),
+    avatar: user.avatar,
+    rank: i + 1,
+    country: user.countryAr,
+  }));
+  
+  // Add more generic participants
+  const additionalNames = [
+    'نورا بكر', 'رنا محمد', 'كريم فؤاد', 'دينا حسام',
     'طارق أمين', 'نادية رشيد', 'سامي جابر', 'لينا خالد', 'وائل سمير',
   ];
-  const avatars = ['👨', '👩', '👨', '👩', '👨', '👩', '👨', '👩', '👨', '👩'];
-  const countries = ['Saudi Arabia', 'Egypt', 'Palestine', 'Syria', 'Jordan'];
+  const avatars = ['👨', '👩', '👨', '👩', '👨', '👩', '👨', '👩', '👨'];
   
-  const participants = [];
-  for (let i = 0; i < 80; i++) {
-    const votes = Math.max(1, 95 - i * 1.2 + Math.floor(Math.random() * 5));
-    participants.push({
+  const additionalParticipants = [];
+  for (let i = 0; i < 69; i++) {
+    const votes = Math.max(1, 50 - i * 0.7 + Math.floor(Math.random() * 3));
+    additionalParticipants.push({
       id: `${100 + i}`,
-      name: names[i % names.length],
+      name: additionalNames[i % additionalNames.length],
       username: `user_${100 + i}`,
       votes: Math.round(votes),
       avatar: avatars[i % avatars.length],
-      rank: i + 1,
-      country: countries[i % countries.length],
+      rank: platformParticipants.length + i + 1,
+      country: 'السعودية',
     });
   }
-  return participants;
+  
+  // Combine and sort by votes
+  const allParticipants = [...platformParticipants, ...additionalParticipants]
+    .sort((a, b) => b.votes - a.votes)
+    .map((p, i) => ({ ...p, rank: i + 1 }));
+  
+  return allParticipants;
 };
 
 const formatBalance = (value: number): string => {
