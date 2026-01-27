@@ -22,11 +22,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
+import { useBanner } from '@/contexts/BannerContext';
+import { P2PConfirmPaymentDialog } from './P2PConfirmPaymentDialog';
 
 interface P2PActionButtonsProps {
   order: P2POrder;
   currentUserId: string;
   isSupport?: boolean;
+  onOrderCompleted?: () => void;
 }
 
 type ActionType = 'confirm_payment' | 'cancel' | 'dispute' | 'release' | 'no_payment' | 'request_proof' | 'resolve_buyer' | 'resolve_seller';
@@ -87,23 +90,55 @@ const actionConfig: Record<ActionType, {
   },
 };
 
-export function P2PActionButtons({ order, currentUserId, isSupport = false }: P2PActionButtonsProps) {
+export function P2PActionButtons({ order, currentUserId, isSupport = false, onOrderCompleted }: P2PActionButtonsProps) {
   const { language } = useLanguage();
-  const { confirmPayment, cancelOrder, openDispute, releaseFunds, reportNoPayment, requestProof, resolveDispute } = useP2P();
+  const { 
+    confirmPayment, 
+    cancelOrder, 
+    openDispute, 
+    releaseFunds, 
+    reportNoPayment, 
+    requestProof, 
+    resolveDispute,
+    getCancellationsIn24h,
+    isBlockedFromOrders
+  } = useP2P();
+  const { success: showSuccess, error: showError } = useBanner();
   
   const [confirmDialog, setConfirmDialog] = useState<ActionType | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
+  const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
 
   const isBuyer = order.buyer.id === currentUserId;
   const isSeller = order.seller.id === currentUserId;
+  const isRTL = language === 'ar';
 
   const handleAction = (action: ActionType) => {
     switch (action) {
       case 'confirm_payment':
-        confirmPayment(order.id);
+        // Show the specialized payment confirmation dialog
+        setShowPaymentConfirm(true);
         break;
       case 'cancel':
-        cancelOrder(order.id);
+        // Check cancellation limit
+        const cancellations = getCancellationsIn24h();
+        if (cancellations >= 2) {
+          // Warn user this is their last cancellation
+          showError(isRTL 
+            ? 'تحذير: هذا إلغاءك الأخير. الإلغاء مرة أخرى سيحظرك 24 ساعة.'
+            : 'Warning: This is your last cancellation. One more will block you for 24 hours.'
+          );
+        }
+        
+        const cancelled = cancelOrder(order.id);
+        if (cancelled) {
+          showSuccess(isRTL ? 'تم إلغاء الطلب' : 'Order cancelled');
+        } else {
+          showError(isRTL 
+            ? 'لا يمكنك الإلغاء. تم تجاوز حد الإلغاءات (3 خلال 24 ساعة).'
+            : 'Cannot cancel. You have exceeded the cancellation limit (3 per 24 hours).'
+          );
+        }
         break;
       case 'dispute':
         if (disputeReason.trim()) {
@@ -113,6 +148,8 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false }: P2
         break;
       case 'release':
         releaseFunds(order.id);
+        showSuccess(isRTL ? 'تم تحرير Nova بنجاح!' : 'Nova released successfully!');
+        onOrderCompleted?.();
         break;
       case 'no_payment':
         reportNoPayment(order.id);
@@ -122,12 +159,19 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false }: P2
         break;
       case 'resolve_buyer':
         resolveDispute(order.id, 'release_to_buyer');
+        onOrderCompleted?.();
         break;
       case 'resolve_seller':
         resolveDispute(order.id, 'return_to_seller');
         break;
     }
     setConfirmDialog(null);
+  };
+
+  const handlePaymentConfirm = () => {
+    confirmPayment(order.id);
+    setShowPaymentConfirm(false);
+    showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
   };
 
   const getAvailableActions = (): ActionType[] => {
@@ -174,6 +218,21 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false }: P2
     const config = actionConfig[action];
     const Icon = config.icon;
     
+    // For confirm_payment, open the specialized dialog
+    if (action === 'confirm_payment') {
+      return (
+        <Button
+          key={action}
+          variant={config.variant as any}
+          className="flex-1 gap-2"
+          onClick={() => setShowPaymentConfirm(true)}
+        >
+          <Icon className="h-4 w-4" />
+          {language === 'ar' ? config.ar : config.en}
+        </Button>
+      );
+    }
+    
     return (
       <Button
         key={action}
@@ -193,7 +252,15 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false }: P2
         {availableActions.map(renderButton)}
       </div>
 
-      {/* Confirmation Dialogs */}
+      {/* Payment Confirmation Dialog */}
+      <P2PConfirmPaymentDialog
+        open={showPaymentConfirm}
+        onOpenChange={setShowPaymentConfirm}
+        order={order}
+        onConfirm={handlePaymentConfirm}
+      />
+
+      {/* Other Confirmation Dialogs */}
       <AlertDialog open={confirmDialog !== null} onOpenChange={() => setConfirmDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -220,12 +287,23 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false }: P2
                 </div>
               ) : confirmDialog === 'release' ? (
                 language === 'ar'
-                  ? `هل أنت متأكد من تحرير ${order.amount.toFixed(3)} Nova للمشتري؟`
-                  : `Are you sure you want to release ${order.amount.toFixed(3)} Nova to the buyer?`
+                  ? `هل أنت متأكد من تحرير ${order.amount.toFixed(0)} Nova للمشتري؟`
+                  : `Are you sure you want to release ${order.amount.toFixed(0)} Nova to the buyer?`
               ) : confirmDialog === 'cancel' ? (
-                language === 'ar'
-                  ? 'هل أنت متأكد من إلغاء هذا الطلب؟'
-                  : 'Are you sure you want to cancel this order?'
+                <div className="space-y-2">
+                  <p>
+                    {language === 'ar'
+                      ? 'هل أنت متأكد من إلغاء هذا الطلب؟'
+                      : 'Are you sure you want to cancel this order?'
+                    }
+                  </p>
+                  <p className="text-warning text-sm">
+                    {language === 'ar'
+                      ? `عدد الإلغاءات اليوم: ${getCancellationsIn24h()}/3`
+                      : `Cancellations today: ${getCancellationsIn24h()}/3`
+                    }
+                  </p>
+                </div>
               ) : (
                 language === 'ar'
                   ? 'هل أنت متأكد من هذا الإجراء؟'
