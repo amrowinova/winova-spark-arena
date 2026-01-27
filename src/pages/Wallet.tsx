@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Wallet as WalletIcon, Send, RefreshCw, History } from 'lucide-react';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -61,8 +62,9 @@ export default function WalletPage() {
   };
 
   return (
-    <AppLayout title={t('wallet.title')}>
-      <div className="px-4 py-4 space-y-5">
+    <div className="flex min-h-screen flex-col bg-background">
+      <InnerPageHeader title={t('wallet.title')} />
+      <main className="flex-1 px-4 py-4 pb-20 space-y-5">
         {/* Balance Card - Clean White Design */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -242,7 +244,8 @@ export default function WalletPage() {
           open={receiptDialogOpen}
           onClose={() => setReceiptDialogOpen(false)}
         />
-      </div>
-    </AppLayout>
+      </main>
+      <BottomNav />
+    </div>
   );
 }

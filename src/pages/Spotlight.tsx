@@ -2,7 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Sparkles, Trophy, Users, TrendingUp, ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { CurrencyBadge } from '@/components/common/CurrencyBadge';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
 import { ProgressRing } from '@/components/common/ProgressRing';
@@ -46,8 +47,9 @@ export default function SpotlightPage() {
   };
 
   return (
-    <AppLayout title={t('spotlight.luckyPointsTitle')}>
-      <div className="px-4 py-4 space-y-5">
+    <div className="flex min-h-screen flex-col bg-background">
+      <InnerPageHeader title={t('spotlight.luckyPointsTitle')} />
+      <main className="flex-1 px-4 py-4 pb-20 space-y-5">
         {/* Explanation Text */}
         <p className="text-sm text-muted-foreground text-center">
           {t('spotlight.luckyPointsDescription')}
@@ -226,7 +228,8 @@ export default function SpotlightPage() {
             ))}
           </div>
         </motion.div>
-      </div>
-    </AppLayout>
+      </main>
+      <BottomNav />
+    </div>
   );
 }

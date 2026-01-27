@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Info, Ban } from 'lucide-react';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -254,9 +255,10 @@ export default function ContestsPage() {
   };
 
   return (
-    <AppLayout title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'}>
-      <div className="px-4 py-4 space-y-4">
-        
+    <div className="flex min-h-screen flex-col bg-background">
+      <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
+      <main className="flex-1 px-4 py-4 pb-20 space-y-4">
+
         {/* Demo Stage Toggle (for testing - remove in production) */}
         <div className="flex gap-2 justify-center">
           <Button 
@@ -430,7 +432,7 @@ export default function ContestsPage() {
             <ContestInfoBox variant="stage-info" stage={contest.stage} />
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
 
       {/* Join Contest Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
@@ -504,6 +506,7 @@ export default function ContestsPage() {
         open={receiptDialogOpen}
         onClose={() => setReceiptDialogOpen(false)}
       />
-    </AppLayout>
+      <BottomNav />
+    </div>
   );
 }

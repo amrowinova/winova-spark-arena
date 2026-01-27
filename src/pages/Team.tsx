@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { UserIdentityCard } from '@/components/team/UserIdentityCard';
 import { TeamSizeCard } from '@/components/team/TeamSizeCard';
 import { ActivityCard } from '@/components/team/ActivityCard';
@@ -10,6 +11,7 @@ import { DirectTeamList } from '@/components/team/DirectTeamList';
 import { IndirectTeamList } from '@/components/team/IndirectTeamList';
 import { TeamMember } from '@/components/team/TeamMemberCard';
 import { useUser, UserRank } from '@/contexts/UserContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Mock direct team members
 const directTeamMembers: TeamMember[] = [
@@ -73,6 +75,7 @@ type ViewLevel = 'overview' | 'direct' | 'indirect';
 export default function TeamPage() {
   const { t } = useTranslation();
   const { user } = useUser();
+  const { language } = useLanguage();
   
   const [viewLevel, setViewLevel] = useState<ViewLevel>('overview');
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -102,37 +105,46 @@ export default function TeamPage() {
   if (viewLevel === 'indirect' && selectedMember) {
     const memberTeam = getMemberTeam(selectedMember.id);
     return (
-      <AppLayout title={t('team.title')} showNav={false}>
-        <div className="px-4 py-4">
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader 
+          title={language === 'ar' ? `فريق ${selectedMember.nameAr}` : `${selectedMember.name}'s Team`}
+          onBack={handleBack}
+        />
+        <main className="flex-1 px-4 py-4">
           <IndirectTeamList
             parentMember={selectedMember}
             members={memberTeam}
             onBack={handleBack}
           />
-        </div>
-      </AppLayout>
+        </main>
+      </div>
     );
   }
 
   // Level 2: Direct Team View
   if (viewLevel === 'direct') {
     return (
-      <AppLayout title={t('team.title')} showNav={false}>
-        <div className="px-4 py-4">
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader 
+          title={language === 'ar' ? 'الفريق المباشر' : 'Direct Team'}
+          onBack={handleBack}
+        />
+        <main className="flex-1 px-4 py-4">
           <DirectTeamList
             members={directTeamMembers}
             onBack={handleBack}
             onViewMemberTeam={handleViewIndirect}
           />
-        </div>
-      </AppLayout>
+        </main>
+      </div>
     );
   }
 
-  // Level 1: Overview
+  // Level 1: Overview (Team page is part of main nav, so use InnerPageHeader + BottomNav)
   return (
-    <AppLayout title={t('team.title')}>
-      <div className="px-4 py-4 space-y-4">
+    <div className="flex min-h-screen flex-col bg-background">
+      <InnerPageHeader title={t('team.title')} />
+      <main className="flex-1 px-4 py-4 pb-20 space-y-4">
         {/* User Identity Card */}
         <UserIdentityCard />
 
@@ -155,7 +167,8 @@ export default function TeamPage() {
           inactiveCount={inactiveCount}
           directTeamCount={directTeamMembers.length}
         />
-      </div>
-    </AppLayout>
+      </main>
+      <BottomNav />
+    </div>
   );
 }
