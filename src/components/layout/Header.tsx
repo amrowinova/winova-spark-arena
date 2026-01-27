@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,6 +18,7 @@ export function Header({ title }: HeaderProps) {
   const { t } = useTranslation();
   const { language, toggleLanguage } = useLanguage();
   const { user } = useUser();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
 
   // Weekly rank (would come from backend)
@@ -24,6 +26,10 @@ export function Header({ title }: HeaderProps) {
 
   const handleAvatarClick = () => {
     navigate('/profile');
+  };
+
+  const handleNotificationsClick = () => {
+    navigate('/notifications');
   };
 
   return (
@@ -80,9 +86,18 @@ export function Header({ title }: HeaderProps) {
             <span className="sr-only">{t('settings.language')}</span>
           </Button>
           
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-9 w-9 rounded-full relative"
+            onClick={handleNotificationsClick}
+          >
             <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </Button>
         </div>
       </div>
