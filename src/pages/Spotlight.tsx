@@ -16,6 +16,7 @@ import {
   TierRankingList,
   HowItWorksCard,
   HowToEarnPointsSheet,
+  WeeklyPerformanceCard,
 } from '@/components/spotlight';
 
 // Mock spotlight data
@@ -28,10 +29,27 @@ const spotlightData = {
 
   // User points
   userDailyPoints: 45,
-  userWeeklyPoints: 280,
   userCyclePoints: 1250,
   userRankPosition: 3,
   totalInRank: 156,
+
+  // Weekly performance data (14 weeks)
+  weeklyPerformance: [
+    { week: 1, points: 180 },
+    { week: 2, points: 220 },
+    { week: 3, points: 195 },
+    { week: 4, points: 280 },
+    { week: 5, points: 375 }, // Current week
+    { week: 6, points: 0 },
+    { week: 7, points: 0 },
+    { week: 8, points: 0 },
+    { week: 9, points: 0 },
+    { week: 10, points: 0 },
+    { week: 11, points: 0 },
+    { week: 12, points: 0 },
+    { week: 13, points: 0 },
+    { week: 14, points: 0 },
+  ],
 
   // Daily pool and winners
   dailyPool: 800, // Total Nova for today
@@ -80,15 +98,15 @@ export default function SpotlightPage() {
       <InnerPageHeader title={isRTL ? 'نقاط المحظوظين' : 'Lucky Points'} />
       
       <main className="flex-1 px-4 py-4 pb-20 space-y-5">
-        {/* Explanation Text */}
-        <p className="text-sm text-muted-foreground text-center">
-          {isRTL 
-            ? 'نقاط المحظوظين يتم منحها عشوائيًا ولا تعتمد على الترتيب أو الأصوات'
-            : 'Lucky Points are awarded randomly and are not based on ranking or votes'
-          }
-        </p>
-
         {/* How to Earn Points Button */}
+        <Button
+          variant="outline"
+          className="w-full flex items-center justify-center gap-2"
+          onClick={() => setShowEarnPointsSheet(true)}
+        >
+          <HelpCircle className="h-4 w-4" />
+          {isRTL ? 'كيف تكسب النقاط؟' : 'How to Earn Points?'}
+        </Button>
         <Button
           variant="outline"
           className="w-full flex items-center justify-center gap-2"
@@ -106,8 +124,19 @@ export default function SpotlightPage() {
           <CycleProgressCard
             currentDay={spotlightData.currentDay}
             totalDays={spotlightData.totalDays}
+            cyclePoints={spotlightData.userCyclePoints}
+          />
+        </motion.div>
+
+        {/* Weekly Performance */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <WeeklyPerformanceCard
             currentWeek={spotlightData.currentWeek}
-            totalWeeks={spotlightData.totalWeeks}
+            weeklyData={spotlightData.weeklyPerformance}
           />
         </motion.div>
 
@@ -115,11 +144,10 @@ export default function SpotlightPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
         >
           <UserPointsCard
             dailyPoints={spotlightData.userDailyPoints}
-            weeklyPoints={spotlightData.userWeeklyPoints}
             cyclePoints={spotlightData.userCyclePoints}
             userRank={user.rank}
             rankPosition={spotlightData.userRankPosition}
@@ -132,7 +160,7 @@ export default function SpotlightPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
         >
           <DailyLuckyWinnersCard
             totalPool={spotlightData.dailyPool}
@@ -145,7 +173,7 @@ export default function SpotlightPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4 }}
         >
           <HowItWorksCard />
         </motion.div>
@@ -154,7 +182,7 @@ export default function SpotlightPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
         >
           <TierRankingList
             userRank={user.rank}

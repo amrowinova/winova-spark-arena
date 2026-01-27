@@ -1,6 +1,4 @@
-import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,22 +6,18 @@ import { useLanguage } from '@/contexts/LanguageContext';
 interface CycleProgressCardProps {
   currentDay: number;
   totalDays: number;
-  currentWeek: number;
-  totalWeeks: number;
+  cyclePoints: number;
 }
 
 export function CycleProgressCard({
   currentDay,
   totalDays,
-  currentWeek,
-  totalWeeks,
+  cyclePoints,
 }: CycleProgressCardProps) {
-  const { t } = useTranslation();
   const { language } = useLanguage();
   const isRTL = language === 'ar';
 
   const dayProgress = (currentDay / totalDays) * 100;
-  const weekProgress = (currentWeek / totalWeeks) * 100;
 
   return (
     <Card className="overflow-hidden">
@@ -42,18 +36,17 @@ export function CycleProgressCard({
           <Progress value={dayProgress} className="h-2" />
         </div>
 
-        {/* Week Counter */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>{isRTL ? 'الأسبوع الحالي' : 'Current Week'}</span>
-            </div>
-            <span className="font-bold text-foreground">
-              {currentWeek} / {totalWeeks}
+        {/* Cumulative Cycle Points */}
+        <div className="bg-primary/10 rounded-lg p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <span className="text-sm text-foreground">
+              {isRTL ? 'مجموع نقاطك حتى اليوم' : 'Your total points so far'}
             </span>
           </div>
-          <Progress value={weekProgress} className="h-2" />
+          <span className="font-bold text-primary text-lg">
+            {cyclePoints.toLocaleString()} {isRTL ? 'نقطة' : 'pts'}
+          </span>
         </div>
       </CardContent>
     </Card>
