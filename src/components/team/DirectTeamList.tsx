@@ -10,7 +10,7 @@ import { TeamFilters, TeamFilter } from './TeamFilters';
 import { ReminderTemplatesDialog } from './ReminderTemplatesDialog';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
+import { banner } from '@/contexts/BannerContext';
 
 interface DirectTeamListProps {
   members: TeamMember[];
@@ -70,7 +70,7 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
   const handleCopyCode = () => {
     navigator.clipboard.writeText(user.referralCode);
     setCopied(true);
-    toast.success(language === 'ar' ? 'تم النسخ!' : 'Copied!');
+    banner.success(language === 'ar' ? 'تم النسخ!' : 'Copied!');
     setTimeout(() => setCopied(false), 2000);
   };
 

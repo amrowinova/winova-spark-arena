@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { P2PPaymentDetails } from '@/contexts/P2PContext';
-import { toast } from 'sonner';
+import { banner } from '@/contexts/BannerContext';
 
 interface P2PPaymentCardProps {
   paymentDetails: P2PPaymentDetails;
@@ -15,7 +15,7 @@ export function P2PPaymentCard({ paymentDetails, showCopy = true }: P2PPaymentCa
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(language === 'ar' ? `تم نسخ ${label}` : `${label} copied`);
+    banner.success(language === 'ar' ? `تم نسخ ${label}` : `${label} copied`);
   };
 
   return (

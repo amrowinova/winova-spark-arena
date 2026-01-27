@@ -13,7 +13,7 @@ import {
 import { useUser } from '@/contexts/UserContext';
 import { useTransactions } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
+import { useBanner } from '@/contexts/BannerContext';
 
 interface ConvertNovaAuraDialogProps {
   open: boolean;
@@ -29,6 +29,7 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
   const { language } = useLanguage();
   const { user, spendNova, addAura } = useUser();
   const { createTransaction } = useTransactions();
+  const { success: showSuccess, error: showError } = useBanner();
 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +49,7 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
     // Deduct Nova and add Aura
     const success = spendNova(novaAmount);
     if (!success) {
-      toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+      showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
       setIsLoading(false);
       return;
     }
@@ -74,8 +75,8 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
 
     setIsLoading(false);
 
-    // Show success toast with clear message
-    toast.success(
+    // Show success banner with clear message
+    showSuccess(
       language === 'ar' 
         ? `تم تحويل ${formatBalance(novaAmount)} Nova (И) إلى ${formatBalance(auraAmount)} Aura (✦) بنجاح`
         : `Successfully converted ${formatBalance(novaAmount)} Nova (И) to ${formatBalance(auraAmount)} Aura (✦)`

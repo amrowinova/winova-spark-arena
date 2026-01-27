@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RankBadge } from '@/components/common/RankBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
+import { banner } from '@/contexts/BannerContext';
 import type { UserRank } from '@/contexts/UserContext';
 import { GroupMemberSheet } from './GroupMemberSheet';
 
@@ -75,7 +75,7 @@ export function TeamInfoSheet({
     if (onRemindInactive) {
       onRemindInactive();
     } else {
-      toast.success(
+      banner.success(
         language === 'ar' 
           ? `تم إرسال تذكير إلى ${inactiveCount} عضو` 
           : `Reminder sent to ${inactiveCount} members`

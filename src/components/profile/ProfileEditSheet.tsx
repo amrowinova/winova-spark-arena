@@ -13,7 +13,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useUser } from '@/contexts/UserContext';
-import { toast } from 'sonner';
+import { banner } from '@/contexts/BannerContext';
 import { cn } from '@/lib/utils';
 
 interface ProfileEditSheetProps {
@@ -91,7 +91,7 @@ export function ProfileEditSheet({ open, onClose }: ProfileEditSheetProps) {
 
   const handleAvatarChange = () => {
     // In a real app, this would open a file picker
-    toast.info(isRTL ? 'سيتم دعم تحميل الصور قريباً' : 'Image upload coming soon');
+    banner.info(isRTL ? 'سيتم دعم تحميل الصور قريباً' : 'Image upload coming soon');
   };
 
   const addLink = () => {
@@ -113,12 +113,12 @@ export function ProfileEditSheet({ open, onClose }: ProfileEditSheetProps) {
   const handleSave = async () => {
     // Validation
     if (!displayName.trim()) {
-      toast.error(isRTL ? 'الاسم مطلوب' : 'Name is required');
+      banner.error(isRTL ? 'الاسم مطلوب' : 'Name is required');
       return;
     }
 
     if (username !== user.username && !usernameAvailable) {
-      toast.error(isRTL ? 'اسم المستخدم غير متاح' : 'Username is not available');
+      banner.error(isRTL ? 'اسم المستخدم غير متاح' : 'Username is not available');
       return;
     }
 
@@ -128,7 +128,7 @@ export function ProfileEditSheet({ open, onClose }: ProfileEditSheetProps) {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // In a real app, you would update the user context here
-    toast.success(isRTL ? 'تم حفظ التغييرات' : 'Changes saved');
+    banner.success(isRTL ? 'تم حفظ التغييرات' : 'Changes saved');
     setIsSaving(false);
     onClose();
   };

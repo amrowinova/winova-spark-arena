@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
+import { useBanner } from '@/contexts/BannerContext';
 
 // Contest Components
 import {
@@ -80,6 +80,7 @@ export default function ContestsPage() {
   const { language } = useLanguage();
   const { user, spendAura, spendNova } = useUser();
   const { createTransaction } = useTransactions();
+  const { success: showSuccess, error: showError } = useBanner();
 
   const [selectedTab, setSelectedTab] = useState('contestants');
   const [contest, setContest] = useState(mockContest);
@@ -138,11 +139,11 @@ export default function ContestsPage() {
         spendAura(auraToUse);
         spendNova(remainingNovaNeeded);
       } else {
-        toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+        showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
         return;
       }
     } else {
-      toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+      showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
       return;
     }
 
@@ -167,7 +168,7 @@ export default function ContestsPage() {
     setJoinDialogOpen(false);
     setSelectedReceipt(receipt);
     setReceiptDialogOpen(true);
-    toast.success(language === 'ar' ? '🎉 تم الانضمام للمسابقة!' : '🎉 Joined the contest!');
+    showSuccess(language === 'ar' ? '🎉 تم الانضمام للمسابقة!' : '🎉 Joined the contest!');
   };
 
   const handleVote = (participant: typeof participants[0]) => {
@@ -219,7 +220,7 @@ export default function ContestsPage() {
 
     // Show success notification
     const votesText = isFreeVote ? 1 : voteCount;
-    toast.success(
+    showSuccess(
       language === 'ar' 
         ? `رائع! نجحت بالتصويت لـ ${selectedParticipant.name} بـ ${votesText} صوت وأصبح الآن #${newRank}`
         : `Great! You voted for ${selectedParticipant.name} with ${votesText} vote${votesText > 1 ? 's' : ''} and is now #${newRank}`
@@ -245,7 +246,7 @@ export default function ContestsPage() {
 
     setVoteDialogOpen(false);
 
-    toast.success(
+    showSuccess(
       language === 'ar' 
         ? `🎁 رائع! استخدمت صوتك المجاني لـ ${selectedParticipant.name} وأصبح الآن #${newRank}`
         : `🎁 Great! You used your free vote for ${selectedParticipant.name} and is now #${newRank}`

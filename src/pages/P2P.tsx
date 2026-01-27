@@ -17,7 +17,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
-import { toast } from 'sonner';
+import { useBanner } from '@/contexts/BannerContext';
 
 import {
   P2PCountrySelector,
@@ -127,6 +127,7 @@ export default function P2PPage() {
   const { user } = useUser();
   const { createTransaction } = useTransactions();
   const { chats, activeChat, activeOrder, setActiveChat, setActiveOrder, sendMessage, confirmPayment, releaseFunds, openDispute, cancelOrder } = useP2P();
+  const { success: showSuccess } = useBanner();
   const isRTL = language === 'ar';
 
   // State
@@ -163,7 +164,7 @@ export default function P2PPage() {
     if (!selectedOffer) return;
     
     // Create new order and chat (in real app, this would use P2PContext)
-    toast.success(isRTL ? 'تم إنشاء الطلب!' : 'Order created!');
+    showSuccess(isRTL ? 'تم إنشاء الطلب!' : 'Order created!');
     setBuyDialogOpen(false);
     setSelectedOffer(null);
     setSelectedTab('orders');
@@ -176,7 +177,7 @@ export default function P2PPage() {
     paymentMethod: PaymentMethod;
     paymentDetails?: string;
   }) => {
-    toast.success(isRTL ? 'تم إنشاء الطلب!' : 'Order created!');
+    showSuccess(isRTL ? 'تم إنشاء الطلب!' : 'Order created!');
     setSelectedTab('orders');
   };
 
@@ -200,13 +201,13 @@ export default function P2PPage() {
   const handleConfirmPayment = () => {
     if (!activeChatOrder) return;
     confirmPayment(activeChatOrder.id);
-    toast.success(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
+    showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
   };
 
   const handleRelease = () => {
     if (!activeChatOrder) return;
     releaseFunds(activeChatOrder.id);
-    toast.success(isRTL ? 'تم تحرير Nova بنجاح!' : 'Nova released successfully!');
+    showSuccess(isRTL ? 'تم تحرير Nova بنجاح!' : 'Nova released successfully!');
   };
 
   // P2P Chat View

@@ -16,7 +16,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
+import { useBanner } from '@/contexts/BannerContext';
 
 interface TransferNovaDialogProps {
   open: boolean;
@@ -73,6 +73,7 @@ export function TransferNovaDialog({
   const { language } = useLanguage();
   const { user, spendNova } = useUser();
   const { createTransaction, calculateLocalAmount } = useTransactions();
+  const { success: showSuccess, error: showError } = useBanner();
 
   const [amount, setAmount] = useState('');
   const [username, setUsername] = useState(recipientUsername || '');
@@ -131,7 +132,7 @@ export function TransferNovaDialog({
     // Deduct from balance
     const success = spendNova(novaAmount);
     if (!success) {
-      toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+      showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
       setIsLoading(false);
       return;
     }
@@ -161,7 +162,7 @@ export function TransferNovaDialog({
     setShowReceipt(true);
     setIsLoading(false);
 
-    toast.success(language === 'ar' ? 'تم التحويل بنجاح!' : 'Transfer successful!');
+    showSuccess(language === 'ar' ? 'تم التحويل بنجاح!' : 'Transfer successful!');
 
     if (onTransferComplete) {
       onTransferComplete(receipt);
