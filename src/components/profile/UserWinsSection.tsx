@@ -19,6 +19,7 @@ export interface ContestWin {
 
 interface UserWinsSectionProps {
   wins: ContestWin[];
+  isOwnProfile?: boolean;
   onViewMore?: () => void;
   onViewContest?: (contestId: string) => void;
 }
@@ -66,7 +67,7 @@ const positionConfig = {
   },
 };
 
-export function UserWinsSection({ wins, onViewMore, onViewContest }: UserWinsSectionProps) {
+export function UserWinsSection({ wins, isOwnProfile = false, onViewMore, onViewContest }: UserWinsSectionProps) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
 
@@ -74,12 +75,17 @@ export function UserWinsSection({ wins, onViewMore, onViewContest }: UserWinsSec
     return null;
   }
 
+  // Title changes based on whose profile we're viewing
+  const sectionTitle = isOwnProfile 
+    ? (isRTL ? 'انتصاراتي' : 'My Wins')
+    : (isRTL ? 'انتصاراته' : 'Their Wins');
+
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Trophy className="h-5 w-5 text-nova" />
-          {isRTL ? 'انتصاراتي' : 'My Wins'}
+          {sectionTitle}
         </h3>
         {onViewMore && wins.length > 3 && (
           <Button variant="ghost" size="sm" onClick={onViewMore} className="text-primary">

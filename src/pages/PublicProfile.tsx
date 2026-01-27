@@ -19,7 +19,8 @@ import {
   UserMinus,
   ChevronRight,
   ChevronLeft,
-  MessageSquare
+  MessageSquare,
+  Share2
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -36,6 +37,7 @@ import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { P2PRatingsSheet, type P2PRating } from '@/components/profile/P2PRatingsSheet';
 import { UserWinsSection, type ContestWin } from '@/components/profile/UserWinsSection';
 import { getPlatformUserById, type PlatformUser } from '@/lib/platformUsers';
+import { toast } from 'sonner';
 
 type PublicProfileUser = {
   id: string;
@@ -121,13 +123,13 @@ const mockP2PRatings: P2PRating[] = [
   },
 ];
 
-// Mock wins data
+// Mock wins data - Only daily contests (no weekly or challenges)
 const mockWins: ContestWin[] = [
   {
     id: '1',
     contestId: 'C-1246',
     contestName: 'Daily Contest',
-    contestNameAr: 'مسابقة اليوم',
+    contestNameAr: 'مسابقة يومية',
     contestDate: '2026-01-25',
     position: 1,
     prizeAmount: 45,
@@ -135,8 +137,8 @@ const mockWins: ContestWin[] = [
   {
     id: '2',
     contestId: 'C-1240',
-    contestName: 'Weekly Challenge',
-    contestNameAr: 'تحدي أسبوعي',
+    contestName: 'Daily Contest',
+    contestNameAr: 'مسابقة يومية',
     contestDate: '2026-01-20',
     position: 2,
     prizeAmount: 20,
@@ -145,7 +147,7 @@ const mockWins: ContestWin[] = [
     id: '3',
     contestId: 'C-1235',
     contestName: 'Daily Contest',
-    contestNameAr: 'مسابقة اليوم',
+    contestNameAr: 'مسابقة يومية',
     contestDate: '2026-01-15',
     position: 3,
     prizeAmount: 15,
@@ -282,6 +284,32 @@ export default function PublicProfile() {
     setShowRatingsSheet(true);
   };
 
+  const handleShareProfile = async () => {
+    const profileUrl = `${window.location.origin}/user/${initialUser.id}`;
+    const shareText = language === 'ar' 
+      ? `تحقق من ملف ${initialUser.nameAr} على WINOVA`
+      : `Check out ${initialUser.name}'s profile on WINOVA`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: language === 'ar' ? 'ملف شخصي - WINOVA' : 'Profile - WINOVA',
+          text: shareText,
+          url: profileUrl,
+        });
+      } catch (err) {
+        // User cancelled or error
+        if ((err as Error).name !== 'AbortError') {
+          navigator.clipboard.writeText(profileUrl);
+          toast.success(language === 'ar' ? 'تم نسخ الرابط' : 'Link copied');
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(profileUrl);
+      toast.success(language === 'ar' ? 'تم نسخ الرابط' : 'Link copied');
+    }
+  };
+
   const statsCards = [
     {
       icon: Target,
@@ -316,15 +344,23 @@ export default function PublicProfile() {
   return (
     <AppLayout showHeader={false} showNav={false}>
       <div className="min-h-screen bg-background">
-        {/* Header */}
+        {/* Header - Only back button and share button for other users */}
         <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-lg border-b border-border safe-top">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <Button variant="ghost" size="icon" onClick={handleBack}>
-              {isRTL ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
-            </Button>
-            <h1 className="text-lg font-semibold text-foreground">
-              {t('publicProfile.title')}
-            </h1>
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={handleBack}>
+                {isRTL ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
+              </Button>
+              <h1 className="text-lg font-semibold text-foreground">
+                {t('publicProfile.title')}
+              </h1>
+            </div>
+            {/* Share button - only for other users' profiles */}
+            {!isOwnProfile && (
+              <Button variant="ghost" size="icon" onClick={handleShareProfile}>
+                <Share2 className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </header>
 
@@ -388,31 +424,6 @@ export default function PublicProfile() {
                 </span>
               </div>
             </div>
-
-            {/* Follow Button - Always visible for other users */}
-            {!isOwnProfile && (
-              <Button
-                variant={isFollowing ? "outline" : "default"}
-                size="sm"
-                className={cn(
-                  "mt-3 gap-2",
-                  isFollowing && "border-primary text-primary"
-                )}
-                onClick={handleFollowToggle}
-              >
-                {isFollowing ? (
-                  <>
-                    <UserMinus className="h-4 w-4" />
-                    {language === 'ar' ? 'إلغاء المتابعة' : 'Unfollow'}
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4" />
-                    {language === 'ar' ? 'متابعة' : 'Follow'}
-                  </>
-                )}
-              </Button>
-            )}
 
             {/* Country / City */}
             <div className="mt-3 flex items-center gap-1.5 text-muted-foreground">
@@ -480,7 +491,7 @@ export default function PublicProfile() {
             </div>
           </motion.section>
 
-          {/* Wins Section - Redesigned */}
+          {/* Wins Section - Shows only daily contest wins */}
           {initialUser.wins.length > 0 && (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
@@ -489,6 +500,7 @@ export default function PublicProfile() {
             >
               <UserWinsSection
                 wins={initialUser.wins}
+                isOwnProfile={isOwnProfile}
                 onViewMore={() => navigate('/winners')}
                 onViewContest={(contestId) => navigate('/winners')}
               />
@@ -573,25 +585,50 @@ export default function PublicProfile() {
           </motion.section>
         </div>
 
-        {/* Fixed Action Buttons - Always show BOTH for other users */}
+        {/* Fixed Action Buttons - Always show ALL THREE for other users */}
         {!isOwnProfile && (
           <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border p-4 safe-bottom">
-            <div className="flex gap-3 max-w-lg mx-auto">
-              <Button 
-                variant="outline" 
-                className="flex-1 gap-2"
-                onClick={handleSendMessage}
+            <div className="flex flex-col gap-3 max-w-lg mx-auto">
+              {/* Follow Button - Always first */}
+              <Button
+                variant={isFollowing ? "outline" : "default"}
+                className={cn(
+                  "w-full gap-2",
+                  isFollowing && "border-primary text-primary"
+                )}
+                onClick={handleFollowToggle}
               >
-                <Send className="h-4 w-4" />
-                {t('publicProfile.sendMessage')}
+                {isFollowing ? (
+                  <>
+                    <UserMinus className="h-4 w-4" />
+                    {language === 'ar' ? 'إلغاء المتابعة' : 'Unfollow'}
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    {language === 'ar' ? 'متابعة' : 'Follow'}
+                  </>
+                )}
               </Button>
-              <Button 
-                className="flex-1 gap-2 bg-nova text-nova-foreground hover:bg-nova/90"
-                onClick={handleSendNova}
-              >
-                <Coins className="h-4 w-4" />
-                {t('publicProfile.sendNova')}
-              </Button>
+              
+              {/* Send Message + Send Nova - Always together */}
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 gap-2"
+                  onClick={handleSendMessage}
+                >
+                  <Send className="h-4 w-4" />
+                  {t('publicProfile.sendMessage')}
+                </Button>
+                <Button 
+                  className="flex-1 gap-2 bg-nova text-nova-foreground hover:bg-nova/90"
+                  onClick={handleSendNova}
+                >
+                  <Coins className="h-4 w-4" />
+                  {t('publicProfile.sendNova')}
+                </Button>
+              </div>
             </div>
           </div>
         )}
