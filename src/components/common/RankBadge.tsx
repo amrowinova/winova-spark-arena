@@ -10,10 +10,10 @@ interface RankBadgeProps {
 
 const rankIcons: Record<UserRank, string> = {
   subscriber: '👤',
-  marketer: '🎯',
-  leader: '⭐',
-  manager: '👑',
-  president: '🏆',
+  marketer: '👤',
+  leader: '👥',
+  manager: '👥',
+  president: '👑',
 };
 
 export function RankBadge({ rank, size = 'md', className }: RankBadgeProps) {
