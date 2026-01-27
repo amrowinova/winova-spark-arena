@@ -12,7 +12,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import type { UserRank } from '@/contexts/UserContext';
 import { RankBadge } from '@/components/common/RankBadge';
 import {
-  DollarSign,
   User,
   Star,
   Search,
@@ -171,8 +170,8 @@ export function ChatInfoSheet({
             className="flex-1 gap-2"
             onClick={onTransfer}
           >
-            <DollarSign className="h-4 w-4" />
-            <span>{language === 'ar' ? 'تحويل' : 'Send'} И</span>
+            <span className="text-sm font-bold text-primary">И</span>
+            <span>{language === 'ar' ? 'تحويل' : 'Send'}</span>
           </Button>
           <Button 
             variant="outline" 
