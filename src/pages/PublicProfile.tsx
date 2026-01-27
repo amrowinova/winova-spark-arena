@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
@@ -31,98 +31,195 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { CurrencyBadge } from '@/components/common/CurrencyBadge';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
+import { getPlatformUserById, type PlatformUser } from '@/lib/platformUsers';
 
-// Mock user data for public profile
-const getMockPublicUser = (userId: string) => ({
-  id: userId,
-  name: 'Mohammed Ali',
-  nameAr: 'محمد علي',
-  username: 'mohammed_ali',
-  avatar: '',
-  rank: 'leader' as const,
-  country: 'Saudi Arabia',
-  countryAr: 'السعودية',
-  city: 'Jeddah',
-  cityAr: 'جدة',
-  isOnline: true,
-  lastSeen: '5 minutes ago',
-  lastSeenAr: 'منذ 5 دقائق',
-  contestEngagement: 'active' as 'active' | 'inactive',
-  votingEngagement: 'active' as 'active' | 'inactive',
-  followers: 1250,
-  following: 342,
-  isFollowedByMe: false,
+type PublicProfileUser = {
+  id: string;
+  name: string;
+  nameAr: string;
+  username: string;
+  avatar: string; // emoji
+  rank: PlatformUser["rank"];
+  country: string;
+  countryAr: string;
+  city: string;
+  cityAr: string;
+  isOnline: boolean;
+  lastSeen?: string;
+  lastSeenAr?: string;
+  contestEngagement: 'active' | 'inactive';
+  votingEngagement: 'active' | 'inactive';
+  followers: number;
+  following: number;
+  isFollowedByMe: boolean;
   stats: {
-    contestsJoined: 48,
-    contestsWon: 7,
-    luckyWins: 3,
-    paidVotesReceived: 234,
-  },
-  achievements: [
-    {
-      id: '1',
-      type: 'contest' as const,
-      contestName: 'Daily Photo Contest',
-      contestNameAr: 'مسابقة الصور اليومية',
-      date: '2025-01-20',
-      position: 1 as const,
-      prizeAmount: 45,
-      prizeType: 'nova' as const,
-    },
-    {
-      id: '2',
-      type: 'contest' as const,
-      contestName: 'Weekly Art Challenge',
-      contestNameAr: 'تحدي الفن الأسبوعي',
-      date: '2025-01-15',
-      position: 2 as const,
-      prizeAmount: 20,
-      prizeType: 'nova' as const,
-    },
-    {
-      id: '3',
-      type: 'lucky' as const,
-      contestName: 'Spotlight Draw',
-      contestNameAr: 'سحب الأضواء',
-      date: '2025-01-10',
-      prizeAmount: 25,
-      prizeType: 'nova' as const,
-    },
-  ],
+    contestsJoined: number;
+    contestsWon: number;
+    luckyWins: number;
+    paidVotesReceived: number;
+  };
+  achievements: Array<{
+    id: string;
+    type: 'contest' | 'lucky';
+    contestName: string;
+    contestNameAr: string;
+    date: string;
+    position?: 1 | 2 | 3;
+    prizeAmount: number;
+    prizeType: 'nova';
+  }>;
   p2p: {
-    rating: 96,
-    tradesCount: 67,
-    latestReview: {
-      userName: 'Sara',
-      userNameAr: 'سارة',
-      comment: 'Fast and reliable!',
-      commentAr: 'سريع وموثوق!',
-      rating: 'positive' as const,
+    rating: number;
+    tradesCount: number;
+    latestReview?: {
+      userName: string;
+      userNameAr: string;
+      comment: string;
+      commentAr: string;
+      rating: 'positive' | 'negative';
+    };
+  };
+};
+
+const getEngagement = (status?: PlatformUser["engagementStatus"]) => {
+  const contest = status === 'both' || status === 'contest';
+  const vote = status === 'both' || status === 'vote';
+  return {
+    contestEngagement: contest ? ('active' as const) : ('inactive' as const),
+    votingEngagement: vote ? ('active' as const) : ('inactive' as const),
+  };
+};
+
+const buildPublicProfileUser = (u: PlatformUser): PublicProfileUser => {
+  const engagement = getEngagement(u.engagementStatus);
+  return {
+    id: u.id,
+    name: u.name,
+    nameAr: u.nameAr,
+    username: u.username,
+    avatar: u.avatar,
+    rank: u.rank,
+    country: u.country,
+    countryAr: u.countryAr,
+    city: u.city,
+    cityAr: u.cityAr,
+    isOnline: u.isOnline,
+    lastSeen: u.lastSeen,
+    lastSeenAr: u.lastSeenAr,
+    ...engagement,
+    followers: 1250,
+    following: 342,
+    isFollowedByMe: false,
+    stats: {
+      contestsJoined: 48,
+      contestsWon: 7,
+      luckyWins: 3,
+      paidVotesReceived: 234,
     },
-  },
-});
+    achievements: [
+      {
+        id: '1',
+        type: 'contest',
+        contestName: 'Daily Contest',
+        contestNameAr: 'مسابقة اليوم',
+        date: '2025-01-20',
+        position: 1,
+        prizeAmount: 45,
+        prizeType: 'nova',
+      },
+      {
+        id: '2',
+        type: 'contest',
+        contestName: 'Weekly Challenge',
+        contestNameAr: 'تحدي أسبوعي',
+        date: '2025-01-15',
+        position: 2,
+        prizeAmount: 20,
+        prizeType: 'nova',
+      },
+    ],
+    p2p: {
+      rating: u.p2pStats?.rating ?? 96,
+      tradesCount: u.p2pStats?.trades ?? 67,
+      latestReview: {
+        userName: 'Sara',
+        userNameAr: 'سارة',
+        comment: 'Fast and reliable!',
+        commentAr: 'سريع وموثوق!',
+        rating: 'positive',
+      },
+    },
+  };
+};
+
+const isProbablyUrl = (value?: string) => {
+  if (!value) return false;
+  return value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/');
+};
 
 export default function PublicProfile() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { user: currentUser } = useUser();
   const isRTL = language === 'ar';
-  
-  // Get mock user data
-  const initialUser = getMockPublicUser(userId || '1');
+
+  const baseUser = useMemo(() => getPlatformUserById(userId), [userId]);
+  const initialUser = useMemo(() => (baseUser ? buildPublicProfileUser(baseUser) : null), [baseUser]);
   
   // State for follow status and counts
-  const [isFollowing, setIsFollowing] = useState(initialUser.isFollowedByMe);
-  const [followersCount, setFollowersCount] = useState(initialUser.followers);
-  const [followingCount] = useState(initialUser.following);
+  const [isFollowing, setIsFollowing] = useState(initialUser?.isFollowedByMe ?? false);
+  const [followersCount, setFollowersCount] = useState(initialUser?.followers ?? 0);
+  const [followingCount, setFollowingCount] = useState(initialUser?.following ?? 0);
   
   // State for Nova transfer dialog
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   
+  useEffect(() => {
+    if (!initialUser) return;
+    setIsFollowing(initialUser.isFollowedByMe);
+    setFollowersCount(initialUser.followers);
+    setFollowingCount(initialUser.following);
+  }, [initialUser?.id]);
+
+  // If userId is unknown, show a safe "not found" state (no placeholder users)
+  if (!initialUser) {
+    return (
+      <AppLayout showHeader={false} showNav={false}>
+        <div className="min-h-screen bg-background">
+          <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-lg border-b border-border safe-top">
+            <div className="flex items-center gap-3 px-4 py-3">
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                {isRTL ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
+              </Button>
+              <h1 className="text-lg font-semibold text-foreground">{t('publicProfile.title')}</h1>
+            </div>
+          </header>
+
+          <div className="px-4 py-10 space-y-4">
+            <Card className="border-border/50">
+              <CardContent className="p-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ar' ? 'المستخدم غير موجود' : 'User not found'}
+                </p>
+                <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
+                  {language === 'ar' ? 'رجوع' : 'Back'}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   // Check if viewing own profile
-  const isOwnProfile = currentUser.id === userId;
+  const isOwnProfile = currentUser.id === initialUser.id;
+
+  const fromChatWithUserId = (location.state as any)?.fromChatWithUserId as string | undefined;
+  const hideSendMessage = fromChatWithUserId === initialUser.id;
 
   const handleBack = () => {
     navigate(-1);
@@ -130,6 +227,7 @@ export default function PublicProfile() {
 
   const handleSendMessage = () => {
     // Navigate to DM or create new chat
+    if (!initialUser) return;
     navigate('/chat', { state: { openDmWith: initialUser.id } });
   };
 
@@ -232,9 +330,11 @@ export default function PublicProfile() {
             className="flex flex-col items-center text-center"
           >
             <Avatar className="h-24 w-24 border-4 border-primary/20">
-              <AvatarImage src={initialUser.avatar} alt={initialUser.name} />
+              {isProbablyUrl(initialUser.avatar) ? (
+                <AvatarImage src={initialUser.avatar} alt={initialUser.name} />
+              ) : null}
               <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                {initialUser.name.charAt(0).toUpperCase()}
+                {initialUser.avatar || initialUser.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
@@ -525,14 +625,16 @@ export default function PublicProfile() {
         {/* Fixed Action Buttons */}
         <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border p-4 safe-bottom">
           <div className="flex gap-3 max-w-lg mx-auto">
-            <Button 
-              variant="outline" 
-              className="flex-1 gap-2"
-              onClick={handleSendMessage}
-            >
-              <Send className="h-4 w-4" />
-              {t('publicProfile.sendMessage')}
-            </Button>
+            {!isOwnProfile && !hideSendMessage && (
+              <Button 
+                variant="outline" 
+                className="flex-1 gap-2"
+                onClick={handleSendMessage}
+              >
+                <Send className="h-4 w-4" />
+                {t('publicProfile.sendMessage')}
+              </Button>
+            )}
             <Button 
               className="flex-1 gap-2 bg-nova text-nova-foreground hover:bg-nova/90"
               onClick={handleSendNova}
@@ -550,8 +652,11 @@ export default function PublicProfile() {
           recipientId={initialUser.id}
           recipientName={language === 'ar' ? initialUser.nameAr : initialUser.name}
           recipientUsername={initialUser.username}
+          recipientCountry={language === 'ar' ? initialUser.countryAr : initialUser.country}
+          recipientAvatar={initialUser.avatar}
         />
       </div>
     </AppLayout>
   );
 }
+
