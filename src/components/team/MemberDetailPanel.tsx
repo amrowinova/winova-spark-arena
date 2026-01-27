@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { RankBadge } from '@/components/common/RankBadge';
 import { ProgressRing } from '@/components/common/ProgressRing';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
+import { banner } from '@/contexts/BannerContext';
 import type { TeamMember } from './TeamMemberCard';
 
 interface MemberDetailPanelProps {
@@ -25,12 +25,12 @@ export function MemberDetailPanel({ member, open, onClose, onViewTeam }: MemberD
   const activeUnder = Math.round(member.teamSize * (memberActivity / 100));
 
   const handleMessage = () => {
-    toast.success(language === 'ar' ? 'جاري فتح المحادثة...' : 'Opening chat...');
+    banner.success(language === 'ar' ? 'جاري فتح المحادثة...' : 'Opening chat...');
     onClose();
   };
 
   const handleRemind = () => {
-    toast.success(language === 'ar' ? 'تم إرسال التذكير!' : 'Reminder sent!');
+    banner.success(language === 'ar' ? 'تم إرسال التذكير!' : 'Reminder sent!');
   };
 
   return (

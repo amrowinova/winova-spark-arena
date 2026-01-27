@@ -30,7 +30,7 @@ import {
   P2PActionButtons,
   P2PSystemMessage 
 } from '@/components/p2p';
-import { toast } from '@/hooks/use-toast';
+import { useBanner } from '@/contexts/BannerContext';
 import type { UserRank } from '@/contexts/UserContext';
 
 interface Conversation {
@@ -341,16 +341,17 @@ export default function ChatPage() {
     setForwardMessage(msg);
   };
 
+  const { success: showSuccess, error: showError, info: showInfo } = useBanner();
+
   const handleForwardSubmit = (contactIds: string[]) => {
     if (!forwardMessage || !activeChat) return;
     
     // Create forwarded copies for each contact (mock implementation)
-    toast({
-      title: language === 'ar' ? 'تم الإرسال' : 'Forwarded',
-      description: language === 'ar' 
+    showSuccess(
+      language === 'ar' 
         ? `تم إعادة التوجيه إلى ${contactIds.length} جهة اتصال`
-        : `Forwarded to ${contactIds.length} contacts`,
-    });
+        : `Forwarded to ${contactIds.length} contacts`
+    );
   };
 
   const scrollToMessage = (messageId: string) => {
@@ -365,9 +366,7 @@ export default function ChatPage() {
 
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
-    toast({
-      title: language === 'ar' ? 'تم النسخ' : 'Copied',
-    });
+    showInfo(language === 'ar' ? 'تم النسخ' : 'Copied');
   };
 
   const handleDelete = (messageId: string) => {
@@ -391,10 +390,7 @@ export default function ChatPage() {
     
     const currentPinned = activeChat.pinnedMessages || [];
     if (currentPinned.length >= 3 && !msg.pinned) {
-      toast({
-        title: language === 'ar' ? 'الحد الأقصى 3 رسائل' : 'Maximum 3 pinned messages',
-        variant: 'destructive',
-      });
+      showError(language === 'ar' ? 'الحد الأقصى 3 رسائل' : 'Maximum 3 pinned messages');
       return;
     }
 
@@ -484,22 +480,21 @@ export default function ChatPage() {
       prev ? { ...prev, isMuted: !prev.isMuted } : prev
     );
 
-    toast({
-      title: activeChat.isMuted 
+    showInfo(
+      activeChat.isMuted 
         ? (language === 'ar' ? 'تم إلغاء الكتم' : 'Unmuted')
-        : (language === 'ar' ? 'تم الكتم' : 'Muted'),
-    });
+        : (language === 'ar' ? 'تم الكتم' : 'Muted')
+    );
   };
 
   const handleRemindInactive = () => {
     if (!activeChat?.teamMembers) return;
     const inactiveCount = activeChat.teamMembers.filter(m => !m.active).length;
-    toast({
-      title: language === 'ar' ? 'تم إرسال التذكير' : 'Reminder Sent',
-      description: language === 'ar'
+    showSuccess(
+      language === 'ar'
         ? `تم إرسال تذكير إلى ${inactiveCount} عضو غير نشط`
-        : `Sent reminder to ${inactiveCount} inactive members`,
-    });
+        : `Sent reminder to ${inactiveCount} inactive members`
+    );
   };
 
   const handleOpenConversation = (conv: Conversation) => {

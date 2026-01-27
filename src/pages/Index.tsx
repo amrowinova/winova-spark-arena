@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
+import { useBanner } from '@/contexts/BannerContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -101,6 +101,8 @@ export default function HomePage() {
     setJoinDialogOpen(true);
   };
 
+  const { success: showSuccess, error: showError } = useBanner();
+
   const confirmJoin = () => {
     const entryFee = mockContest.entryFee;
     const auraEquivalent = entryFee * 2; // 1 Nova = 2 Aura
@@ -122,17 +124,17 @@ export default function HomePage() {
         spendAura(auraToUse);
         spendNova(remainingNovaNeeded);
       } else {
-        toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+        showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
         return;
       }
     } else {
-      toast.error(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+      showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
       return;
     }
     
     setHasJoined(true);
     setJoinDialogOpen(false);
-    toast.success(language === 'ar' ? '🎉 تم الانضمام للمسابقة بنجاح!' : '🎉 Successfully joined the contest!');
+    showSuccess(language === 'ar' ? '🎉 تم الانضمام للمسابقة بنجاح!' : '🎉 Successfully joined the contest!');
   };
 
   return (

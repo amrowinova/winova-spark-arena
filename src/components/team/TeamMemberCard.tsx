@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
 import { PromotionBadge } from './PromotionBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
+import { banner } from '@/contexts/BannerContext';
 import type { UserRank } from '@/contexts/UserContext';
 
 export interface TeamMember {
@@ -57,7 +57,7 @@ export function TeamMemberCard({
     if (onMessage) {
       onMessage();
     } else {
-      toast.success(language === 'ar' ? 'جاري فتح المحادثة...' : 'Opening chat...');
+      banner.success(language === 'ar' ? 'جاري فتح المحادثة...' : 'Opening chat...');
     }
   };
 
@@ -73,7 +73,7 @@ export function TeamMemberCard({
     if (onRemind) {
       onRemind();
     } else {
-      toast.success(language === 'ar' ? 'تم إرسال التذكير!' : 'Reminder sent!');
+      banner.success(language === 'ar' ? 'تم إرسال التذكير!' : 'Reminder sent!');
     }
   };
 

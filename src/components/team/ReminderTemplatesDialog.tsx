@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
+import { banner } from '@/contexts/BannerContext';
 
 interface ReminderTemplatesDialogProps {
   open: boolean;
@@ -71,7 +71,7 @@ export function ReminderTemplatesDialog({
       all: language === 'ar' ? 'جميع الأعضاء' : 'all members',
     };
     
-    toast.success(
+    banner.success(
       language === 'ar'
         ? `تم إرسال "${template.titleAr}" لـ ${targetCount} ${targetLabel[targetType]}`
         : `Sent "${template.titleEn}" to ${targetCount} ${targetLabel[targetType]}`
