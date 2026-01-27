@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Sparkles, Trophy, Users, TrendingUp, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CurrencyBadge } from '@/components/common/CurrencyBadge';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
@@ -39,6 +39,11 @@ const spotlightData = {
 export default function SpotlightPage() {
   const { t } = useTranslation();
   const { user } = useUser();
+  const navigate = useNavigate();
+
+  const handleProfileClick = (userId: number) => {
+    navigate(`/user/${userId}`);
+  };
 
   return (
     <AppLayout title={t('spotlight.luckyPointsTitle')}>
@@ -123,14 +128,18 @@ export default function SpotlightPage() {
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {spotlightData.winners.daily.map((winner, index) => (
-              <Card key={winner.id} className={index === 0 ? 'glow-nova' : ''}>
+              <Card 
+                key={winner.id} 
+                className={`${index === 0 ? 'glow-nova' : ''} cursor-pointer`}
+                onClick={() => handleProfileClick(winner.id)}
+              >
                 <CardContent className="p-4 text-center">
-                  <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center text-lg mb-2 ${
+                  <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center text-lg mb-2 hover:ring-2 hover:ring-nova/50 transition-all ${
                     index === 0 ? 'bg-gradient-nova' : 'bg-muted'
                   }`}>
                     {index === 0 ? '🥇' : '🥈'}
                   </div>
-                  <p className="font-medium">{winner.name}</p>
+                  <p className="font-medium hover:text-nova transition-colors">{winner.name}</p>
                   <p className="text-xs text-muted-foreground mb-2">
                     {winner.points.toLocaleString()} pts
                   </p>
@@ -192,11 +201,19 @@ export default function SpotlightPage() {
                   }`}>
                     {user.rank}
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg">
+                  {/* Avatar - Clickable */}
+                  <div 
+                    className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                    onClick={() => !user.isUser && handleProfileClick(user.id)}
+                  >
                     {user.avatar}
                   </div>
+                  {/* Name - Clickable */}
                   <div className="flex-1">
-                    <p className={`font-medium ${user.isUser ? 'text-primary' : ''}`}>
+                    <p 
+                      className={`font-medium cursor-pointer hover:text-primary transition-colors ${user.isUser ? 'text-primary' : ''}`}
+                      onClick={() => !user.isUser && handleProfileClick(user.id)}
+                    >
                       {user.name}
                     </p>
                   </div>

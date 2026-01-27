@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPricing } from '@/contexts/TransactionContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface LuckyWinner {
   id: number;
@@ -20,7 +20,12 @@ interface LuckyWinnersCardProps {
 
 export function LuckyWinnersCard({ winners, country }: LuckyWinnersCardProps) {
   const { language } = useLanguage();
+  const navigate = useNavigate();
   const pricing = getPricing(country);
+
+  const handleProfileClick = (userId: number) => {
+    navigate(`/user/${userId}`);
+  };
 
   return (
     <Card className="overflow-hidden border-nova/20 shadow-md">
@@ -57,11 +62,14 @@ export function LuckyWinnersCard({ winners, country }: LuckyWinnersCardProps) {
                 <Star className="h-3 w-3 text-nova fill-nova" />
               </motion.div>
 
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-nova flex items-center justify-center text-sm">
+              <div 
+                className="flex items-center gap-2 mb-2 cursor-pointer"
+                onClick={() => handleProfileClick(winner.id)}
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-nova flex items-center justify-center text-sm hover:ring-2 hover:ring-nova/50 transition-all">
                   {winner.avatar}
                 </div>
-                <p className="font-medium text-xs truncate flex-1">{winner.name}</p>
+                <p className="font-medium text-xs truncate flex-1 hover:text-nova transition-colors">{winner.name}</p>
               </div>
               
               <div className="text-center">

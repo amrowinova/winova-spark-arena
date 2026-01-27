@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
 import { Crown, Target } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
-
 interface Contestant {
   id: string;
   name: string;
@@ -29,9 +29,14 @@ export function FinalContestantCard({
   canVote = true 
 }: FinalContestantCardProps) {
   const { language } = useLanguage();
+  const navigate = useNavigate();
   
   const isTop5 = contestant.rank <= 5;
   const isTop3 = contestant.rank <= 3;
+
+  const handleProfileClick = () => {
+    navigate(`/user/${contestant.id}`);
+  };
   
   return (
     <motion.div
@@ -57,14 +62,22 @@ export function FinalContestantCard({
             {contestant.rank}
           </div>
           
-          {/* Avatar */}
-          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg shrink-0">
+          {/* Avatar - Clickable */}
+          <div 
+            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+            onClick={handleProfileClick}
+          >
             {contestant.avatar}
           </div>
           
           {/* Name & Votes */}
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{contestant.name}</p>
+            <p 
+              className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
+              onClick={handleProfileClick}
+            >
+              {contestant.name}
+            </p>
             <p className="text-xs text-muted-foreground">
               {contestant.votes} {language === 'ar' ? 'صوت' : 'votes'}
             </p>
