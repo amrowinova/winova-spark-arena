@@ -30,9 +30,6 @@ import {
   FinalStageUserCard,
   FinalContestantCard,
   PrizeDistributionCard,
-  ContestHistoryCard,
-  ContestDetailsDialog,
-  ContestHistoryItem,
   VoteDialog,
 } from '@/components/contest';
 
@@ -74,70 +71,6 @@ const generateParticipants = () => {
   return participants;
 };
 
-// Mock contest history
-const mockContestHistory: ContestHistoryItem[] = [
-  {
-    id: 'C-1246',
-    date: '25 يناير 2026',
-    prizePool: 936,
-    participants: 156,
-    userRank: 12,
-    participated: true,
-    winners: [
-      { name: 'خالد محمد', prize: 468, rank: 1, votes: 124 },
-      { name: 'فاطمة سعيد', prize: 187, rank: 2, votes: 98 },
-      { name: 'عمر أحمد', prize: 140, rank: 3, votes: 87 },
-      { name: 'ليلى حسن', prize: 94, rank: 4, votes: 76 },
-      { name: 'أحمد كريم', prize: 47, rank: 5, votes: 71 },
-    ],
-  },
-  {
-    id: 'C-1245',
-    date: '24 يناير 2026',
-    prizePool: 840,
-    participants: 140,
-    userRank: 35,
-    participated: true,
-    winners: [
-      { name: 'سارة علي', prize: 420, rank: 1, votes: 112 },
-      { name: 'أحمد كريم', prize: 168, rank: 2, votes: 89 },
-      { name: 'ليلى حسن', prize: 126, rank: 3, votes: 78 },
-      { name: 'محمد سالم', prize: 84, rank: 4, votes: 65 },
-      { name: 'نورا بكر', prize: 42, rank: 5, votes: 61 },
-    ],
-  },
-  {
-    id: 'C-1244',
-    date: '23 يناير 2026',
-    prizePool: 780,
-    participants: 130,
-    userRank: null,
-    participated: false,
-    winners: [
-      { name: 'محمد سالم', prize: 390, rank: 1, votes: 105 },
-      { name: 'نورا بكر', prize: 156, rank: 2, votes: 82 },
-      { name: 'يوسف عادل', prize: 117, rank: 3, votes: 74 },
-      { name: 'هدى أحمد', prize: 78, rank: 4, votes: 68 },
-      { name: 'علي سعيد', prize: 39, rank: 5, votes: 62 },
-    ],
-  },
-  {
-    id: 'C-1243',
-    date: '22 يناير 2026',
-    prizePool: 900,
-    participants: 150,
-    userRank: 3,
-    participated: true,
-    winners: [
-      { name: 'فاطمة أحمد', prize: 450, rank: 1, votes: 118 },
-      { name: 'خالد سعيد', prize: 180, rank: 2, votes: 95 },
-      { name: 'أنت', prize: 135, rank: 3, votes: 88 },
-      { name: 'رنا محمد', prize: 90, rank: 4, votes: 72 },
-      { name: 'كريم فؤاد', prize: 45, rank: 5, votes: 67 },
-    ],
-  },
-];
-
 const formatBalance = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
 };
@@ -168,9 +101,6 @@ export default function ContestsPage() {
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   
-  // History dialog
-  const [historyDetailsOpen, setHistoryDetailsOpen] = useState(false);
-  const [selectedHistoryContest, setSelectedHistoryContest] = useState<ContestHistoryItem | null>(null);
 
   // Simulate stage transition (for demo - can toggle)
   const [demoStage, setDemoStage] = useState<'stage1' | 'final'>('stage1');
@@ -322,11 +252,6 @@ export default function ContestsPage() {
     );
   };
 
-  const handleViewHistoryDetails = (historyItem: ContestHistoryItem) => {
-    setSelectedHistoryContest(historyItem);
-    setHistoryDetailsOpen(true);
-  };
-
   return (
     <AppLayout title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'}>
       <div className="px-4 py-4 space-y-4">
@@ -432,15 +357,12 @@ export default function ContestsPage() {
 
         {/* Main Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="contestants">
               {language === 'ar' ? 'المتسابقون' : 'Contestants'}
             </TabsTrigger>
             <TabsTrigger value="prizes">
               {language === 'ar' ? 'الجوائز' : 'Prizes'}
-            </TabsTrigger>
-            <TabsTrigger value="history">
-              {language === 'ar' ? 'السجل' : 'History'}
             </TabsTrigger>
           </TabsList>
 
@@ -505,25 +427,6 @@ export default function ContestsPage() {
             )}
             
             <ContestInfoBox variant="stage-info" stage={contest.stage} />
-          </TabsContent>
-
-          {/* History Tab */}
-          <TabsContent value="history" className="mt-4 space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
-              {language === 'ar' 
-                ? 'هنا تجد جميع المسابقات التي شاركت بها سابقًا'
-                : 'Here you can find all past contests'}
-            </p>
-            
-            <div className="space-y-3">
-              {mockContestHistory.map((historyItem) => (
-                <ContestHistoryCard
-                  key={historyItem.id}
-                  contest={historyItem}
-                  onViewDetails={handleViewHistoryDetails}
-                />
-              ))}
-            </div>
           </TabsContent>
         </Tabs>
       </div>
@@ -592,14 +495,6 @@ export default function ContestsPage() {
         freeVoteActive={freeVoteActive && isStage1}
         onVote={handleConfirmVote}
         onUseFreeVote={handleUseFreeVote}
-      />
-
-      {/* History Details Dialog */}
-      <ContestDetailsDialog
-        contest={selectedHistoryContest}
-        open={historyDetailsOpen}
-        onClose={() => setHistoryDetailsOpen(false)}
-        country={user.country}
       />
 
       {/* Receipt Dialog */}
