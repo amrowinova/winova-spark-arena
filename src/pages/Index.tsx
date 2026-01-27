@@ -148,36 +148,36 @@ export default function HomePage() {
           <ActiveUsersCard count={globalActiveUsers} />
         </motion.div>
 
-        {/* Wallet Card - Nova + Aura only, no total */}
+        {/* Wallet Card - Matching Wallet page design */}
         <motion.div variants={itemVariants}>
-          <Card className="overflow-hidden border-0 shadow-md">
-            <div className="bg-gradient-dark p-4">
+          <Card className="overflow-hidden border border-border bg-card shadow-sm">
+            <div className="p-4">
               <div className="grid grid-cols-2 gap-4">
-                {/* Nova Balance */}
-                <div className="bg-gradient-nova/20 backdrop-blur rounded-xl p-3 border border-nova/20">
+                {/* Nova Balance - Gold accent */}
+                <div className="bg-nova/5 border border-nova/20 rounded-xl p-3">
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="text-nova text-lg font-bold">И</span>
-                    <span className="text-secondary-foreground/70 text-xs font-medium">Nova</span>
+                    <span className="text-foreground/70 text-xs font-medium">Nova</span>
                   </div>
-                  <p className="text-secondary-foreground text-2xl font-bold">
-                    И {formatBalance(user.novaBalance)}
+                  <p className="text-foreground text-2xl font-bold">
+                    {formatBalance(user.novaBalance)}
                   </p>
-                  <p className="text-secondary-foreground/50 text-[11px] mt-1">
+                  <p className="text-muted-foreground text-xs mt-1">
                     ≈ {pricing.symbol} {formatBalance(novaLocalValue)}
                   </p>
                 </div>
 
-                {/* Aura Balance - No local currency equivalent */}
-                <div className="bg-gradient-aura/20 backdrop-blur rounded-xl p-3 border border-aura/20">
+                {/* Aura Balance - Purple accent, no local currency */}
+                <div className="bg-aura/5 border border-aura/20 rounded-xl p-3">
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="text-aura text-lg font-bold">✦</span>
-                    <span className="text-secondary-foreground/70 text-xs font-medium">Aura</span>
+                    <span className="text-foreground/70 text-xs font-medium">Aura</span>
                   </div>
-                  <p className="text-secondary-foreground text-2xl font-bold">
-                    ✦ {formatBalance(user.auraBalance)}
+                  <p className="text-foreground text-2xl font-bold">
+                    {formatBalance(user.auraBalance)}
                   </p>
-                  <p className="text-secondary-foreground/50 text-[11px] mt-1 invisible">
-                    &nbsp;
+                  <p className="text-muted-foreground text-xs mt-1">
+                    {language === 'ar' ? 'نقاط تصويت' : 'Voting Points'}
                   </p>
                 </div>
               </div>
