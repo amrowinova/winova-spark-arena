@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Calendar, Crown, Users, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -101,6 +102,7 @@ const positionColors = [
 export default function Winners() {
   const { language } = useLanguage();
   const { user } = useUser();
+  const navigate = useNavigate();
   const pricing = getPricing(user.country);
   
   const [selectedContest, setSelectedContest] = useState<ContestHistoryItem | null>(null);
@@ -109,6 +111,12 @@ export default function Winners() {
   const handleViewDetails = (contest: ContestHistoryItem) => {
     setSelectedContest(contest);
     setDetailsOpen(true);
+  };
+
+  const handleProfileClick = (name: string) => {
+    // Generate a simple ID from the name for now
+    const id = name.replace(/\s+/g, '-').toLowerCase();
+    navigate(`/user/${id}`);
   };
 
   return (
@@ -197,9 +205,12 @@ export default function Winners() {
                         {index === 0 ? <Crown className="h-4 w-4" /> : winner.rank}
                       </div>
 
-                      {/* Winner Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{winner.name}</p>
+                      {/* Winner Info - Clickable */}
+                      <div 
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => handleProfileClick(winner.name)}
+                      >
+                        <p className="font-medium text-sm truncate hover:text-primary transition-colors">{winner.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
                         </p>

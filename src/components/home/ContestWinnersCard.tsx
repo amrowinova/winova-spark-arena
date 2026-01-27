@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPricing } from '@/contexts/TransactionContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface Winner {
   id: number;
@@ -24,7 +24,12 @@ interface ContestWinnersCardProps {
 
 export function ContestWinnersCard({ winners, prizePool, country, limit = 3 }: ContestWinnersCardProps) {
   const { language } = useLanguage();
+  const navigate = useNavigate();
   const pricing = getPricing(country);
+
+  const handleProfileClick = (userId: number) => {
+    navigate(`/user/${userId}`);
+  };
 
   const positionColors = [
     'bg-gradient-to-r from-yellow-400 to-amber-500', // 1st
@@ -60,14 +65,22 @@ export function ContestWinnersCard({ winners, prizePool, country, limit = 3 }: C
                 {index === 0 ? <Crown className="h-3.5 w-3.5" /> : winner.position}
               </div>
 
-              {/* Avatar */}
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm">
+              {/* Avatar - Clickable */}
+              <div 
+                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                onClick={() => handleProfileClick(winner.id)}
+              >
                 {winner.avatar}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{winner.name}</p>
+                <p 
+                  className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => handleProfileClick(winner.id)}
+                >
+                  {winner.name}
+                </p>
               </div>
 
               {/* Prize */}
