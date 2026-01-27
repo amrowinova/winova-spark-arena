@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { HelpCircle } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPlatformUserById } from '@/lib/platformUsers';
@@ -12,6 +15,7 @@ import {
   DailyLuckyWinnersCard,
   TierRankingList,
   HowItWorksCard,
+  HowToEarnPointsSheet,
 } from '@/components/spotlight';
 
 // Mock spotlight data
@@ -69,6 +73,7 @@ export default function SpotlightPage() {
   const { user } = useUser();
   const { language } = useLanguage();
   const isRTL = language === 'ar';
+  const [showEarnPointsSheet, setShowEarnPointsSheet] = useState(false);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -82,6 +87,16 @@ export default function SpotlightPage() {
             : 'Lucky Points are awarded randomly and are not based on ranking or votes'
           }
         </p>
+
+        {/* How to Earn Points Button */}
+        <Button
+          variant="outline"
+          className="w-full flex items-center justify-center gap-2"
+          onClick={() => setShowEarnPointsSheet(true)}
+        >
+          <HelpCircle className="h-4 w-4" />
+          {isRTL ? 'كيف تكسب النقاط؟' : 'How to Earn Points?'}
+        </Button>
 
         {/* Cycle Progress */}
         <motion.div
@@ -109,6 +124,7 @@ export default function SpotlightPage() {
             userRank={user.rank}
             rankPosition={spotlightData.userRankPosition}
             totalInRank={spotlightData.totalInRank}
+            onInfoClick={() => setShowEarnPointsSheet(true)}
           />
         </motion.div>
 
@@ -148,6 +164,12 @@ export default function SpotlightPage() {
       </main>
       
       <BottomNav />
+
+      {/* How to Earn Points Sheet */}
+      <HowToEarnPointsSheet
+        open={showEarnPointsSheet}
+        onOpenChange={setShowEarnPointsSheet}
+      />
     </div>
   );
 }

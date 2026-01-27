@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Sparkles, TrendingUp } from 'lucide-react';
+import { Sparkles, TrendingUp, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { RankBadge } from '@/components/common/RankBadge';
@@ -13,6 +13,7 @@ interface UserPointsCardProps {
   userRank: UserRank;
   rankPosition: number;
   totalInRank: number;
+  onInfoClick?: () => void;
 }
 
 const rankLabels: Record<UserRank, { ar: string; en: string }> = {
@@ -30,6 +31,7 @@ export function UserPointsCard({
   userRank,
   rankPosition,
   totalInRank,
+  onInfoClick,
 }: UserPointsCardProps) {
   const { t } = useTranslation();
   const { language } = useLanguage();
@@ -90,6 +92,14 @@ export function UserPointsCard({
             <span className="text-nova-foreground/60 text-xs">
               / {totalInRank}
             </span>
+            {onInfoClick && (
+              <button
+                onClick={onInfoClick}
+                className="p-1 rounded-full hover:bg-card/30 transition-colors"
+              >
+                <Info className="h-4 w-4 text-nova-foreground/70" />
+              </button>
+            )}
           </div>
         </div>
       </div>
