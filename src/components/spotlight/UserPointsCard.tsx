@@ -8,7 +8,6 @@ import type { UserRank } from '@/contexts/UserContext';
 
 interface UserPointsCardProps {
   dailyPoints: number;
-  weeklyPoints: number;
   cyclePoints: number;
   userRank: UserRank;
   rankPosition: number;
@@ -26,14 +25,12 @@ const rankLabels: Record<UserRank, { ar: string; en: string }> = {
 
 export function UserPointsCard({
   dailyPoints,
-  weeklyPoints,
   cyclePoints,
   userRank,
   rankPosition,
   totalInRank,
   onInfoClick,
 }: UserPointsCardProps) {
-  const { t } = useTranslation();
   const { language } = useLanguage();
   const isRTL = language === 'ar';
 
@@ -50,21 +47,13 @@ export function UserPointsCard({
         </div>
 
         {/* Points Grid */}
-        <div className="grid grid-cols-3 gap-3 text-center mb-4">
+        <div className="grid grid-cols-2 gap-3 text-center mb-4">
           <div className="bg-card/20 rounded-lg p-3">
             <p className="text-nova-foreground text-2xl font-bold">
               {dailyPoints.toLocaleString()}
             </p>
             <p className="text-nova-foreground/60 text-xs">
-              {isRTL ? 'اليوم' : 'Today'}
-            </p>
-          </div>
-          <div className="bg-card/20 rounded-lg p-3">
-            <p className="text-nova-foreground text-2xl font-bold">
-              {weeklyPoints.toLocaleString()}
-            </p>
-            <p className="text-nova-foreground/60 text-xs">
-              {isRTL ? 'الأسبوع' : 'Week'}
+              {isRTL ? 'نقاط اليوم' : "Today's Points"}
             </p>
           </div>
           <div className="bg-card/20 rounded-lg p-3">
@@ -72,7 +61,7 @@ export function UserPointsCard({
               {cyclePoints.toLocaleString()}
             </p>
             <p className="text-nova-foreground/60 text-xs">
-              {isRTL ? 'الدورة' : 'Cycle'}
+              {isRTL ? 'مجموع نقاط الدورة' : 'Cycle Total'}
             </p>
           </div>
         </div>
