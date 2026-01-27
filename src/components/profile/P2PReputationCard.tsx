@@ -7,7 +7,10 @@ import {
   MessageSquare,
   ChevronRight,
   ChevronLeft,
-  User
+  User,
+  Package,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,15 +37,17 @@ interface P2PReputationData {
   disputeCount: number;
   positiveCount: number;
   negativeCount: number;
+  completedOrders: number;
   recentComments: P2PComment[];
 }
 
 interface P2PReputationCardProps {
   reputation: P2PReputationData;
+  isOwnProfile?: boolean;
   onViewAllRatings?: () => void;
 }
 
-export function P2PReputationCard({ reputation, onViewAllRatings }: P2PReputationCardProps) {
+export function P2PReputationCard({ reputation, isOwnProfile = false, onViewAllRatings }: P2PReputationCardProps) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
 
@@ -54,29 +59,10 @@ export function P2PReputationCard({ reputation, onViewAllRatings }: P2PReputatio
         ? 'text-warning' 
         : 'text-destructive';
 
-  const stats = [
-    {
-      icon: CheckCircle2,
-      label: t('profile.p2p.completed'),
-      value: reputation.totalTransactions,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
-    },
-    {
-      icon: Clock,
-      label: t('profile.p2p.avgTime'),
-      value: reputation.avgExecutionTime,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-    {
-      icon: AlertTriangle,
-      label: t('profile.p2p.disputes'),
-      value: reputation.disputeCount,
-      color: reputation.disputeCount > 0 ? 'text-warning' : 'text-muted-foreground',
-      bgColor: reputation.disputeCount > 0 ? 'bg-warning/10' : 'bg-muted/50',
-    },
-  ];
+  // Title changes based on whose profile
+  const sectionTitle = isOwnProfile 
+    ? (isRTL ? 'سمعتي P2P' : 'My P2P Reputation')
+    : (isRTL ? 'سمعته P2P' : 'Their P2P Reputation');
 
   return (
     <Card className="border-border/50 overflow-hidden">
@@ -84,7 +70,7 @@ export function P2PReputationCard({ reputation, onViewAllRatings }: P2PReputatio
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-base">
             <Star className="h-5 w-5 text-nova fill-nova" />
-            {t('profile.p2p.reputation')}
+            {sectionTitle}
           </div>
           <Badge variant="outline" className={cn("text-sm font-bold", ratingColor)}>
             <Star className="h-3.5 w-3.5 mr-1 fill-current" />
@@ -93,43 +79,72 @@ export function P2PReputationCard({ reputation, onViewAllRatings }: P2PReputatio
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Rating Summary */}
+        {/* Rating Summary - Positive/Negative */}
         <div className="flex items-center justify-center gap-6 py-2">
           <div className="text-center">
             <div className="flex items-center gap-1 text-success">
-              <span className="text-lg">👍</span>
+              <ThumbsUp className="h-5 w-5" />
               <span className="text-xl font-bold">{reputation.positiveCount}</span>
             </div>
-            <p className="text-xs text-muted-foreground">{t('profile.p2p.positive')}</p>
+            <p className="text-xs text-muted-foreground">
+              {isRTL ? 'إيجابي' : 'Positive'}
+            </p>
           </div>
           <div className="h-8 w-px bg-border" />
           <div className="text-center">
             <div className="flex items-center gap-1 text-destructive">
-              <span className="text-lg">👎</span>
+              <ThumbsDown className="h-5 w-5" />
               <span className="text-xl font-bold">{reputation.negativeCount}</span>
             </div>
-            <p className="text-xs text-muted-foreground">{t('profile.p2p.negative')}</p>
+            <p className="text-xs text-muted-foreground">
+              {isRTL ? 'سلبي' : 'Negative'}
+            </p>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-2">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className={cn(
-                "rounded-lg p-3 text-center",
-                stat.bgColor
-              )}
-            >
-              <stat.icon className={cn("h-5 w-5 mx-auto mb-1", stat.color)} />
-              <p className="text-lg font-bold text-foreground">{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">{stat.label}</p>
-            </motion.div>
-          ))}
+        {/* All 4 Stats Grid - Must include all elements */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Total Deals */}
+          <div className="rounded-lg p-3 text-center bg-primary/10">
+            <Package className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-lg font-bold text-foreground">{reputation.totalTransactions}</p>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              {isRTL ? 'عدد الصفقات' : 'Total Deals'}
+            </p>
+          </div>
+          
+          {/* Completed Orders */}
+          <div className="rounded-lg p-3 text-center bg-success/10">
+            <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-success" />
+            <p className="text-lg font-bold text-foreground">{reputation.completedOrders}</p>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              {isRTL ? 'طلبات مكتملة' : 'Completed'}
+            </p>
+          </div>
+          
+          {/* Avg Completion Time */}
+          <div className="rounded-lg p-3 text-center bg-aura/10">
+            <Clock className="h-5 w-5 mx-auto mb-1 text-aura" />
+            <p className="text-lg font-bold text-foreground">{reputation.avgExecutionTime}</p>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              {isRTL ? 'متوسط الوقت' : 'Avg Time'}
+            </p>
+          </div>
+          
+          {/* Disputes */}
+          <div className={cn(
+            "rounded-lg p-3 text-center",
+            reputation.disputeCount > 0 ? 'bg-warning/10' : 'bg-muted/50'
+          )}>
+            <AlertTriangle className={cn(
+              "h-5 w-5 mx-auto mb-1",
+              reputation.disputeCount > 0 ? 'text-warning' : 'text-muted-foreground'
+            )} />
+            <p className="text-lg font-bold text-foreground">{reputation.disputeCount}</p>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              {isRTL ? 'النزاعات' : 'Disputes'}
+            </p>
+          </div>
         </div>
 
         {/* Recent Comments */}
@@ -137,7 +152,7 @@ export function P2PReputationCard({ reputation, onViewAllRatings }: P2PReputatio
           <div>
             <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              {t('profile.p2p.recentComments')}
+              {isRTL ? 'آخر التعليقات' : 'Recent Comments'}
             </h4>
             <ScrollArea className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
               <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
@@ -164,9 +179,11 @@ export function P2PReputationCard({ reputation, onViewAllRatings }: P2PReputatio
                       <span className="text-xs font-medium truncate flex-1">
                         {comment.userName}
                       </span>
-                      <span className="text-lg">
-                        {comment.rating === 'positive' ? '👍' : '👎'}
-                      </span>
+                      {comment.rating === 'positive' ? (
+                        <ThumbsUp className="h-4 w-4 text-success" />
+                      ) : (
+                        <ThumbsDown className="h-4 w-4 text-destructive" />
+                      )}
                     </div>
                     
                     {comment.tags && comment.tags.length > 0 && (
@@ -206,7 +223,7 @@ export function P2PReputationCard({ reputation, onViewAllRatings }: P2PReputatio
           className="w-full"
           onClick={onViewAllRatings}
         >
-          {t('profile.p2p.viewAllRatings')}
+          {isRTL ? 'عرض التقييمات' : 'View Ratings'}
           {isRTL ? (
             <ChevronLeft className="h-4 w-4 ms-2" />
           ) : (
