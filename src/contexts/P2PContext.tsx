@@ -96,10 +96,21 @@ export const generateChatId = (buyerId: string, sellerId: string): string => {
   return `p2p-${sorted[0]}-${sorted[1]}`;
 };
 
+// Cancellation tracking
+interface CancellationRecord {
+  timestamp: Date;
+}
+
 interface P2PContextType {
   chats: P2PChat[];
   activeChat: P2PChat | null;
   activeOrder: P2POrder | null;
+  
+  // Order restriction checks
+  hasOpenOrder: () => boolean;
+  canCreateOrder: () => { allowed: boolean; reason?: string };
+  getCancellationsIn24h: () => number;
+  isBlockedFromOrders: () => boolean;
   
   // Chat operations
   getOrCreateChat: (buyer: P2PParticipant, seller: P2PParticipant) => P2PChat;
@@ -108,12 +119,12 @@ interface P2PContextType {
   sendMessage: (chatId: string, content: string, attachment?: P2PMessage['attachment']) => void;
   
   // Order operations
-  createOrder: (order: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>) => P2POrder;
+  createOrder: (order: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>) => P2POrder | null;
   updateOrderStatus: (orderId: string, status: P2POrderStatus, reason?: string) => void;
   
   // Buyer actions
   confirmPayment: (orderId: string) => void;
-  cancelOrder: (orderId: string) => void;
+  cancelOrder: (orderId: string) => boolean; // Returns false if blocked
   openDispute: (orderId: string, reason: string) => void;
   
   // Seller actions
@@ -124,6 +135,10 @@ interface P2PContextType {
   joinDispute: (orderId: string) => void;
   requestProof: (orderId: string) => void;
   resolveDispute: (orderId: string, resolution: 'release_to_buyer' | 'return_to_seller') => void;
+  
+  // Rating
+  rateOrder: (orderId: string, isPositive: boolean) => void;
+  hasRatedOrder: (orderId: string) => boolean;
   
   // Helpers
   getOrdersByChat: (chatId: string) => P2POrder[];
@@ -232,10 +247,60 @@ const initialChats: P2PChat[] = [
   },
 ];
 
+const MAX_CANCELLATIONS_24H = 3;
+const BLOCK_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 export function P2PProvider({ children }: { children: ReactNode }) {
   const [chats, setChats] = useState<P2PChat[]>(initialChats);
   const [activeChat, setActiveChatState] = useState<P2PChat | null>(null);
   const [activeOrder, setActiveOrderState] = useState<P2POrder | null>(null);
+  
+  // Track cancellations in last 24 hours
+  const [cancellations, setCancellations] = useState<CancellationRecord[]>([]);
+  // Track rated orders
+  const [ratedOrders, setRatedOrders] = useState<Set<string>>(new Set());
+  
+  // Get all orders from all chats
+  const getAllOrders = (): P2POrder[] => {
+    return chats.flatMap(c => c.orders);
+  };
+  
+  // Check if user has an open order (not completed or cancelled)
+  const hasOpenOrder = (): boolean => {
+    const openStatuses: P2POrderStatus[] = ['created', 'waiting_payment', 'paid', 'released', 'dispute'];
+    return getAllOrders().some(o => openStatuses.includes(o.status));
+  };
+  
+  // Get cancellations in last 24 hours
+  const getCancellationsIn24h = (): number => {
+    const now = new Date();
+    const validCancellations = cancellations.filter(
+      c => (now.getTime() - c.timestamp.getTime()) < BLOCK_DURATION_MS
+    );
+    return validCancellations.length;
+  };
+  
+  // Check if user is blocked from creating orders
+  const isBlockedFromOrders = (): boolean => {
+    return getCancellationsIn24h() >= MAX_CANCELLATIONS_24H;
+  };
+  
+  // Check if user can create a new order
+  const canCreateOrder = (): { allowed: boolean; reason?: string } => {
+    if (hasOpenOrder()) {
+      return { 
+        allowed: false, 
+        reason: 'لديك طلب مفتوح بالفعل. أكمل الطلب الحالي أو ألغه أولاً.' 
+      };
+    }
+    if (isBlockedFromOrders()) {
+      return { 
+        allowed: false, 
+        reason: 'تم حظرك من إنشاء طلبات جديدة لمدة 24 ساعة بسبب تجاوز حد الإلغاءات.' 
+      };
+    }
+    return { allowed: true };
+  };
 
   const getOrCreateChat = (buyer: P2PParticipant, seller: P2PParticipant): P2PChat => {
     const chatId = generateChatId(buyer.id, seller.id);
@@ -344,7 +409,13 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const createOrder = (orderData: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>): P2POrder => {
+  const createOrder = (orderData: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>): P2POrder | null => {
+    // Check if user can create order
+    const check = canCreateOrder();
+    if (!check.allowed) {
+      return null;
+    }
+    
     const order: P2POrder = {
       ...orderData,
       id: generateOrderId(),
@@ -412,23 +483,33 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const cancelOrder = (orderId: string) => {
+  const cancelOrder = (orderId: string): boolean => {
+    // Check if user has exceeded cancellation limit
+    if (isBlockedFromOrders()) {
+      return false;
+    }
+    
     const order = chats.flatMap(c => c.orders).find(o => o.id === orderId);
     if (order && (order.status === 'created' || order.status === 'waiting_payment')) {
       updateOrderStatus(orderId, 'cancelled');
+      
+      // Track the cancellation
+      setCancellations(prev => [...prev, { timestamp: new Date() }]);
       
       const chat = chats.find(c => c.orders.some(o => o.id === orderId));
       if (chat) {
         addSystemMessage(chat.id, {
           id: `sys-${Date.now()}`,
           type: 'status_change',
-          content: 'Order cancelled by buyer',
-          contentAr: 'تم إلغاء الطلب من قبل المشتري',
+          content: 'Order cancelled',
+          contentAr: 'تم إلغاء الطلب',
           time: getTimeString(),
           orderId,
         });
       }
+      return true;
     }
+    return false;
   };
 
   const openDispute = (orderId: string, reason: string) => {
@@ -542,6 +623,17 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Rating
+  const rateOrder = (orderId: string, isPositive: boolean) => {
+    setRatedOrders(prev => new Set(prev).add(orderId));
+    // In a real app, this would call an API to save the rating
+    console.log(`Rated order ${orderId}: ${isPositive ? 'positive' : 'negative'}`);
+  };
+
+  const hasRatedOrder = (orderId: string): boolean => {
+    return ratedOrders.has(orderId);
+  };
+
   // Helpers
   const getOrdersByChat = (chatId: string): P2POrder[] => {
     const chat = chats.find(c => c.id === chatId);
@@ -563,6 +655,10 @@ export function P2PProvider({ children }: { children: ReactNode }) {
         chats,
         activeChat,
         activeOrder,
+        hasOpenOrder,
+        canCreateOrder,
+        getCancellationsIn24h,
+        isBlockedFromOrders,
         getOrCreateChat,
         setActiveChat,
         setActiveOrder,
@@ -577,6 +673,8 @@ export function P2PProvider({ children }: { children: ReactNode }) {
         joinDispute,
         requestProof,
         resolveDispute,
+        rateOrder,
+        hasRatedOrder,
         getOrdersByChat,
         getChatByParticipants,
         getOrderById,

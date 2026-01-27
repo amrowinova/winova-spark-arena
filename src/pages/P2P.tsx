@@ -2,13 +2,13 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Plus, ShoppingCart, Send, ArrowLeft, Copy, Timer,
-  Clock, CheckCircle, AlertCircle, Star, MessageSquare
+  Plus, ShoppingCart, Send, ArrowLeft,
+  Star, AlertCircle
 } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,7 +17,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
-import { CountdownTimer } from '@/components/common/CountdownTimer';
 import { useBanner } from '@/contexts/BannerContext';
 
 import {
@@ -30,6 +29,8 @@ import {
   P2PPaymentCard,
   P2PActionButtons,
   P2PSystemMessage,
+  P2PCompactOrderCard,
+  P2POrderCompletedScreen,
   CountryConfig,
   PaymentMethod,
   P2POffer,
@@ -127,8 +128,17 @@ export default function P2PPage() {
   const { language } = useLanguage();
   const { user } = useUser();
   const { createTransaction } = useTransactions();
-  const { chats, activeChat, activeOrder, setActiveChat, setActiveOrder, sendMessage, confirmPayment, releaseFunds, openDispute, cancelOrder } = useP2P();
-  const { success: showSuccess } = useBanner();
+  const { 
+    chats, 
+    sendMessage, 
+    hasOpenOrder,
+    canCreateOrder,
+    isBlockedFromOrders,
+    getCancellationsIn24h,
+    rateOrder,
+    hasRatedOrder
+  } = useP2P();
+  const { success: showSuccess, error: showError } = useBanner();
   const isRTL = language === 'ar';
 
   // State
@@ -142,6 +152,7 @@ export default function P2PPage() {
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [activeChatView, setActiveChatView] = useState<P2PChat | null>(null);
   const [activeChatOrder, setActiveChatOrder] = useState<P2POrder | null>(null);
+  const [showCompletedScreen, setShowCompletedScreen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -156,7 +167,28 @@ export default function P2PPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChatView?.messages]);
 
+  // Update order when chat changes
+  useEffect(() => {
+    if (activeChatView && activeChatOrder) {
+      const updatedOrder = activeChatView.orders.find(o => o.id === activeChatOrder.id);
+      if (updatedOrder && updatedOrder.status !== activeChatOrder.status) {
+        setActiveChatOrder(updatedOrder);
+        // Show completed screen when order is completed
+        if (updatedOrder.status === 'completed') {
+          setShowCompletedScreen(true);
+        }
+      }
+    }
+  }, [activeChatView, activeChatOrder]);
+
   const handleBuyFromOffer = (offer: P2POffer) => {
+    // Check if user can create order
+    const check = canCreateOrder();
+    if (!check.allowed) {
+      showError(check.reason || (isRTL ? 'لا يمكنك إنشاء طلب جديد' : 'Cannot create new order'));
+      return;
+    }
+    
     setSelectedOffer(offer);
     setBuyDialogOpen(true);
   };
@@ -164,7 +196,6 @@ export default function P2PPage() {
   const handleConfirmBuy = (amount: number, timeLimit: number) => {
     if (!selectedOffer) return;
     
-    // Create new order and chat (in real app, this would use P2PContext)
     showSuccess(isRTL ? 'تم إنشاء الطلب!' : 'Order created!');
     setBuyDialogOpen(false);
     setSelectedOffer(null);
@@ -180,6 +211,16 @@ export default function P2PPage() {
   }) => {
     showSuccess(isRTL ? 'تم إنشاء الطلب!' : 'Order created!');
     setSelectedTab('orders');
+  };
+
+  const handleOpenCreateDialog = () => {
+    // Check if user can create order
+    const check = canCreateOrder();
+    if (!check.allowed) {
+      showError(check.reason || (isRTL ? 'لا يمكنك إنشاء طلب جديد' : 'Cannot create new order'));
+      return;
+    }
+    setCreateDialogOpen(true);
   };
 
   const handleOpenChat = (orderId: string) => {
@@ -199,23 +240,48 @@ export default function P2PPage() {
     setMessage('');
   };
 
-  const handleConfirmPayment = () => {
-    if (!activeChatOrder) return;
-    confirmPayment(activeChatOrder.id);
-    showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
+  const handleOrderCompleted = () => {
+    setShowCompletedScreen(true);
   };
 
-  const handleRelease = () => {
-    if (!activeChatOrder) return;
-    releaseFunds(activeChatOrder.id);
-    showSuccess(isRTL ? 'تم تحرير Nova بنجاح!' : 'Nova released successfully!');
+  const handleRateOrder = (isPositive: boolean) => {
+    if (activeChatOrder) {
+      rateOrder(activeChatOrder.id, isPositive);
+      showSuccess(isRTL ? 'شكراً لتقييمك!' : 'Thanks for your rating!');
+    }
   };
+
+  const handleCloseCompletedScreen = () => {
+    setShowCompletedScreen(false);
+    setActiveChatView(null);
+    setActiveChatOrder(null);
+  };
+
+  const handleViewOrderDetails = () => {
+    if (activeChatOrder) {
+      setShowCompletedScreen(true);
+    }
+  };
+
+  // Order Completed Screen
+  if (showCompletedScreen && activeChatOrder) {
+    return (
+      <P2POrderCompletedScreen
+        order={activeChatOrder}
+        currentUserId={user.id}
+        onRate={handleRateOrder}
+        onClose={handleCloseCompletedScreen}
+        hasRated={hasRatedOrder(activeChatOrder.id)}
+      />
+    );
+  }
 
   // P2P Chat View
   if (activeChatView && activeChatOrder) {
     const isBuyer = activeChatOrder.buyer.id === user.id;
-    const isSeller = activeChatOrder.seller.id === user.id;
     const counterparty = isBuyer ? activeChatOrder.seller : activeChatOrder.buyer;
+    const isCompleted = activeChatOrder.status === 'completed';
+    const isCancelled = activeChatOrder.status === 'cancelled';
 
     return (
       <div className="flex flex-col h-screen bg-background">
@@ -249,18 +315,29 @@ export default function P2PPage() {
           </div>
         </div>
 
-        {/* Order Card (Pinned at top) */}
-        <div className="shrink-0 border-b border-border">
-          <P2POrderCard 
-            order={activeChatOrder} 
-            isActive={true}
-          />
-          
-          {/* Payment Details */}
-          {activeChatOrder.paymentDetails && (
-            <P2PPaymentCard 
-              paymentDetails={activeChatOrder.paymentDetails}
+        {/* Order Card (Pinned at top) - Show compact for completed */}
+        <div className="shrink-0 border-b border-border p-3">
+          {isCompleted ? (
+            <P2PCompactOrderCard 
+              order={activeChatOrder}
+              onViewDetails={handleViewOrderDetails}
             />
+          ) : (
+            <>
+              <P2POrderCard 
+                order={activeChatOrder} 
+                isActive={true}
+              />
+              
+              {/* Payment Details */}
+              {activeChatOrder.paymentDetails && (
+                <div className="mt-3">
+                  <P2PPaymentCard 
+                    paymentDetails={activeChatOrder.paymentDetails}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -304,14 +381,17 @@ export default function P2PPage() {
         </ScrollArea>
 
         {/* Action Buttons based on status/role */}
-        <P2PActionButtons 
-          order={activeChatOrder}
-          currentUserId={user.id}
-          isSupport={false}
-        />
+        {!isCompleted && !isCancelled && (
+          <P2PActionButtons 
+            order={activeChatOrder}
+            currentUserId={user.id}
+            isSupport={false}
+            onOrderCompleted={handleOrderCompleted}
+          />
+        )}
 
         {/* Message Input */}
-        {!['completed', 'cancelled'].includes(activeChatOrder.status) && (
+        {!isCompleted && !isCancelled && (
           <div className="p-4 border-t border-border bg-card safe-bottom">
             <div className="flex items-center gap-2">
               <Input
@@ -342,6 +422,46 @@ export default function P2PPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('p2p.title')} />
       <main className="flex-1 px-4 py-4 pb-20 space-y-4">
+        {/* Blocked Warning */}
+        {isBlockedFromOrders() && (
+          <Card className="p-4 bg-destructive/10 border-destructive/30">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-destructive">
+                  {isRTL ? 'محظور من إنشاء طلبات' : 'Blocked from creating orders'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {isRTL 
+                    ? 'تجاوزت حد الإلغاءات (3 في 24 ساعة). يرفع الحظر تلقائياً.'
+                    : 'You exceeded the cancellation limit (3 in 24h). Block lifts automatically.'
+                  }
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Open Order Warning */}
+        {hasOpenOrder() && !isBlockedFromOrders() && (
+          <Card className="p-4 bg-warning/10 border-warning/30">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-warning">
+                  {isRTL ? 'لديك طلب مفتوح' : 'You have an open order'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {isRTL 
+                    ? 'أكمل الطلب الحالي أو ألغه قبل إنشاء طلب جديد.'
+                    : 'Complete or cancel your current order before creating a new one.'
+                  }
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Country Selector */}
         <P2PCountrySelector
           selectedCountry={selectedCountry}
@@ -415,7 +535,11 @@ export default function P2PPage() {
                   : 'Create a sell order and Nova will be locked in escrow'
                 }
               </p>
-              <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+              <Button 
+                onClick={handleOpenCreateDialog} 
+                className="gap-2"
+                disabled={!canCreateOrder().allowed}
+              >
                 <Plus className="h-4 w-4" />
                 {isRTL ? 'إنشاء طلب بيع' : 'Create Sell Order'}
               </Button>
