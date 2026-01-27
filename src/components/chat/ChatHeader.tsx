@@ -124,10 +124,8 @@ export function ChatHeader({
           onClick={onTransfer}
           className="gap-1.5"
         >
-          <span className="text-sm font-bold">И</span>
-          <span className="hidden sm:inline">
-            {language === 'ar' ? 'تحويل' : 'Send'}
-          </span>
+          <span className="font-bold">И</span>
+          <span>{language === 'ar' ? 'إرسال' : 'Send'}</span>
         </Button>
 
         {/* More options */}
