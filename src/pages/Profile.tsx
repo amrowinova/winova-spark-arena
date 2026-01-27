@@ -185,13 +185,13 @@ export default function Profile() {
   const [ratingsOpen, setRatingsOpen] = useState(false);
 
   const menuItems = [
-    { icon: Trophy, labelKey: 'profile.winnersHistory', path: '/winners' },
-    { icon: Users, labelKey: 'nav.team', path: '/team' },
-    { icon: ArrowLeftRight, labelKey: 'nav.p2p', path: '/p2p' },
-    { icon: Sparkles, labelKey: 'profile.luckyPoints', path: '/spotlight' },
-    { icon: Settings, labelKey: 'settings.title', path: '/settings' },
-    { icon: HelpCircle, labelKey: 'settings.help', path: '/support' },
-    { icon: FileText, labelKey: 'profile.policies', path: '/policies' },
+    { icon: Trophy, labelEn: 'Winners Record', labelAr: 'سجل الفائزون', path: '/winners' },
+    { icon: Users, labelEn: 'Team', labelAr: 'الفريق', path: '/team' },
+    { icon: ArrowLeftRight, labelEn: 'P2P', labelAr: 'P2P', path: '/p2p' },
+    { icon: Sparkles, labelEn: 'Lucky Points', labelAr: 'نقاط المحظوظين', path: '/spotlight' },
+    { icon: Settings, labelEn: 'Settings', labelAr: 'الإعدادات', path: '/settings' },
+    { icon: HelpCircle, labelEn: 'Help', labelAr: 'المساعدة', path: '/support' },
+    { icon: FileText, labelEn: 'Policies', labelAr: 'السياسات', path: '/policies' },
   ];
 
   const handleShare = async () => {
@@ -260,7 +260,7 @@ export default function Profile() {
                         className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted transition-colors"
                       >
                         <item.icon className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium">{t(item.labelKey)}</span>
+                        <span className="font-medium">{isRTL ? item.labelAr : item.labelEn}</span>
                       </Link>
                     ))}
                     
