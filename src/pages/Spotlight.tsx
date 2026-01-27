@@ -10,29 +10,30 @@ import { ProgressRing } from '@/components/common/ProgressRing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useUser } from '@/contexts/UserContext';
+import { getPlatformUserById } from '@/lib/platformUsers';
 
-// Mock spotlight data
+// Mock spotlight data - using PLATFORM_USERS IDs
 const spotlightData = {
   dailyPool: 46.8, // 0.3 Nova × 156 participants
   weeklyPool: 327.6,
   cyclePool: 2520,
   winners: {
     daily: [
-      { id: 1, name: 'Fatima S.', points: 890, prize: 30.42 },
-      { id: 2, name: 'Omar A.', points: 745, prize: 16.38 },
+      { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', points: 890, prize: 30.42 },
+      { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', points: 745, prize: 16.38 },
     ],
     weekly: [
-      { id: 1, name: 'Khalid M.', points: 4520, prize: 213.44 },
-      { id: 2, name: 'Sara A.', points: 4120, prize: 114.16 },
+      { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', points: 4520, prize: 213.44 },
+      { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', points: 4120, prize: 114.16 },
     ],
   },
   leaderboard: [
-    { id: 1, name: 'Khalid M.', points: 8950, avatar: '👨', rank: 1 },
-    { id: 2, name: 'Sara A.', points: 8720, avatar: '👩', rank: 2 },
-    { id: 3, name: 'Fatima S.', points: 8340, avatar: '👩', rank: 3 },
-    { id: 4, name: 'Omar A.', points: 7890, avatar: '👨', rank: 4 },
-    { id: 5, name: 'Ahmed K.', points: 7650, avatar: '👨', rank: 5 },
-    { id: 6, name: 'You', points: 1250, avatar: '🌟', rank: 47, isUser: true },
+    { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', points: 8950, avatar: getPlatformUserById('4')?.avatar || '👥', rank: 1 },
+    { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', points: 8720, avatar: getPlatformUserById('2')?.avatar || '👤', rank: 2 },
+    { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', points: 8340, avatar: getPlatformUserById('5')?.avatar || '👤', rank: 3 },
+    { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', points: 7890, avatar: getPlatformUserById('6')?.avatar || '👥', rank: 4 },
+    { id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', points: 7650, avatar: getPlatformUserById('8')?.avatar || '👤', rank: 5 },
+    { id: 'current', name: 'أنت', points: 1250, avatar: '🌟', rank: 47, isUser: true },
   ],
   nextDraw: new Date(Date.now() + 12 * 60 * 60 * 1000),
 };
@@ -42,8 +43,10 @@ export default function SpotlightPage() {
   const { user } = useUser();
   const navigate = useNavigate();
 
-  const handleProfileClick = (userId: number) => {
-    navigate(`/user/${userId}`);
+  const handleProfileClick = (winnerId: string) => {
+    if (winnerId !== 'current') {
+      navigate(`/user/${winnerId}`);
+    }
   };
 
   return (
@@ -132,16 +135,23 @@ export default function SpotlightPage() {
             {spotlightData.winners.daily.map((winner, index) => (
               <Card 
                 key={winner.id} 
-                className={`${index === 0 ? 'glow-nova' : ''} cursor-pointer`}
-                onClick={() => handleProfileClick(winner.id)}
+                className={index === 0 ? 'glow-nova' : ''}
               >
                 <CardContent className="p-4 text-center">
-                  <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center text-lg mb-2 hover:ring-2 hover:ring-nova/50 transition-all ${
-                    index === 0 ? 'bg-gradient-nova' : 'bg-muted'
-                  }`}>
+                  <div 
+                    className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center text-lg mb-2 cursor-pointer hover:ring-2 hover:ring-nova/50 transition-all ${
+                      index === 0 ? 'bg-gradient-nova' : 'bg-muted'
+                    }`}
+                    onClick={() => handleProfileClick(winner.id)}
+                  >
                     {index === 0 ? '🥇' : '🥈'}
                   </div>
-                  <p className="font-medium hover:text-nova transition-colors">{winner.name}</p>
+                  <p 
+                    className="font-medium cursor-pointer hover:text-nova transition-colors"
+                    onClick={() => handleProfileClick(winner.id)}
+                  >
+                    {winner.name}
+                  </p>
                   <p className="text-xs text-muted-foreground mb-2">
                     {winner.points.toLocaleString()} pts
                   </p>
@@ -205,7 +215,7 @@ export default function SpotlightPage() {
                   </div>
                   {/* Avatar - Clickable */}
                   <div 
-                    className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                    className={`w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg ${!user.isUser ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all' : ''}`}
                     onClick={() => !user.isUser && handleProfileClick(user.id)}
                   >
                     {user.avatar}
@@ -213,7 +223,7 @@ export default function SpotlightPage() {
                   {/* Name - Clickable */}
                   <div className="flex-1">
                     <p 
-                      className={`font-medium cursor-pointer hover:text-primary transition-colors ${user.isUser ? 'text-primary' : ''}`}
+                      className={`font-medium ${user.isUser ? 'text-primary' : 'cursor-pointer hover:text-primary transition-colors'}`}
                       onClick={() => !user.isUser && handleProfileClick(user.id)}
                     >
                       {user.name}

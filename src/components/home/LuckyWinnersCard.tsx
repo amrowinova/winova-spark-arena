@@ -7,7 +7,7 @@ import { getPricing } from '@/contexts/TransactionContext';
 import { Link, useNavigate } from 'react-router-dom';
 
 interface LuckyWinner {
-  id: number;
+  id: string;
   name: string;
   avatar: string;
   prize: number;
@@ -23,7 +23,7 @@ export function LuckyWinnersCard({ winners, country }: LuckyWinnersCardProps) {
   const navigate = useNavigate();
   const pricing = getPricing(country);
 
-  const handleProfileClick = (userId: number) => {
+  const handleProfileClick = (userId: string) => {
     navigate(`/user/${userId}`);
   };
 
