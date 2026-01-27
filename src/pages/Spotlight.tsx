@@ -1,244 +1,152 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Sparkles, Trophy, Users, TrendingUp, ChevronRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { CurrencyBadge } from '@/components/common/CurrencyBadge';
-import { CountdownTimer } from '@/components/common/CountdownTimer';
-import { ProgressRing } from '@/components/common/ProgressRing';
-import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { useUser } from '@/contexts/UserContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getPlatformUserById } from '@/lib/platformUsers';
+import {
+  CycleProgressCard,
+  UserPointsCard,
+  DailyLuckyWinnersCard,
+  TierRankingList,
+  HowItWorksCard,
+} from '@/components/spotlight';
 
-// Mock spotlight data - using PLATFORM_USERS IDs
+// Mock spotlight data
 const spotlightData = {
-  dailyPool: 46.8, // 0.3 Nova × 156 participants
-  weeklyPool: 327.6,
-  cyclePool: 2520,
-  winners: {
-    daily: [
-      { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', points: 890, prize: 30.42 },
-      { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', points: 745, prize: 16.38 },
-    ],
-    weekly: [
-      { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', points: 4520, prize: 213.44 },
-      { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', points: 4120, prize: 114.16 },
-    ],
-  },
-  leaderboard: [
-    { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', points: 8950, avatar: getPlatformUserById('4')?.avatar || '👥', rank: 1 },
-    { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', points: 8720, avatar: getPlatformUserById('2')?.avatar || '👤', rank: 2 },
-    { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', points: 8340, avatar: getPlatformUserById('5')?.avatar || '👤', rank: 3 },
-    { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', points: 7890, avatar: getPlatformUserById('6')?.avatar || '👥', rank: 4 },
-    { id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', points: 7650, avatar: getPlatformUserById('8')?.avatar || '👤', rank: 5 },
-    { id: 'current', name: 'أنت', points: 1250, avatar: '🌟', rank: 47, isUser: true },
+  // Cycle info
+  currentDay: 30,
+  totalDays: 98,
+  currentWeek: 5,
+  totalWeeks: 14,
+
+  // User points
+  userDailyPoints: 45,
+  userWeeklyPoints: 280,
+  userCyclePoints: 1250,
+  userRankPosition: 3,
+  totalInRank: 156,
+
+  // Daily pool and winners
+  dailyPool: 800, // Total Nova for today
+  dailyWinners: [
+    { 
+      id: '5', 
+      name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', 
+      prize: 520, 
+      percentage: 65 
+    },
+    { 
+      id: '6', 
+      name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', 
+      prize: 280, 
+      percentage: 35 
+    },
   ],
-  nextDraw: new Date(Date.now() + 12 * 60 * 60 * 1000),
+
+  // Next draw time (end of today)
+  nextDrawTime: (() => {
+    const now = new Date();
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+    return endOfDay;
+  })(),
+
+  // Tier ranking (users in same rank as current user)
+  tierRanking: [
+    { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', avatar: '👤', points: 2450, position: 1 },
+    { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', avatar: '👤', points: 2120, position: 2 },
+    { id: 'current', name: 'أنت', avatar: '🌟', points: 1250, position: 3, isCurrentUser: true },
+    { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', avatar: '👤', points: 1180, position: 4 },
+    { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', avatar: '👤', points: 980, position: 5 },
+  ],
 };
 
 export default function SpotlightPage() {
   const { t } = useTranslation();
   const { user } = useUser();
-  const navigate = useNavigate();
-
-  const handleProfileClick = (winnerId: string) => {
-    if (winnerId !== 'current') {
-      navigate(`/user/${winnerId}`);
-    }
-  };
+  const { language } = useLanguage();
+  const isRTL = language === 'ar';
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <InnerPageHeader title={t('spotlight.luckyPointsTitle')} />
+      <InnerPageHeader title={isRTL ? 'نقاط المحظوظين' : 'Lucky Points'} />
+      
       <main className="flex-1 px-4 py-4 pb-20 space-y-5">
         {/* Explanation Text */}
         <p className="text-sm text-muted-foreground text-center">
-          {t('spotlight.luckyPointsDescription')}
+          {isRTL 
+            ? 'نقاط المحظوظين يتم منحها عشوائيًا ولا تعتمد على الترتيب أو الأصوات'
+            : 'Lucky Points are awarded randomly and are not based on ranking or votes'
+          }
         </p>
 
-        {/* Header Card */}
+        {/* Cycle Progress */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card className="overflow-hidden border-0 shadow-lg">
-            <div className="bg-gradient-nova p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="h-6 w-6 text-nova-foreground" />
-                <h1 className="text-nova-foreground text-lg font-bold">
-                  {t('spotlight.luckyPointsTitle')}
-                </h1>
-              </div>
-
-              {/* Your Points */}
-              <div className="text-center mb-4">
-                <p className="text-nova-foreground/70 text-sm mb-1">
-                  {t('spotlight.yourPoints')}
-                </p>
-                <p className="text-nova-foreground text-4xl font-bold">
-                  {user.spotlightPoints.toLocaleString()}
-                </p>
-              </div>
-
-              {/* Pool Stats */}
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="bg-card/20 rounded-lg p-2">
-                  <p className="text-nova-foreground text-lg font-bold">
-                    {spotlightData.dailyPool.toFixed(1)}
-                  </p>
-                  <p className="text-nova-foreground/60 text-[10px]">
-                    {t('spotlight.dailyPool')}
-                  </p>
-                </div>
-                <div className="bg-card/20 rounded-lg p-2">
-                  <p className="text-nova-foreground text-lg font-bold">
-                    {spotlightData.weeklyPool.toFixed(1)}
-                  </p>
-                  <p className="text-nova-foreground/60 text-[10px]">
-                    {t('spotlight.weeklyPool')}
-                  </p>
-                </div>
-                <div className="bg-card/20 rounded-lg p-2">
-                  <p className="text-nova-foreground text-lg font-bold">
-                    {spotlightData.cyclePool}
-                  </p>
-                  <p className="text-nova-foreground/60 text-[10px]">
-                    {t('spotlight.cyclePool')}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Next Draw Countdown */}
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground mb-2 text-center">
-                Next draw in
-              </p>
-              <CountdownTimer targetDate={spotlightData.nextDraw} size="sm" />
-            </CardContent>
-          </Card>
+          <CycleProgressCard
+            currentDay={spotlightData.currentDay}
+            totalDays={spotlightData.totalDays}
+            currentWeek={spotlightData.currentWeek}
+            totalWeeks={spotlightData.totalWeeks}
+          />
         </motion.div>
 
-        {/* Today's Winners */}
+        {/* User Points Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-nova" />
-            {t('home.todayWinners')}
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {spotlightData.winners.daily.map((winner, index) => (
-              <Card 
-                key={winner.id} 
-                className={index === 0 ? 'glow-nova' : ''}
-              >
-                <CardContent className="p-4 text-center">
-                  <div 
-                    className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center text-lg mb-2 cursor-pointer hover:ring-2 hover:ring-nova/50 transition-all ${
-                      index === 0 ? 'bg-gradient-nova' : 'bg-muted'
-                    }`}
-                    onClick={() => handleProfileClick(winner.id)}
-                  >
-                    {index === 0 ? '🥇' : '🥈'}
-                  </div>
-                  <p 
-                    className="font-medium cursor-pointer hover:text-nova transition-colors"
-                    onClick={() => handleProfileClick(winner.id)}
-                  >
-                    {winner.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {winner.points.toLocaleString()} pts
-                  </p>
-                  <CurrencyBadge type="nova" amount={winner.prize} size="sm" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <UserPointsCard
+            dailyPoints={spotlightData.userDailyPoints}
+            weeklyPoints={spotlightData.userWeeklyPoints}
+            cyclePoints={spotlightData.userCyclePoints}
+            userRank={user.rank}
+            rankPosition={spotlightData.userRankPosition}
+            totalInRank={spotlightData.totalInRank}
+          />
         </motion.div>
 
-        {/* Prize Distribution Info */}
+        {/* Daily Lucky Winners with Countdown */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="p-4 bg-primary/5 border-primary/20">
-            <h3 className="font-medium mb-3">How Spotlight Points Work</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <span className="text-primary">•</span>
-                Daily pool = 0.3 Nova × number of participants
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary">•</span>
-                1st winner: 65% | 2nd winner: 35%
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary">•</span>
-                Points accumulate daily, weekly, and over the 14-week cycle
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary">•</span>
-                Used for manager ranking & presidency race
-              </li>
-            </ul>
-          </Card>
+          <DailyLuckyWinnersCard
+            totalPool={spotlightData.dailyPool}
+            winners={spotlightData.dailyWinners}
+            nextDrawTime={spotlightData.nextDrawTime}
+          />
         </motion.div>
 
-        {/* Leaderboard */}
+        {/* How It Works */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            {t('spotlight.leaderboard')}
-          </h2>
-          <div className="space-y-2">
-            {spotlightData.leaderboard.map((user, index) => (
-              <Card 
-                key={user.id}
-                className={user.isUser ? 'border-primary glow-primary' : ''}
-              >
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    user.rank <= 3 ? 'bg-gradient-nova text-nova-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {user.rank}
-                  </div>
-                  {/* Avatar - Clickable */}
-                  <div 
-                    className={`w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg ${!user.isUser ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all' : ''}`}
-                    onClick={() => !user.isUser && handleProfileClick(user.id)}
-                  >
-                    {user.avatar}
-                  </div>
-                  {/* Name - Clickable */}
-                  <div className="flex-1">
-                    <p 
-                      className={`font-medium ${user.isUser ? 'text-primary' : 'cursor-pointer hover:text-primary transition-colors'}`}
-                      onClick={() => !user.isUser && handleProfileClick(user.id)}
-                    >
-                      {user.name}
-                    </p>
-                  </div>
-                  <div className="text-end">
-                    <p className="font-bold">{user.points.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">points</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <HowItWorksCard />
+        </motion.div>
+
+        {/* Tier Ranking */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <TierRankingList
+            userRank={user.rank}
+            rankings={spotlightData.tierRanking}
+          />
         </motion.div>
       </main>
+      
       <BottomNav />
     </div>
   );
