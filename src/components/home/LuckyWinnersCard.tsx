@@ -62,14 +62,21 @@ export function LuckyWinnersCard({ winners, country }: LuckyWinnersCardProps) {
                 <Star className="h-3 w-3 text-nova fill-nova" />
               </motion.div>
 
-              <div 
-                className="flex items-center gap-2 mb-2 cursor-pointer"
-                onClick={() => handleProfileClick(winner.id)}
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-nova flex items-center justify-center text-sm hover:ring-2 hover:ring-nova/50 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                {/* Avatar - Clickable */}
+                <div 
+                  className="w-8 h-8 rounded-full bg-gradient-nova flex items-center justify-center text-sm cursor-pointer hover:ring-2 hover:ring-nova/50 transition-all"
+                  onClick={() => handleProfileClick(winner.id)}
+                >
                   {winner.avatar}
                 </div>
-                <p className="font-medium text-xs truncate flex-1 hover:text-nova transition-colors">{winner.name}</p>
+                {/* Name - Clickable */}
+                <p 
+                  className="font-medium text-xs truncate flex-1 cursor-pointer hover:text-nova transition-colors"
+                  onClick={() => handleProfileClick(winner.id)}
+                >
+                  {winner.name}
+                </p>
               </div>
               
               <div className="text-center">

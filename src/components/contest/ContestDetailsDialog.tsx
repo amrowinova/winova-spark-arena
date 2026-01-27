@@ -1,10 +1,12 @@
 import { Trophy, Crown, Target } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPricing } from '@/contexts/TransactionContext';
 import { ContestHistoryItem } from './ContestHistoryCard';
+import { getPlatformUserById } from '@/lib/platformUsers';
 
 interface ContestDetailsDialogProps {
   contest: ContestHistoryItem | null;
@@ -16,6 +18,12 @@ interface ContestDetailsDialogProps {
 export function ContestDetailsDialog({ contest, open, onClose, country }: ContestDetailsDialogProps) {
   const { language } = useLanguage();
   const pricing = getPricing(country);
+  const navigate = useNavigate();
+
+  const handleProfileClick = (winnerId: string) => {
+    onClose();
+    navigate(`/user/${winnerId}`);
+  };
   
   if (!contest) return null;
   
@@ -66,6 +74,7 @@ export function ContestDetailsDialog({ contest, open, onClose, country }: Contes
             <div className="space-y-2">
               {contest.winners.map((winner, index) => {
                 const prizeLocal = winner.prize * pricing.novaRate;
+                const platformUser = getPlatformUserById(winner.id);
                 return (
                   <div 
                     key={index} 
@@ -75,20 +84,37 @@ export function ContestDetailsDialog({ contest, open, onClose, country }: Contes
                         : 'bg-muted/50'
                     }`}
                   >
+                    {/* Rank Badge */}
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                       index < 3 
                         ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white' 
                         : 'bg-primary/10 text-primary'
                     }`}>
-                      {index < 3 && <Crown className="h-3 w-3 absolute -top-0.5" />}
                       {winner.rank}
                     </div>
+                    
+                    {/* Avatar - Clickable */}
+                    <div 
+                      className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                      onClick={() => handleProfileClick(winner.id)}
+                    >
+                      {platformUser?.avatar || '👤'}
+                    </div>
+                    
+                    {/* Name - Clickable */}
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{winner.name}</p>
+                      <p 
+                        className="text-sm font-medium cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => handleProfileClick(winner.id)}
+                      >
+                        {winner.name}
+                      </p>
                       <p className="text-[10px] text-muted-foreground">
                         {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
                       </p>
                     </div>
+                    
+                    {/* Prize - Not clickable */}
                     <div className="text-end">
                       <p className="text-sm font-bold text-nova">И {winner.prize}</p>
                       <p className="text-[10px] text-muted-foreground">

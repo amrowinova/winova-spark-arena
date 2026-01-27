@@ -17,7 +17,9 @@ import {
   Star,
   UserPlus,
   UserMinus,
-  Users
+  ChevronRight,
+  ChevronLeft,
+  MessageSquare
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -31,6 +33,8 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { CurrencyBadge } from '@/components/common/CurrencyBadge';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
+import { P2PRatingsSheet, type P2PRating } from '@/components/profile/P2PRatingsSheet';
+import { UserWinsSection, type ContestWin } from '@/components/profile/UserWinsSection';
 import { getPlatformUserById, type PlatformUser } from '@/lib/platformUsers';
 
 type PublicProfileUser = {
@@ -38,7 +42,7 @@ type PublicProfileUser = {
   name: string;
   nameAr: string;
   username: string;
-  avatar: string; // emoji
+  avatar: string;
   rank: PlatformUser["rank"];
   country: string;
   countryAr: string;
@@ -58,26 +62,13 @@ type PublicProfileUser = {
     luckyWins: number;
     paidVotesReceived: number;
   };
-  achievements: Array<{
-    id: string;
-    type: 'contest' | 'lucky';
-    contestName: string;
-    contestNameAr: string;
-    date: string;
-    position?: 1 | 2 | 3;
-    prizeAmount: number;
-    prizeType: 'nova';
-  }>;
+  wins: ContestWin[];
   p2p: {
     rating: number;
     tradesCount: number;
-    latestReview?: {
-      userName: string;
-      userNameAr: string;
-      comment: string;
-      commentAr: string;
-      rating: 'positive' | 'negative';
-    };
+    positiveCount: number;
+    negativeCount: number;
+    ratings: P2PRating[];
   };
 };
 
@@ -89,6 +80,77 @@ const getEngagement = (status?: PlatformUser["engagementStatus"]) => {
     votingEngagement: vote ? ('active' as const) : ('inactive' as const),
   };
 };
+
+// Mock P2P ratings data
+const mockP2PRatings: P2PRating[] = [
+  {
+    id: '1',
+    reviewerName: 'Sara Ahmed',
+    reviewerNameAr: 'سارة أحمد',
+    rating: 'positive',
+    comment: 'Fast and reliable trader!',
+    commentAr: 'تاجر سريع وموثوق!',
+    tags: ['Fast', 'Trustworthy'],
+    tagsAr: ['سريع', 'موثوق'],
+    date: '2 days ago',
+    dateAr: 'منذ يومين',
+  },
+  {
+    id: '2',
+    reviewerName: 'Mohammed Karim',
+    reviewerNameAr: 'محمد كريم',
+    rating: 'positive',
+    comment: 'Great communication',
+    commentAr: 'تواصل ممتاز',
+    tags: ['Friendly'],
+    tagsAr: ['ودود'],
+    date: '5 days ago',
+    dateAr: 'منذ 5 أيام',
+  },
+  {
+    id: '3',
+    reviewerName: 'Khaled M',
+    reviewerNameAr: 'خالد م',
+    rating: 'negative',
+    comment: 'Slow response time',
+    commentAr: 'وقت استجابة بطيء',
+    reason: 'Late payment confirmation',
+    reasonAr: 'تأخر في تأكيد الدفع',
+    date: '1 week ago',
+    dateAr: 'منذ أسبوع',
+  },
+];
+
+// Mock wins data
+const mockWins: ContestWin[] = [
+  {
+    id: '1',
+    contestId: 'C-1246',
+    contestName: 'Daily Contest',
+    contestNameAr: 'مسابقة اليوم',
+    contestDate: '2026-01-25',
+    position: 1,
+    prizeAmount: 45,
+  },
+  {
+    id: '2',
+    contestId: 'C-1240',
+    contestName: 'Weekly Challenge',
+    contestNameAr: 'تحدي أسبوعي',
+    contestDate: '2026-01-20',
+    position: 2,
+    prizeAmount: 20,
+  },
+  {
+    id: '3',
+    contestId: 'C-1235',
+    contestName: 'Daily Contest',
+    contestNameAr: 'مسابقة اليوم',
+    contestDate: '2026-01-15',
+    position: 3,
+    prizeAmount: 15,
+  },
+];
 
 const buildPublicProfileUser = (u: PlatformUser): PublicProfileUser => {
   const engagement = getEngagement(u.engagementStatus);
@@ -116,38 +178,13 @@ const buildPublicProfileUser = (u: PlatformUser): PublicProfileUser => {
       luckyWins: 3,
       paidVotesReceived: 234,
     },
-    achievements: [
-      {
-        id: '1',
-        type: 'contest',
-        contestName: 'Daily Contest',
-        contestNameAr: 'مسابقة اليوم',
-        date: '2025-01-20',
-        position: 1,
-        prizeAmount: 45,
-        prizeType: 'nova',
-      },
-      {
-        id: '2',
-        type: 'contest',
-        contestName: 'Weekly Challenge',
-        contestNameAr: 'تحدي أسبوعي',
-        date: '2025-01-15',
-        position: 2,
-        prizeAmount: 20,
-        prizeType: 'nova',
-      },
-    ],
+    wins: mockWins,
     p2p: {
       rating: u.p2pStats?.rating ?? 96,
       tradesCount: u.p2pStats?.trades ?? 67,
-      latestReview: {
-        userName: 'Sara',
-        userNameAr: 'سارة',
-        comment: 'Fast and reliable!',
-        commentAr: 'سريع وموثوق!',
-        rating: 'positive',
-      },
+      positiveCount: 62,
+      negativeCount: 5,
+      ratings: mockP2PRatings,
     },
   };
 };
@@ -174,8 +211,9 @@ export default function PublicProfile() {
   const [followersCount, setFollowersCount] = useState(initialUser?.followers ?? 0);
   const [followingCount, setFollowingCount] = useState(initialUser?.following ?? 0);
   
-  // State for Nova transfer dialog
+  // State for dialogs
   const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [showRatingsSheet, setShowRatingsSheet] = useState(false);
   
   useEffect(() => {
     if (!initialUser) return;
@@ -184,7 +222,7 @@ export default function PublicProfile() {
     setFollowingCount(initialUser.following);
   }, [initialUser?.id]);
 
-  // If userId is unknown, show a safe "not found" state (no placeholder users)
+  // If userId is unknown, show a safe "not found" state
   if (!initialUser) {
     return (
       <AppLayout showHeader={false} showNav={false}>
@@ -218,21 +256,16 @@ export default function PublicProfile() {
   // Check if viewing own profile
   const isOwnProfile = currentUser.id === initialUser.id;
 
-  const fromChatWithUserId = (location.state as any)?.fromChatWithUserId as string | undefined;
-  const hideSendMessage = fromChatWithUserId === initialUser.id;
-
   const handleBack = () => {
     navigate(-1);
   };
 
   const handleSendMessage = () => {
-    // Navigate to DM or create new chat
     if (!initialUser) return;
     navigate('/chat', { state: { openDmWith: initialUser.id } });
   };
 
   const handleSendNova = () => {
-    // Open transfer dialog directly
     setShowTransferDialog(true);
   };
   
@@ -245,9 +278,8 @@ export default function PublicProfile() {
     setIsFollowing(!isFollowing);
   };
 
-  const handleViewP2PDetails = () => {
-    // Could navigate to full P2P rating page
-    console.log('View P2P Details');
+  const handleViewP2PRatings = () => {
+    setShowRatingsSheet(true);
   };
 
   const statsCards = [
@@ -281,32 +313,6 @@ export default function PublicProfile() {
     },
   ];
 
-  const getPositionLabel = (position: number) => {
-    if (language === 'ar') {
-      switch (position) {
-        case 1: return 'الأول';
-        case 2: return 'الثاني';
-        case 3: return 'الثالث';
-        default: return `Top ${position}`;
-      }
-    }
-    switch (position) {
-      case 1: return '1st';
-      case 2: return '2nd';
-      case 3: return '3rd';
-      default: return `Top ${position}`;
-    }
-  };
-
-  const getPositionColor = (position: number) => {
-    switch (position) {
-      case 1: return 'text-nova bg-nova/10';
-      case 2: return 'text-muted-foreground bg-muted';
-      case 3: return 'text-amber-600 bg-amber-100 dark:bg-amber-900/30';
-      default: return 'text-primary bg-primary/10';
-    }
-  };
-
   return (
     <AppLayout showHeader={false} showNav={false}>
       <div className="min-h-screen bg-background">
@@ -322,7 +328,7 @@ export default function PublicProfile() {
           </div>
         </header>
 
-        <div className="px-4 py-6 space-y-6 pb-24">
+        <div className="px-4 py-6 space-y-6 pb-28">
           {/* Profile Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -353,6 +359,20 @@ export default function PublicProfile() {
               @{initialUser.username}
             </span>
 
+            {/* Online Status */}
+            <div className="mt-2 flex items-center justify-center gap-1.5">
+              <span className={cn(
+                "h-2 w-2 rounded-full",
+                initialUser.isOnline ? "bg-success" : "bg-muted-foreground"
+              )} />
+              <span className="text-sm text-muted-foreground">
+                {initialUser.isOnline 
+                  ? t('publicProfile.onlineNow')
+                  : `${t('publicProfile.lastSeen')} ${language === 'ar' ? initialUser.lastSeenAr : initialUser.lastSeen}`
+                }
+              </span>
+            </div>
+
             {/* Followers / Following - TikTok Style */}
             <div className="mt-3 flex items-center gap-6">
               <div className="text-center">
@@ -369,7 +389,7 @@ export default function PublicProfile() {
               </div>
             </div>
 
-            {/* Follow Button - Hidden for own profile */}
+            {/* Follow Button - Always visible for other users */}
             {!isOwnProfile && (
               <Button
                 variant={isFollowing ? "outline" : "default"}
@@ -402,53 +422,36 @@ export default function PublicProfile() {
               </span>
             </div>
 
-            {/* Status Section */}
-            <div className="mt-3 flex flex-col gap-2">
-              {/* Engagement Status */}
-              <div className="flex items-center gap-2 flex-wrap justify-center">
-                <Badge 
-                  variant="outline"
-                  className={cn(
-                    "text-xs",
-                    initialUser.contestEngagement === 'active'
-                      ? "bg-success/15 text-success border-success/30"
-                      : "bg-muted/50 text-muted-foreground border-border"
-                  )}
-                >
-                  {initialUser.contestEngagement === 'active' 
-                    ? t('publicProfile.contestActive')
-                    : t('publicProfile.contestInactive')
-                  }
-                </Badge>
-                <Badge 
-                  variant="outline"
-                  className={cn(
-                    "text-xs",
-                    initialUser.votingEngagement === 'active'
-                      ? "bg-success/15 text-success border-success/30"
-                      : "bg-muted/50 text-muted-foreground border-border"
-                  )}
-                >
-                  {initialUser.votingEngagement === 'active' 
-                    ? t('publicProfile.votingActive')
-                    : t('publicProfile.votingInactive')
-                  }
-                </Badge>
-              </div>
-
-              {/* Online Status */}
-              <div className="flex items-center justify-center gap-1.5">
-                <span className={cn(
-                  "h-2 w-2 rounded-full",
-                  initialUser.isOnline ? "bg-success" : "bg-muted-foreground"
-                )} />
-                <span className="text-sm text-muted-foreground">
-                  {initialUser.isOnline 
-                    ? t('publicProfile.onlineNow')
-                    : `${t('publicProfile.lastSeen')} ${language === 'ar' ? initialUser.lastSeenAr : initialUser.lastSeen}`
-                  }
-                </span>
-              </div>
+            {/* Engagement Status */}
+            <div className="mt-3 flex items-center gap-2 flex-wrap justify-center">
+              <Badge 
+                variant="outline"
+                className={cn(
+                  "text-xs",
+                  initialUser.contestEngagement === 'active'
+                    ? "bg-success/15 text-success border-success/30"
+                    : "bg-muted/50 text-muted-foreground border-border"
+                )}
+              >
+                {initialUser.contestEngagement === 'active' 
+                  ? t('publicProfile.contestActive')
+                  : t('publicProfile.contestInactive')
+                }
+              </Badge>
+              <Badge 
+                variant="outline"
+                className={cn(
+                  "text-xs",
+                  initialUser.votingEngagement === 'active'
+                    ? "bg-success/15 text-success border-success/30"
+                    : "bg-muted/50 text-muted-foreground border-border"
+                )}
+              >
+                {initialUser.votingEngagement === 'active' 
+                  ? t('publicProfile.votingActive')
+                  : t('publicProfile.votingInactive')
+                }
+              </Badge>
             </div>
           </motion.div>
 
@@ -477,63 +480,18 @@ export default function PublicProfile() {
             </div>
           </motion.section>
 
-          {/* Achievements Section */}
-          {initialUser.achievements.length > 0 && (
+          {/* Wins Section - Redesigned */}
+          {initialUser.wins.length > 0 && (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.15 }}
             >
-              <h3 className="text-lg font-semibold mb-4">{t('publicProfile.achievements')}</h3>
-              <ScrollArea className="w-full">
-                <div className="flex gap-3 pb-2">
-                  {initialUser.achievements.map((achievement) => (
-                    <Card key={achievement.id} className="min-w-[280px] border-border/50">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "h-12 w-12 rounded-full flex items-center justify-center",
-                            achievement.type === 'lucky' ? 'bg-success/10' : 'bg-nova/10'
-                          )}>
-                            {achievement.type === 'lucky' ? (
-                              <Clover className="h-6 w-6 text-success" />
-                            ) : (
-                              <Trophy className="h-6 w-6 text-nova" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-foreground truncate">
-                              {language === 'ar' ? achievement.contestNameAr : achievement.contestName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {achievement.date}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-3 flex items-center justify-between">
-                          {achievement.type === 'contest' && achievement.position && (
-                            <Badge className={cn("text-xs", getPositionColor(achievement.position))}>
-                              {getPositionLabel(achievement.position)}
-                            </Badge>
-                          )}
-                          {achievement.type === 'lucky' && (
-                            <Badge className="text-xs bg-success/10 text-success">
-                              {t('publicProfile.luckyWinner')}
-                            </Badge>
-                          )}
-                          <CurrencyBadge
-                            type={achievement.prizeType}
-                            amount={achievement.prizeAmount}
-                            size="sm"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              <UserWinsSection
+                wins={initialUser.wins}
+                onViewMore={() => navigate('/winners')}
+                onViewContest={(contestId) => navigate('/winners')}
+              />
             </motion.section>
           )}
 
@@ -541,12 +499,12 @@ export default function PublicProfile() {
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.2 }}
           >
             <Card className="border-border/50">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Star className="h-5 w-5 text-nova" />
+                  <Star className="h-5 w-5 text-nova fill-nova" />
                   {t('publicProfile.p2pSummary')}
                 </CardTitle>
               </CardHeader>
@@ -573,56 +531,49 @@ export default function PublicProfile() {
 
                 <Separator />
 
-                {/* Latest Review */}
-                {initialUser.p2p.latestReview && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      {t('publicProfile.latestReview')}
-                    </p>
-                    <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
-                      <div className={cn(
-                        "h-8 w-8 rounded-full flex items-center justify-center",
-                        initialUser.p2p.latestReview.rating === 'positive'
-                          ? "bg-success/10"
-                          : "bg-destructive/10"
-                      )}>
-                        {initialUser.p2p.latestReview.rating === 'positive' ? (
-                          <ThumbsUp className="h-4 w-4 text-success" />
-                        ) : (
-                          <ThumbsDown className="h-4 w-4 text-destructive" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm text-foreground">
-                          {language === 'ar' 
-                            ? initialUser.p2p.latestReview.userNameAr 
-                            : initialUser.p2p.latestReview.userName
-                          }
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {language === 'ar' 
-                            ? initialUser.p2p.latestReview.commentAr 
-                            : initialUser.p2p.latestReview.comment
-                          }
-                        </p>
-                      </div>
+                {/* Rating Summary */}
+                <div className="flex items-center justify-center gap-6 py-2">
+                  <div className="text-center">
+                    <div className="flex items-center gap-1 text-success">
+                      <ThumbsUp className="h-4 w-4" />
+                      <span className="text-xl font-bold">{initialUser.p2p.positiveCount}</span>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'ar' ? 'إيجابي' : 'Positive'}
+                    </p>
                   </div>
-                )}
+                  <div className="h-8 w-px bg-border" />
+                  <div className="text-center">
+                    <div className="flex items-center gap-1 text-destructive">
+                      <ThumbsDown className="h-4 w-4" />
+                      <span className="text-xl font-bold">{initialUser.p2p.negativeCount}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'ar' ? 'سلبي' : 'Negative'}
+                    </p>
+                  </div>
+                </div>
 
+                {/* View All Ratings Button */}
                 <Button 
                   variant="outline" 
-                  className="w-full"
-                  onClick={handleViewP2PDetails}
+                  className="w-full gap-2"
+                  onClick={handleViewP2PRatings}
                 >
-                  {t('publicProfile.viewP2PDetails')}
+                  <MessageSquare className="h-4 w-4" />
+                  {language === 'ar' ? 'عرض التقييمات' : 'View Ratings'}
+                  {isRTL ? (
+                    <ChevronLeft className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
                 </Button>
               </CardContent>
             </Card>
           </motion.section>
         </div>
 
-        {/* Fixed Action Buttons - Always show both for other users */}
+        {/* Fixed Action Buttons - Always show BOTH for other users */}
         {!isOwnProfile && (
           <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border p-4 safe-bottom">
             <div className="flex gap-3 max-w-lg mx-auto">
@@ -655,8 +606,16 @@ export default function PublicProfile() {
           recipientCountry={language === 'ar' ? initialUser.countryAr : initialUser.country}
           recipientAvatar={initialUser.avatar}
         />
+
+        {/* P2P Ratings Sheet */}
+        <P2PRatingsSheet
+          open={showRatingsSheet}
+          onClose={() => setShowRatingsSheet(false)}
+          ratings={initialUser.p2p.ratings}
+          positiveCount={initialUser.p2p.positiveCount}
+          negativeCount={initialUser.p2p.negativeCount}
+        />
       </div>
     </AppLayout>
   );
 }
-
