@@ -222,8 +222,8 @@ export function P2POrdersList({ orders, onOpenChat }: P2POrdersListProps) {
                                 {isRTL ? order.counterparty.nameAr : order.counterparty.name}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                <span className="text-nova font-bold">{order.amount}</span>
-                                <span className="text-nova"> ✦</span>
+                                <span className="text-nova font-bold">И {order.amount}</span>
+                                <span className="mx-1">•</span>
                                 <span className="mx-1">•</span>
                                 <span className="text-success font-semibold">
                                   {order.currencySymbol} {order.total.toFixed(2)}

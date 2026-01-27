@@ -137,7 +137,7 @@ export function P2PCountrySelector({
                 {language === 'ar' ? country.nameAr : country.name}
               </p>
               <p className="text-xs text-muted-foreground">
-                {country.currencySymbol} {country.currency} • 1 ✦ = {country.novaRate}
+                {country.currencySymbol} {country.currency} • И 1 = {country.novaRate}
               </p>
             </div>
             {selectedCountry.code === country.code && (

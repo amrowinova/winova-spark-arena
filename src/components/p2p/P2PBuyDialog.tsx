@@ -101,7 +101,7 @@ export function P2PBuyDialog({
                 {isRTL ? 'الكمية المتاحة' : 'Available'}
               </p>
               <p className="text-lg font-bold text-nova">
-                {offer.amount} ✦
+                И {offer.amount}
               </p>
             </Card>
           </div>
@@ -142,7 +142,7 @@ export function P2PBuyDialog({
                   <p className="text-xs text-muted-foreground">
                     {isRTL ? 'ستحصل على' : "You'll receive"}
                   </p>
-                  <p className="text-xl font-bold text-nova">{amount} ✦</p>
+                  <p className="text-xl font-bold text-nova">И {amount}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">

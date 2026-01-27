@@ -43,7 +43,7 @@ export function P2PAmountSelector({
               )}
             >
               {amount}
-              <span className="absolute -top-1 -end-1 text-[10px] text-nova">✦</span>
+              <span className="absolute -top-1 -end-1 text-[10px] text-nova font-bold">И</span>
             </button>
           );
         })}

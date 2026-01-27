@@ -187,7 +187,7 @@ export function P2PCreateOrderDialog({
                     {isRTL ? 'رصيدك المتاح:' : 'Available balance:'}
                   </span>
                   <span className="font-bold text-nova">
-                    {user.novaBalance.toFixed(3)} ✦
+                    И {user.novaBalance.toFixed(0)}
                   </span>
                 </div>
               </Card>
@@ -366,7 +366,7 @@ export function P2PCreateOrderDialog({
                 <div className="grid grid-cols-2 gap-3 text-center">
                   <div>
                     <p className="text-xs text-muted-foreground">Nova</p>
-                    <p className="text-xl font-bold text-nova">{amount} ✦</p>
+                    <p className="text-xl font-bold text-nova">И {amount}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{isRTL ? 'الإجمالي' : 'Total'}</p>
@@ -377,7 +377,7 @@ export function P2PCreateOrderDialog({
                 </div>
                 <div className="mt-3 pt-3 border-t border-success/20 text-center">
                   <p className="text-xs text-muted-foreground">
-                    {isRTL ? 'السعر الرسمي:' : 'Official rate:'} 1 ✦ = {country.currencySymbol} {country.novaRate}
+                    {isRTL ? 'السعر الرسمي:' : 'Official rate:'} И 1 = {country.currencySymbol} {country.novaRate}
                   </p>
                 </div>
               </Card>

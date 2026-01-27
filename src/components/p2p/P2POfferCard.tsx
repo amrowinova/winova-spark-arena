@@ -81,8 +81,8 @@ export function P2POfferCard({ offer, onAction, actionType }: P2POfferCardProps)
               {isRTL ? 'الكمية المتاحة' : 'Available'}
             </p>
             <p className="text-lg font-bold">
-              <span className="text-nova">{offer.amount}</span>
-              <span className="text-nova text-sm ms-1">✦</span>
+              <span className="text-nova">И</span>
+              <span className="text-nova ms-1">{offer.amount}</span>
             </p>
           </div>
         </div>
