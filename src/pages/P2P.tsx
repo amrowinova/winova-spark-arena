@@ -5,7 +5,8 @@ import {
   Plus, ShoppingCart, Send, ArrowLeft, Copy, Timer,
   Clock, CheckCircle, AlertCircle, Star, MessageSquare
 } from 'lucide-react';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -217,131 +218,130 @@ export default function P2PPage() {
     const counterparty = isBuyer ? activeChatOrder.seller : activeChatOrder.buyer;
 
     return (
-      <AppLayout title={`P2P #${activeChatOrder.id}`} showNav={false}>
-        <div className="flex flex-col h-[calc(100vh-60px)]">
-          {/* Header */}
-          <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3 shrink-0">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => {
-                setActiveChatView(null);
-                setActiveChatOrder(null);
-              }}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-3 flex-1">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg">
-                {counterparty.avatar}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">
-                  {isRTL ? counterparty.nameAr : counterparty.name}
-                </p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Star className="h-3 w-3 text-warning fill-warning" />
-                  <span>{(counterparty.rating * 20).toFixed(0)}%</span>
-                  <span>•</span>
-                  <span>#{activeChatOrder.id}</span>
-                </div>
+      <div className="flex flex-col h-screen bg-background">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3 shrink-0">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => {
+              setActiveChatView(null);
+              setActiveChatOrder(null);
+            }}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg">
+              {counterparty.avatar}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">
+                {isRTL ? counterparty.nameAr : counterparty.name}
+              </p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Star className="h-3 w-3 text-warning fill-warning" />
+                <span>{(counterparty.rating * 20).toFixed(0)}%</span>
+                <span>•</span>
+                <span>#{activeChatOrder.id}</span>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Order Card (Pinned at top) */}
-          <div className="shrink-0 border-b border-border">
-            <P2POrderCard 
-              order={activeChatOrder} 
-              isActive={true}
-            />
-            
-            {/* Payment Details */}
-            {activeChatOrder.paymentDetails && (
-              <P2PPaymentCard 
-                paymentDetails={activeChatOrder.paymentDetails}
-              />
-            )}
-          </div>
-
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {activeChatView.messages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'}`}
-                >
-                  {msg.isSystem && msg.systemMessage ? (
-                    <P2PSystemMessage 
-                      message={msg.systemMessage}
-                    />
-                  ) : (
-                    <div className={`max-w-[85%]`}>
-                      <div className={`px-4 py-2 rounded-2xl ${
-                        msg.isMine 
-                          ? 'bg-primary text-primary-foreground rounded-br-sm' 
-                          : 'bg-muted rounded-bl-sm'
-                      }`}>
-                        {!msg.isMine && (
-                          <p className="text-xs font-medium mb-1 opacity-70">
-                            {msg.senderName}
-                          </p>
-                        )}
-                        <p className="text-sm">{msg.content}</p>
-                      </div>
-                      <p className={`text-[10px] text-muted-foreground mt-1 ${msg.isMine ? 'text-end' : ''}`}>
-                        {msg.time}
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-
-          {/* Action Buttons based on status/role */}
-          <P2PActionButtons 
-            order={activeChatOrder}
-            currentUserId={user.id}
-            isSupport={false}
+        {/* Order Card (Pinned at top) */}
+        <div className="shrink-0 border-b border-border">
+          <P2POrderCard 
+            order={activeChatOrder} 
+            isActive={true}
           />
-
-          {/* Message Input */}
-          {!['completed', 'cancelled'].includes(activeChatOrder.status) && (
-            <div className="p-4 border-t border-border bg-card safe-bottom">
-              <div className="flex items-center gap-2">
-                <Input
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={isRTL ? 'اكتب رسالة...' : 'Type a message...'}
-                  className="flex-1"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                />
-                <Button size="icon" onClick={handleSendMessage} disabled={!message.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+          
+          {/* Payment Details */}
+          {activeChatOrder.paymentDetails && (
+            <P2PPaymentCard 
+              paymentDetails={activeChatOrder.paymentDetails}
+            />
           )}
         </div>
+
+        {/* Messages */}
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {activeChatView.messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.isSystem && msg.systemMessage ? (
+                  <P2PSystemMessage 
+                    message={msg.systemMessage}
+                  />
+                ) : (
+                  <div className={`max-w-[85%]`}>
+                    <div className={`px-4 py-2 rounded-2xl ${
+                      msg.isMine 
+                        ? 'bg-primary text-primary-foreground rounded-br-sm' 
+                        : 'bg-muted rounded-bl-sm'
+                    }`}>
+                      {!msg.isMine && (
+                        <p className="text-xs font-medium mb-1 opacity-70">
+                          {msg.senderName}
+                        </p>
+                      )}
+                      <p className="text-sm">{msg.content}</p>
+                    </div>
+                    <p className={`text-[10px] text-muted-foreground mt-1 ${msg.isMine ? 'text-end' : ''}`}>
+                      {msg.time}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+
+        {/* Action Buttons based on status/role */}
+        <P2PActionButtons 
+          order={activeChatOrder}
+          currentUserId={user.id}
+          isSupport={false}
+        />
+
+        {/* Message Input */}
+        {!['completed', 'cancelled'].includes(activeChatOrder.status) && (
+          <div className="p-4 border-t border-border bg-card safe-bottom">
+            <div className="flex items-center gap-2">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={isRTL ? 'اكتب رسالة...' : 'Type a message...'}
+                className="flex-1"
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              />
+              <Button size="icon" onClick={handleSendMessage} disabled={!message.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         <ReceiptDialog
           receipt={selectedReceipt}
           open={receiptDialogOpen}
           onClose={() => setReceiptDialogOpen(false)}
         />
-      </AppLayout>
+      </div>
     );
   }
 
   // Main P2P Page
   return (
-    <AppLayout title={t('p2p.title')}>
-      <div className="px-4 py-4 space-y-4">
+    <div className="flex min-h-screen flex-col bg-background">
+      <InnerPageHeader title={t('p2p.title')} />
+      <main className="flex-1 px-4 py-4 pb-20 space-y-4">
         {/* Country Selector */}
         <P2PCountrySelector
           selectedCountry={selectedCountry}
@@ -430,7 +430,7 @@ export default function P2PPage() {
             />
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
 
       {/* Dialogs */}
       <P2PCreateOrderDialog
@@ -446,6 +446,8 @@ export default function P2PPage() {
         offer={selectedOffer}
         onConfirm={handleConfirmBuy}
       />
-    </AppLayout>
+      
+      <BottomNav />
+    </div>
   );
 }

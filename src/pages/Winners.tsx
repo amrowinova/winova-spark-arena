@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Calendar, Crown, Users, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -120,20 +121,17 @@ export default function Winners() {
   };
 
   return (
-    <AppLayout>
-      <motion.div
+    <div className="flex min-h-screen flex-col bg-background">
+      <InnerPageHeader title={language === 'ar' ? 'الفائزون' : 'Winners'} />
+      <motion.main
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="px-4 py-3 space-y-4"
+        className="flex-1 px-4 py-3 pb-20 space-y-4"
       >
-        {/* Header */}
+        {/* Description */}
         <motion.div variants={itemVariants}>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            {language === 'ar' ? 'الفائزون' : 'Winners'}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {language === 'ar' 
               ? 'سجل الفائزين في المسابقات اليومية' 
               : 'Daily contest winners history'}
@@ -330,9 +328,11 @@ export default function Winners() {
                 </motion.div>
               ))}
             </TabsContent>
-          </Tabs>
+        </Tabs>
         </motion.div>
-      </motion.div>
+      </motion.main>
+
+      <BottomNav />
 
       {/* Contest Details Dialog */}
       {selectedContest && (
@@ -343,6 +343,6 @@ export default function Winners() {
           country={user.country}
         />
       )}
-    </AppLayout>
+    </div>
   );
 }
