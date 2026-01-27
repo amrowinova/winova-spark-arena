@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { UserRank } from '@/contexts/UserContext';
 import { RankBadge } from '@/components/common/RankBadge';
@@ -20,7 +19,6 @@ import {
   Image,
   Link2,
   FileText,
-  Bell,
   BellOff,
   Ban,
   Flag,
@@ -94,7 +92,7 @@ export function ChatInfoSheet({
       <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0 overflow-y-auto">
         <SheetHeader className="sr-only">
           <SheetTitle>
-            {language === 'ar' ? 'معلومات المحادثة' : 'Chat Info'}
+            {language === 'ar' ? 'معلومات جهة الاتصال' : 'Contact Info'}
           </SheetTitle>
         </SheetHeader>
         
@@ -166,7 +164,7 @@ export function ChatInfoSheet({
           )}
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - No "Send Message" since user is already in chat */}
         <div className="flex gap-2 px-4 py-3 border-b border-border">
           <Button 
             variant="outline" 
