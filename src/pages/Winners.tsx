@@ -187,45 +187,56 @@ export default function Winners() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {latestContest.winners.map((winner, index) => (
-                    <motion.div
-                      key={winner.rank}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`flex items-center gap-3 p-3 rounded-lg ${
-                        index === 0 ? 'bg-yellow-500/10 border border-yellow-500/20' : 'bg-muted/30'
-                      }`}
-                    >
-                      {/* Rank Badge */}
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${positionColors[index]}`}>
-                        {index === 0 ? <Crown className="h-4 w-4" /> : winner.rank}
-                      </div>
+                  {latestContest.winners.map((winner, index) => {
+                    const platformUser = getPlatformUserById(winner.id);
+                    return (
+                      <motion.div
+                        key={winner.rank}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className={`flex items-center gap-3 p-3 rounded-lg ${
+                          index === 0 ? 'bg-yellow-500/10 border border-yellow-500/20' : 'bg-muted/30'
+                        }`}
+                      >
+                        {/* Rank Badge */}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${positionColors[index]}`}>
+                          {index === 0 ? <Crown className="h-4 w-4" /> : winner.rank}
+                        </div>
 
-                      {/* Winner Info - Clickable */}
-                      <div className="flex-1 min-w-0">
-                        <p 
-                          className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
+                        {/* Avatar - Clickable */}
+                        <div 
+                          className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                           onClick={() => handleProfileClick(winner.id)}
                         >
-                          {winner.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
-                        </p>
-                      </div>
+                          {platformUser?.avatar || '👤'}
+                        </div>
 
-                      {/* Prize */}
-                      <div className="text-end">
-                        <p className="font-bold text-nova text-sm">
-                          И {winner.prize >= 1 ? Math.floor(winner.prize) : winner.prize.toFixed(1)}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {winner.percentage}%
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
+                        {/* Winner Info - Only name clickable */}
+                        <div className="flex-1 min-w-0">
+                          <p 
+                            className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => handleProfileClick(winner.id)}
+                          >
+                            {winner.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
+                          </p>
+                        </div>
+
+                        {/* Prize - Not clickable */}
+                        <div className="text-end">
+                          <p className="font-bold text-nova text-sm">
+                            И {winner.prize >= 1 ? Math.floor(winner.prize) : winner.prize.toFixed(1)}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {winner.percentage}%
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </CardContent>
               </Card>
 
