@@ -45,7 +45,7 @@ export function ContestWinnersCard({ winners, prizePool, country, limit = 3 }: C
       <CardHeader className="pb-2 pt-4 px-4">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <Trophy className="h-4 w-4 text-primary" />
-          {language === 'ar' ? '🏆 الفائزون' : '🏆 Winners'}
+          {language === 'ar' ? '🏆 سجل المسابقات والفائزين' : '🏆 Contest History'}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-4">
