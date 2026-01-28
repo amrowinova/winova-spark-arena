@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { Target, CheckCircle2, Circle, Crown, Users, Trophy, Flame, Rocket, Shield, AlertTriangle } from 'lucide-react';
+import { Target, CheckCircle2, Circle, Crown, Users, Trophy, Flame, Rocket, Shield, AlertTriangle, Copy, Info, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { RankBadge } from '@/components/common/RankBadge';
+import { Button } from '@/components/ui/button';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-
+import { toast } from 'sonner';
 /**
  * ═══════════════════════════════════════════════════════════════════════════
  * RANK SYSTEM - DEVELOPER REFERENCE
@@ -256,11 +257,17 @@ export function PromotionCard({ activeDirectCount, rankOverride }: PromotionCard
   const remaining = Math.max(0, currentPromotion.directRequired - activeDirectCount);
   const achieved = Math.min(activeDirectCount, currentPromotion.directRequired);
 
+  const handleCopyReferralCode = () => {
+    navigator.clipboard.writeText(user.referralCode);
+    toast.success(language === 'ar' ? 'تم نسخ الكود!' : 'Code copied!');
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
+      className="space-y-4"
     >
       <Card>
         <CardHeader className="pb-3">
@@ -326,6 +333,141 @@ export function PromotionCard({ activeDirectCount, rankOverride }: PromotionCard
           </div>
         </CardContent>
       </Card>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SUBSCRIBER ONLY: Explanation & Referral Code Section
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {displayRank === 'subscriber' && (
+        <>
+          {/* What is an Active Subscriber? */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                {language === 'ar' ? 'ما هو المشترك النشيط؟' : 'What is an Active Subscriber?'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar' 
+                  ? 'المشترك النشيط هو شخص:' 
+                  : 'An active subscriber is someone who:'}
+              </p>
+              <ul className="space-y-1.5 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'يسجل باستخدام كود إحالتك' : 'Registers using your referral code'}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'يشارك في مسابقة واحدة على الأقل' : 'Joins at least one contest'}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'يقوم بتصويت مدفوع مرة واحدة' : 'Makes one paid vote'}</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* How to Complete This Stage */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ArrowRight className="h-4 w-4 text-primary" />
+                {language === 'ar' ? 'كيف تكمل هذه المرحلة؟' : 'How to Complete This Stage?'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                  <span className="text-sm">{language === 'ar' ? 'انسخ كود الإحالة الخاص بك' : 'Copy your referral code'}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                  <span className="text-sm">{language === 'ar' ? 'أرسله إلى 3 أشخاص (واتساب – تيك توك – إنستغرام)' : 'Send it to 3 people (WhatsApp – TikTok – Instagram)'}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                  <div className="text-sm">
+                    <span>{language === 'ar' ? 'ساعدهم على:' : 'Help them:'}</span>
+                    <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                      <li>• {language === 'ar' ? 'التسجيل بالكود' : 'Register with the code'}</li>
+                      <li>• {language === 'ar' ? 'دخول مسابقة' : 'Join a contest'}</li>
+                      <li>• {language === 'ar' ? 'تنفيذ تصويت مدفوع مرة واحدة' : 'Make one paid vote'}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Referral Code */}
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground mb-2 text-center">
+                {language === 'ar' ? 'كود الإحالة الخاص بك:' : 'Your Referral Code:'}
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <code className="text-lg font-bold text-primary bg-background px-4 py-2 rounded-lg border">
+                  {user.referralCode}
+                </code>
+                <Button 
+                  size="icon" 
+                  variant="outline" 
+                  onClick={handleCopyReferralCode}
+                  className="h-10 w-10"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* What Happens When You Complete */}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <p className="text-sm font-medium text-foreground mb-2">
+                {language === 'ar' ? 'عند إحضارك 3 مشتركين نشيطين:' : 'When you bring 3 active subscribers:'}
+              </p>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'تنتقل تلقائيًا إلى رتبة مسوّق' : 'You automatically become a Marketer'}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'يبدأ احتساب فريقك' : 'Your team starts counting'}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'تفتح لك مراحل وفرص أعلى' : 'Higher stages and opportunities unlock'}</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Warning Note */}
+          <Card className="bg-destructive/5 border-destructive/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-destructive">
+                    {language === 'ar' ? 'تنويه مهم' : 'Important Note'}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {language === 'ar' 
+                      ? 'أي شخص يسجل بدون كود إحالتك لن يتم احتسابه ضمن تقدّمك.' 
+                      : 'Anyone who registers without your referral code will not count towards your progress.'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </motion.div>
   );
 }
