@@ -1,5 +1,5 @@
 import { UserRank } from '@/contexts/UserContext';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { Settings2 } from 'lucide-react';
 
 /**
@@ -9,6 +9,8 @@ import { Settings2 } from 'lucide-react';
  * 
  * This component is ONLY visible in development mode.
  * It allows developers to quickly switch between ranks to test UI.
+ * 
+ * UI/UX matches the Contest Stage Toggle (Stage 1 / Final Stage buttons)
  * 
  * IMPORTANT:
  * - Does NOT change actual user data
@@ -38,33 +40,36 @@ export function DevRankSwitcher({ currentRank, onRankChange, language }: DevRank
   if (!isDev) return null;
 
   return (
-    <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
-      <div className="flex items-center gap-2 mb-2">
-        <Settings2 className="h-4 w-4 text-warning" />
-        <span className="text-xs font-medium text-warning">
+    <div className="mb-4">
+      {/* Dev Mode Label */}
+      <div className="flex items-center justify-center gap-2 mb-3">
+        <Settings2 className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">
           {language === 'ar' ? 'وضع التطوير - اختبار الرتب' : 'Dev Mode - Test Ranks'}
         </span>
       </div>
       
-      <Tabs value={currentRank} onValueChange={(v) => onRankChange(v as UserRank)}>
-        <TabsList className="w-full h-auto flex-wrap gap-1 bg-warning/20">
-          {RANKS.map((rank) => (
-            <TabsTrigger
-              key={rank.value}
-              value={rank.value}
-              className="flex-1 min-w-[60px] text-xs py-1.5 data-[state=active]:bg-warning data-[state=active]:text-warning-foreground"
-            >
-              <span className="mr-1">{rank.icon}</span>
-              {language === 'ar' ? rank.labelAr : rank.labelEn}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {/* Rank Buttons - Same style as Contest Stage Toggle */}
+      <div className="flex flex-wrap gap-2 justify-center">
+        {RANKS.map((rank) => (
+          <Button
+            key={rank.value}
+            size="sm"
+            variant={currentRank === rank.value ? "default" : "outline"}
+            onClick={() => onRankChange(rank.value)}
+            className="text-xs"
+          >
+            <span className="mr-1">{rank.icon}</span>
+            {language === 'ar' ? rank.labelAr : rank.labelEn}
+          </Button>
+        ))}
+      </div>
       
-      <p className="text-[10px] text-warning mt-2 text-center">
-        {language === 'ar' 
-          ? '⚠️ هذا للاختبار فقط - لا يغيّر البيانات الحقيقية' 
-          : '⚠️ Testing only - does not change real data'}
+      {/* Warning note */}
+      <p className="text-[10px] text-muted-foreground mt-2 text-center">
+        ⚠️ {language === 'ar' 
+          ? 'هذا للاختبار فقط - لا يغيّر البيانات الحقيقية' 
+          : 'Testing only - does not change real data'}
       </p>
     </div>
   );
