@@ -10,7 +10,7 @@ import { WarningCard } from '@/components/team/WarningCard';
 import { DirectTeamList } from '@/components/team/DirectTeamList';
 import { IndirectTeamList } from '@/components/team/IndirectTeamList';
 import { TeamMember } from '@/components/team/TeamMemberCard';
-import { DevRankSwitcher } from '@/components/team/DevRankSwitcher';
+import { RankSwitcher } from '@/components/team/DevRankSwitcher';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -150,8 +150,8 @@ export default function TeamPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('team.title')} />
       <main className="flex-1 px-4 py-4 pb-20 space-y-4">
-        {/* Dev-only Rank Switcher */}
-        <DevRankSwitcher
+        {/* Rank Switcher - Same as Contest Stage Toggle */}
+        <RankSwitcher
           currentRank={displayRank}
           onRankChange={setDevRankOverride}
           language={language}
