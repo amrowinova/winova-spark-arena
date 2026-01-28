@@ -468,6 +468,226 @@ export function PromotionCard({ activeDirectCount, rankOverride }: PromotionCard
           </Card>
         </>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MARKETER ONLY: Explanation & Referral Code Section
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {displayRank === 'marketer' && (
+        <>
+          {/* What is a Marketer */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                {language === 'ar' ? 'ما معنى "مسوّق" في WINOVA؟' : 'What is a "Marketer" in WINOVA?'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar' 
+                  ? 'المسوّق هو شخص:' 
+                  : 'A marketer is someone who:'}
+              </p>
+              <ul className="space-y-1.5 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'لا يكتفي بإحضار مشتركين فقط' : 'Does not just bring subscribers'}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'بل يساعدهم ليصبحوا مسوّقين مثله' : 'But helps them become marketers like him'}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'ويبني فريقًا نشطًا وقابلًا للنمو' : 'And builds an active, growing team'}</span>
+                </li>
+              </ul>
+              <div className="mt-3 p-2 bg-primary/10 rounded-lg text-center">
+                <span className="text-sm font-medium text-primary">
+                  {language === 'ar' ? 'أنت الآن قائد مرحلة أولى 👏' : 'You are now a Phase 1 Leader 👏'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* What Does 10 Direct Marketers Mean? */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                {language === 'ar' ? 'ماذا يعني "10 مسوّقين مباشرين"؟' : 'What Does "10 Direct Marketers" Mean?'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="p-2 bg-destructive/5 rounded-lg border border-destructive/20">
+                <p className="text-sm text-destructive font-medium">
+                  {language === 'ar' ? 'هذا لا يعني:' : 'This does NOT mean:'}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  ❌ {language === 'ar' ? 'تجيب 10 أشخاص وخلاص' : 'Just bring 10 people and done'}
+                </p>
+              </div>
+              
+              <div className="p-2 bg-primary/5 rounded-lg border border-primary/20">
+                <p className="text-sm text-primary font-medium mb-2">
+                  {language === 'ar' ? 'بل يعني:' : 'It means:'}
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span className="text-sm">{language === 'ar' ? 'أنت تجيب 10 مشتركين باستخدام كود إحالتك' : 'You bring 10 subscribers using your referral code'}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <div className="text-sm">
+                      <span>{language === 'ar' ? 'كل مشترك:' : 'Each subscriber:'}</span>
+                      <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                        <li>• {language === 'ar' ? 'ينجز مهامه كمشترك' : 'Completes their subscriber tasks'}</li>
+                        <li>• {language === 'ar' ? 'يُحضر 3 مشتركين نشيطين على كوده' : 'Brings 3 active subscribers on their code'}</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <span className="text-sm">{language === 'ar' ? 'عندها يتحوّل هذا الشخص إلى مسوّق' : 'Then this person becomes a marketer'}</span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-primary/20">
+                  <p className="text-sm text-center">
+                    🔁 {language === 'ar' 
+                      ? 'عندما ينجح 10 أشخاص بهذه الطريقة ➡️ يصبح عندك 10 مسوّقين مباشرين' 
+                      : 'When 10 people succeed this way ➡️ You have 10 direct marketers'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* The Big Picture */}
+          <Card className="bg-muted/30 border-muted">
+            <CardContent className="p-4">
+              <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                🧠 {language === 'ar' ? 'باختصار (الصورة الكبيرة):' : 'In Short (The Big Picture):'}
+              </p>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li>• {language === 'ar' ? 'أنت لا تبني أشخاص' : "You're not building people"}</li>
+                <li>• {language === 'ar' ? 'أنت تبني مسوّقين' : "You're building marketers"}</li>
+                <li>• {language === 'ar' ? 'وكل مسوّق يبني فريقه بنفسه' : 'And each marketer builds their own team'}</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* What Happens After 10 Marketers */}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                🚀 {language === 'ar' ? 'ماذا يحدث بعد إكمال 10 مسوّقين؟' : 'What Happens After 10 Marketers?'}
+              </p>
+              <p className="text-xs text-muted-foreground mb-2">
+                {language === 'ar' ? 'عند تحقق الشروط:' : 'When requirements are met:'}
+              </p>
+              <ul className="space-y-1 text-sm text-muted-foreground mb-3">
+                <li>• {language === 'ar' ? '10 مسوّقين مباشرين' : '10 direct marketers'}</li>
+                <li>• {language === 'ar' ? 'كلهم نشيطين' : 'All active'}</li>
+                <li>• {language === 'ar' ? 'فرقهم نشيطة' : 'Their teams are active'}</li>
+              </ul>
+              <div className="p-2 bg-primary/10 rounded-lg text-center">
+                <span className="text-sm font-medium text-primary">
+                  🎉 {language === 'ar' 
+                    ? 'تترقّى تلقائيًا إلى رتبة قائد' 
+                    : 'You automatically become a Leader'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                {language === 'ar' 
+                  ? 'وتبدأ مرحلة جديدة بقيادة مسوّقين بدل مشتركين.'
+                  : 'And start a new phase leading marketers instead of subscribers.'}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* How to Start Now */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ArrowRight className="h-4 w-4 text-primary" />
+                {language === 'ar' ? 'كيف تبدأ الآن؟' : 'How to Start Now?'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                  <span className="text-sm">{language === 'ar' ? 'انسخ كود الإحالة الخاص بك' : 'Copy your referral code'}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                  <span className="text-sm">{language === 'ar' ? 'شاركه مع أشخاص جادّين' : 'Share it with serious people'}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                  <div className="text-sm">
+                    <span>{language === 'ar' ? 'علّمهم نفس الخطوات:' : 'Teach them the same steps:'}</span>
+                    <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                      <li>• {language === 'ar' ? 'تسجيل بالكود' : 'Register with the code'}</li>
+                      <li>• {language === 'ar' ? 'إحضار 3 مشتركين نشيطين' : 'Bring 3 active subscribers'}</li>
+                      <li>• {language === 'ar' ? 'التحوّل إلى مسوّق' : 'Become a marketer'}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2 p-2 bg-muted/50 rounded-lg text-center">
+                <span className="text-xs text-muted-foreground">
+                  {language === 'ar' 
+                    ? 'كل شخص تساعده ليصبح مسوّقًا ➡️ يقرّبك خطوة من رتبة قائد' 
+                    : 'Every person you help become a marketer ➡️ brings you closer to Leader rank'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Referral Code */}
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground mb-2 text-center">
+                {language === 'ar' ? 'كود الإحالة الخاص بك:' : 'Your Referral Code:'}
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <code className="text-lg font-bold text-primary bg-background px-4 py-2 rounded-lg border">
+                  {user.referralCode}
+                </code>
+                <Button 
+                  size="icon" 
+                  variant="outline" 
+                  onClick={handleCopyReferralCode}
+                  className="h-10 w-10"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Warning Note */}
+          <Card className="bg-destructive/5 border-destructive/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-destructive">
+                    {language === 'ar' ? 'تنويه مهم' : 'Important Note'}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {language === 'ar' 
+                      ? 'أي شخص لا يستخدم كودك لن يُحتسب ضمن فريقك أو تقدّمك.' 
+                      : 'Anyone who does not use your code will not count towards your team or progress.'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </motion.div>
   );
 }
