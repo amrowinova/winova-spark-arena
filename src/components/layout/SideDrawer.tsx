@@ -1,4 +1,4 @@
-import { Trophy, Users, ArrowLeftRight, Sparkles, Settings, HelpCircle, FileText, LogOut } from 'lucide-react';
+import { Trophy, ArrowLeftRight, Sparkles, Settings, Globe, HelpCircle, FileText, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -18,6 +18,7 @@ interface SideDrawerProps {
 const menuItems = [
   { icon: Trophy, path: '/winners', labelEn: 'Winners Record', labelAr: 'سجل الفائزون', emoji: '🏆' },
   { icon: ArrowLeftRight, path: '/p2p', labelEn: 'P2P', labelAr: 'P2P', emoji: '🔁' },
+  { icon: Sparkles, path: '/spotlight', labelEn: 'Lucky Points', labelAr: 'نقاط المحظوظين', emoji: '✨' },
 ];
 
 const secondaryItems = [
@@ -29,7 +30,7 @@ const secondaryItems = [
 const logoutItem = { icon: LogOut, path: '/logout', labelEn: 'Logout', labelAr: 'تسجيل الخروج', emoji: '🚪' };
 
 export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
-  const { language } = useLanguage();
+  const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const isRTL = language === 'ar';
@@ -37,6 +38,10 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
   const handleNavigation = (path: string) => {
     navigate(path);
     onOpenChange(false);
+  };
+
+  const handleLanguageToggle = () => {
+    toggleLanguage();
   };
 
   return (
@@ -99,6 +104,18 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                 </button>
               );
             })}
+            
+            {/* Language Toggle */}
+            <button
+              onClick={handleLanguageToggle}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1 hover:bg-muted text-foreground"
+            >
+              <span className="text-base">🌐</span>
+              <Globe className="h-5 w-5" />
+              <span className="font-medium text-sm">
+                {isRTL ? 'English' : 'العربية'}
+              </span>
+            </button>
           </div>
           
           <div className="p-2 border-t border-border">
