@@ -14,7 +14,6 @@ import {
   HowItWorksCard,
   HowToEarnPointsSheet,
   WeeklyPerformanceCard,
-  NovaLeaderboard,
 } from '@/components/spotlight';
 
 // Mock spotlight data
@@ -91,14 +90,6 @@ const spotlightData = {
     return endOfDay;
   })(),
 
-  // Nova Leaderboard - Top winners by highest single win
-  novaLeaderboard: [
-    { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', highestNovaWin: 2450, position: 1 },
-    { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', highestNovaWin: 1850, position: 2 },
-    { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', highestNovaWin: 1520, position: 3 },
-    { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', highestNovaWin: 980, position: 4 },
-    { id: '7', name: getPlatformUserById('7')?.nameAr || 'ليلى حسن', highestNovaWin: 750, position: 5 },
-  ],
 };
 
 export default function SpotlightPage() {
@@ -186,14 +177,6 @@ export default function SpotlightPage() {
           <HowItWorksCard />
         </motion.div>
 
-        {/* 6. Nova Leaderboard (Last) */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <NovaLeaderboard entries={spotlightData.novaLeaderboard} />
-        </motion.div>
       </main>
       
       <BottomNav />
