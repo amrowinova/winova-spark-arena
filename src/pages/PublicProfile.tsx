@@ -37,6 +37,7 @@ import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { P2PRatingsSheet, type P2PRating } from '@/components/profile/P2PRatingsSheet';
 import { UserWinsSection, type ContestWin, type LuckyWin, type UserWin } from '@/components/profile/UserWinsSection';
 import { getPlatformUserById, type PlatformUser } from '@/lib/platformUsers';
+import { getCountryFlag } from '@/lib/countryFlags';
 import { toast } from 'sonner';
 
 type PublicProfileUser = {
@@ -405,11 +406,14 @@ export default function PublicProfile() {
               </AvatarFallback>
             </Avatar>
 
-            {/* Name + Rank */}
+            {/* Name + Rank + Flag */}
             <div className="mt-4 flex items-center gap-2">
               <span className="text-xl font-bold text-foreground">
                 {language === 'ar' ? initialUser.nameAr : initialUser.name}
               </span>
+              {getCountryFlag(initialUser.country) && (
+                <span className="text-lg">{getCountryFlag(initialUser.country)}</span>
+              )}
               <Badge variant="secondary" className="text-xs">
                 {t(`ranks.${initialUser.rank}`)}
               </Badge>

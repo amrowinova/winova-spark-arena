@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getPricing } from '@/contexts/TransactionContext';
 import { ContestHistoryItem } from './ContestHistoryCard';
 import { getPlatformUserById } from '@/lib/platformUsers';
+import { getCountryFlag } from '@/lib/countryFlags';
 
 interface ContestDetailsDialogProps {
   contest: ContestHistoryItem | null;
@@ -103,12 +104,17 @@ export function ContestDetailsDialog({ contest, open, onClose, country }: Contes
                     
                     {/* Name - Clickable */}
                     <div className="flex-1">
-                      <p 
-                        className="text-sm font-medium cursor-pointer hover:text-primary transition-colors"
-                        onClick={() => handleProfileClick(winner.id)}
-                      >
-                        {winner.name}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p 
+                          className="text-sm font-medium cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleProfileClick(winner.id)}
+                        >
+                          {winner.name}
+                        </p>
+                        {platformUser && getCountryFlag(platformUser.country) && (
+                          <span className="text-sm shrink-0">{getCountryFlag(platformUser.country)}</span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-muted-foreground">
                         {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
                       </p>

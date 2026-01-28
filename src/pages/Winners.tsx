@@ -13,6 +13,7 @@ import { useUser } from '@/contexts/UserContext';
 import { getPricing } from '@/contexts/TransactionContext';
 import { ContestDetailsDialog, type ContestHistoryItem } from '@/components/contest';
 import { getPlatformUserById } from '@/lib/platformUsers';
+import { getCountryFlag } from '@/lib/countryFlags';
 
 // Mock data for latest finished contest - using PLATFORM_USERS IDs
 const latestContest = {
@@ -214,12 +215,17 @@ export default function Winners() {
 
                         {/* Winner Info - Only name clickable */}
                         <div className="flex-1 min-w-0">
-                          <p 
-                            className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
-                            onClick={() => handleProfileClick(winner.id)}
-                          >
-                            {winner.name}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <p 
+                              className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleProfileClick(winner.id)}
+                            >
+                              {winner.name}
+                            </p>
+                            {platformUser && getCountryFlag(platformUser.country) && (
+                              <span className="text-sm shrink-0">{getCountryFlag(platformUser.country)}</span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
                           </p>

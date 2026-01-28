@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPricing } from '@/contexts/TransactionContext';
 import { Link, useNavigate } from 'react-router-dom';
+import { getCountryFlag } from '@/lib/countryFlags';
+import { getPlatformUserById } from '@/lib/platformUsers';
 
 interface LuckyWinner {
   id: string;
@@ -77,6 +79,11 @@ export function LuckyWinnersCard({ winners, country }: LuckyWinnersCardProps) {
                 >
                   {winner.name}
                 </p>
+                {(() => {
+                  const user = getPlatformUserById(winner.id);
+                  const flag = user ? getCountryFlag(user.country) : '';
+                  return flag ? <span className="text-xs shrink-0">{flag}</span> : null;
+                })()}
               </div>
               
               <div className="text-center">

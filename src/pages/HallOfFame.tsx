@@ -6,22 +6,7 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPlatformUserById, PLATFORM_USERS } from '@/lib/platformUsers';
-
-// Country flags mapping
-const countryFlags: Record<string, string> = {
-  'Saudi Arabia': '🇸🇦',
-  'السعودية': '🇸🇦',
-  'Egypt': '🇪🇬',
-  'مصر': '🇪🇬',
-  'Palestine': '🇵🇸',
-  'فلسطين': '🇵🇸',
-  'UAE': '🇦🇪',
-  'الإمارات': '🇦🇪',
-  'Jordan': '🇯🇴',
-  'الأردن': '🇯🇴',
-  'Kuwait': '🇰🇼',
-  'الكويت': '🇰🇼',
-};
+import { getCountryFlag } from '@/lib/countryFlags';
 
 // Mock data for all-time top Nova winners (Hall of Fame)
 // Sorted by total Nova won (highest first)
@@ -75,9 +60,6 @@ export default function HallOfFame() {
     }
   };
 
-  const getCountryFlag = (country: string) => {
-    return countryFlags[country] || '🌍';
-  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
