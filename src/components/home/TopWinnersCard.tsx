@@ -1,36 +1,37 @@
-import { Crown, ChevronRight } from 'lucide-react';
+import { Trophy, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { getPlatformUserById } from '@/lib/platformUsers';
 
-interface LeaderEntry {
+interface WinnerEntry {
   id: string;
   name: string;
-  highestNovaWin: number;
+  totalNovaPrizes: number;
   position: number;
+  country?: string;
 }
 
-interface LuckyLeadersCardProps {
+interface TopWinnersCardProps {
   limit?: number;
 }
 
-// Mock data for top Nova winners globally
-const topNovaWinners: LeaderEntry[] = [
-  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', highestNovaWin: 2450, position: 1 },
-  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', highestNovaWin: 1850, position: 2 },
-  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', highestNovaWin: 1520, position: 3 },
-  { id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', highestNovaWin: 1340, position: 4 },
-  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', highestNovaWin: 1180, position: 5 },
+// Mock data for top Nova prize winners (total prizes from contests)
+const topPrizeWinners: WinnerEntry[] = [
+  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', totalNovaPrizes: 4850, position: 1, country: '🇸🇦' },
+  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', totalNovaPrizes: 3720, position: 2, country: '🇪🇬' },
+  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', totalNovaPrizes: 2980, position: 3, country: '🇦🇪' },
+  { id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', totalNovaPrizes: 2540, position: 4, country: '🇯🇴' },
+  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', totalNovaPrizes: 2180, position: 5, country: '🇸🇦' },
 ];
 
-export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
+export function TopWinnersCard({ limit = 5 }: TopWinnersCardProps) {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const isRTL = language === 'ar';
 
-  const displayedWinners = topNovaWinners.slice(0, limit);
+  const displayedWinners = topPrizeWinners.slice(0, limit);
 
   const handleProfileClick = (userId: string) => {
     navigate(`/user/${userId}`);
@@ -67,9 +68,9 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
       <CardHeader className="pb-2 pt-4 px-4">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <Crown className="h-4 w-4 text-nova" />
+            <Trophy className="h-4 w-4 text-nova" />
             <span>
-              {isRTL ? 'متصدري المحظوظين' : 'Lucky Leaders'}
+              {isRTL ? 'متصدري الفائزون' : 'Top Winners'}
             </span>
           </CardTitle>
           <Button 
@@ -85,7 +86,7 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {isRTL ? 'أعلى الرابحين Nova على الإطلاق' : 'Top Nova winners of all time'}
+          {isRTL ? 'أعلى الفائزين بجوائز Nova من المسابقات' : 'Top Nova prize winners from contests'}
         </p>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-2">
@@ -105,18 +106,21 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
 
             {/* User Info */}
             <div className="flex-1 min-w-0">
-              <p 
-                className="font-medium text-sm truncate cursor-pointer hover:text-nova transition-colors"
-                onClick={() => handleProfileClick(entry.id)}
-              >
-                {entry.name}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p 
+                  className="font-medium text-sm truncate cursor-pointer hover:text-nova transition-colors"
+                  onClick={() => handleProfileClick(entry.id)}
+                >
+                  {entry.name}
+                </p>
+                {entry.country && <span className="text-xs">{entry.country}</span>}
+              </div>
             </div>
 
             {/* Nova Amount */}
             <div className="text-end">
               <p className={`font-bold text-sm ${entry.position === 1 ? 'text-nova' : 'text-foreground'}`}>
-                И {entry.highestNovaWin.toLocaleString()}
+                И {entry.totalNovaPrizes.toLocaleString()}
               </p>
             </div>
           </div>

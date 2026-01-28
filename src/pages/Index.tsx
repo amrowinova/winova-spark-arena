@@ -15,6 +15,7 @@ import { getPlatformUserById } from '@/lib/platformUsers';
 import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
 import { ContestWinnersCard } from '@/components/home/ContestWinnersCard';
 import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
+import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
 import { useActiveUsers } from '@/hooks/useActiveUsers';
 
@@ -223,7 +224,12 @@ export default function HomePage() {
           />
         </motion.div>
 
-        {/* Lucky Leaders - Top Nova Winners */}
+        {/* Top Winners - Highest Nova Prize Earners */}
+        <motion.div variants={itemVariants}>
+          <TopWinnersCard limit={5} />
+        </motion.div>
+
+        {/* Lucky Leaders - متصدري المحظوظين */}
         <motion.div variants={itemVariants}>
           <LuckyLeadersCard limit={5} />
         </motion.div>
