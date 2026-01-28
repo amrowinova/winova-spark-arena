@@ -163,16 +163,14 @@ export default function TeamPage() {
         {/* Team Size Card */}
         <TeamSizeCard 
           onDirectClick={handleViewDirect}
+          rankOverride={devRankOverride}
         />
 
         {/* Activity Card */}
-        <ActivityCard 
-          directTeamActiveCount={activeDirectCount}
-          directTeamTotalCount={directTeamMembers.length}
-        />
+        <ActivityCard rankOverride={devRankOverride} />
 
         {/* Promotion Card - uses displayRank for testing */}
-        <PromotionCard activeDirectCount={activeDirectCount} rankOverride={devRankOverride} />
+        <PromotionCard rankOverride={devRankOverride} />
 
         {/* Warning Card (dynamic) */}
         <WarningCard 

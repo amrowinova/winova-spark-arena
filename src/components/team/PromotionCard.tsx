@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { RankBadge } from '@/components/common/RankBadge';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRankBasedData } from '@/hooks/useRankBasedData';
 import {
   SubscriberScreen,
   MarketerScreen,
@@ -99,16 +100,16 @@ const promotionRequirements: Record<UserRank, typeof subscriberRequirements> = {
 };
 
 interface PromotionCardProps {
-  activeDirectCount: number;
   rankOverride?: UserRank | null;
 }
 
-export function PromotionCard({ activeDirectCount, rankOverride }: PromotionCardProps) {
+export function PromotionCard({ rankOverride }: PromotionCardProps) {
   const { user } = useUser();
   const { language } = useLanguage();
   
   // Use override rank for dev testing, otherwise use actual user rank
   const displayRank = rankOverride ?? user.rank;
+  const rankData = useRankBasedData(displayRank);
 
   const currentPromotion = promotionRequirements[displayRank];
   
@@ -127,7 +128,9 @@ export function PromotionCard({ activeDirectCount, rankOverride }: PromotionCard
   // ═══════════════════════════════════════════════════════════════════════
   // PROMOTION PROGRESS VIEW - For all other ranks
   // ═══════════════════════════════════════════════════════════════════════
-  const promotionProgress = Math.min(100, (activeDirectCount / currentPromotion.directRequired) * 100);
+  // Use rank-based data for progress calculations
+  const activeDirectCount = rankData.directTeamActiveCount;
+  const promotionProgress = Math.min(100, rankData.promotionProgress);
   const remaining = Math.max(0, currentPromotion.directRequired - activeDirectCount);
   const achieved = Math.min(activeDirectCount, currentPromotion.directRequired);
 

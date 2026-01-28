@@ -5,6 +5,7 @@ import { RankBadge } from '@/components/common/RankBadge';
 import { ProgressRing } from '@/components/common/ProgressRing';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRankBasedData } from '@/hooks/useRankBasedData';
 
 interface UserIdentityCardProps {
   rankOverride?: UserRank | null;
@@ -16,10 +17,9 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
   
   // Use override rank for dev testing, otherwise use actual user rank
   const displayRank = rankOverride ?? user.rank;
+  const rankData = useRankBasedData(displayRank);
 
-  // Weekly rank (mock - would come from backend)
-  const weeklyRank = 47;
-  const activityPercent = Math.round((user.activeWeeks / user.currentWeek) * 100);
+  const activityPercent = Math.round((rankData.activeWeeks / rankData.currentWeek) * 100);
 
   return (
     <motion.div
@@ -61,7 +61,7 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
                   {language === 'ar' ? 'الترتيب' : 'Rank'}
                 </span>
               </div>
-              <p className="text-primary text-lg font-bold">#{weeklyRank}</p>
+              <p className="text-primary text-lg font-bold">#{rankData.weeklyRank}</p>
             </div>
             
             <div className="bg-white/20 rounded-lg p-2 text-center">
@@ -72,7 +72,7 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
                 </span>
               </div>
               <p className="text-white text-lg font-bold">
-                {user.activeWeeks}/{user.totalWeeks}
+                {rankData.activeWeeks}/{rankData.totalWeeks}
               </p>
             </div>
             
@@ -83,7 +83,7 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
                   {language === 'ar' ? 'الفريق' : 'Team'}
                 </span>
               </div>
-              <p className="text-white text-lg font-bold">{user.teamSize}</p>
+              <p className="text-white text-lg font-bold">{rankData.teamSize}</p>
             </div>
           </div>
         </div>
