@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPricing } from '@/contexts/TransactionContext';
 import { Link, useNavigate } from 'react-router-dom';
+import { getCountryFlag } from '@/lib/countryFlags';
+import { getPlatformUserById } from '@/lib/platformUsers';
 
 interface Winner {
   id: string;
@@ -75,12 +77,19 @@ export function ContestWinnersCard({ winners, prizePool, country, limit = 3 }: C
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p 
-                  className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => handleProfileClick(winner.id)}
-                >
-                  {winner.name}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p 
+                    className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => handleProfileClick(winner.id)}
+                  >
+                    {winner.name}
+                  </p>
+                  {(() => {
+                    const user = getPlatformUserById(winner.id);
+                    const flag = user ? getCountryFlag(user.country) : '';
+                    return flag ? <span className="text-sm shrink-0">{flag}</span> : null;
+                  })()}
+                </div>
               </div>
 
               {/* Prize */}

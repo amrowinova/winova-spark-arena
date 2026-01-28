@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getCountryFlag } from '@/lib/countryFlags';
 
 interface Contestant {
   id: string;
@@ -87,12 +88,17 @@ export function FinalContestantCard({
             
             {/* Name & Votes */}
             <div className="flex-1 min-w-0">
-              <p 
-                className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
-                onClick={handleProfileClick}
-              >
-                {contestant.name}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p 
+                  className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
+                  onClick={handleProfileClick}
+                >
+                  {contestant.name}
+                </p>
+                {getCountryFlag(contestant.country) && (
+                  <span className="text-sm shrink-0">{getCountryFlag(contestant.country)}</span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {contestant.votes} {isRTL ? 'صوت' : 'votes'}
               </p>
