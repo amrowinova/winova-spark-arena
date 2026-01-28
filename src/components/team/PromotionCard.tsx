@@ -92,13 +92,17 @@ const promotionRequirements: Record<UserRank, typeof subscriberRequirements> = {
 
 interface PromotionCardProps {
   activeDirectCount: number;
+  rankOverride?: UserRank | null;
 }
 
-export function PromotionCard({ activeDirectCount }: PromotionCardProps) {
+export function PromotionCard({ activeDirectCount, rankOverride }: PromotionCardProps) {
   const { user } = useUser();
   const { language } = useLanguage();
+  
+  // Use override rank for dev testing, otherwise use actual user rank
+  const displayRank = rankOverride ?? user.rank;
 
-  const currentPromotion = promotionRequirements[user.rank];
+  const currentPromotion = promotionRequirements[displayRank];
   
   // ═══════════════════════════════════════════════════════════════════════
   // PRESIDENT VIEW - Top rank achieved
@@ -152,7 +156,7 @@ export function PromotionCard({ activeDirectCount }: PromotionCardProps) {
         <CardContent className="space-y-4">
           {/* Current → Next Rank with Progress */}
           <div className="flex items-center gap-3">
-            <RankBadge rank={user.rank} size="sm" />
+            <RankBadge rank={displayRank} size="sm" />
             <div className="flex-1">
               <Progress value={promotionProgress} className="h-2.5" />
             </div>
