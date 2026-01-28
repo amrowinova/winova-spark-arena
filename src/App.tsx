@@ -22,6 +22,7 @@ import Spotlight from "./pages/Spotlight";
 import Profile from "./pages/Profile";
 import PublicProfile from "./pages/PublicProfile";
 import Notifications from "./pages/Notifications";
+import HallOfFame from "./pages/HallOfFame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
                     <Route path="/spotlight" element={<Spotlight />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/hall-of-fame" element={<HallOfFame />} />
                     <Route path="/user/:userId" element={<PublicProfile />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
