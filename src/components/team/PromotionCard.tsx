@@ -158,12 +158,62 @@ function PresidentScreen({ language, country }: { language: string; country: str
               </h2>
               <p className="text-white/80 text-sm mt-1">
                 {language === 'ar'
-                  ? 'يتم اختيار رئيس الدولة من بين المدراء بناءً على أعلى النقاط والنشاط'
-                  : 'Country President is selected from managers with highest points and activity'}
+                  ? 'الأعلى أداءً بين جميع المدراء خلال هذه الدورة'
+                  : 'Highest performing manager during this cycle'}
               </p>
             </div>
           </div>
         </div>
+      </Card>
+
+      {/* What Does Being President Mean */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Info className="h-4 w-4 text-amber-500" />
+            {language === 'ar' ? 'ماذا يعني أنك رئيس WINOVA؟' : 'What Does Being WINOVA President Mean?'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {language === 'ar' 
+              ? 'كونك رئيس WINOVA في هذه الدولة يعني أنك الأعلى أداءً بين جميع المدراء خلال هذه الدورة.' 
+              : 'Being WINOVA President in this country means you are the highest performing manager during this cycle.'}
+          </p>
+          <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800 mt-2">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              {language === 'ar' 
+                ? 'الرئاسة ليست لقبًا دائمًا، بل مركز تنافسي يتم الحفاظ عليه بالقوة، النشاط، والاستمرارية.' 
+                : 'Presidency is not a permanent title, but a competitive position maintained through strength, activity, and consistency.'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* How President is Selected */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            🏆 {language === 'ar' ? 'كيف يتم اختيار رئيس الدولة؟' : 'How is the Country President Selected?'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {language === 'ar' 
+              ? 'يتم اختيار رئيس WINOVA في نهاية كل دورة وفق القاعدة التالية:' 
+              : 'WINOVA President is selected at the end of each cycle based on:'}
+          </p>
+          <ul className="space-y-1.5 text-sm">
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span>{language === 'ar' ? 'يتم التنافس بين المدراء فقط' : 'Competition is between managers only'}</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span>{language === 'ar' ? 'المدير صاحب أعلى مجموع نقاط في الدولة يصبح رئيس WINOVA للدورة التالية' : 'Manager with highest total points in the country becomes President for next cycle'}</span>
+            </li>
+          </ul>
+        </CardContent>
       </Card>
 
       {/* Requirements Card */}
@@ -171,10 +221,15 @@ function PresidentScreen({ language, country }: { language: string; country: str
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Shield className="h-5 w-5 text-amber-500" />
-            {language === 'ar' ? 'شروط الحفاظ على الرئاسة' : 'Requirements to Maintain Presidency'}
+            {language === 'ar' ? 'كيف تحافظ على الرئاسة؟' : 'How to Maintain Presidency?'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground mb-2">
+            {language === 'ar' 
+              ? 'للحفاظ على موقعك كرئيس للدولة، يجب عليك:' 
+              : 'To maintain your position as Country President, you must:'}
+          </p>
           {requirements.map((req, index) => (
             <div 
               key={index}
@@ -207,26 +262,107 @@ function PresidentScreen({ language, country }: { language: string; country: str
               )}
             </div>
           ))}
+          <p className="text-xs text-muted-foreground mt-2">
+            {language === 'ar' 
+              ? 'أي تراجع في نشاط المدراء أو نقاطهم قد يعرّض موقعك للرئاسة للخطر.' 
+              : 'Any decline in managers\' activity or points may jeopardize your presidency position.'}
+          </p>
         </CardContent>
       </Card>
 
-      {/* Competition Notice */}
-      <Card className="bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200">
+      {/* President Rewards */}
+      <Card className="border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30 dark:border-amber-800">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            💰 {language === 'ar' ? 'مكافآت رئيس WINOVA' : 'WINOVA President Rewards'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {language === 'ar' ? 'بصفتك رئيس الدولة، تحصل على:' : 'As Country President, you receive:'}
+          </p>
+          
+          <div className="p-3 bg-background rounded-lg border shadow-sm">
+            <div className="flex items-center justify-center gap-2 py-2">
+              <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">И 0.03</span>
+            </div>
+            <p className="text-xs text-center text-muted-foreground">
+              {language === 'ar' 
+                ? 'من كل اشتراك أو نشاط يتم من جميع المستخدمين داخل دولتك' 
+                : 'From every subscription or activity by all users in your country'}
+            </p>
+          </div>
+
+          <div className="space-y-1.5 text-sm text-muted-foreground">
+            <p>{language === 'ar' ? 'هذه المكافأة:' : 'This reward:'}</p>
+            <ul className="space-y-1 ps-4">
+              <li>• {language === 'ar' ? 'لا تعتمد على فريقك المباشر فقط' : 'Not limited to your direct team'}</li>
+              <li>• {language === 'ar' ? 'ترتبط بحجم الدولة وقوة نشاطها الكامل' : 'Tied to country size and total activity strength'}</li>
+            </ul>
+          </div>
+
+          <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg text-center">
+            <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              {language === 'ar' 
+                ? 'كلما زاد نشاط الدولة → زادت مكافأتك تلقائيًا كرئيس' 
+                : 'More country activity → More rewards automatically'}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Competition Warning */}
+      <Card className="bg-destructive/5 border-destructive/20">
         <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Rocket className="h-5 w-5 text-amber-600 mt-0.5" />
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-amber-800 text-sm">
-                {language === 'ar' 
-                  ? 'الرئاسة تنافسية!'
-                  : 'Presidency is Competitive!'}
+              <p className="text-sm font-medium text-destructive">
+                {language === 'ar' ? 'تنبيه مهم' : 'Important Warning'}
               </p>
-              <p className="text-amber-700 text-xs mt-1">
-                {language === 'ar'
-                  ? 'أقوى الفرق فقط تحافظ على الصدارة. استمر بتحفيز فريقك للحفاظ على موقعك.'
-                  : 'Only the strongest teams maintain the lead. Keep motivating your team to hold your position.'}
+              <p className="text-sm text-muted-foreground mt-1">
+                {language === 'ar' 
+                  ? 'الرئاسة تنافسية وليست محجوزة. أي مدير آخر قد يتجاوزك في النقاط إذا زاد نشاط فريقه وارتفع أداؤه.' 
+                  : 'Presidency is competitive, not reserved. Any other manager may surpass you in points if their team\'s activity and performance increases.'}
               </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Best Strategy */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Rocket className="h-4 w-4 text-primary" />
+            {language === 'ar' ? 'أفضل استراتيجية للحفاظ على الرئاسة' : 'Best Strategy to Maintain Presidency'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <ul className="space-y-1.5 text-sm">
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>{language === 'ar' ? 'تقوية المدراء' : 'Strengthen managers'}</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>{language === 'ar' ? 'دعم القادة' : 'Support leaders'}</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>{language === 'ar' ? 'رفع نشاط الشبكة بالكامل' : 'Boost entire network activity'}</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>{language === 'ar' ? 'بناء فرق قوية ومستقرة داخل الدولة' : 'Build strong, stable teams within the country'}</span>
+            </li>
+          </ul>
+          <div className="mt-3 p-2 bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/50 dark:to-yellow-900/50 rounded-lg text-center">
+            <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              {language === 'ar' 
+                ? 'أقوى دولة = رئيس ثابت + مكافآت أعلى' 
+                : 'Strongest country = Stable President + Higher rewards'}
+            </span>
           </div>
         </CardContent>
       </Card>
