@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Trophy, Crown, Medal, Award, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trophy, Crown, Medal, Award, Calendar, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -17,8 +17,19 @@ export interface ContestWin {
   prizeAmount: number;
 }
 
+export interface LuckyWin {
+  id: string;
+  date: string;
+  prizeAmount: number;
+  isToday?: boolean; // true = محظوظ اليوم, false = محظوظ الأمس/سابق
+}
+
+export type UserWin = 
+  | { type: 'contest'; data: ContestWin }
+  | { type: 'lucky'; data: LuckyWin };
+
 interface UserWinsSectionProps {
-  wins: ContestWin[];
+  wins: UserWin[];
   isOwnProfile?: boolean;
   onViewMore?: () => void;
   onViewContest?: (contestId: string) => void;
@@ -67,6 +78,123 @@ const positionConfig = {
   },
 };
 
+function ContestWinCard({ 
+  win, 
+  index, 
+  isRTL, 
+  onViewContest 
+}: { 
+  win: ContestWin; 
+  index: number; 
+  isRTL: boolean;
+  onViewContest?: (contestId: string) => void;
+}) {
+  const config = positionConfig[win.position];
+  const PositionIcon = config.icon;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.1 }}
+      onClick={() => onViewContest?.(win.contestId)}
+      className={cn(
+        'flex-shrink-0 w-[180px] rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md',
+        config.bgColor,
+        config.borderColor
+      )}
+    >
+      {/* Position Badge */}
+      <div className="flex items-center justify-between mb-3">
+        <div
+          className={cn(
+            'flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold text-white',
+            `bg-gradient-to-r ${config.gradient}`
+          )}
+        >
+          <PositionIcon className="h-3.5 w-3.5" />
+          {isRTL ? config.labelAr : config.labelEn}
+        </div>
+      </div>
+
+      {/* Date */}
+      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+        <Calendar className="h-3 w-3" />
+        {win.contestDate}
+      </div>
+
+      {/* Contest Name */}
+      <p className="text-sm font-medium text-foreground truncate mb-3">
+        {isRTL ? win.contestNameAr : win.contestName}
+      </p>
+
+      {/* Prize */}
+      <div className="flex items-center gap-1 text-lg font-bold text-nova">
+        <span>И</span>
+        <span>{win.prizeAmount}</span>
+        <span className="text-xs font-normal text-muted-foreground">Nova</span>
+      </div>
+    </motion.div>
+  );
+}
+
+function LuckyWinCard({ 
+  win, 
+  index, 
+  isRTL 
+}: { 
+  win: LuckyWin; 
+  index: number; 
+  isRTL: boolean;
+}) {
+  // Check if the win is from today
+  const today = new Date().toISOString().split('T')[0];
+  const isToday = win.date === today || win.isToday;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.1 }}
+      className={cn(
+        'flex-shrink-0 w-[180px] rounded-xl border p-4 transition-all',
+        'bg-gradient-to-br from-nova/10 via-nova/5 to-transparent',
+        'border-nova/30'
+      )}
+    >
+      {/* Lucky Badge */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-nova to-amber-500">
+          <Sparkles className="h-3.5 w-3.5" />
+          {isRTL 
+            ? (isToday ? 'محظوظ اليوم' : 'محظوظ') 
+            : (isToday ? "Today's Lucky" : 'Lucky Winner')
+          }
+        </div>
+      </div>
+
+      {/* Date */}
+      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+        <Calendar className="h-3 w-3" />
+        {win.date}
+      </div>
+
+      {/* Lucky Title */}
+      <p className="text-sm font-medium text-foreground truncate mb-3">
+        {isRTL ? '🍀 فوز محظوظ' : '🍀 Lucky Win'}
+      </p>
+
+      {/* Prize */}
+      <div className="flex items-center gap-1 text-lg font-bold text-nova">
+        <span>+</span>
+        <span>И</span>
+        <span>{win.prizeAmount}</span>
+        <span className="text-xs font-normal text-muted-foreground">Nova</span>
+      </div>
+    </motion.div>
+  );
+}
+
 export function UserWinsSection({ wins, isOwnProfile = false, onViewMore, onViewContest }: UserWinsSectionProps) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
@@ -74,6 +202,13 @@ export function UserWinsSection({ wins, isOwnProfile = false, onViewMore, onView
   if (wins.length === 0) {
     return null;
   }
+
+  // Sort by date descending (newest first)
+  const sortedWins = [...wins].sort((a, b) => {
+    const dateA = a.type === 'contest' ? a.data.contestDate : a.data.date;
+    const dateB = b.type === 'contest' ? b.data.contestDate : b.data.date;
+    return new Date(dateB).getTime() - new Date(dateA).getTime();
+  });
 
   // Title changes based on whose profile we're viewing
   const sectionTitle = isOwnProfile 
@@ -97,55 +232,27 @@ export function UserWinsSection({ wins, isOwnProfile = false, onViewMore, onView
 
       <ScrollArea className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={cn('flex gap-3 pb-2', isRTL && 'flex-row-reverse')}>
-          {wins.map((win, index) => {
-            const config = positionConfig[win.position];
-            const PositionIcon = config.icon;
-
-            return (
-              <motion.div
-                key={win.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                onClick={() => onViewContest?.(win.contestId)}
-                className={cn(
-                  'flex-shrink-0 w-[180px] rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md',
-                  config.bgColor,
-                  config.borderColor
-                )}
-              >
-                {/* Position Badge + Date */}
-                <div className="flex items-center justify-between mb-3">
-                  <div
-                    className={cn(
-                      'flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold text-white',
-                      `bg-gradient-to-r ${config.gradient}`
-                    )}
-                  >
-                    <PositionIcon className="h-3.5 w-3.5" />
-                    {isRTL ? config.labelAr : config.labelEn}
-                  </div>
-                </div>
-
-                {/* Date */}
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                  <Calendar className="h-3 w-3" />
-                  {win.contestDate}
-                </div>
-
-                {/* Contest Name */}
-                <p className="text-sm font-medium text-foreground truncate mb-3">
-                  {isRTL ? win.contestNameAr : win.contestName}
-                </p>
-
-                {/* Prize */}
-                <div className="flex items-center gap-1 text-lg font-bold text-nova">
-                  <span>И</span>
-                  <span>{win.prizeAmount}</span>
-                  <span className="text-xs font-normal text-muted-foreground">Nova</span>
-                </div>
-              </motion.div>
-            );
+          {sortedWins.map((win, index) => {
+            if (win.type === 'contest') {
+              return (
+                <ContestWinCard
+                  key={`contest-${win.data.id}`}
+                  win={win.data}
+                  index={index}
+                  isRTL={isRTL}
+                  onViewContest={onViewContest}
+                />
+              );
+            } else {
+              return (
+                <LuckyWinCard
+                  key={`lucky-${win.data.id}`}
+                  win={win.data}
+                  index={index}
+                  isRTL={isRTL}
+                />
+              );
+            }
           })}
         </div>
         <ScrollBar orientation="horizontal" />

@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils';
 import { CurrencyBadge } from '@/components/common/CurrencyBadge';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { P2PRatingsSheet, type P2PRating } from '@/components/profile/P2PRatingsSheet';
-import { UserWinsSection, type ContestWin } from '@/components/profile/UserWinsSection';
+import { UserWinsSection, type ContestWin, type LuckyWin, type UserWin } from '@/components/profile/UserWinsSection';
 import { getPlatformUserById, type PlatformUser } from '@/lib/platformUsers';
 import { toast } from 'sonner';
 
@@ -64,7 +64,7 @@ type PublicProfileUser = {
     luckyWins: number;
     paidVotesReceived: number;
   };
-  wins: ContestWin[];
+  wins: UserWin[];
   p2p: {
     rating: number;
     tradesCount: number;
@@ -123,8 +123,8 @@ const mockP2PRatings: P2PRating[] = [
   },
 ];
 
-// Mock wins data - Only daily contests (no weekly or challenges)
-const mockWins: ContestWin[] = [
+// Mock wins data - Daily contests AND lucky wins
+const mockContestWins: ContestWin[] = [
   {
     id: '1',
     contestId: 'C-1246',
@@ -152,6 +152,28 @@ const mockWins: ContestWin[] = [
     position: 3,
     prizeAmount: 15,
   },
+];
+
+// Mock lucky wins
+const mockLuckyWins: LuckyWin[] = [
+  {
+    id: 'lucky-1',
+    date: '2026-01-27',
+    prizeAmount: 468,
+    isToday: false,
+  },
+  {
+    id: 'lucky-2',
+    date: '2026-01-22',
+    prizeAmount: 156,
+    isToday: false,
+  },
+];
+
+// Combine into unified wins array
+const mockWins: UserWin[] = [
+  ...mockContestWins.map(w => ({ type: 'contest' as const, data: w })),
+  ...mockLuckyWins.map(w => ({ type: 'lucky' as const, data: w })),
 ];
 
 const buildPublicProfileUser = (u: PlatformUser): PublicProfileUser => {
