@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { HelpCircle } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -13,10 +11,10 @@ import {
   CycleProgressCard,
   UserPointsCard,
   DailyLuckyWinnersCard,
-  TierRankingList,
   HowItWorksCard,
   HowToEarnPointsSheet,
   WeeklyPerformanceCard,
+  NovaLeaderboard,
 } from '@/components/spotlight';
 
 // Mock spotlight data
@@ -52,7 +50,7 @@ const spotlightData = {
   ],
 
   // Daily pool and winners
-  dailyPool: 800, // Total Nova for today
+  dailyPool: 800,
   dailyWinners: [
     { 
       id: '5', 
@@ -76,18 +74,17 @@ const spotlightData = {
     return endOfDay;
   })(),
 
-  // Tier ranking (users in same rank as current user)
-  tierRanking: [
-    { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', avatar: '👤', points: 2450, position: 1 },
-    { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', avatar: '👤', points: 2120, position: 2 },
-    { id: 'current', name: 'أنت', avatar: '🌟', points: 1250, position: 3, isCurrentUser: true },
-    { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', avatar: '👤', points: 1180, position: 4 },
-    { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', avatar: '👤', points: 980, position: 5 },
+  // Nova Leaderboard - Top winners by highest single win
+  novaLeaderboard: [
+    { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', highestNovaWin: 2450, position: 1 },
+    { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', highestNovaWin: 1850, position: 2 },
+    { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', highestNovaWin: 1520, position: 3 },
+    { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', highestNovaWin: 980, position: 4 },
+    { id: '7', name: getPlatformUserById('7')?.nameAr || 'ليلى حسن', highestNovaWin: 750, position: 5 },
   ],
 };
 
 export default function SpotlightPage() {
-  const { t } = useTranslation();
   const { user } = useUser();
   const { language } = useLanguage();
   const isRTL = language === 'ar';
@@ -107,44 +104,11 @@ export default function SpotlightPage() {
           <HelpCircle className="h-4 w-4" />
           {isRTL ? 'كيف تكسب النقاط؟' : 'How to Earn Points?'}
         </Button>
-        <Button
-          variant="outline"
-          className="w-full flex items-center justify-center gap-2"
-          onClick={() => setShowEarnPointsSheet(true)}
-        >
-          <HelpCircle className="h-4 w-4" />
-          {isRTL ? 'كيف تكسب النقاط؟' : 'How to Earn Points?'}
-        </Button>
 
-        {/* Cycle Progress */}
+        {/* 1. User Points Card (First) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-        >
-          <CycleProgressCard
-            currentDay={spotlightData.currentDay}
-            totalDays={spotlightData.totalDays}
-            cyclePoints={spotlightData.userCyclePoints}
-          />
-        </motion.div>
-
-        {/* Weekly Performance */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <WeeklyPerformanceCard
-            currentWeek={spotlightData.currentWeek}
-            weeklyData={spotlightData.weeklyPerformance}
-          />
-        </motion.div>
-
-        {/* User Points Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
         >
           <UserPointsCard
             dailyPoints={spotlightData.userDailyPoints}
@@ -156,7 +120,32 @@ export default function SpotlightPage() {
           />
         </motion.div>
 
-        {/* Daily Lucky Winners with Countdown */}
+        {/* 2. Cycle Progress */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <CycleProgressCard
+            currentDay={spotlightData.currentDay}
+            totalDays={spotlightData.totalDays}
+            cyclePoints={spotlightData.userCyclePoints}
+          />
+        </motion.div>
+
+        {/* 3. Weekly Performance */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <WeeklyPerformanceCard
+            currentWeek={spotlightData.currentWeek}
+            weeklyData={spotlightData.weeklyPerformance}
+          />
+        </motion.div>
+
+        {/* 4. Daily Lucky Winners with Countdown */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -169,7 +158,7 @@ export default function SpotlightPage() {
           />
         </motion.div>
 
-        {/* How It Works */}
+        {/* 5. How It Works (Single Card) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -178,16 +167,13 @@ export default function SpotlightPage() {
           <HowItWorksCard />
         </motion.div>
 
-        {/* Tier Ranking */}
+        {/* 6. Nova Leaderboard (Last) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <TierRankingList
-            userRank={user.rank}
-            rankings={spotlightData.tierRanking}
-          />
+          <NovaLeaderboard entries={spotlightData.novaLeaderboard} />
         </motion.div>
       </main>
       
