@@ -1,6 +1,6 @@
-import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Star, Clock } from 'lucide-react';
+import { Trophy, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
@@ -16,22 +16,59 @@ interface DailyWinner {
 interface DailyLuckyWinnersCardProps {
   totalPool: number;
   winners: DailyWinner[];
+  yesterdayWinners?: DailyWinner[];
+  yesterdayPool?: number;
   nextDrawTime: Date;
 }
 
 export function DailyLuckyWinnersCard({
   totalPool,
   winners,
+  yesterdayWinners,
+  yesterdayPool,
   nextDrawTime,
 }: DailyLuckyWinnersCardProps) {
-  const { t } = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
   const isRTL = language === 'ar';
 
+  // Check if announcement time has passed
+  const [isAnnounced, setIsAnnounced] = useState(() => {
+    return new Date() >= nextDrawTime;
+  });
+
+  useEffect(() => {
+    const checkAnnouncement = () => {
+      const now = new Date();
+      if (now >= nextDrawTime && !isAnnounced) {
+        setIsAnnounced(true);
+      }
+    };
+
+    const interval = setInterval(checkAnnouncement, 1000);
+    return () => clearInterval(interval);
+  }, [nextDrawTime, isAnnounced]);
+
   const handleProfileClick = (userId: string) => {
     navigate(`/user/${userId}`);
   };
+
+  // Determine which winners and pool to show
+  const displayWinners = isAnnounced ? winners : (yesterdayWinners || winners);
+  const displayPool = isAnnounced ? totalPool : (yesterdayPool || totalPool);
+
+  // Calculate next draw time for after announcement
+  const getNextDrawTime = () => {
+    if (isAnnounced) {
+      // After today's announcement, show countdown to tomorrow
+      const tomorrow = new Date(nextDrawTime);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow;
+    }
+    return nextDrawTime;
+  };
+
+  const countdownTarget = getNextDrawTime();
 
   return (
     <Card className="overflow-hidden">
@@ -40,26 +77,34 @@ export function DailyLuckyWinnersCard({
         <div className="flex items-center justify-center gap-2 mb-2">
           <Clock className="h-4 w-4 text-nova" />
           <span className="text-sm text-muted-foreground">
-            {isRTL ? 'متبقي للإعلان عن محظوظي اليوم' : 'Time until lucky winners announcement'}
+            {isRTL 
+              ? (isAnnounced ? 'متبقي للإعلان عن محظوظي الغد' : 'متبقي للإعلان عن محظوظي اليوم')
+              : (isAnnounced ? 'Time until tomorrow\'s announcement' : 'Time until today\'s announcement')
+            }
           </span>
         </div>
-        <CountdownTimer targetDate={nextDrawTime} size="sm" hideDays />
+        <CountdownTimer targetDate={countdownTarget} size="sm" hideDays />
       </div>
 
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-nova" />
-            <span>{isRTL ? 'محظوظو اليوم' : "Today's Lucky Winners"}</span>
+            <span>
+              {isRTL 
+                ? (isAnnounced ? 'محظوظو اليوم' : 'محظوظو الأمس')
+                : (isAnnounced ? "Today's Lucky Winners" : "Yesterday's Lucky Winners")
+              }
+            </span>
           </div>
           <div className="flex items-center gap-1 bg-nova/10 px-3 py-1 rounded-full">
-            <span className="text-nova font-bold">И {totalPool.toFixed(0)}</span>
+            <span className="text-nova font-bold">И {displayPool.toFixed(0)}</span>
           </div>
         </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-3">
-        {winners.map((winner, index) => (
+        {displayWinners.map((winner, index) => (
           <motion.div
             key={winner.id}
             initial={{ opacity: 0, x: isRTL ? 20 : -20 }}

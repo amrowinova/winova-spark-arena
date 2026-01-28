@@ -49,7 +49,7 @@ const spotlightData = {
     { week: 14, points: 0 },
   ],
 
-  // Daily pool and winners
+  // Daily pool and winners (today - shown after announcement)
   dailyPool: 800,
   dailyWinners: [
     { 
@@ -62,6 +62,23 @@ const spotlightData = {
       id: '6', 
       name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', 
       prize: 280, 
+      percentage: 35 
+    },
+  ],
+
+  // Yesterday's winners (shown before today's announcement)
+  yesterdayPool: 720,
+  yesterdayWinners: [
+    { 
+      id: '4', 
+      name: getPlatformUserById('4')?.nameAr || 'خالد محمد', 
+      prize: 468, 
+      percentage: 65 
+    },
+    { 
+      id: '2', 
+      name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', 
+      prize: 252, 
       percentage: 35 
     },
   ],
@@ -154,6 +171,8 @@ export default function SpotlightPage() {
           <DailyLuckyWinnersCard
             totalPool={spotlightData.dailyPool}
             winners={spotlightData.dailyWinners}
+            yesterdayWinners={spotlightData.yesterdayWinners}
+            yesterdayPool={spotlightData.yesterdayPool}
             nextDrawTime={spotlightData.nextDrawTime}
           />
         </motion.div>
