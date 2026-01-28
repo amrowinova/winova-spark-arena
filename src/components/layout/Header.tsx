@@ -1,4 +1,5 @@
-import { Bell, Globe } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Globe, Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion } from 'framer-motion';
+import { SideDrawer } from './SideDrawer';
 
 interface HeaderProps {
   title?: string;
@@ -20,6 +22,7 @@ export function Header({ title }: HeaderProps) {
   const { user } = useUser();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Weekly rank (would come from backend)
   const weeklyRank = 47;
@@ -33,6 +36,8 @@ export function Header({ title }: HeaderProps) {
   };
 
   return (
+    <>
+      <SideDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
     <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-lg border-b border-border safe-top">
       <div className="flex items-center justify-between px-4 py-3">
         <motion.div 
@@ -95,6 +100,15 @@ export function Header({ title }: HeaderProps) {
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => setDrawerOpen(true)}
+            className="h-9 w-9 rounded-full"
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={toggleLanguage}
             className="h-9 w-9 rounded-full"
           >
@@ -118,5 +132,6 @@ export function Header({ title }: HeaderProps) {
         </div>
       </div>
     </header>
+    </>
   );
 }
