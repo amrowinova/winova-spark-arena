@@ -13,7 +13,7 @@ import { getPlatformUserById } from '@/lib/platformUsers';
 
 // Home Components
 import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
-import { ContestWinnersCard } from '@/components/home/ContestWinnersCard';
+
 import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
@@ -55,14 +55,6 @@ const mockContest = {
   entryFee: 10,
 };
 
-// Mock top 5 winners (from yesterday) - using PLATFORM_USERS IDs
-const contestWinners = [
-  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', avatar: getPlatformUserById('4')?.avatar || '👥', rank: 'Leader', prize: 468, position: 1 },
-  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', avatar: getPlatformUserById('5')?.avatar || '👤', rank: 'Marketer', prize: 187.2, position: 2 },
-  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', avatar: getPlatformUserById('6')?.avatar || '👥', rank: 'Leader', prize: 140.4, position: 3 },
-  { id: '7', name: getPlatformUserById('7')?.nameAr || 'ليلى حسن', avatar: getPlatformUserById('7')?.avatar || '👤', rank: 'Manager', prize: 93.6, position: 4 },
-  { id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', avatar: getPlatformUserById('8')?.avatar || '👤', rank: 'Marketer', prize: 46.8, position: 5 },
-];
 
 
 const formatBalanceOld = (value: number): string => {
@@ -214,15 +206,6 @@ export default function HomePage() {
           />
         </motion.div>
 
-        {/* Contest Winners - Show only 2-3 with See More */}
-        <motion.div variants={itemVariants}>
-          <ContestWinnersCard
-            winners={contestWinners}
-            prizePool={mockContest.prizePool}
-            country={user.country}
-            limit={3}
-          />
-        </motion.div>
 
         {/* Top Winners - Highest Nova Prize Earners */}
         <motion.div variants={itemVariants}>
