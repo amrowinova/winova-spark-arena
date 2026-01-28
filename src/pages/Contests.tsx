@@ -388,23 +388,41 @@ export default function ContestsPage() {
           <div className="space-y-2">
             <AnimatePresence>
               {displayParticipants.map((participant, index) => (
-                isStage1 ? (
-                  <ContestContestantCard
-                    key={participant.id}
-                    contestant={participant}
-                    index={index}
-                    onVote={handleVote}
-                    canVote={hasJoined}
-                  />
-                ) : (
-                  <FinalContestantCard
-                    key={participant.id}
-                    contestant={participant}
-                    index={index}
-                    onVote={handleVote}
-                    canVote={userQualified && hasJoined}
-                  />
-                )
+                <>
+                  {isStage1 ? (
+                    <ContestContestantCard
+                      key={participant.id}
+                      contestant={participant}
+                      index={index}
+                      onVote={handleVote}
+                      canVote={hasJoined}
+                    />
+                  ) : (
+                    <FinalContestantCard
+                      key={participant.id}
+                      contestant={participant}
+                      index={index}
+                      onVote={handleVote}
+                      canVote={userQualified && hasJoined}
+                    />
+                  )}
+                  
+                  {/* Fixed notice after 5th contestant */}
+                  {participant.rank === 5 && (
+                    <motion.div
+                      key="prize-notice"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg"
+                    >
+                      <p className="text-xs text-warning font-medium text-center">
+                        ⚠️ {language === 'ar' 
+                          ? 'الجوائز تعتمد على ترتيبك النهائي عند انتهاء وقت المسابقة'
+                          : 'Prizes depend on your final rank when the contest ends'}
+                      </p>
+                    </motion.div>
+                  )}
+                </>
               ))}
             </AnimatePresence>
           </div>
