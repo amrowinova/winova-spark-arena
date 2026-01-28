@@ -38,6 +38,7 @@ import {
   UserWinsSection,
   P2PRatingsSheet
 } from '@/components/profile';
+import type { UserWin, ContestWin, LuckyWin } from '@/components/profile/UserWinsSection';
 import { ProfileStatsSection } from '@/components/profile/ProfileStatsSection';
 
 // Mock stats data
@@ -51,8 +52,8 @@ const mockStats = {
   following: 156,
 };
 
-// Mock wins history - Daily contests only (count must match mockStats.wins)
-const mockWins = [
+// Mock wins history - Daily contests AND lucky wins
+const mockContestWins: ContestWin[] = [
   {
     id: '1',
     contestId: 'contest-1',
@@ -80,6 +81,28 @@ const mockWins = [
     position: 3 as const,
     prizeAmount: 13.5,
   },
+];
+
+// Mock lucky wins for own profile
+const mockLuckyWins: LuckyWin[] = [
+  {
+    id: 'lucky-1',
+    date: '2025-01-18',
+    prizeAmount: 312,
+    isToday: false,
+  },
+  {
+    id: 'lucky-2',
+    date: '2025-01-12',
+    prizeAmount: 98,
+    isToday: false,
+  },
+];
+
+// Combined wins array
+const mockWins: UserWin[] = [
+  ...mockContestWins.map(w => ({ type: 'contest' as const, data: w })),
+  ...mockLuckyWins.map(w => ({ type: 'lucky' as const, data: w })),
 ];
 
 // Mock P2P reputation with ALL required fields
