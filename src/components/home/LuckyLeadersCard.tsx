@@ -1,4 +1,4 @@
-import { Crown, ChevronRight } from 'lucide-react';
+import { Crown, ChevronRight, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,7 +8,8 @@ import { getPlatformUserById } from '@/lib/platformUsers';
 interface LeaderEntry {
   id: string;
   name: string;
-  highestNovaWin: number;
+  novaWon: number;
+  winDate: Date;
   position: number;
 }
 
@@ -16,13 +17,13 @@ interface LuckyLeadersCardProps {
   limit?: number;
 }
 
-// Mock data for top Nova winners globally
-const topNovaWinners: LeaderEntry[] = [
-  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', highestNovaWin: 2450, position: 1 },
-  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', highestNovaWin: 1850, position: 2 },
-  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', highestNovaWin: 1520, position: 3 },
-  { id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', highestNovaWin: 1340, position: 4 },
-  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', highestNovaWin: 1180, position: 5 },
+// Mock data for top Nova winners from lucky draws
+const topLuckyWinners: LeaderEntry[] = [
+  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', novaWon: 2450, winDate: new Date('2026-01-15'), position: 1 },
+  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', novaWon: 1850, winDate: new Date('2026-01-22'), position: 2 },
+  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', novaWon: 1520, winDate: new Date('2026-01-10'), position: 3 },
+  { id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', novaWon: 1340, winDate: new Date('2026-01-18'), position: 4 },
+  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', novaWon: 1180, winDate: new Date('2026-01-25'), position: 5 },
 ];
 
 export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
@@ -30,10 +31,17 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
   const navigate = useNavigate();
   const isRTL = language === 'ar';
 
-  const displayedWinners = topNovaWinners.slice(0, limit);
+  const displayedWinners = topLuckyWinners.slice(0, limit);
 
   const handleProfileClick = (userId: string) => {
     navigate(`/user/${userId}`);
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString(isRTL ? 'ar-SA' : 'en-US', {
+      day: 'numeric',
+      month: 'short',
+    });
   };
 
   const getPositionStyle = (position: number) => {
@@ -69,7 +77,7 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <Crown className="h-4 w-4 text-nova" />
             <span>
-              {isRTL ? 'متصدري المحظوظين' : 'Lucky Leaders'}
+              {isRTL ? 'متصدّري المحظوظين' : 'Lucky Leaders'}
             </span>
           </CardTitle>
           <Button 
@@ -78,14 +86,14 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
             size="sm" 
             className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
           >
-            <Link to="/hall-of-fame">
+            <Link to="/lucky-leaders">
               {isRTL ? 'مشاهدة المزيد' : 'See More'}
               <ChevronRight className="h-3.5 w-3.5 ms-0.5" />
             </Link>
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {isRTL ? 'أعلى الرابحين Nova على الإطلاق' : 'Top Nova winners of all time'}
+          {isRTL ? 'أعلى الرابحين في سحوبات المحظوظين' : 'Top winners from lucky draws'}
         </p>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-2">
@@ -111,12 +119,16 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
               >
                 {entry.name}
               </p>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span>{formatDate(entry.winDate)}</span>
+              </div>
             </div>
 
             {/* Nova Amount */}
             <div className="text-end">
               <p className={`font-bold text-sm ${entry.position === 1 ? 'text-nova' : 'text-foreground'}`}>
-                И {entry.highestNovaWin.toLocaleString()}
+                И {entry.novaWon.toLocaleString()}
               </p>
             </div>
           </div>
