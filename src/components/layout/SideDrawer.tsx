@@ -16,10 +16,8 @@ interface SideDrawerProps {
 }
 
 const menuItems = [
-  { icon: Trophy, path: '/hall-of-fame', labelEn: 'Winners Record', labelAr: 'سجل الفائزون', emoji: '🏆' },
-  { icon: Users, path: '/team', labelEn: 'Team', labelAr: 'الفريق', emoji: '👥' },
+  { icon: Trophy, path: '/winners', labelEn: 'Winners Record', labelAr: 'سجل الفائزون', emoji: '🏆' },
   { icon: ArrowLeftRight, path: '/p2p', labelEn: 'P2P', labelAr: 'P2P', emoji: '🔁' },
-  { icon: Sparkles, path: '/spotlight', labelEn: 'Lucky Points', labelAr: 'نقاط المحظوظين', emoji: '✨' },
 ];
 
 const secondaryItems = [
