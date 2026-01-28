@@ -1,7 +1,8 @@
-import { Crown } from 'lucide-react';
+import { Crown, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getPlatformUserById } from '@/lib/platformUsers';
 
 interface LeaderEntry {
@@ -17,11 +18,11 @@ interface LuckyLeadersCardProps {
 
 // Mock data for top Nova winners globally
 const topNovaWinners: LeaderEntry[] = [
-  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', highestNovaWin: 468, position: 1 },
-  { id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', highestNovaWin: 312, position: 2 },
-  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', highestNovaWin: 245, position: 3 },
-  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', highestNovaWin: 187, position: 4 },
-  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', highestNovaWin: 156, position: 5 },
+  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', highestNovaWin: 2450, position: 1 },
+  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', highestNovaWin: 1850, position: 2 },
+  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', highestNovaWin: 1520, position: 3 },
+  { id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', highestNovaWin: 1340, position: 4 },
+  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', highestNovaWin: 1180, position: 5 },
 ];
 
 export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
@@ -64,12 +65,25 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
   return (
     <Card className="overflow-hidden border border-border bg-card">
       <CardHeader className="pb-2 pt-4 px-4">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <Crown className="h-4 w-4 text-nova" />
-          <span>
-            {isRTL ? 'متصدرين المحظوظين' : 'Lucky Leaders'}
-          </span>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Crown className="h-4 w-4 text-nova" />
+            <span>
+              {isRTL ? 'متصدرين المحظوظين' : 'Lucky Leaders'}
+            </span>
+          </CardTitle>
+          <Button 
+            asChild 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Link to="/hall-of-fame">
+              {isRTL ? 'مشاهدة المزيد' : 'See More'}
+              <ChevronRight className="h-3.5 w-3.5 ms-0.5" />
+            </Link>
+          </Button>
+        </div>
         <p className="text-xs text-muted-foreground">
           {isRTL ? 'أعلى الرابحين Nova على الإطلاق' : 'Top Nova winners of all time'}
         </p>
