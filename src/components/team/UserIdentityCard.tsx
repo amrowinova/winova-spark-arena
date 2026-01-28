@@ -3,12 +3,19 @@ import { Hash, TrendingUp, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { RankBadge } from '@/components/common/RankBadge';
 import { ProgressRing } from '@/components/common/ProgressRing';
-import { useUser } from '@/contexts/UserContext';
+import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-export function UserIdentityCard() {
+interface UserIdentityCardProps {
+  rankOverride?: UserRank | null;
+}
+
+export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
   const { user } = useUser();
   const { language } = useLanguage();
+  
+  // Use override rank for dev testing, otherwise use actual user rank
+  const displayRank = rankOverride ?? user.rank;
 
   // Weekly rank (mock - would come from backend)
   const weeklyRank = 47;
@@ -33,7 +40,7 @@ export function UserIdentityCard() {
               <h2 className="text-white text-xl font-bold mb-1">
                 {user.name}
               </h2>
-              <RankBadge rank={user.rank} size="sm" />
+              <RankBadge rank={displayRank} size="sm" />
             </div>
 
             {/* Activity Ring */}

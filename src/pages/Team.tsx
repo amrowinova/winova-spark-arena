@@ -10,6 +10,7 @@ import { WarningCard } from '@/components/team/WarningCard';
 import { DirectTeamList } from '@/components/team/DirectTeamList';
 import { IndirectTeamList } from '@/components/team/IndirectTeamList';
 import { TeamMember } from '@/components/team/TeamMemberCard';
+import { DevRankSwitcher } from '@/components/team/DevRankSwitcher';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -79,6 +80,10 @@ export default function TeamPage() {
   
   const [viewLevel, setViewLevel] = useState<ViewLevel>('overview');
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  
+  // Dev-only: Override rank for testing UI
+  const [devRankOverride, setDevRankOverride] = useState<UserRank | null>(null);
+  const displayRank = devRankOverride ?? user.rank;
 
   const activeDirectCount = directTeamMembers.filter(m => m.active).length;
   const inactiveCount = directTeamMembers.length - activeDirectCount;
@@ -145,8 +150,15 @@ export default function TeamPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('team.title')} />
       <main className="flex-1 px-4 py-4 pb-20 space-y-4">
-        {/* User Identity Card */}
-        <UserIdentityCard />
+        {/* Dev-only Rank Switcher */}
+        <DevRankSwitcher
+          currentRank={displayRank}
+          onRankChange={setDevRankOverride}
+          language={language}
+        />
+        
+        {/* User Identity Card - uses displayRank for testing */}
+        <UserIdentityCard rankOverride={devRankOverride} />
 
         {/* Team Size Card */}
         <TeamSizeCard 
@@ -159,8 +171,8 @@ export default function TeamPage() {
           directTeamTotalCount={directTeamMembers.length}
         />
 
-        {/* Promotion Card */}
-        <PromotionCard activeDirectCount={activeDirectCount} />
+        {/* Promotion Card - uses displayRank for testing */}
+        <PromotionCard activeDirectCount={activeDirectCount} rankOverride={devRankOverride} />
 
         {/* Warning Card (dynamic) */}
         <WarningCard 
