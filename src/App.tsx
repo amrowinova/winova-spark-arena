@@ -23,7 +23,9 @@ import Profile from "./pages/Profile";
 import PublicProfile from "./pages/PublicProfile";
 import Notifications from "./pages/Notifications";
 import HallOfFame from "./pages/HallOfFame";
+import LuckyLeaders from "./pages/LuckyLeaders";
 import NotFound from "./pages/NotFound";
+
 
 const queryClient = new QueryClient();
 
@@ -50,6 +52,7 @@ const App = () => (
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/hall-of-fame" element={<HallOfFame />} />
+                    <Route path="/lucky-leaders" element={<LuckyLeaders />} />
                     <Route path="/user/:userId" element={<PublicProfile />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

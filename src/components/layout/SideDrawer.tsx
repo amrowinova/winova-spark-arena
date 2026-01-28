@@ -20,7 +20,7 @@ const mainItems = [
   { icon: Home, path: '/', labelEn: 'Home', labelAr: 'الرئيسية', emoji: '🏠' },
   { icon: Trophy, path: '/contests', labelEn: 'Contests', labelAr: 'المسابقات', emoji: '🏆' },
   { icon: Star, path: '/hall-of-fame', labelEn: 'Top Winners', labelAr: 'متصدري الفائزون', emoji: '⭐' },
-  { icon: Crown, path: '/spotlight', labelEn: 'Lucky Leaders', labelAr: 'متصدري المحظوظين', emoji: '🍀' },
+  { icon: Crown, path: '/lucky-leaders', labelEn: 'Lucky Leaders', labelAr: 'متصدّري المحظوظين', emoji: '🍀' },
   { icon: Sparkles, path: '/spotlight', labelEn: 'Lucky Points', labelAr: 'نقاط المحظوظين', emoji: '✨' },
   { icon: Wallet, path: '/wallet', labelEn: 'Wallet', labelAr: 'المحفظة', emoji: '💰' },
   { icon: MessageCircle, path: '/chat', labelEn: 'Chat', labelAr: 'الدردشة', emoji: '💬' },
