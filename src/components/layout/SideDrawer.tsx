@@ -1,4 +1,4 @@
-import { Trophy, ArrowLeftRight, Sparkles, Settings, Globe, HelpCircle, FileText, LogOut } from 'lucide-react';
+import { Home, Trophy, Star, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -15,13 +15,21 @@ interface SideDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const menuItems = [
-  { icon: Trophy, path: '/winners', labelEn: 'Winners Record', labelAr: 'سجل الفائزون', emoji: '🏆' },
-  { icon: ArrowLeftRight, path: '/p2p', labelEn: 'P2P', labelAr: 'P2P', emoji: '🔁' },
+// Main navigation sections
+const mainItems = [
+  { icon: Home, path: '/', labelEn: 'Home', labelAr: 'الرئيسية', emoji: '🏠' },
+  { icon: Trophy, path: '/contests', labelEn: 'Contests', labelAr: 'المسابقات', emoji: '🏆' },
+  { icon: Star, path: '/hall-of-fame', labelEn: 'Top Winners', labelAr: 'متصدري الفائزون', emoji: '⭐' },
   { icon: Sparkles, path: '/spotlight', labelEn: 'Lucky Points', labelAr: 'نقاط المحظوظين', emoji: '✨' },
+  { icon: Wallet, path: '/wallet', labelEn: 'Wallet', labelAr: 'المحفظة', emoji: '💰' },
+  { icon: MessageCircle, path: '/chat', labelEn: 'Chat', labelAr: 'الدردشة', emoji: '💬' },
+  { icon: Users, path: '/team', labelEn: 'Team', labelAr: 'الفريق', emoji: '👥' },
 ];
 
+// Secondary menu items
 const secondaryItems = [
+  { icon: Trophy, path: '/winners', labelEn: 'Winners Record', labelAr: 'سجل الفائزون', emoji: '📜' },
+  { icon: ArrowLeftRight, path: '/p2p', labelEn: 'P2P', labelAr: 'P2P', emoji: '🔁' },
   { icon: Settings, path: '/settings', labelEn: 'Settings', labelAr: 'الإعدادات', emoji: '⚙️' },
   { icon: HelpCircle, path: '/help', labelEn: 'Help', labelAr: 'المساعدة', emoji: '❓' },
   { icon: FileText, path: '/policies', labelEn: 'Policies', labelAr: 'السياسات', emoji: '📄' },
@@ -53,9 +61,10 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
           </SheetTitle>
         </SheetHeader>
         
-        <nav className="flex flex-col h-[calc(100%-65px)]">
+        <nav className="flex flex-col h-[calc(100%-65px)] overflow-y-auto">
           <div className="p-2 flex-1">
-            {menuItems.map((item) => {
+            {/* Main Navigation */}
+            {mainItems.map((item) => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
               
@@ -81,6 +90,7 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
             
             <Separator className="my-3" />
             
+            {/* Secondary Items */}
             {secondaryItems.map((item) => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
