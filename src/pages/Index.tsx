@@ -14,7 +14,7 @@ import { getPlatformUserById } from '@/lib/platformUsers';
 // Home Components
 import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
 import { ContestWinnersCard } from '@/components/home/ContestWinnersCard';
-import { LuckyWinnersCard } from '@/components/home/LuckyWinnersCard';
+import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
 import { useActiveUsers } from '@/hooks/useActiveUsers';
 
@@ -63,11 +63,6 @@ const contestWinners = [
   { id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', avatar: getPlatformUserById('8')?.avatar || '👤', rank: 'Marketer', prize: 46.8, position: 5 },
 ];
 
-// Mock lucky (spotlight) winners - using PLATFORM_USERS IDs
-const luckyWinners = [
-  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', avatar: getPlatformUserById('2')?.avatar || '👤', prize: 18.5 },
-  { id: '3', name: getPlatformUserById('3')?.nameAr || 'محمد كريم', avatar: getPlatformUserById('3')?.avatar || '👤', prize: 9.75 },
-];
 
 const formatBalanceOld = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
@@ -228,14 +223,10 @@ export default function HomePage() {
           />
         </motion.div>
 
-        {/* Lucky Winners - Compact */}
+        {/* Lucky Leaders - Top Nova Winners */}
         <motion.div variants={itemVariants}>
-          <LuckyWinnersCard
-            winners={luckyWinners}
-            country={user.country}
-          />
+          <LuckyLeadersCard limit={5} />
         </motion.div>
-
       </motion.div>
 
       {/* Join Contest Dialog - Simplified Single Payment */}
