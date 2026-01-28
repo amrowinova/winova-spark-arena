@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Target, CheckCircle2, Circle } from 'lucide-react';
+import { Target, CheckCircle2, Circle, Crown, Users, Trophy, Flame, Rocket, Shield, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { RankBadge } from '@/components/common/RankBadge';
@@ -95,6 +95,144 @@ interface PromotionCardProps {
   rankOverride?: UserRank | null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PRESIDENT SCREEN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+function PresidentScreen({ language, country }: { language: string; country: string }) {
+  // Mock data - would come from backend
+  const activeManagers = 18;
+  const requiredManagers = 15;
+  const currentPoints = 12500;
+  const nextCompetitorPoints = 11200;
+  const teamActivityPercent = 87;
+
+  const requirements = [
+    {
+      icon: Users,
+      titleEn: '15+ Active Managers',
+      titleAr: '15+ مدير نشط',
+      current: activeManagers,
+      required: requiredManagers,
+      met: activeManagers >= requiredManagers,
+    },
+    {
+      icon: Trophy,
+      titleEn: 'Highest Points in Country',
+      titleAr: 'أعلى نقاط في الدولة',
+      current: currentPoints,
+      required: nextCompetitorPoints,
+      met: currentPoints > nextCompetitorPoints,
+      isPoints: true,
+    },
+    {
+      icon: Flame,
+      titleEn: 'Active Team Engagement',
+      titleAr: 'نشاط مستمر للفريق',
+      current: teamActivityPercent,
+      required: 70,
+      met: teamActivityPercent >= 70,
+      isPercent: true,
+    },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15 }}
+      className="space-y-4"
+    >
+      {/* President Status Card */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <div className="bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-400 p-5">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-4xl shadow-lg">
+              👑
+            </div>
+            <div className="flex-1">
+              <h2 className="text-white text-lg font-bold">
+                {language === 'ar' 
+                  ? `أنت رئيس WINOVA في ${country}`
+                  : `You are WINOVA President in ${country}`}
+              </h2>
+              <p className="text-white/80 text-sm mt-1">
+                {language === 'ar'
+                  ? 'يتم اختيار رئيس الدولة من بين المدراء بناءً على أعلى النقاط والنشاط'
+                  : 'Country President is selected from managers with highest points and activity'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Requirements Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="h-5 w-5 text-amber-500" />
+            {language === 'ar' ? 'شروط الحفاظ على الرئاسة' : 'Requirements to Maintain Presidency'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {requirements.map((req, index) => (
+            <div 
+              key={index}
+              className={`flex items-center gap-3 p-3 rounded-lg ${
+                req.met ? 'bg-primary/5 border border-primary/20' : 'bg-destructive/5 border border-destructive/20'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                req.met ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
+              }`}>
+                <req.icon className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">
+                  {language === 'ar' ? req.titleAr : req.titleEn}
+                </p>
+                <p className={`text-xs ${req.met ? 'text-primary' : 'text-destructive'}`}>
+                  {req.isPoints 
+                    ? `${req.current.toLocaleString()} ${language === 'ar' ? 'نقطة' : 'pts'}`
+                    : req.isPercent
+                    ? `${req.current}%`
+                    : `${req.current}/${req.required}`
+                  }
+                </p>
+              </div>
+              {req.met ? (
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Competition Notice */}
+      <Card className="bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Rocket className="h-5 w-5 text-amber-600 mt-0.5" />
+            <div>
+              <p className="font-semibold text-amber-800 text-sm">
+                {language === 'ar' 
+                  ? 'الرئاسة تنافسية!'
+                  : 'Presidency is Competitive!'}
+              </p>
+              <p className="text-amber-700 text-xs mt-1">
+                {language === 'ar'
+                  ? 'أقوى الفرق فقط تحافظ على الصدارة. استمر بتحفيز فريقك للحفاظ على موقعك.'
+                  : 'Only the strongest teams maintain the lead. Keep motivating your team to hold your position.'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 export function PromotionCard({ activeDirectCount, rankOverride }: PromotionCardProps) {
   const { user } = useUser();
   const { language } = useLanguage();
@@ -105,32 +243,10 @@ export function PromotionCard({ activeDirectCount, rankOverride }: PromotionCard
   const currentPromotion = promotionRequirements[displayRank];
   
   // ═══════════════════════════════════════════════════════════════════════
-  // PRESIDENT VIEW - Top rank achieved
+  // PRESIDENT VIEW - Full President Screen
   // ═══════════════════════════════════════════════════════════════════════
   if (!currentPromotion.nextRank) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
-        <Card className="p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 flex items-center justify-center text-2xl shadow-lg">
-              👑
-            </div>
-            <div>
-              <p className="font-bold text-amber-700">
-                {language === 'ar' ? 'أعلى رتبة!' : 'Top Rank!'}
-              </p>
-              <p className="text-sm text-amber-600">
-                {language === 'ar' ? 'أنت رئيس WINOVA' : 'You are a WINOVA President'}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
-    );
+    return <PresidentScreen language={language} country={user.country} />;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
