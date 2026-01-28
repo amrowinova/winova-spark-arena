@@ -1,4 +1,4 @@
-import { Trophy, Wallet, Star, Users, MessageCircle, Home, Sparkles } from 'lucide-react';
+import { Trophy, Users, ArrowLeftRight, Sparkles, Settings, HelpCircle, FileText, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -8,6 +8,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 interface SideDrawerProps {
   open: boolean;
@@ -15,14 +16,19 @@ interface SideDrawerProps {
 }
 
 const menuItems = [
-  { icon: Home, path: '/', labelEn: 'Home', labelAr: 'الرئيسية' },
-  { icon: Trophy, path: '/contests', labelEn: 'Contests', labelAr: 'المسابقات' },
-  { icon: Sparkles, path: '/hall-of-fame', labelEn: 'Top Winners', labelAr: 'متصدري الفائزون', highlight: true },
-  { icon: Star, path: '/spotlight', labelEn: 'Spotlight', labelAr: 'نقاط المحظوظين' },
-  { icon: Wallet, path: '/wallet', labelEn: 'Wallet', labelAr: 'المحفظة' },
-  { icon: MessageCircle, path: '/chat', labelEn: 'Chat', labelAr: 'الدردشة' },
-  { icon: Users, path: '/team', labelEn: 'Team', labelAr: 'الفريق' },
+  { icon: Trophy, path: '/hall-of-fame', labelEn: 'Winners Record', labelAr: 'سجل الفائزون', emoji: '🏆' },
+  { icon: Users, path: '/team', labelEn: 'Team', labelAr: 'الفريق', emoji: '👥' },
+  { icon: ArrowLeftRight, path: '/p2p', labelEn: 'P2P', labelAr: 'P2P', emoji: '🔁' },
+  { icon: Sparkles, path: '/spotlight', labelEn: 'Lucky Points', labelAr: 'نقاط المحظوظين', emoji: '✨' },
 ];
+
+const secondaryItems = [
+  { icon: Settings, path: '/settings', labelEn: 'Settings', labelAr: 'الإعدادات', emoji: '⚙️' },
+  { icon: HelpCircle, path: '/help', labelEn: 'Help', labelAr: 'المساعدة', emoji: '❓' },
+  { icon: FileText, path: '/policies', labelEn: 'Policies', labelAr: 'السياسات', emoji: '📄' },
+];
+
+const logoutItem = { icon: LogOut, path: '/logout', labelEn: 'Logout', labelAr: 'تسجيل الخروج', emoji: '🚪' };
 
 export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
   const { language } = useLanguage();
@@ -44,37 +50,71 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
           </SheetTitle>
         </SheetHeader>
         
-        <nav className="p-2">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-            
-            return (
-              <button
-                key={item.path}
-                onClick={() => handleNavigation(item.path)}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
-                  isActive 
-                    ? 'bg-primary text-primary-foreground' 
-                    : item.highlight
-                      ? 'bg-nova/10 text-nova hover:bg-nova/20'
+        <nav className="flex flex-col h-[calc(100%-65px)]">
+          <div className="p-2 flex-1">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
+              
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
+                    isActive 
+                      ? 'bg-primary text-primary-foreground' 
                       : 'hover:bg-muted text-foreground'
-                )}
-              >
-                <Icon className={cn(
-                  'h-5 w-5',
-                  item.highlight && !isActive && 'text-nova'
-                )} />
-                <span className="font-medium text-sm">
-                  {isRTL ? item.labelAr : item.labelEn}
-                </span>
-                {item.highlight && (
-                  <span className="ms-auto text-base">🏆</span>
-                )}
-              </button>
-            );
-          })}
+                  )}
+                >
+                  <span className="text-base">{item.emoji}</span>
+                  <Icon className="h-5 w-5" />
+                  <span className="font-medium text-sm">
+                    {isRTL ? item.labelAr : item.labelEn}
+                  </span>
+                </button>
+              );
+            })}
+            
+            <Separator className="my-3" />
+            
+            {secondaryItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
+              
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
+                    isActive 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'hover:bg-muted text-foreground'
+                  )}
+                >
+                  <span className="text-base">{item.emoji}</span>
+                  <Icon className="h-5 w-5" />
+                  <span className="font-medium text-sm">
+                    {isRTL ? item.labelAr : item.labelEn}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          
+          <div className="p-2 border-t border-border">
+            <button
+              onClick={() => handleNavigation(logoutItem.path)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-destructive hover:bg-destructive/10"
+            >
+              <span className="text-base">{logoutItem.emoji}</span>
+              <logoutItem.icon className="h-5 w-5" />
+              <span className="font-medium text-sm">
+                {isRTL ? logoutItem.labelAr : logoutItem.labelEn}
+              </span>
+            </button>
+          </div>
         </nav>
       </SheetContent>
     </Sheet>
