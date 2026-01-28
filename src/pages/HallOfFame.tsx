@@ -81,7 +81,7 @@ export default function HallOfFame() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <InnerPageHeader title={isRTL ? 'الفائزون' : 'Winners'} />
+      <InnerPageHeader title={isRTL ? 'متصدري الفائزون' : 'Top Winners'} />
       
       <motion.main
         variants={containerVariants}
