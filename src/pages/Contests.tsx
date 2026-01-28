@@ -136,8 +136,10 @@ export default function ContestsPage() {
   // Check if user qualified for final
   const userQualified = userRank <= 50;
   
-  // Votes needed for top 50
+  // Votes needed for different thresholds
   const top50Threshold = participants[49]?.votes || 45;
+  const top5Threshold = participants[4]?.votes || 85;
+  const rank1Threshold = participants[0]?.votes || 100;
 
   const handleJoinContest = () => {
     const entryFee = contest.entryFee;
@@ -315,21 +317,16 @@ export default function ContestsPage() {
           )}
         </motion.div>
 
-        {/* User Status Card - Conditional */}
-        {isStage1 ? (
-          <ContestUserStatusCard
-            userRank={userRank}
-            userVotes={userVotes}
-            votesNeededForTop50={top50Threshold}
-            hasJoined={hasJoined}
-          />
-        ) : (
-          <FinalStageUserCard
-            userRank={userQualified ? userRank : null}
-            userVotes={userVotes}
-            isQualified={userQualified && hasJoined}
-          />
-        )}
+        {/* User Status Card - Unified for both stages */}
+        <ContestUserStatusCard
+          userRank={userRank}
+          userVotes={userVotes}
+          stage={isStage1 ? 'qualifying' : 'final'}
+          votesNeededForTop50={top50Threshold}
+          votesNeededForTop5={top5Threshold}
+          votesNeededForRank1={rank1Threshold}
+          hasJoined={hasJoined}
+        />
 
         {/* Stage-specific Info Boxes */}
         {isStage1 && (
