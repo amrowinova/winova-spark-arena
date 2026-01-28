@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Globe, Menu } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -97,25 +97,6 @@ export function Header({ title }: HeaderProps) {
         </motion.div>
 
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setDrawerOpen(true)}
-            className="h-9 w-9 rounded-full"
-          >
-            <Menu className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleLanguage}
-            className="h-9 w-9 rounded-full"
-          >
-            <Globe className="h-4 w-4" />
-            <span className="sr-only">{t('settings.language')}</span>
-          </Button>
-          
           <Button 
             variant="ghost" 
             size="icon" 
@@ -128,6 +109,15 @@ export function Header({ title }: HeaderProps) {
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setDrawerOpen(true)}
+            className="h-9 w-9 rounded-full"
+          >
+            <Menu className="h-4 w-4" />
           </Button>
         </div>
       </div>

@@ -2,34 +2,18 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
-  Menu, 
-  Users, 
-  ArrowLeftRight, 
-  Settings, 
-  HelpCircle, 
-  FileText, 
-  LogOut,
-  Trophy,
   MapPin,
-  Sparkles,
   Pencil,
   Share2,
   ArrowLeft,
   Circle
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { 
@@ -203,19 +187,8 @@ export default function Profile() {
   const { user } = useUser();
   const navigate = useNavigate();
   const isRTL = i18n.language === 'ar';
-  const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [ratingsOpen, setRatingsOpen] = useState(false);
-
-  const menuItems = [
-    { icon: Trophy, labelEn: 'Winners Record', labelAr: 'سجل الفائزون', path: '/winners' },
-    { icon: Users, labelEn: 'Team', labelAr: 'الفريق', path: '/team' },
-    { icon: ArrowLeftRight, labelEn: 'P2P', labelAr: 'P2P', path: '/p2p' },
-    { icon: Sparkles, labelEn: 'Lucky Points', labelAr: 'نقاط المحظوظين', path: '/spotlight' },
-    { icon: Settings, labelEn: 'Settings', labelAr: 'الإعدادات', path: '/settings' },
-    { icon: HelpCircle, labelEn: 'Help', labelAr: 'المساعدة', path: '/support' },
-    { icon: FileText, labelEn: 'Policies', labelAr: 'السياسات', path: '/policies' },
-  ];
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/profile/${user.username}`;
@@ -241,7 +214,7 @@ export default function Profile() {
   return (
     <AppLayout showHeader={false}>
       <div className="min-h-screen bg-background">
-        {/* Unified Header - Back + Share only (no title, no divider) */}
+        {/* Unified Header - Back + Share only (no menu button) */}
         <header className="sticky top-0 z-40 bg-background safe-top">
           <div className="flex items-center justify-between px-4 py-3">
             <Button 
@@ -253,56 +226,14 @@ export default function Profile() {
               <ArrowLeft className={`h-5 w-5 ${isRTL ? 'rotate-180' : ''}`} />
             </Button>
             
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9"
-                onClick={handleShare}
-              >
-                <Share2 className="h-5 w-5" />
-              </Button>
-              
-              {/* Menu for own profile only */}
-              <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side={isRTL ? 'left' : 'right'} className="w-72">
-                  <SheetHeader>
-                    <SheetTitle>{isRTL ? 'القائمة' : 'Menu'}</SheetTitle>
-                  </SheetHeader>
-                  <nav className="mt-6 flex flex-col gap-2">
-                    {menuItems.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted transition-colors"
-                      >
-                        <item.icon className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium">{isRTL ? item.labelAr : item.labelEn}</span>
-                      </Link>
-                    ))}
-                    
-                    <div className="border-t border-border my-2" />
-                    
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false);
-                        // Handle logout
-                      }}
-                      className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
-                    >
-                      <LogOut className="h-5 w-5" />
-                      <span className="font-medium">{t('settings.logout')}</span>
-                    </button>
-                  </nav>
-                </SheetContent>
-              </Sheet>
-            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9"
+              onClick={handleShare}
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
           </div>
         </header>
 
