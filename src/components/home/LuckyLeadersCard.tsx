@@ -69,7 +69,7 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <Crown className="h-4 w-4 text-nova" />
             <span>
-              {isRTL ? 'متصدرين المحظوظين' : 'Lucky Leaders'}
+              {isRTL ? 'متصدري الفائزون' : 'Top Winners'}
             </span>
           </CardTitle>
           <Button 
