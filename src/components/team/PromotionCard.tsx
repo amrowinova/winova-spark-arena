@@ -688,6 +688,203 @@ export function PromotionCard({ activeDirectCount, rankOverride }: PromotionCard
           </Card>
         </>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          LEADER ONLY: Explanation & Earnings Section
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {displayRank === 'leader' && (
+        <>
+          {/* What is a Leader */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                {language === 'ar' ? 'ما معنى رتبة "قائد" في WINOVA؟' : 'What is a "Leader" in WINOVA?'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar' 
+                  ? 'القائد هو شخص:' 
+                  : 'A leader is someone who:'}
+              </p>
+              <ul className="space-y-1.5 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'بنى فريق مسوّقين ناجحين' : 'Built a team of successful marketers'}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'لا يعمل وحده، بل يدير شبكة' : 'Does not work alone, but manages a network'}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>{language === 'ar' ? 'يركّز على النشاط، الاستمرارية، وجودة الفريق' : 'Focuses on activity, consistency, and team quality'}</span>
+                </li>
+              </ul>
+              <div className="mt-3 p-2 bg-primary/10 rounded-lg text-center">
+                <span className="text-sm font-medium text-primary">
+                  {language === 'ar' ? 'أنت الآن في مرحلة القيادة الحقيقية 👏' : 'You are now in true leadership phase 👏'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* What Does Being a Leader Mean */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                {language === 'ar' ? 'ماذا يعني أنك قائد؟' : 'What Does Being a Leader Mean?'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="p-2 bg-primary/5 rounded-lg border border-primary/20">
+                <p className="text-sm text-primary font-medium mb-2">
+                  {language === 'ar' ? 'هذا يعني أن لديك:' : 'This means you have:'}
+                </p>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  <li>• {language === 'ar' ? '10 مسوّقين مباشرين نشيطين' : '10 active direct marketers'}</li>
+                  <li>• {language === 'ar' ? 'كل مسوّق عنده فريقه الخاص' : 'Each marketer has their own team'}</li>
+                  <li>• {language === 'ar' ? 'أنت تتابعهم، تدعمهم، وتساعدهم على التطور' : 'You follow up, support, and help them grow'}</li>
+                </ul>
+              </div>
+              
+              <div className="p-2 bg-destructive/5 rounded-lg border border-destructive/20">
+                <p className="text-sm text-destructive font-medium">
+                  {language === 'ar' ? 'دورك لم يعد:' : 'Your role is no longer:'}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  ❌ {language === 'ar' ? 'إحضار مشتركين فقط' : 'Just bringing subscribers'}
+                </p>
+              </div>
+
+              <div className="p-2 bg-primary/5 rounded-lg border border-primary/20">
+                <p className="text-sm text-primary font-medium mb-1">
+                  {language === 'ar' ? 'بل:' : 'But:'}
+                </p>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  <li>✅ {language === 'ar' ? 'تطوير مسوّقين' : 'Developing marketers'}</li>
+                  <li>✅ {language === 'ar' ? 'الحفاظ على نشاط فرقهم' : 'Maintaining their teams\' activity'}</li>
+                  <li>✅ {language === 'ar' ? 'تقوية الفريق كامل' : 'Strengthening the entire team'}</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* How Leaders Earn */}
+          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                💰 {language === 'ar' ? 'كيف تربح كقائد؟' : 'How Do Leaders Earn?'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar' 
+                  ? 'القائد يستفيد من نشاط الفريق بالكامل وليس من شخص واحد فقط.' 
+                  : 'Leaders benefit from the entire team\'s activity, not just one person.'}
+              </p>
+              
+              <div className="p-3 bg-background rounded-lg border shadow-sm">
+                <p className="text-xs text-muted-foreground mb-1">
+                  {language === 'ar' ? 'أرباحك كقائد:' : 'Your earnings as a Leader:'}
+                </p>
+                <div className="flex items-center justify-center gap-2 py-2">
+                  <span className="text-2xl font-bold text-primary">И 0.82</span>
+                </div>
+                <p className="text-xs text-center text-muted-foreground">
+                  {language === 'ar' 
+                    ? 'عن كل اشتراك أو نشاط مؤهل يتم داخل فريقك' 
+                    : 'For every qualified subscription or activity in your team'}
+                </p>
+                <p className="text-xs text-center text-muted-foreground mt-1">
+                  ({language === 'ar' ? 'يتم احتسابها تلقائيًا' : 'Calculated automatically'})
+                </p>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center">
+                {language === 'ar' 
+                  ? 'الأرباح تُحسب بناءً على نشاط المسوّقين وفرقهم، وليس بشكل عشوائي.' 
+                  : 'Earnings are calculated based on marketers\' and their teams\' activity, not randomly.'}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* How to Increase Earnings */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                📈 {language === 'ar' ? 'كيف تزيد أرباحك كقائد؟' : 'How to Increase Your Earnings?'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                  <span className="text-sm">{language === 'ar' ? 'حافظ على نشاط المسوّقين الـ10' : 'Keep your 10 marketers active'}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                  <div className="text-sm">
+                    <span>{language === 'ar' ? 'ساعدهم على:' : 'Help them:'}</span>
+                    <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                      <li>• {language === 'ar' ? 'بناء فرقهم' : 'Build their teams'}</li>
+                      <li>• {language === 'ar' ? 'تفعيل أعضائهم' : 'Activate their members'}</li>
+                      <li>• {language === 'ar' ? 'الاستمرار في النشاط الأسبوعي' : 'Continue weekly activity'}</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                  <span className="text-sm">{language === 'ar' ? 'كلما كان فريقك أقوى ➡️ زادت أرباحك تلقائيًا' : 'The stronger your team ➡️ the more you earn automatically'}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Next Promotion */}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                🚀 {language === 'ar' ? 'الترقية القادمة بعد القائد' : 'Next Promotion After Leader'}
+              </p>
+              <p className="text-xs text-muted-foreground mb-2">
+                {language === 'ar' ? 'عند تحقيق الشروط المطلوبة:' : 'When requirements are met:'}
+              </p>
+              <ul className="space-y-1 text-sm text-muted-foreground mb-3">
+                <li>• {language === 'ar' ? 'عدد أكبر من المسوّقين النشطين' : 'More active marketers'}</li>
+                <li>• {language === 'ar' ? 'فرق مستقرة' : 'Stable teams'}</li>
+                <li>• {language === 'ar' ? 'نقاط أعلى خلال الدورة' : 'Higher points during the cycle'}</li>
+              </ul>
+              <div className="p-2 bg-primary/10 rounded-lg text-center">
+                <span className="text-sm font-medium text-primary">
+                  🎯 {language === 'ar' ? 'تنتقل إلى رتبة مدير' : 'You advance to Manager rank'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Important Notes */}
+          <Card className="bg-destructive/5 border-destructive/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-destructive">
+                    {language === 'ar' ? 'ملاحظات مهمة' : 'Important Notes'}
+                  </p>
+                  <ul className="text-sm text-muted-foreground mt-1 space-y-1">
+                    <li>• {language === 'ar' ? 'المسوّق غير النشيط لا يُحتسب في التقدم' : 'Inactive marketers do not count towards progress'}</li>
+                    <li>• {language === 'ar' ? 'الترقية تعتمد على النشاط الحقيقي وليس العدد فقط' : 'Promotion depends on real activity, not just numbers'}</li>
+                    <li>• {language === 'ar' ? 'قوة القائد = قوة فريقه' : 'Leader\'s strength = Team\'s strength'}</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </motion.div>
   );
 }
