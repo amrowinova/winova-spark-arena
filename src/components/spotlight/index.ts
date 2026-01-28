@@ -5,4 +5,3 @@ export { TierRankingList } from './TierRankingList';
 export { HowItWorksCard } from './HowItWorksCard';
 export { HowToEarnPointsSheet } from './HowToEarnPointsSheet';
 export { WeeklyPerformanceCard } from './WeeklyPerformanceCard';
-export { NovaLeaderboard } from './NovaLeaderboard';
