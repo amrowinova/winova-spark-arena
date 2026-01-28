@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { TrendingUp, Check, Trophy, Flame, Rocket, Target } from 'lucide-react';
+import { TrendingUp, Check, Trophy, Flame, Rocket, Target, Gift } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -10,6 +10,7 @@ interface ContestUserStatusCardProps {
   userRank: number;
   userVotes: number;
   stage: ContestStage;
+  prizePool: number;
   // Stage 1 props
   votesNeededForTop50?: number;
   // Final stage props
@@ -19,10 +20,20 @@ interface ContestUserStatusCardProps {
   hasJoined: boolean;
 }
 
+// Prize distribution percentages
+const PRIZE_PERCENTAGES: Record<number, number> = {
+  1: 50,
+  2: 20,
+  3: 15,
+  4: 10,
+  5: 5,
+};
+
 export function ContestUserStatusCard({ 
   userRank, 
   userVotes, 
   stage,
+  prizePool,
   votesNeededForTop50 = 0,
   votesNeededForTop5 = 0,
   votesNeededForRank1 = 0,
@@ -36,12 +47,19 @@ export function ContestUserStatusCard({
   // Determine qualification status based on stage
   const isQualifiedStage1 = userRank <= 50;
   const isQualifiedFinal = userRank <= 5;
+  const isInTop5 = userRank <= 5;
   
   // Calculate remaining votes based on stage
   const votesRemainingForTop50 = Math.max(0, votesNeededForTop50 - userVotes);
   const votesRemainingForTop5 = Math.max(0, votesNeededForTop5 - userVotes);
   const votesRemainingForRank1 = Math.max(0, votesNeededForRank1 - userVotes);
   
+  // Calculate prize for current rank
+  const getPrizeForRank = (rank: number): number => {
+    const percentage = PRIZE_PERCENTAGES[rank];
+    return percentage ? Math.round(prizePool * percentage / 100) : 0;
+  };
+
   // Progress calculation
   const getProgress = () => {
     if (stage === 'qualifying') {
@@ -66,21 +84,60 @@ export function ContestUserStatusCard({
     }
   };
 
-  // Determine status color
-  const getStatusColor = () => {
-    if (stage === 'qualifying') {
-      return isQualifiedStage1 ? 'text-success' : 'text-warning';
-    } else {
-      return isQualifiedFinal ? 'text-primary' : 'text-warning';
-    }
-  };
-
   // Get stage name
   const getStageName = () => {
     if (stage === 'qualifying') {
       return isRTL ? 'المرحلة الأولى' : 'Stage 1';
     }
     return isRTL ? 'المرحلة النهائية' : 'Final Stage';
+  };
+
+  // Get prize emoji based on rank
+  const getPrizeEmoji = (rank: number): string => {
+    switch (rank) {
+      case 1: return '🥇';
+      case 2: return '🥈';
+      case 3: return '🥉';
+      default: return '🎯';
+    }
+  };
+
+  // Get prize message based on rank
+  const getPrizeMessage = (rank: number): string => {
+    const prize = getPrizeForRank(rank);
+    const emoji = getPrizeEmoji(rank);
+    
+    if (isRTL) {
+      switch (rank) {
+        case 1:
+          return `${emoji} إذا حافظت على المركز الأول ستحصل على И ${prize} Nova`;
+        case 2:
+          return `${emoji} إذا حافظت على المركز الثاني ستحصل على И ${prize} Nova`;
+        case 3:
+          return `${emoji} جائزة المركز الثالث И ${prize} Nova`;
+        case 4:
+          return `${emoji} جائزة المركز الرابع И ${prize} Nova`;
+        case 5:
+          return `${emoji} جائزة المركز الخامس И ${prize} Nova`;
+        default:
+          return '';
+      }
+    } else {
+      switch (rank) {
+        case 1:
+          return `${emoji} Keep 1st place to win И ${prize} Nova`;
+        case 2:
+          return `${emoji} Keep 2nd place to win И ${prize} Nova`;
+        case 3:
+          return `${emoji} 3rd place prize: И ${prize} Nova`;
+        case 4:
+          return `${emoji} 4th place prize: И ${prize} Nova`;
+        case 5:
+          return `${emoji} 5th place prize: И ${prize} Nova`;
+        default:
+          return '';
+      }
+    }
   };
 
   // Render content based on stage and qualification
@@ -184,6 +241,41 @@ export function ContestUserStatusCard({
     }
   };
 
+  // Render prize section - only for Top 5
+  const renderPrizeSection = () => {
+    if (isInTop5) {
+      // User is in Top 5 - show their prize
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-3 p-2.5 rounded-lg bg-gradient-to-r from-nova/10 to-nova/5 border border-nova/20"
+        >
+          <p className="text-sm font-semibold text-nova text-center">
+            {getPrizeMessage(userRank)}
+          </p>
+        </motion.div>
+      );
+    } else {
+      // User is outside Top 5 - show motivational message
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-3 p-2.5 rounded-lg bg-warning/5 border border-warning/20"
+        >
+          <p className="text-xs font-medium text-warning text-center flex items-center justify-center gap-1.5">
+            <Gift className="h-3.5 w-3.5" />
+            {isRTL 
+              ? `🔥 متبقّي لك ${votesRemainingForTop5} صوت للدخول ضمن Top 5 والفوز بجائزة`
+              : `🔥 ${votesRemainingForTop5} votes to enter Top 5 and win a prize`
+            }
+          </p>
+        </motion.div>
+      );
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -232,6 +324,9 @@ export function ContestUserStatusCard({
               {renderStatusContent()}
             </div>
           </div>
+          
+          {/* Prize Section - Below the main card content */}
+          {renderPrizeSection()}
         </CardContent>
       </Card>
     </motion.div>

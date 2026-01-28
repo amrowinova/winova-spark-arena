@@ -1,16 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Info, Ban } from 'lucide-react';
+import { Info, Ban } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useUser } from '@/contexts/UserContext';
-import { useTransactions, Receipt, getPricing } from '@/contexts/TransactionContext';
+import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   Dialog,
@@ -20,7 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useBanner } from '@/contexts/BannerContext';
-import { PLATFORM_USERS, getPlatformUserById } from '@/lib/platformUsers';
+import { PLATFORM_USERS } from '@/lib/platformUsers';
 
 // Contest Components
 import {
@@ -29,9 +28,7 @@ import {
   ContestContestantCard,
   ContestInfoBox,
   FinalStageHeader,
-  FinalStageUserCard,
   FinalContestantCard,
-  PrizeDistributionCard,
   VoteDialog,
 } from '@/components/contest';
 
@@ -99,7 +96,6 @@ export default function ContestsPage() {
   const { createTransaction } = useTransactions();
   const { success: showSuccess, error: showError } = useBanner();
 
-  const [selectedTab, setSelectedTab] = useState('contestants');
   const [contest, setContest] = useState(mockContest);
   const [participants, setParticipants] = useState(generateParticipants);
   const [userVotes, setUserVotes] = useState(24);
@@ -322,6 +318,7 @@ export default function ContestsPage() {
           userRank={userRank}
           userVotes={userVotes}
           stage={isStage1 ? 'qualifying' : 'final'}
+          prizePool={contest.prizePool}
           votesNeededForTop50={top50Threshold}
           votesNeededForTop5={top5Threshold}
           votesNeededForRank1={rank1Threshold}
@@ -371,80 +368,47 @@ export default function ContestsPage() {
           </motion.div>
         )}
 
-        {/* Main Tabs */}
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="contestants">
-              {language === 'ar' ? 'المتسابقون' : 'Contestants'}
-            </TabsTrigger>
-            <TabsTrigger value="prizes">
-              {language === 'ar' ? 'الجوائز' : 'Prizes'}
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Contestants Tab */}
-          <TabsContent value="contestants" className="mt-4 space-y-3">
-            {/* Stage-specific info */}
-            {isStage1 && <ContestInfoBox variant="qualification-rules" />}
-            
-            {isFinal && (
-              <Alert className="bg-warning/5 border-warning/20">
-                <Info className="h-4 w-4 text-warning" />
-                <AlertDescription className="text-xs text-warning">
-                  {language === 'ar' 
-                    ? 'أفضل 5 متسابقين (👑 فائز مؤقت) يفوزون بالجوائز عند انتهاء الوقت'
-                    : 'Top 5 contestants (👑 Winning) win the prizes when time ends'}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {/* Contestants List */}
-            <div className="space-y-2">
-              <AnimatePresence>
-                {displayParticipants.map((participant, index) => (
-                  isStage1 ? (
-                    <ContestContestantCard
-                      key={participant.id}
-                      contestant={participant}
-                      index={index}
-                      onVote={handleVote}
-                      canVote={hasJoined}
-                    />
-                  ) : (
-                    <FinalContestantCard
-                      key={participant.id}
-                      contestant={participant}
-                      index={index}
-                      onVote={handleVote}
-                      canVote={userQualified && hasJoined}
-                    />
-                  )
-                ))}
-              </AnimatePresence>
-            </div>
-          </TabsContent>
-
-          {/* Prizes Tab */}
-          <TabsContent value="prizes" className="mt-4 space-y-4">
-            <PrizeDistributionCard 
-              prizePool={contest.prizePool} 
-              country={user.country} 
-            />
-            
-            {isStage1 && (
-              <Alert className="bg-warning/5 border-warning/20">
-                <Info className="h-4 w-4 text-warning" />
-                <AlertDescription className="text-xs text-warning">
-                  {language === 'ar' 
-                    ? '⚠️ الجوائز توزع فقط في المرحلة النهائية على أفضل 5 متسابقين'
-                    : '⚠️ Prizes are only distributed in the Final Stage to the top 5'}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <ContestInfoBox variant="stage-info" stage={contest.stage} />
-          </TabsContent>
-        </Tabs>
+        {/* Contestants Section - No tabs */}
+        <div className="space-y-3">
+          {/* Stage-specific info */}
+          {isStage1 && <ContestInfoBox variant="qualification-rules" />}
+          
+          {isFinal && (
+            <Alert className="bg-warning/5 border-warning/20">
+              <Info className="h-4 w-4 text-warning" />
+              <AlertDescription className="text-xs text-warning">
+                {language === 'ar' 
+                  ? 'أفضل 5 متسابقين (👑 فائز مؤقت) يفوزون بالجوائز عند انتهاء الوقت'
+                  : 'Top 5 contestants (👑 Winning) win the prizes when time ends'}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Contestants List */}
+          <div className="space-y-2">
+            <AnimatePresence>
+              {displayParticipants.map((participant, index) => (
+                isStage1 ? (
+                  <ContestContestantCard
+                    key={participant.id}
+                    contestant={participant}
+                    index={index}
+                    onVote={handleVote}
+                    canVote={hasJoined}
+                  />
+                ) : (
+                  <FinalContestantCard
+                    key={participant.id}
+                    contestant={participant}
+                    index={index}
+                    onVote={handleVote}
+                    canVote={userQualified && hasJoined}
+                  />
+                )
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
       </main>
 
       {/* Join Contest Dialog */}
