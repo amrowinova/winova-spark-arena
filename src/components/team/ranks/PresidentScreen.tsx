@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2, Users, Trophy, Flame, Shield, AlertTriangle, Rocket, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RankInfoSheet } from './RankInfoSheet';
 
 interface PresidentScreenProps {
   language: string;
@@ -74,101 +75,156 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
         </div>
       </Card>
 
-      {/* من أنت؟ */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Info className="h-4 w-4 text-amber-500" />
-            {language === 'ar' ? 'من أنت؟' : 'Who Are You?'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {language === 'ar' 
-              ? `أنت رئيس WINOVA في دولتك (${country}).` 
-              : `You are WINOVA President in your country (${country}).`}
-          </p>
-          <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800 mt-2">
-            <p className="text-sm text-amber-800 dark:text-amber-200">
+      {/* زر "من أنت؟" */}
+      <RankInfoSheet 
+        language={language} 
+        rankTitle={language === 'ar' ? '👑 الرئيس' : '👑 President'}
+      >
+        {/* من أنت؟ */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Info className="h-4 w-4 text-amber-500" />
+              {language === 'ar' ? 'من أنت؟' : 'Who Are You?'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm text-muted-foreground">
               {language === 'ar' 
-                ? 'الرئاسة ليست لقبًا دائمًا، بل مركز تنافسي يتم الحفاظ عليه بالقوة، النشاط، والاستمرارية.' 
-                : 'Presidency is not a permanent title, but a competitive position maintained through strength, activity, and consistency.'}
+                ? `أنت رئيس WINOVA في دولتك (${country}).` 
+                : `You are WINOVA President in your country (${country}).`}
             </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* كيف يتم اختيار الرئيس؟ */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            🏆 {language === 'ar' ? 'كيف يتم اختيار الرئيس؟' : 'How is the President Selected?'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <ul className="space-y-1.5 text-sm">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-              <span>{language === 'ar' ? 'يتم اختيار رئيس الدولة من بين المدراء فقط' : 'Country president is selected from managers only'}</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-              <span>{language === 'ar' ? 'المدير صاحب أعلى مجموع نقاط في الدولة يصبح رئيس WINOVA للدورة التالية' : 'Manager with highest total points in the country becomes WINOVA President for next cycle'}</span>
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
-
-      {/* ماذا المطلوب منك؟ */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-5 w-5 text-amber-500" />
-            {language === 'ar' ? 'ماذا المطلوب منك؟' : 'What is Required of You?'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground mb-2">
-            {language === 'ar' 
-              ? 'الحفاظ على:' 
-              : 'Maintain:'}
-          </p>
-          {requirements.map((req, index) => (
-            <div 
-              key={index}
-              className={`flex items-center gap-3 p-3 rounded-lg ${
-                req.met ? 'bg-primary/5 border border-primary/20' : 'bg-destructive/5 border border-destructive/20'
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                req.met ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
-              }`}>
-                <req.icon className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">
-                  {language === 'ar' ? req.titleAr : req.titleEn}
-                </p>
-                <p className={`text-xs ${req.met ? 'text-primary' : 'text-destructive'}`}>
-                  {req.isPoints 
-                    ? `${req.current.toLocaleString()} ${language === 'ar' ? 'نقطة' : 'pts'}`
-                    : req.isPercent
-                    ? `${req.current}%`
-                    : `${req.current}/${req.required}`
-                  }
-                </p>
-              </div>
-              {req.met ? (
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-              ) : (
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              )}
+            <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800 mt-2">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                {language === 'ar' 
+                  ? 'الرئاسة ليست لقبًا دائمًا، بل مركز تنافسي يتم الحفاظ عليه بالقوة، النشاط، والاستمرارية.' 
+                  : 'Presidency is not a permanent title, but a competitive position maintained through strength, activity, and consistency.'}
+              </p>
             </div>
-          ))}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* مكسبك */}
+        {/* كيف يتم اختيار الرئيس؟ */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              🏆 {language === 'ar' ? 'كيف يتم اختيار الرئيس؟' : 'How is the President Selected?'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <ul className="space-y-1.5 text-sm">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                <span>{language === 'ar' ? 'يتم اختيار رئيس الدولة من بين المدراء فقط' : 'Country president is selected from managers only'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                <span>{language === 'ar' ? 'المدير صاحب أعلى مجموع نقاط في الدولة يصبح رئيس WINOVA للدورة التالية' : 'Manager with highest total points in the country becomes WINOVA President for next cycle'}</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* ماذا المطلوب منك؟ */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-5 w-5 text-amber-500" />
+              {language === 'ar' ? 'ماذا المطلوب منك؟' : 'What is Required of You?'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground mb-2">
+              {language === 'ar' 
+                ? 'الحفاظ على:' 
+                : 'Maintain:'}
+            </p>
+            {requirements.map((req, index) => (
+              <div 
+                key={index}
+                className={`flex items-center gap-3 p-3 rounded-lg ${
+                  req.met ? 'bg-primary/5 border border-primary/20' : 'bg-destructive/5 border border-destructive/20'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  req.met ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
+                }`}>
+                  <req.icon className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    {language === 'ar' ? req.titleAr : req.titleEn}
+                  </p>
+                  <p className={`text-xs ${req.met ? 'text-primary' : 'text-destructive'}`}>
+                    {req.isPoints 
+                      ? `${req.current.toLocaleString()} ${language === 'ar' ? 'نقطة' : 'pts'}`
+                      : req.isPercent
+                      ? `${req.current}%`
+                      : `${req.current}/${req.required}`
+                    }
+                  </p>
+                </div>
+                {req.met ? (
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                ) : (
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* معلومة مهمة */}
+        <Card className="bg-destructive/5 border-destructive/20">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-destructive">
+                  {language === 'ar' ? 'معلومة مهمة' : 'Important Information'}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {language === 'ar' 
+                    ? 'الرئاسة تنافسية وليست دائمة. أي مدير قد يتجاوزك إذا بنى فريقًا أقوى وأكثر نشاطًا.' 
+                    : 'Presidency is competitive, not permanent. Any manager may surpass you if they build a stronger, more active team.'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* أفضل استراتيجية للرئيس */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Rocket className="h-4 w-4 text-primary" />
+              {language === 'ar' ? 'أفضل استراتيجية للرئيس:' : 'Best Strategy for President:'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <ul className="space-y-1.5 text-sm">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'تكبير الشبكة من كل المستويات' : 'Grow network from all levels'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'دعم المدراء والقادة' : 'Support managers and leaders'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'إدخال مشتركين جدد باستمرار' : 'Continuously bring new subscribers'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'الحفاظ على نشاط حقيقي وليس أرقام فقط' : 'Maintain real activity, not just numbers'}</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      </RankInfoSheet>
+
+      {/* مكسبك - يبقى ظاهراً */}
       <Card className="border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30 dark:border-amber-800">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -186,55 +242,6 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
                 : 'From activity of all people in your country'}
             </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* معلومة مهمة */}
-      <Card className="bg-destructive/5 border-destructive/20">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-destructive">
-                {language === 'ar' ? 'معلومة مهمة' : 'Important Information'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {language === 'ar' 
-                  ? 'الرئاسة تنافسية وليست دائمة. أي مدير قد يتجاوزك إذا بنى فريقًا أقوى وأكثر نشاطًا.' 
-                  : 'Presidency is competitive, not permanent. Any manager may surpass you if they build a stronger, more active team.'}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* أفضل استراتيجية للرئيس */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Rocket className="h-4 w-4 text-primary" />
-            {language === 'ar' ? 'أفضل استراتيجية للرئيس:' : 'Best Strategy for President:'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <ul className="space-y-1.5 text-sm">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'تكبير الشبكة من كل المستويات' : 'Grow network from all levels'}</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'دعم المدراء والقادة' : 'Support managers and leaders'}</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'إدخال مشتركين جدد باستمرار' : 'Continuously bring new subscribers'}</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'الحفاظ على نشاط حقيقي وليس أرقام فقط' : 'Maintain real activity, not just numbers'}</span>
-            </li>
-          </ul>
         </CardContent>
       </Card>
     </motion.div>

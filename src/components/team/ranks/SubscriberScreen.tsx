@@ -2,6 +2,7 @@ import { CheckCircle2, AlertTriangle, ArrowRight, Copy, Info } from 'lucide-reac
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { RankInfoSheet } from './RankInfoSheet';
 
 interface SubscriberScreenProps {
   language: string;
@@ -16,81 +17,120 @@ export function SubscriberScreen({ language, referralCode }: SubscriberScreenPro
 
   return (
     <>
-      {/* من أنت؟ */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Info className="h-4 w-4 text-primary" />
-            {language === 'ar' ? 'من أنت؟' : 'Who Are You?'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {language === 'ar' 
-              ? 'أنت في بداية رحلتك في WINOVA.' 
-              : 'You are at the beginning of your WINOVA journey.'}
-          </p>
-        </CardContent>
-      </Card>
+      {/* زر "من أنت؟" */}
+      <RankInfoSheet 
+        language={language} 
+        rankTitle={language === 'ar' ? '🔵 المشترك' : '🔵 Subscriber'}
+      >
+        {/* من أنت؟ */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" />
+              {language === 'ar' ? 'من أنت؟' : 'Who Are You?'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              {language === 'ar' 
+                ? 'أنت في بداية رحلتك في WINOVA.' 
+                : 'You are at the beginning of your WINOVA journey.'}
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* ماذا عليك أن تفعل الآن؟ */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <ArrowRight className="h-4 w-4 text-primary" />
-            {language === 'ar' ? 'ماذا عليك أن تفعل الآن؟' : 'What Should You Do Now?'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <ul className="space-y-1.5 text-sm">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'شارك في المسابقات والتصويت بانتظام' : 'Participate in contests and vote regularly'}</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'ادعُ أصدقاءك باستخدام كود الإحالة الخاص بك' : 'Invite friends using your referral code'}</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'عندما تحضر 3 مشتركين نشطين عبر كودك، تنتقل تلقائيًا إلى رتبة مسوّق' : 'When you bring 3 active subscribers via your code, you automatically become a Marketer'}</span>
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
+        {/* ماذا عليك أن تفعل الآن؟ */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ArrowRight className="h-4 w-4 text-primary" />
+              {language === 'ar' ? 'ماذا عليك أن تفعل الآن؟' : 'What Should You Do Now?'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <ul className="space-y-1.5 text-sm">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'شارك في المسابقات والتصويت بانتظام' : 'Participate in contests and vote regularly'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'ادعُ أصدقاءك باستخدام كود الإحالة الخاص بك' : 'Invite friends using your referral code'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'عندما تحضر 3 مشتركين نشطين عبر كودك، تنتقل تلقائيًا إلى رتبة مسوّق' : 'When you bring 3 active subscribers via your code, you automatically become a Marketer'}</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
 
-      {/* ما هو المشترك النشيط؟ */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Info className="h-4 w-4 text-primary" />
-            {language === 'ar' ? 'ما هو المشترك النشيط؟' : 'What is an Active Subscriber?'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {language === 'ar' 
-              ? 'المشترك النشيط هو شخص:' 
-              : 'An active subscriber is someone who:'}
-          </p>
-          <ul className="space-y-1.5 text-sm">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'يسجل باستخدام كود إحالتك' : 'Registers using your referral code'}</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'يشارك في مسابقة واحدة على الأقل' : 'Joins at least one contest'}</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>{language === 'ar' ? 'يقوم بتصويت مدفوع مرة واحدة' : 'Makes one paid vote'}</span>
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
+        {/* ما هو المشترك النشيط؟ */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" />
+              {language === 'ar' ? 'ما هو المشترك النشيط؟' : 'What is an Active Subscriber?'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              {language === 'ar' 
+                ? 'المشترك النشيط هو شخص:' 
+                : 'An active subscriber is someone who:'}
+            </p>
+            <ul className="space-y-1.5 text-sm">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'يسجل باستخدام كود إحالتك' : 'Registers using your referral code'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'يشارك في مسابقة واحدة على الأقل' : 'Joins at least one contest'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'يقوم بتصويت مدفوع مرة واحدة' : 'Makes one paid vote'}</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
 
-      {/* Referral Code */}
+        {/* نصيحة مهمة */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+              💡 {language === 'ar' ? 'نصيحة مهمة:' : 'Important Tip:'}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {language === 'ar' 
+                ? 'كل شخص تدخله على كودك هو بداية فريقك، والنشاط أهم من العدد.' 
+                : 'Everyone you bring with your code is the start of your team, and activity matters more than numbers.'}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Warning Note */}
+        <Card className="bg-destructive/5 border-destructive/20">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-destructive">
+                  {language === 'ar' ? 'تنويه مهم' : 'Important Note'}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {language === 'ar' 
+                    ? 'أي شخص يسجل بدون كود إحالتك لن يتم احتسابه ضمن تقدّمك.' 
+                    : 'Anyone who registers without your referral code will not count towards your progress.'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </RankInfoSheet>
+
+      {/* Referral Code - يبقى ظاهراً */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="p-4">
           <p className="text-sm text-muted-foreground mb-2 text-center">
@@ -108,39 +148,6 @@ export function SubscriberScreen({ language, referralCode }: SubscriberScreenPro
             >
               <Copy className="h-4 w-4" />
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* نصيحة مهمة */}
-      <Card className="bg-primary/5 border-primary/20">
-        <CardContent className="p-4">
-          <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-            💡 {language === 'ar' ? 'نصيحة مهمة:' : 'Important Tip:'}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {language === 'ar' 
-              ? 'كل شخص تدخله على كودك هو بداية فريقك، والنشاط أهم من العدد.' 
-              : 'Everyone you bring with your code is the start of your team, and activity matters more than numbers.'}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Warning Note */}
-      <Card className="bg-destructive/5 border-destructive/20">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-destructive">
-                {language === 'ar' ? 'تنويه مهم' : 'Important Note'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {language === 'ar' 
-                  ? 'أي شخص يسجل بدون كود إحالتك لن يتم احتسابه ضمن تقدّمك.' 
-                  : 'Anyone who registers without your referral code will not count towards your progress.'}
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>
