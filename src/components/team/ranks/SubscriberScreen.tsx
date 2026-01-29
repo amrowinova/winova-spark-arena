@@ -50,10 +50,10 @@ export function SubscriberScreen({ language, referralCode }: SubscriberScreenPro
           <CardContent className="space-y-2">
             <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 mb-3">
               <p className="text-sm font-medium text-primary text-center">
-                {language === 'ar' ? 'المطلوب: إحضار 3 مشتركين نشيطين' : 'Required: Bring 3 active subscribers'}
+                {language === 'ar' ? 'المطلوب: أحضر 3 مشتركين نشيطين' : 'Required: Bring 3 active subscribers'}
               </p>
               <p className="text-xs text-muted-foreground text-center mt-1">
-                {language === 'ar' ? '(يشتركون في المسابقة ويبقون نشيطين)' : '(They join contests and stay active)'}
+                {language === 'ar' ? '(مشاركوا في المسابقة + تصويت مدفوع واحد على الأقل)' : '(Joined contest + at least one paid vote)'}
               </p>
             </div>
             <ul className="space-y-1.5 text-sm">

@@ -136,19 +136,12 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
           <CardContent className="space-y-3">
             <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800 mb-2">
               <p className="text-sm font-medium text-amber-800 dark:text-amber-200 text-center">
-                {language === 'ar' ? 'المطلوب: ترقية 15 مديرًا نشيطًا أو أكثر' : 'Required: Promote 15+ active managers'}
+                {language === 'ar' ? 'المطلوب: الحفاظ على +15 مدير نشيط' : 'Required: Maintain 15+ active managers'}
+              </p>
+              <p className="text-xs text-amber-700/70 dark:text-amber-300/70 text-center mt-1">
+                {language === 'ar' ? 'وأن تكون الأعلى نقاطًا في الدولة مع نشاط مستمر وقوي لكل الشبكة' : 'And be the highest in country points with continuous strong network activity'}
               </p>
             </div>
-            <ul className="space-y-1.5 text-sm">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span>{language === 'ar' ? 'الحصول على أعلى مجموع نقاط على مستوى الدولة' : 'Get the highest total points at country level'}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span>{language === 'ar' ? 'الحفاظ على نشاط المدراء وفرقهم' : 'Maintain managers and their teams\' activity'}</span>
-              </li>
-            </ul>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {requirements.map((req, index) => (
                 <div 

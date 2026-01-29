@@ -55,22 +55,12 @@ export function MarketerScreen({ language, referralCode }: MarketerScreenProps) 
           <CardContent className="space-y-3">
             <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 mb-2">
               <p className="text-sm font-medium text-primary text-center">
-                {language === 'ar' ? 'المطلوب: إحضار 10 مسوّقين مباشرين نشيطين' : 'Required: Bring 10 direct active marketers'}
+                {language === 'ar' ? 'المطلوب: أحضر 10 مسوّقين مباشرين نشيطين' : 'Required: Bring 10 direct active marketers'}
+              </p>
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                {language === 'ar' ? 'وساعد كل مسوّق على بناء فريقه والحفاظ على نشاطه' : 'And help each marketer build their team and maintain activity'}
               </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {language === 'ar' ? 'ومساعدة كل مسوّق على:' : 'And help each marketer to:'}
-            </p>
-            <ul className="space-y-1.5 text-sm">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{language === 'ar' ? 'بناء فريقه الخاص' : 'Build their own team'}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{language === 'ar' ? 'الحفاظ على نشاط فريقه' : 'Keep their team active'}</span>
-              </li>
-            </ul>
           </CardContent>
         </Card>
 
