@@ -42,8 +42,8 @@ const subscriberRequirements = {
   nextRank: 'marketer' as UserRank,
   directRequired: 3,
   requirementType: 'active_subscribers',
-  descriptionEn: 'Recruit 3 active subscribers',
-  descriptionAr: 'أحضر 3 مشتركين نشطين',
+  descriptionEn: 'Bring 3 active subscribers',
+  descriptionAr: 'أحضر 3 مشتركين نشيطين',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -53,8 +53,8 @@ const marketerRequirements = {
   nextRank: 'leader' as UserRank,
   directRequired: 10,
   requirementType: 'direct_marketers',
-  descriptionEn: 'Have 10 direct marketers',
-  descriptionAr: 'لديك 10 مسوّقين مباشرين',
+  descriptionEn: 'Bring 10 direct active marketers',
+  descriptionAr: 'أحضر 10 مسوّقين مباشرين نشيطين',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -64,8 +64,8 @@ const leaderRequirements = {
   nextRank: 'manager' as UserRank,
   directRequired: 10,
   requirementType: 'direct_leaders',
-  descriptionEn: 'Have 10 direct leaders',
-  descriptionAr: 'لديك 10 قادة مباشرين',
+  descriptionEn: 'Promote 10 direct active Leaders',
+  descriptionAr: 'رقِّ 10 قادة مباشرين نشيطين',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -75,8 +75,8 @@ const managerRequirements = {
   nextRank: 'president' as UserRank,
   directRequired: 10,
   requirementType: 'managers_and_points',
-  descriptionEn: '10+ managers + top spotlight points',
-  descriptionAr: '10+ مديرين + أعلى نقاط الأضواء',
+  descriptionEn: 'Promote 10 direct Managers + be top in points',
+  descriptionAr: 'رقِّ 10 مدراء مباشرين وكن من الأعلى نقاطًا',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -84,10 +84,10 @@ const managerRequirements = {
 // ═══════════════════════════════════════════════════════════════════════════
 const presidentRequirements = {
   nextRank: null,
-  directRequired: 0,
-  requirementType: 'none',
-  descriptionEn: 'Top rank achieved!',
-  descriptionAr: 'أعلى رتبة!',
+  directRequired: 15,
+  requirementType: 'maintain_presidency',
+  descriptionEn: 'Maintain 15+ active managers + be top in country',
+  descriptionAr: 'حافظ على +15 مدير نشيط وكن الأعلى نقاطًا في الدولة',
 };
 
 // Combined requirements map
