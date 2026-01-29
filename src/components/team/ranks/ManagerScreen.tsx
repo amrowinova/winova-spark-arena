@@ -42,19 +42,12 @@ export function ManagerScreen({ language }: ManagerScreenProps) {
           <CardContent className="space-y-3">
             <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 mb-2">
               <p className="text-sm font-medium text-primary text-center">
-                {language === 'ar' ? 'المطلوب: ترقية 10 قادة مباشرين' : 'Required: Promote 10 direct leaders'}
+                {language === 'ar' ? 'المطلوب: رَقِّ 10 مدراء مباشرين نشيطين' : 'Required: Promote 10 direct active Managers'}
+              </p>
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                {language === 'ar' ? 'وكن من أعلى المدراء نقاطًا في نقاط المحظوظين' : 'And be among top managers in Lucky Leaders points'}
               </p>
             </div>
-            <ul className="space-y-1.5 text-sm">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{language === 'ar' ? 'التواجد ضمن أعلى النقاط في سباق المحظوظين' : 'Be among top points in Lucky Leaders race'}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{language === 'ar' ? 'دعم القادة للحفاظ على نشاط فرقهم' : 'Support leaders to maintain their teams\' activity'}</span>
-              </li>
-            </ul>
           </CardContent>
         </Card>
 

@@ -47,19 +47,12 @@ export function LeaderScreen({ language }: LeaderScreenProps) {
           <CardContent className="space-y-3">
             <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 mb-2">
               <p className="text-sm font-medium text-primary text-center">
-                {language === 'ar' ? 'المطلوب: ترقية 10 مسوّقين مباشرين إلى رتبة قادة' : 'Required: Promote 10 direct marketers to Leaders'}
+                {language === 'ar' ? 'المطلوب: رَقِّ 10 قادة مباشرين نشيطين' : 'Required: Promote 10 direct active Leaders'}
+              </p>
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                {language === 'ar' ? 'واحرص أن تكون فرقهم نشطة ومستقرة' : 'And ensure their teams are active and stable'}
               </p>
             </div>
-            <ul className="space-y-1.5 text-sm">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{language === 'ar' ? 'الحفاظ على نشاط فرقهم بشكل مستمر' : 'Maintain their teams\' activity continuously'}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{language === 'ar' ? 'دعم القادة الجدد في بناء شبكاتهم' : 'Support new leaders in building their networks'}</span>
-              </li>
-            </ul>
           </CardContent>
         </Card>
 
