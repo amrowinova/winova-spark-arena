@@ -134,43 +134,41 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground mb-2">
-              {language === 'ar' 
-                ? 'الحفاظ على:' 
-                : 'Maintain:'}
-            </p>
-            {requirements.map((req, index) => (
-              <div 
-                key={index}
-                className={`flex items-center gap-3 p-3 rounded-lg ${
-                  req.met ? 'bg-primary/5 border border-primary/20' : 'bg-destructive/5 border border-destructive/20'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  req.met ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
-                }`}>
-                  <req.icon className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">
-                    {language === 'ar' ? req.titleAr : req.titleEn}
-                  </p>
-                  <p className={`text-xs ${req.met ? 'text-primary' : 'text-destructive'}`}>
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800 mb-2">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200 text-center">
+                {language === 'ar' ? 'المطلوب: ترقية 15 مديرًا نشيطًا أو أكثر' : 'Required: Promote 15+ active managers'}
+              </p>
+            </div>
+            <ul className="space-y-1.5 text-sm">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                <span>{language === 'ar' ? 'الحصول على أعلى مجموع نقاط على مستوى الدولة' : 'Get the highest total points at country level'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                <span>{language === 'ar' ? 'الحفاظ على نشاط المدراء وفرقهم' : 'Maintain managers and their teams\' activity'}</span>
+              </li>
+            </ul>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {requirements.map((req, index) => (
+                <div 
+                  key={index}
+                  className={`p-2 rounded-lg text-center ${
+                    req.met ? 'bg-primary/5 border border-primary/20' : 'bg-destructive/5 border border-destructive/20'
+                  }`}
+                >
+                  <req.icon className={`h-4 w-4 mx-auto mb-1 ${req.met ? 'text-primary' : 'text-destructive'}`} />
+                  <p className={`text-xs font-medium ${req.met ? 'text-primary' : 'text-destructive'}`}>
                     {req.isPoints 
-                      ? `${req.current.toLocaleString()} ${language === 'ar' ? 'نقطة' : 'pts'}`
+                      ? `${(req.current / 1000).toFixed(1)}K`
                       : req.isPercent
                       ? `${req.current}%`
                       : `${req.current}/${req.required}`
                     }
                   </p>
                 </div>
-                {req.met ? (
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                ) : (
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </CardContent>
         </Card>
 

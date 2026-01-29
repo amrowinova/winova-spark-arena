@@ -53,24 +53,24 @@ export function MarketerScreen({ language, referralCode }: MarketerScreenProps) 
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              {language === 'ar' ? 'إحضار 10 مسوّقين مباشرين' : 'Bring 10 direct marketers'}
-            </p>
-            <div className="p-2 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground mb-2">
-                {language === 'ar' ? 'كل مسوّق يجب أن:' : 'Each marketer must:'}
+            <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 mb-2">
+              <p className="text-sm font-medium text-primary text-center">
+                {language === 'ar' ? 'المطلوب: إحضار 10 مسوّقين مباشرين نشيطين' : 'Required: Bring 10 direct active marketers'}
               </p>
-              <ul className="space-y-1.5 text-sm">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <span>{language === 'ar' ? 'يحضر 3 مشتركين نشطين' : 'Bring 3 active subscribers'}</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <span>{language === 'ar' ? 'يشارك ويُبقي فريقه نشطًا' : 'Participate and keep their team active'}</span>
-                </li>
-              </ul>
             </div>
+            <p className="text-sm text-muted-foreground">
+              {language === 'ar' ? 'ومساعدة كل مسوّق على:' : 'And help each marketer to:'}
+            </p>
+            <ul className="space-y-1.5 text-sm">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'بناء فريقه الخاص' : 'Build their own team'}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{language === 'ar' ? 'الحفاظ على نشاط فريقه' : 'Keep their team active'}</span>
+              </li>
+            </ul>
           </CardContent>
         </Card>
 

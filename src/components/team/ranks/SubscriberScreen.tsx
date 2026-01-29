@@ -48,6 +48,14 @@ export function SubscriberScreen({ language, referralCode }: SubscriberScreenPro
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 mb-3">
+              <p className="text-sm font-medium text-primary text-center">
+                {language === 'ar' ? 'المطلوب: إحضار 3 مشتركين نشيطين' : 'Required: Bring 3 active subscribers'}
+              </p>
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                {language === 'ar' ? '(يشتركون في المسابقة ويبقون نشيطين)' : '(They join contests and stay active)'}
+              </p>
+            </div>
             <ul className="space-y-1.5 text-sm">
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -56,10 +64,6 @@ export function SubscriberScreen({ language, referralCode }: SubscriberScreenPro
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span>{language === 'ar' ? 'ادعُ أصدقاءك باستخدام كود الإحالة الخاص بك' : 'Invite friends using your referral code'}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{language === 'ar' ? 'عندما تحضر 3 مشتركين نشطين عبر كودك، تنتقل تلقائيًا إلى رتبة مسوّق' : 'When you bring 3 active subscribers via your code, you automatically become a Marketer'}</span>
               </li>
             </ul>
           </CardContent>
