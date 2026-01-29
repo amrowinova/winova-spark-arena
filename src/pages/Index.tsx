@@ -139,36 +139,64 @@ export default function HomePage() {
           <ActiveUsersCard count={globalActiveUsers} />
         </motion.div>
 
+        {/* 1️⃣ Welcome Message */}
+        <motion.div variants={itemVariants} className="text-center px-2">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            <span className="text-base">👋</span>{' '}
+            {language === 'ar' 
+              ? 'أهلاً بك في WINOVA — شارك في المسابقة، اجمع نقاط، وابنِ فريقك لزيادة أرباحك وترتيبك.'
+              : 'Welcome to WINOVA — join contests, earn points, and build your team to boost your earnings and rank.'}
+          </p>
+        </motion.div>
+
         {/* Wallet Card - Matching Wallet page design */}
         <motion.div variants={itemVariants}>
           <Card className="overflow-hidden border border-border bg-card shadow-sm">
             <div className="p-4">
               <div className="grid grid-cols-2 gap-4">
                 {/* Nova Balance - Gold accent */}
-                <div className="bg-nova/5 border border-nova/20 rounded-xl p-3">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-nova text-lg font-bold">И</span>
-                    <span className="text-foreground/70 text-xs font-medium">Nova</span>
+                <div className="space-y-1">
+                  <div className="bg-nova/5 border border-nova/20 rounded-xl p-3">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="text-nova text-lg font-bold">И</span>
+                      <span className="text-foreground/70 text-xs font-medium">Nova</span>
+                    </div>
+                    <p className="text-foreground text-2xl font-bold">
+                      {formatBalance(user.novaBalance)}
+                    </p>
+                    <p className="text-muted-foreground text-xs mt-1">
+                      ≈ {pricing.symbol} {formatBalance(novaLocalValue)}
+                    </p>
                   </div>
-                  <p className="text-foreground text-2xl font-bold">
-                    {formatBalance(user.novaBalance)}
-                  </p>
-                  <p className="text-muted-foreground text-xs mt-1">
-                    ≈ {pricing.symbol} {formatBalance(novaLocalValue)}
+                  {/* 3️⃣ Nova Explanation */}
+                  <p className="text-[10px] text-muted-foreground leading-snug px-1">
+                    <span>💰</span>{' '}
+                    {language === 'ar' 
+                      ? 'Nova = أرباحك. حوّلها لأي مستخدم من محفظتي.'
+                      : 'Nova = your earnings. Transfer to anyone from My Wallet.'}
                   </p>
                 </div>
 
                 {/* Aura Balance - Purple accent, no local currency */}
-                <div className="bg-aura/5 border border-aura/20 rounded-xl p-3">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-aura text-lg font-bold">✦</span>
-                    <span className="text-foreground/70 text-xs font-medium">Aura</span>
+                <div className="space-y-1">
+                  <div className="bg-aura/5 border border-aura/20 rounded-xl p-3">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="text-aura text-lg font-bold">✦</span>
+                      <span className="text-foreground/70 text-xs font-medium">Aura</span>
+                    </div>
+                    <p className="text-foreground text-2xl font-bold">
+                      {formatBalance(user.auraBalance)}
+                    </p>
+                    <p className="text-muted-foreground text-xs mt-1">
+                      {language === 'ar' ? 'نقاط تصويت' : 'Voting Points'}
+                    </p>
                   </div>
-                  <p className="text-foreground text-2xl font-bold">
-                    {formatBalance(user.auraBalance)}
-                  </p>
-                  <p className="text-muted-foreground text-xs mt-1">
-                    {language === 'ar' ? 'نقاط تصويت' : 'Voting Points'}
+                  {/* 2️⃣ Aura Explanation */}
+                  <p className="text-[10px] text-muted-foreground leading-snug px-1">
+                    <span>✨</span>{' '}
+                    {language === 'ar' 
+                      ? 'Aura = نقاط التصويت. استخدمها لرفع ترتيبك.'
+                      : 'Aura = voting points. Use them to boost your rank.'}
                   </p>
                 </div>
               </div>
@@ -177,19 +205,28 @@ export default function HomePage() {
         </motion.div>
 
         {/* Quick Actions - Wallet & P2P - Directly below balance */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
-          <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
-            <Link to="/wallet">
-              <Wallet className="h-4 w-4 text-nova" />
-              <span className="text-sm font-medium">{language === 'ar' ? 'محفظتي' : 'My Wallet'}</span>
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
-            <Link to="/p2p">
-              <span className="text-base">🤝</span>
-              <span className="text-sm font-medium">{language === 'ar' ? 'تحويل فوري P2P' : 'P2P Transfer'}</span>
-            </Link>
-          </Button>
+        <motion.div variants={itemVariants} className="space-y-2">
+          <div className="grid grid-cols-2 gap-3">
+            <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
+              <Link to="/wallet">
+                <Wallet className="h-4 w-4 text-nova" />
+                <span className="text-sm font-medium">{language === 'ar' ? 'محفظتي' : 'My Wallet'}</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
+              <Link to="/p2p">
+                <span className="text-base">🤝</span>
+                <span className="text-sm font-medium">{language === 'ar' ? 'تحويل فوري P2P' : 'P2P Transfer'}</span>
+              </Link>
+            </Button>
+          </div>
+          {/* 4️⃣ Transfer Clarification */}
+          <p className="text-[10px] text-muted-foreground text-center leading-snug">
+            <span>🔁</span>{' '}
+            {language === 'ar' 
+              ? 'يمكنك تحويل Nova فورًا لأي شخص داخل التطبيق — التحويل يتم مباشرة وبأمان.'
+              : 'Transfer Nova instantly to anyone in the app — safe and direct.'}
+          </p>
         </motion.div>
 
         {/* Daily Contest Card - Most prominent */}
