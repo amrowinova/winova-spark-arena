@@ -256,17 +256,6 @@ export function ContestJoinCard({
           </div>
         </div>
 
-        {/* Free Vote Message (Stage 1 only) */}
-        {stage === 'stage1' && (
-          <div className="p-2 bg-success/10 border border-success/20 rounded-lg">
-            <p className="text-xs text-success flex items-center justify-center gap-1">
-              <Gift className="h-3 w-3" />
-              {language === 'ar' 
-                ? '🎁 صوت مجاني واحد يظهر عشوائيًا خلال المرحلة الأولى'
-                : '🎁 One free vote appears randomly during Stage 1'}
-            </p>
-          </div>
-        )}
 
         {/* User Rank (only if joined) */}
         {hasJoined && userRank && (
@@ -304,11 +293,6 @@ export function ContestJoinCard({
                   <ArrowRight className="h-4 w-4 ms-2" />
                 </Button>
 
-                <p className="text-center text-[10px] text-muted-foreground">
-                  {language === 'ar' 
-                    ? 'يمكن الاشتراك باستخدام Nova أو Aura بما يعادل 10 Nova'
-                    : 'Pay with Nova or Aura equivalent to 10 Nova'}
-                </p>
               </>
             ) : (
               <div className="p-3 bg-muted rounded-lg text-center">
@@ -327,12 +311,6 @@ export function ContestJoinCard({
           </Button>
         )}
 
-        {/* Disclaimer */}
-        <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-          📈 {language === 'ar' 
-            ? 'الجوائز والمراكز تعتمد على الترتيب النهائي وعدد المشتركين عند انتهاء المسابقة.'
-            : 'Prizes and rankings depend on final standings and participant count at contest end.'}
-        </p>
       </CardContent>
     </Card>
   );
