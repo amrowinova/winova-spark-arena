@@ -130,9 +130,9 @@ export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) 
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-border">
+    <div className="min-h-full bg-background flex flex-col">
+      {/* Header - Fixed */}
+      <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-4 border-b border-border bg-background">
         <button 
           onClick={onBack}
           className="p-2 -m-2 hover:bg-muted rounded-full transition-colors"
@@ -144,12 +144,13 @@ export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) 
         </h1>
       </div>
 
-      {/* Form */}
+      {/* Form - Scrollable */}
       <motion.form
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit}
-        className="flex-1 px-6 py-6 space-y-6 overflow-y-auto pb-32"
+        className="flex-1 px-6 py-6 space-y-6 pb-safe"
+        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
       >
         {/* Social Signup Buttons - AT THE TOP */}
         <div className="space-y-3">
@@ -490,19 +491,21 @@ export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) 
           </motion.p>
         )}
 
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="w-full h-12 text-base font-semibold"
-        >
-          {isLoading 
-            ? (isRTL ? 'جارٍ إنشاء الحساب...' : 'Creating account...') 
-            : (isRTL ? 'إنشاء حساب' : 'Create Account')}
-        </Button>
+        {/* Submit Button - More visible */}
+        <div className="pt-4">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-14 text-base font-semibold shadow-lg"
+          >
+            {isLoading 
+              ? (isRTL ? 'جارٍ إنشاء الحساب...' : 'Creating account...') 
+              : (isRTL ? 'إنشاء حساب' : 'Create Account')}
+          </Button>
+        </div>
 
         {/* Login Link */}
-        <p className="text-center text-sm text-muted-foreground pb-8">
+        <p className="text-center text-sm text-muted-foreground py-6">
           {isRTL ? 'لديك حساب بالفعل؟ ' : 'Already have an account? '}
           <button
             type="button"
@@ -512,6 +515,9 @@ export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) 
             {isRTL ? 'تسجيل الدخول' : 'Sign In'}
           </button>
         </p>
+        
+        {/* Extra bottom spacing for safe area */}
+        <div className="h-8" />
       </motion.form>
     </div>
   );
