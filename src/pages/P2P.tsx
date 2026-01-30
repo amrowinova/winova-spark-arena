@@ -34,6 +34,7 @@ import {
   P2POrdersList,
   P2PCreateOrderDialog,
   P2PBuyDialog,
+  P2PSellDialog,
   P2POrderCard,
   P2PPaymentCard,
   P2PActionButtons,
@@ -45,17 +46,18 @@ import {
   PaymentMethod,
   P2POffer,
   P2POrderListItem,
+  SavedPaymentMethod,
   COUNTRIES,
   getDefaultCountry,
 } from '@/components/p2p';
 
 import { P2POrder, P2POrderStatus, P2PChat, P2PMessage, useP2P } from '@/contexts/P2PContext';
 
-// Mock offers data based on country
-const generateOffersForCountry = (country: CountryConfig): P2POffer[] => {
+// Mock offers data based on country - for BUY tab (sellers offering Nova)
+const generateBuyOffersForCountry = (country: CountryConfig): P2POffer[] => {
   const baseOffers = [
     {
-      id: 'offer-1',
+      id: 'offer-buy-1',
       user: {
         id: 'user-seller-1',
         name: 'Mohammed Ali',
@@ -69,7 +71,7 @@ const generateOffersForCountry = (country: CountryConfig): P2POffer[] => {
       timeLimit: 30,
     },
     {
-      id: 'offer-2',
+      id: 'offer-buy-2',
       user: {
         id: 'user-seller-2',
         name: 'Sarah Hassan',
@@ -83,7 +85,7 @@ const generateOffersForCountry = (country: CountryConfig): P2POffer[] => {
       timeLimit: 15,
     },
     {
-      id: 'offer-3',
+      id: 'offer-buy-3',
       user: {
         id: 'user-seller-3',
         name: 'Ahmed Khalil',
@@ -100,7 +102,65 @@ const generateOffersForCountry = (country: CountryConfig): P2POffer[] => {
 
   return baseOffers.map(offer => ({
     ...offer,
-    type: 'sell' as const,
+    type: 'sell' as const, // Seller is selling Nova
+    price: country.novaRate,
+    currency: country.currency,
+    currencySymbol: country.currencySymbol,
+    paymentMethods: country.paymentMethods,
+    country,
+  }));
+};
+
+// Mock offers for SELL tab - buyers wanting to buy Nova
+const generateSellOffersForCountry = (country: CountryConfig): P2POffer[] => {
+  const baseOffers = [
+    {
+      id: 'offer-sell-1',
+      user: {
+        id: 'user-buyer-1',
+        name: 'Omar Faisal',
+        nameAr: 'عمر فيصل',
+        avatar: '🧑',
+        rating: 4.85,
+        completedTrades: 78,
+        completionRate: 96.2,
+      },
+      amount: 300,
+      timeLimit: 30,
+    },
+    {
+      id: 'offer-sell-2',
+      user: {
+        id: 'user-buyer-2',
+        name: 'Fatima Abdullah',
+        nameAr: 'فاطمة عبدالله',
+        avatar: '👩‍💼',
+        rating: 4.92,
+        completedTrades: 142,
+        completionRate: 99.3,
+      },
+      amount: 150,
+      timeLimit: 20,
+    },
+    {
+      id: 'offer-sell-3',
+      user: {
+        id: 'user-buyer-3',
+        name: 'Yusuf Ali',
+        nameAr: 'يوسف علي',
+        avatar: '👨‍🦱',
+        rating: 4.6,
+        completedTrades: 45,
+        completionRate: 94.5,
+      },
+      amount: 500,
+      timeLimit: 45,
+    },
+  ];
+
+  return baseOffers.map(offer => ({
+    ...offer,
+    type: 'buy' as const, // This user wants to BUY Nova (so you sell to them)
     price: country.novaRate,
     currency: country.currency,
     currencySymbol: country.currencySymbol,
@@ -157,6 +217,7 @@ export default function P2PPage() {
   const [selectedTab, setSelectedTab] = useState<'buy' | 'sell' | 'orders'>('buy');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [buyDialogOpen, setBuyDialogOpen] = useState(false);
+  const [sellDialogOpen, setSellDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<P2POffer | null>(null);
   const [message, setMessage] = useState('');
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
@@ -168,7 +229,8 @@ export default function P2PPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Generate offers based on selected country
-  const offers = generateOffersForCountry(selectedCountry);
+  const buyOffers = generateBuyOffersForCountry(selectedCountry);
+  const sellOffers = generateSellOffersForCountry(selectedCountry);
 
   // Get all orders from chats
   const allOrders: P2POrder[] = chats.flatMap(chat => chat.orders);
@@ -216,6 +278,18 @@ export default function P2PPage() {
     setBuyDialogOpen(true);
   };
 
+  const handleSellToOffer = (offer: P2POffer) => {
+    // Check if user can create order
+    const check = canCreateOrder();
+    if (!check.allowed) {
+      showError(check.reason || (isRTL ? 'لا يمكنك إنشاء طلب جديد' : 'Cannot create new order'));
+      return;
+    }
+    
+    setSelectedOffer(offer);
+    setSellDialogOpen(true);
+  };
+
   const handleConfirmBuy = (amount: number, timeLimit: number) => {
     if (!selectedOffer) return;
 
@@ -242,6 +316,38 @@ export default function P2PPage() {
 
     showSuccess(isRTL ? 'تم إنشاء الطلب!' : 'Order created!');
     setBuyDialogOpen(false);
+    setSelectedOffer(null);
+    setSelectedTab('orders');
+  };
+
+  const handleConfirmSell = (amount: number, selectedPaymentMethod: SavedPaymentMethod) => {
+    if (!selectedOffer) return;
+
+    const seller = p2pParticipantFromUser(user);
+    const buyer = p2pParticipantFromOfferUser(selectedOffer);
+    
+    // Payment details from seller's saved method (where buyer will pay)
+    const paymentDetails = p2pPaymentDetailsFromSavedMethod(selectedPaymentMethod);
+
+    const created = createOrder({
+      type: 'sell',
+      amount,
+      price: selectedOffer.price,
+      total: amount * selectedOffer.price,
+      currency: selectedOffer.currency,
+      currencySymbol: selectedOffer.currencySymbol,
+      seller,
+      buyer,
+      paymentDetails,
+    });
+
+    if (!created) {
+      showError(isRTL ? 'لا يمكنك إنشاء طلب جديد حالياً' : 'Cannot create a new order right now');
+      return;
+    }
+
+    showSuccess(isRTL ? 'تم إنشاء طلب البيع!' : 'Sell order created!');
+    setSellDialogOpen(false);
     setSelectedOffer(null);
     setSelectedTab('orders');
   };
@@ -579,10 +685,10 @@ export default function P2PPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Buy Tab - Offers List */}
+          {/* Buy Tab - Offers List (Sellers offering Nova) */}
           <TabsContent value="buy" className="mt-4 space-y-3">
             <AnimatePresence mode="popLayout">
-              {offers.map((offer, index) => (
+              {buyOffers.map((offer, index) => (
                 <motion.div
                   key={offer.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -599,30 +705,24 @@ export default function P2PPage() {
             </AnimatePresence>
           </TabsContent>
 
-          {/* Sell Tab */}
-          <TabsContent value="sell" className="mt-4">
-            <Card className="p-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                <ShoppingCart className="h-8 w-8 text-muted-foreground/50" />
-              </div>
-              <h3 className="font-semibold mb-2">
-                {isRTL ? 'بيع Nova الخاص بك' : 'Sell Your Nova'}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {isRTL 
-                  ? 'أنشئ طلب بيع وسيتم حجز Nova في الضمان'
-                  : 'Create a sell order and Nova will be locked in escrow'
-                }
-              </p>
-              <Button 
-                onClick={handleOpenCreateDialog} 
-                className="gap-2"
-                disabled={!canCreateOrder().allowed}
-              >
-                <Plus className="h-4 w-4" />
-                {isRTL ? 'إنشاء طلب بيع' : 'Create Sell Order'}
-              </Button>
-            </Card>
+          {/* Sell Tab - Offers List (Buyers wanting Nova) */}
+          <TabsContent value="sell" className="mt-4 space-y-3">
+            <AnimatePresence mode="popLayout">
+              {sellOffers.map((offer, index) => (
+                <motion.div
+                  key={offer.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <P2POfferCard
+                    offer={offer}
+                    onAction={handleSellToOffer}
+                    actionType="sell"
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </TabsContent>
 
           {/* Orders Tab */}
@@ -648,6 +748,13 @@ export default function P2PPage() {
         onOpenChange={setBuyDialogOpen}
         offer={selectedOffer}
         onConfirm={handleConfirmBuy}
+      />
+
+      <P2PSellDialog
+        open={sellDialogOpen}
+        onOpenChange={setSellDialogOpen}
+        offer={selectedOffer}
+        onConfirm={handleConfirmSell}
       />
       
       <BottomNav />
