@@ -226,12 +226,27 @@ export default function HomePage() {
                 <span className="text-sm font-medium">{language === 'ar' ? 'محفظتي' : 'My Wallet'}</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
-              <Link to="/p2p">
-                <span className="text-base">🤝</span>
-                <span className="text-sm font-medium">{language === 'ar' ? 'تحويل فوري P2P' : 'P2P Transfer'}</span>
-              </Link>
-            </Button>
+            <div className="flex flex-col gap-1.5">
+              <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
+                <Link to="/p2p">
+                  <span className="text-base">🤝</span>
+                  <span className="text-sm font-medium">{language === 'ar' ? 'تحويل فوري P2P' : 'P2P Transfer'}</span>
+                </Link>
+              </Button>
+              {/* P2P Active Order Alert - Inside P2P section */}
+              {showP2PAlert && (
+                <Link to="/p2p" className="block">
+                  <div className="flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 bg-warning/10 border border-warning/30 rounded-lg text-warning">
+                    <span className="text-[11px] font-medium">
+                      {language === 'ar' ? '🟡 لديك صفقة قيد التنفيذ' : '🟡 Active P2P order'}
+                    </span>
+                    <span className="text-[10px] opacity-80">
+                      {language === 'ar' ? '⌛ اضغط للمتابعة' : '⌛ Tap to continue'}
+                    </span>
+                  </div>
+                </Link>
+              )}
+            </div>
           </div>
           {/* 4️⃣ Transfer Clarification */}
           <p className="text-[10px] text-muted-foreground text-center leading-snug">
@@ -240,20 +255,6 @@ export default function HomePage() {
               ? 'يمكنك تحويل Nova فورًا لأي شخص داخل التطبيق — التحويل يتم مباشرة وبأمان.'
               : 'Transfer Nova instantly to anyone in the app — safe and direct.'}
           </p>
-          
-          {/* P2P Active Order Alert */}
-          {showP2PAlert && (
-            <Link to="/p2p" className="block mt-2">
-              <div className="flex items-center justify-center gap-2 py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg text-warning">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span className="text-xs font-medium">
-                  {language === 'ar' 
-                    ? '🟡 لديك صفقة قيد التنفيذ'
-                    : '🟡 You have an active P2P order'}
-                </span>
-              </div>
-            </Link>
-          )}
         </motion.div>
 
         {/* Daily Contest Card - Most prominent */}
