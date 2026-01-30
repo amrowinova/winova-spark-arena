@@ -119,19 +119,6 @@ export default function WalletPage() {
           </Card>
         </motion.div>
 
-        {/* Conversion Info - Clear explanation */}
-        <Card className="p-3 bg-muted/20 border border-border">
-          <p className="text-xs text-muted-foreground text-center font-medium mb-1">
-            {language === 'ar' ? 'سعر التحويل:' : 'Conversion Rate:'}
-          </p>
-          <div className="text-xs text-foreground text-center space-y-0.5">
-            <p>1 Nova (<span className="text-nova font-bold">И</span>) = 2 Aura</p>
-            <p>1 Aura = 0.5 Nova ({language === 'ar' ? 'نصف Nova' : 'half Nova'})</p>
-          </div>
-          <p className="text-xs text-muted-foreground text-center mt-1">
-            {language === 'ar' ? 'تُستخدم Aura فقط في المسابقات والتصويت' : 'Aura is only used for contests & voting'}
-          </p>
-        </Card>
 
         {/* Action Buttons - 2 columns only (History is below) */}
         <motion.div
@@ -156,9 +143,12 @@ export default function WalletPage() {
             variant="outline"
             className="flex-col h-auto py-4 border-aura/30 hover:bg-aura/5 hover:border-aura/50"
           >
-            <RefreshCw className="h-5 w-5 mb-1 text-aura" />
+            <RefreshCw className="h-5 w-5 mb-1.5 text-aura" />
             <span className="text-xs text-foreground text-center leading-tight">
               Nova → Aura
+            </span>
+            <span className="text-[10px] text-muted-foreground mt-1">
+              {language === 'ar' ? 'كل 1 Nova = 2 Aura' : '1 Nova = 2 Aura'}
             </span>
           </Button>
         </motion.div>
