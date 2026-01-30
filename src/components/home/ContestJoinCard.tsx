@@ -275,12 +275,17 @@ export function ContestJoinCard({
             {canJoin ? (
               <>
                 <motion.div
-                  animate={{ opacity: [0.7, 1, 0.7] }}
-                  transition={{ repeat: Infinity, duration: 1 }}
-                  className="p-2 bg-warning/10 rounded-lg text-center"
+                  animate={{ scale: [1, 1.01, 1] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  className="p-3 bg-gradient-to-r from-primary/15 to-primary/10 border border-primary/30 rounded-lg text-center"
                 >
-                  <p className="text-xs text-warning font-medium">
-                    {joinWindowMessage}
+                  <p className="text-sm text-primary font-semibold mb-0.5">
+                    {language === 'ar' ? '⏳ باب الانضمام مفتوح' : '⏳ Joining is open'}
+                  </p>
+                  <p className="text-xs text-primary/80">
+                    {language === 'ar' 
+                      ? `باقي ${Math.max(0, Math.floor((closesAt.getTime() - new Date().getTime()) / 60000))} دقيقة قبل إغلاق الانضمام`
+                      : `${Math.max(0, Math.floor((closesAt.getTime() - new Date().getTime()) / 60000))} minutes left to join`}
                   </p>
                 </motion.div>
 
