@@ -42,11 +42,13 @@ interface P2PCreateOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   country: CountryConfig;
+  initialOrderType?: 'buy' | 'sell';
   onCreateOrder: (order: {
     type: 'buy' | 'sell';
     amount: number;
     timeLimit: number;
     paymentMethod: PaymentMethod;
+    paymentMethods?: PaymentMethod[]; // For buy orders with multiple accepted methods
     savedPaymentMethod?: SavedPaymentMethod;
   }) => void;
 }
@@ -55,18 +57,19 @@ export function P2PCreateOrderDialog({
   open,
   onOpenChange,
   country,
+  initialOrderType = 'sell',
   onCreateOrder,
 }: P2PCreateOrderDialogProps) {
   const { language } = useLanguage();
   const { user } = useUser();
   const isRTL = language === 'ar';
 
-  const [orderType, setOrderType] = useState<'buy' | 'sell'>('sell');
+  const [orderType, setOrderType] = useState<'buy' | 'sell'>(initialOrderType);
   const [amount, setAmount] = useState<number | null>(null);
   const [timeLimit, setTimeLimit] = useState<number | null>(30);
   
-  // For Buy: select from country payment methods
-  const [buyPaymentMethodId, setBuyPaymentMethodId] = useState<string>('');
+  // For Buy: multiple payment methods via checkboxes
+  const [selectedBuyMethodIds, setSelectedBuyMethodIds] = useState<Set<string>>(new Set());
   
   // For Sell: select from saved payment methods
   const [sellPaymentMethodId, setSellPaymentMethodId] = useState<string>('');
@@ -77,7 +80,12 @@ export function P2PCreateOrderDialog({
   // Get saved payment methods for this country
   const savedMethods = useSavedPaymentMethods(country.code);
   const selectedSavedMethod = savedMethods.find(m => m.id === sellPaymentMethodId);
-  const selectedBuyMethod = country.paymentMethods.find(m => m.id === buyPaymentMethodId);
+  const selectedBuyMethods = country.paymentMethods.filter(m => selectedBuyMethodIds.has(m.id));
+
+  // Sync order type when initialOrderType changes
+  useEffect(() => {
+    setOrderType(initialOrderType);
+  }, [initialOrderType, open]);
 
   // Auto-select default method when country changes or methods load
   useEffect(() => {
@@ -90,7 +98,7 @@ export function P2PCreateOrderDialog({
   // Reset when country changes
   useEffect(() => {
     setSellPaymentMethodId('');
-    setBuyPaymentMethodId('');
+    setSelectedBuyMethodIds(new Set());
   }, [country.code]);
 
   const total = amount ? amount * country.novaRate : 0;
@@ -98,9 +106,21 @@ export function P2PCreateOrderDialog({
   const noSavedMethods = orderType === 'sell' && savedMethods.length === 0;
 
   const canCreate = amount && timeLimit && (
-    (orderType === 'buy' && buyPaymentMethodId) ||
+    (orderType === 'buy' && selectedBuyMethodIds.size > 0) ||
     (orderType === 'sell' && sellPaymentMethodId)
   );
+
+  const toggleBuyMethod = (methodId: string) => {
+    setSelectedBuyMethodIds(prev => {
+      const next = new Set(prev);
+      if (next.has(methodId)) {
+        next.delete(methodId);
+      } else {
+        next.add(methodId);
+      }
+      return next;
+    });
+  };
 
   const handleCreate = () => {
     if (!canCreate || insufficientBalance) return;
@@ -121,19 +141,20 @@ export function P2PCreateOrderDialog({
         paymentMethod,
         savedPaymentMethod: selectedSavedMethod,
       });
-    } else if (orderType === 'buy' && selectedBuyMethod) {
+    } else if (orderType === 'buy' && selectedBuyMethods.length > 0) {
       onCreateOrder({
         type: 'buy',
         amount: amount!,
         timeLimit: timeLimit!,
-        paymentMethod: selectedBuyMethod,
+        paymentMethod: selectedBuyMethods[0], // First method as primary
+        paymentMethods: selectedBuyMethods, // All selected methods
       });
     }
 
     // Reset form
     setAmount(null);
     setTimeLimit(30);
-    setBuyPaymentMethodId('');
+    setSelectedBuyMethodIds(new Set());
     setSellPaymentMethodId('');
     onOpenChange(false);
   };
@@ -213,28 +234,72 @@ export function P2PCreateOrderDialog({
               onChange={setTimeLimit}
             />
 
-            {/* Payment Method - For Buy Orders */}
+            {/* Payment Methods - For Buy Orders (Checkboxes) */}
             {orderType === 'buy' && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  {isRTL ? 'طريقة الدفع' : 'Payment Method'}
+                  {isRTL ? 'طرق الدفع المقبولة' : 'Accepted Payment Methods'}
+                  <span className="text-xs text-muted-foreground">
+                    ({isRTL ? 'اختر واحدة أو أكثر' : 'select one or more'})
+                  </span>
                 </Label>
-                <Select value={buyPaymentMethodId} onValueChange={setBuyPaymentMethodId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={isRTL ? 'اختر طريقة الدفع' : 'Select payment method'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {country.paymentMethods.map((method) => (
-                      <SelectItem key={method.id} value={method.id}>
-                        <span className="flex items-center gap-2">
-                          <span>{method.icon}</span>
-                          <span>{isRTL ? method.nameAr : method.name}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-2">
+                  {country.paymentMethods.map((method) => {
+                    const isSelected = selectedBuyMethodIds.has(method.id);
+                    return (
+                      <Card
+                        key={method.id}
+                        className={cn(
+                          "p-3 cursor-pointer transition-all",
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "hover:bg-muted/50"
+                        )}
+                        onClick={() => toggleBuyMethod(method.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={cn(
+                              "w-4 h-4 rounded border-2 flex items-center justify-center",
+                              isSelected
+                                ? "border-primary bg-primary"
+                                : "border-muted-foreground/50"
+                            )}
+                          >
+                            {isSelected && (
+                              <svg
+                                className="w-3 h-3 text-primary-foreground"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={3}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="text-lg">{method.icon}</span>
+                          <span className="text-sm font-medium truncate">
+                            {isRTL ? method.nameAr : method.name}
+                          </span>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+                {selectedBuyMethodIds.size === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {isRTL 
+                      ? 'اختر طريقة دفع واحدة على الأقل'
+                      : 'Select at least one payment method'
+                    }
+                  </p>
+                )}
               </div>
             )}
 
