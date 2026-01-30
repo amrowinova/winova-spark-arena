@@ -94,8 +94,8 @@ const statusConfig: Record<P2POrderListItem['status'], {
 };
 
 const filterToStatuses: Record<OrderStatusFilter, P2POrderListItem['status'][]> = {
-  active: ['created', 'waiting_payment', 'paid', 'released'],
-  completed: ['completed'],
+  active: ['created', 'waiting_payment', 'paid'],
+  completed: ['released', 'completed'],
   cancelled: ['cancelled', 'expired'],
   dispute: ['dispute'],
 };
