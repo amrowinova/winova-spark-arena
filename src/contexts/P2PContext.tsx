@@ -39,7 +39,21 @@ export type P2PCancellationReason =
 
 export interface P2PSystemMessage {
   id: string;
-  type: 'status_change' | 'payment_confirmed' | 'released' | 'dispute_opened' | 'support_joined' | 'support_message' | 'dispute_resolved' | 'seller_confirmed' | 'funds_released' | 'completion_summary';
+  type: 
+    | 'status_change' 
+    | 'payment_confirmed' 
+    | 'released' 
+    | 'dispute_opened' 
+    | 'support_joined' 
+    | 'support_message' 
+    | 'dispute_resolved' 
+    | 'seller_confirmed' 
+    | 'funds_released' 
+    | 'completion_summary'
+    | 'buyer_copied_bank'     // New: Buyer copied bank info
+    | 'awaiting_buyer_payment' // New: Seller waiting for buyer's transfer
+    | 'buyer_paid'            // New: Buyer executed transfer
+    | 'sell_order_created';   // New: Sell order created
   content: string;
   contentAr: string;
   time: string;
