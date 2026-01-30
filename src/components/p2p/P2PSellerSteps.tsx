@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Clock, Loader2, AlertTriangle, Lock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -20,12 +20,30 @@ export function P2PSellerSteps({
 }: P2PSellerStepsProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
-  const { releaseFunds, openDispute, updateOrderStatus } = useP2P();
+  const { releaseFunds, openDispute, updateOrderStatus, isMockMode, triggerMockBuyerPayment } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   
   const [isExtendedWait, setIsExtendedWait] = useState(false);
+  
+  // Track if we've already triggered the mock simulation for this order
+  const hasTriggeredMockRef = useRef<string | null>(null);
 
   const isSeller = order.seller.id === currentUserId;
+
+  // Auto-trigger mock buyer payment when in waiting_payment status (sell flow)
+  // Must be before any early returns to follow React hooks rules
+  useEffect(() => {
+    if (
+      isMockMode && 
+      isSeller &&
+      order.status === 'waiting_payment' && 
+      order.type === 'sell' &&
+      hasTriggeredMockRef.current !== order.id
+    ) {
+      hasTriggeredMockRef.current = order.id;
+      triggerMockBuyerPayment(order.id);
+    }
+  }, [isMockMode, isSeller, order.id, order.status, order.type, triggerMockBuyerPayment]);
 
   // Only show for seller
   if (!isSeller) return null;

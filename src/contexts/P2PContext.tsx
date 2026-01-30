@@ -166,8 +166,11 @@ interface P2PContextType {
   releaseFunds: (orderId: string) => void;
   reportNoPayment: (orderId: string) => void;
   
-  // Mock mode: Auto-confirm seller (for UI testing)
+  // Mock mode: Auto-confirm seller (for UI testing - buy flow)
   triggerMockSellerConfirmation: (orderId: string) => void;
+  
+  // Mock mode: Auto-simulate buyer payment (for UI testing - sell flow)
+  triggerMockBuyerPayment: (orderId: string) => void;
   
   // Support actions
   joinDispute: (orderId: string) => void;
@@ -819,6 +822,34 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     }, delay);
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MOCK MODE: Auto-simulate buyer payment for sell flow UI testing
+  // ═══════════════════════════════════════════════════════════════════════════
+  const triggerMockBuyerPayment = (orderId: string) => {
+    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
+    const order = chat?.orders.find(o => o.id === orderId);
+    
+    if (!chat || !order) return;
+    
+    // Simulate 5 second delay for mock buyer payment (as per spec)
+    const delay = 5000; // 5 seconds
+    
+    setTimeout(() => {
+      // Add buyer paid system message
+      addSystemMessage(chat.id, {
+        id: `sys-${Date.now()}`,
+        type: 'buyer_paid',
+        content: `💸 Buyer executed bank transfer\nPlease verify payment before releasing Nova.`,
+        contentAr: `💸 قام المشتري بتنفيذ التحويل البنكي\nيرجى التأكد من وصول المبلغ إلى حسابك.`,
+        time: getTimeString(),
+        orderId,
+      });
+      
+      // Update order status to paid
+      updateOrderStatus(orderId, 'paid');
+    }, delay);
+  };
+
   // Rating
   const rateOrder = (orderId: string, isPositive: boolean) => {
     setRatedOrders(prev => new Set(prev).add(orderId));
@@ -869,6 +900,7 @@ export function P2PProvider({ children }: { children: ReactNode }) {
         releaseFunds,
         reportNoPayment,
         triggerMockSellerConfirmation,
+        triggerMockBuyerPayment,
         joinDispute,
         requestProof,
         resolveDispute,
