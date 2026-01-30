@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Star, Timer, AlertTriangle, Wallet, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Star, Timer, AlertTriangle, Wallet, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -18,11 +20,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { P2PAmountSelector } from './P2PAmountSelector';
 import { P2POffer } from './P2POfferCard';
-import { SavedPaymentMethod, useSavedPaymentMethods } from './P2PPaymentMethodsManager';
+import { 
+  SavedPaymentMethod, 
+  useSavedPaymentMethods, 
+  COUNTRY_PROVIDERS, 
+  PAYMENT_METHOD_TYPES,
+  PaymentMethodType,
+} from './P2PPaymentMethodsManager';
 import { cn } from '@/lib/utils';
+
+const STORAGE_KEY = 'winova_p2p_payment_methods';
 
 interface P2PSellDialogProps {
   open: boolean;
@@ -39,17 +59,72 @@ export function P2PSellDialog({
 }: P2PSellDialogProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
-  const navigate = useNavigate();
-  const paymentMethods = useSavedPaymentMethods();
+  const paymentMethods = useSavedPaymentMethods(offer?.country.code);
 
   const [amount, setAmount] = useState<number | null>(null);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>('');
+  
+  // Inline add/edit account state
+  const [isAddingAccount, setIsAddingAccount] = useState(false);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  
+  // Form state
+  const [selectedType, setSelectedType] = useState<PaymentMethodType | ''>('');
+  const [selectedProviderId, setSelectedProviderId] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  
+  // Refresh payment methods
+  const [localMethods, setLocalMethods] = useState<SavedPaymentMethod[]>([]);
+  
+  useEffect(() => {
+    if (offer) {
+      refreshMethods();
+    }
+  }, [offer, paymentMethods]);
+  
+  const refreshMethods = () => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        const allMethods = parsed.map((m: any) => ({
+          ...m,
+          createdAt: new Date(m.createdAt)
+        }));
+        setLocalMethods(offer?.country.code 
+          ? allMethods.filter((m: SavedPaymentMethod) => m.countryCode === offer.country.code)
+          : allMethods
+        );
+      } catch (e) {
+        console.error('Failed to parse saved payment methods:', e);
+      }
+    }
+  };
 
   if (!offer) return null;
 
-  const selectedPaymentMethod = paymentMethods.find(m => m.id === selectedPaymentMethodId);
+  const countryProviders = COUNTRY_PROVIDERS[offer.country.code] || [];
+  const filteredProviders = selectedType 
+    ? countryProviders.filter(p => p.type === selectedType)
+    : countryProviders;
+  const selectedProvider = countryProviders.find(p => p.id === selectedProviderId);
+  const isBank = selectedProvider?.type === 'bank';
+  const isWallet = selectedProvider?.type === 'wallet' || selectedProvider?.type === 'instant';
+
+  const selectedPaymentMethod = localMethods.find(m => m.id === selectedPaymentMethodId);
   const total = amount ? amount * offer.price : 0;
   const canConfirm = amount && amount <= offer.amount && selectedPaymentMethod;
+
+  const resetForm = () => {
+    setSelectedType('');
+    setSelectedProviderId('');
+    setFullName('');
+    setAccountNumber('');
+    setPhoneNumber('');
+  };
 
   const handleConfirm = () => {
     if (!canConfirm || !selectedPaymentMethod) return;
@@ -62,196 +137,535 @@ export function P2PSellDialog({
     if (!newOpen) {
       setAmount(null);
       setSelectedPaymentMethodId('');
+      setIsAddingAccount(false);
+      setEditingAccountId(null);
+      resetForm();
     }
     onOpenChange(newOpen);
   };
 
+  const handleAddAccount = () => {
+    if (!selectedProvider || !fullName) return;
+    if (isBank && !accountNumber) return;
+    if (isWallet && !phoneNumber) return;
+
+    const newMethod: SavedPaymentMethod = {
+      id: `pm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      countryCode: offer.country.code,
+      type: selectedProvider.type,
+      providerName: selectedProvider.name,
+      providerNameAr: selectedProvider.nameAr,
+      fullName,
+      accountNumber: isBank ? accountNumber : undefined,
+      phoneNumber: isWallet ? phoneNumber : undefined,
+      isDefault: localMethods.length === 0,
+      createdAt: new Date(),
+    };
+
+    // Save to localStorage
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const existingMethods = stored ? JSON.parse(stored) : [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...existingMethods, newMethod]));
+    
+    resetForm();
+    setIsAddingAccount(false);
+    refreshMethods();
+    setSelectedPaymentMethodId(newMethod.id);
+  };
+
+  const handleEditAccount = () => {
+    if (!editingAccountId || !fullName) return;
+    const editingMethod = localMethods.find(m => m.id === editingAccountId);
+    if (!editingMethod) return;
+    
+    const isEditBank = editingMethod.type === 'bank';
+    const isEditWallet = editingMethod.type === 'wallet' || editingMethod.type === 'instant';
+    
+    if (isEditBank && !accountNumber) return;
+    if (isEditWallet && !phoneNumber) return;
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const allMethods = JSON.parse(stored);
+      const updated = allMethods.map((m: any) => 
+        m.id === editingAccountId 
+          ? {
+              ...m,
+              fullName,
+              accountNumber: isEditBank ? accountNumber : undefined,
+              phoneNumber: isEditWallet ? phoneNumber : undefined,
+            }
+          : m
+      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    }
+    
+    resetForm();
+    setEditingAccountId(null);
+    refreshMethods();
+  };
+
+  const handleDeleteAccount = (id: string) => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const allMethods = JSON.parse(stored);
+      const filtered = allMethods.filter((m: any) => m.id !== id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    }
+    
+    if (selectedPaymentMethodId === id) {
+      setSelectedPaymentMethodId('');
+    }
+    setDeleteConfirmId(null);
+    refreshMethods();
+  };
+
+  const openEditForm = (method: SavedPaymentMethod) => {
+    setEditingAccountId(method.id);
+    setFullName(method.fullName);
+    setAccountNumber(method.accountNumber || '');
+    setPhoneNumber(method.phoneNumber || '');
+  };
+
+  const canSubmitAdd = selectedProvider && fullName.trim() && (
+    (isBank && accountNumber.trim()) ||
+    (isWallet && phoneNumber.trim())
+  );
+
+  const editingMethod = localMethods.find(m => m.id === editingAccountId);
+  const canSubmitEdit = editingMethod && fullName.trim() && (
+    (editingMethod.type === 'bank' && accountNumber.trim()) ||
+    ((editingMethod.type === 'wallet' || editingMethod.type === 'instant') && phoneNumber.trim())
+  );
+
+  const getTypeConfig = (type: PaymentMethodType) => 
+    PAYMENT_METHOD_TYPES.find(t => t.id === type);
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isRTL ? 'بيع Nova' : 'Sell Nova'}
-          </DialogTitle>
-          <DialogDescription>
-            {isRTL ? 'إلى' : 'To'} {isRTL ? offer.user.nameAr : offer.user.name}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {isRTL ? 'بيع Nova' : 'Sell Nova'}
+            </DialogTitle>
+            <DialogDescription>
+              {isRTL ? 'إلى' : 'To'} {isRTL ? offer.user.nameAr : offer.user.name}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-5">
-          {/* Buyer Info */}
-          <Card className="p-4 bg-muted/50">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center text-2xl border border-border">
-                  {offer.user.avatar}
-                </div>
-                <span className="absolute -bottom-0.5 -end-0.5 h-3.5 w-3.5 rounded-full bg-success border-2 border-card" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-lg">
-                  {isRTL ? offer.user.nameAr : offer.user.name}
-                </p>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="flex items-center gap-1 text-warning">
-                    <Star className="h-4 w-4 fill-warning" />
-                    <span className="font-semibold">{(offer.user.rating * 20).toFixed(0)}%</span>
+          <div className="space-y-5">
+            {/* Buyer Info */}
+            <Card className="p-4 bg-muted/50">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center text-2xl border border-border">
+                    {offer.user.avatar}
                   </div>
-                  <span className="text-muted-foreground">
-                    {offer.user.completedTrades} {isRTL ? 'صفقة' : 'trades'}
-                  </span>
+                  <span className="absolute -bottom-0.5 -end-0.5 h-3.5 w-3.5 rounded-full bg-success border-2 border-card" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-lg">
+                    {isRTL ? offer.user.nameAr : offer.user.name}
+                  </p>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-1 text-warning">
+                      <Star className="h-4 w-4 fill-warning" />
+                      <span className="font-semibold">{(offer.user.rating * 20).toFixed(0)}%</span>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {offer.user.completedTrades} {isRTL ? 'صفقة' : 'trades'}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
-
-          {/* Offer Details */}
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="p-3 text-center">
-              <p className="text-xs text-muted-foreground mb-1">
-                {isRTL ? 'السعر' : 'Price'}
-              </p>
-              <p className="text-lg font-bold">
-                {offer.currencySymbol} {offer.price.toFixed(2)}
-              </p>
             </Card>
-            <Card className="p-3 text-center">
-              <p className="text-xs text-muted-foreground mb-1">
-                {isRTL ? 'يريد شراء' : 'Wants to buy'}
-              </p>
-              <p className="text-lg font-bold text-nova">
-                И {offer.amount}
-              </p>
-            </Card>
-          </div>
 
-          {/* Payment Methods Buyer Accepts */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">
-              {isRTL ? 'طرق الدفع المقبولة للمشتري' : 'Buyer Accepts'}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {offer.paymentMethods.map((method) => (
-                <Badge key={method.id} variant="secondary" className="gap-1.5 py-1.5">
-                  <span>{method.icon}</span>
-                  <span>{isRTL ? method.nameAr : method.name}</span>
-                </Badge>
-              ))}
+            {/* Offer Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="p-3 text-center">
+                <p className="text-xs text-muted-foreground mb-1">
+                  {isRTL ? 'السعر' : 'Price'}
+                </p>
+                <p className="text-lg font-bold">
+                  {offer.currencySymbol} {offer.price.toFixed(2)}
+                </p>
+              </Card>
+              <Card className="p-3 text-center">
+                <p className="text-xs text-muted-foreground mb-1">
+                  {isRTL ? 'يريد شراء' : 'Wants to buy'}
+                </p>
+                <p className="text-lg font-bold text-nova">
+                  И {offer.amount}
+                </p>
+              </Card>
             </div>
-          </div>
 
-          {/* Select Your Payment Method */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium">
-              {isRTL ? 'اختر حسابك البنكي لاستلام المبلغ' : 'Select your bank account to receive payment'}
-              <span className="text-destructive ms-1">*</span>
-            </p>
-            
-            {paymentMethods.length === 0 ? (
-              <Card className="p-4 bg-warning/10 border-warning/30">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-warning">
-                        {isRTL ? 'لا توجد حسابات بنكية محفوظة' : 'No saved bank accounts'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {isRTL 
-                          ? 'يجب إضافة حساب بنكي من إعدادات الدفع أولاً'
-                          : 'Add a bank account from payment settings first'
-                        }
-                      </p>
+            {/* Payment Methods Buyer Accepts */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">
+                {isRTL ? 'طرق الدفع المقبولة للمشتري' : 'Buyer Accepts'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {offer.paymentMethods.map((method) => (
+                  <Badge key={method.id} variant="secondary" className="gap-1.5 py-1.5">
+                    <span>{method.icon}</span>
+                    <span>{isRTL ? method.nameAr : method.name}</span>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Select Your Bank Account */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">
+                  {isRTL ? 'اختر حسابك لاستلام المبلغ' : 'Select your account to receive payment'}
+                  <span className="text-destructive ms-1">*</span>
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => setIsAddingAccount(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {isRTL ? 'إضافة' : 'Add'}
+                </Button>
+              </div>
+              
+              {localMethods.length === 0 && !isAddingAccount ? (
+                <Card className="p-4 bg-warning/10 border-warning/30">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-warning">
+                          {isRTL ? 'لا توجد حسابات بنكية' : 'No bank accounts'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {isRTL 
+                            ? 'أضف حساب بنكي لاستلام المدفوعات'
+                            : 'Add a bank account to receive payments'
+                          }
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-warning/50 text-warning hover:bg-warning/10 hover:text-warning"
+                        onClick={() => setIsAddingAccount(true)}
+                      >
+                        <Plus className="h-4 w-4 me-2" />
+                        {isRTL ? 'إضافة حساب بنكي' : 'Add Bank Account'}
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full border-warning/50 text-warning hover:bg-warning/10 hover:text-warning"
-                      onClick={() => {
-                        onOpenChange(false);
-                        navigate('/settings');
-                      }}
+                  </div>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {localMethods.map((method) => {
+                    const typeConfig = getTypeConfig(method.type);
+                    const isSelected = selectedPaymentMethodId === method.id;
+                    return (
+                      <Card 
+                        key={method.id}
+                        className={cn(
+                          "p-3 cursor-pointer transition-all",
+                          isSelected 
+                            ? "border-primary bg-primary/5" 
+                            : "hover:bg-muted/50"
+                        )}
+                        onClick={() => setSelectedPaymentMethodId(method.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                            isSelected ? "border-primary" : "border-muted-foreground/50"
+                          )}>
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                          <div className="text-xl">{typeConfig?.icon || '🏦'}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">
+                              {isRTL ? method.providerNameAr : method.providerName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {method.fullName} • {method.accountNumber || method.phoneNumber}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditForm(method);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmId(method.id);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Inline Add Account Form */}
+              {isAddingAccount && (
+                <Card className="p-4 border-primary/50 bg-primary/5">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm">
+                        {isRTL ? 'إضافة حساب جديد' : 'Add New Account'}
+                      </p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 text-xs"
+                        onClick={() => { resetForm(); setIsAddingAccount(false); }}
+                      >
+                        {isRTL ? 'إلغاء' : 'Cancel'}
+                      </Button>
+                    </div>
+                    
+                    {/* Payment Type */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {PAYMENT_METHOD_TYPES.map((type) => (
+                        <Button
+                          key={type.id}
+                          type="button"
+                          variant={selectedType === type.id ? 'default' : 'outline'}
+                          className="h-auto py-2 flex-col gap-1"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedType(type.id);
+                            setSelectedProviderId('');
+                          }}
+                        >
+                          <span className="text-lg">{type.icon}</span>
+                          <span className="text-[10px]">
+                            {isRTL ? type.labelAr : type.labelEn}
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Provider */}
+                    {selectedType && (
+                      <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={isRTL ? 'اختر...' : 'Select...'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredProviders.map((provider) => (
+                            <SelectItem key={provider.id} value={provider.id}>
+                              <span className="flex items-center gap-2">
+                                <span>{provider.icon}</span>
+                                <span>{isRTL ? provider.nameAr : provider.name}</span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {/* Dynamic Fields */}
+                    {selectedProvider && (
+                      <>
+                        <Input
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder={isRTL ? 'الاسم الكامل' : 'Full Name'}
+                          className="h-9"
+                        />
+                        {isBank && (
+                          <Input
+                            value={accountNumber}
+                            onChange={(e) => setAccountNumber(e.target.value)}
+                            placeholder={isRTL ? 'رقم الحساب' : 'Account Number'}
+                            className="h-9"
+                          />
+                        )}
+                        {isWallet && (
+                          <Input
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            placeholder={isRTL ? 'رقم الهاتف' : 'Phone Number'}
+                            className="h-9"
+                            dir="ltr"
+                          />
+                        )}
+                        <Button 
+                          size="sm" 
+                          className="w-full"
+                          onClick={handleAddAccount}
+                          disabled={!canSubmitAdd}
+                        >
+                          {isRTL ? 'حفظ الحساب' : 'Save Account'}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Inline Edit Account Form */}
+              {editingAccountId && editingMethod && (
+                <Card className="p-4 border-primary/50 bg-primary/5">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm flex items-center gap-2">
+                        <Pencil className="h-4 w-4" />
+                        {isRTL ? 'تعديل الحساب' : 'Edit Account'}
+                      </p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 text-xs"
+                        onClick={() => { resetForm(); setEditingAccountId(null); }}
+                      >
+                        {isRTL ? 'إلغاء' : 'Cancel'}
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>{getTypeConfig(editingMethod.type)?.icon}</span>
+                      <span>{isRTL ? editingMethod.providerNameAr : editingMethod.providerName}</span>
+                    </div>
+                    
+                    <Input
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder={isRTL ? 'الاسم الكامل' : 'Full Name'}
+                      className="h-9"
+                    />
+                    
+                    {editingMethod.type === 'bank' && (
+                      <Input
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
+                        placeholder={isRTL ? 'رقم الحساب' : 'Account Number'}
+                        className="h-9"
+                      />
+                    )}
+                    
+                    {(editingMethod.type === 'wallet' || editingMethod.type === 'instant') && (
+                      <Input
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder={isRTL ? 'رقم الهاتف' : 'Phone Number'}
+                        className="h-9"
+                        dir="ltr"
+                      />
+                    )}
+                    
+                    <Button 
+                      size="sm" 
+                      className="w-full"
+                      onClick={handleEditAccount}
+                      disabled={!canSubmitEdit}
                     >
-                      <ExternalLink className="h-4 w-4 me-2" />
-                      {isRTL ? 'الذهاب لإعدادات الدفع' : 'Go to Payment Settings'}
+                      {isRTL ? 'حفظ التغييرات' : 'Save Changes'}
                     </Button>
+                  </div>
+                </Card>
+              )}
+            </div>
+
+            {/* Amount Selector */}
+            <P2PAmountSelector
+              value={amount}
+              onChange={setAmount}
+              maxAmount={offer.amount}
+            />
+
+            {/* Order Summary */}
+            {amount && (
+              <Card className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {isRTL ? 'ستبيع' : "You'll sell"}
+                    </p>
+                    <p className="text-xl font-bold text-nova">И {amount}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {isRTL ? 'ستستلم' : "You'll receive"}
+                    </p>
+                    <p className="text-xl font-bold text-success">
+                      {offer.currencySymbol} {total.toFixed(2)}
+                    </p>
                   </div>
                 </div>
               </Card>
-            ) : (
-              <Select value={selectedPaymentMethodId} onValueChange={setSelectedPaymentMethodId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={isRTL ? 'اختر حساب الاستلام' : 'Select receiving account'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map((method) => (
-                    <SelectItem key={method.id} value={method.id}>
-                      <div className="flex items-center gap-2">
-                        <Wallet className="h-4 w-4" />
-                        <span>{method.providerName}</span>
-                        <span className="text-muted-foreground">
-                          - {method.accountNumber || method.phoneNumber || method.iban}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             )}
-          </div>
 
-          {/* Amount Selector */}
-          <P2PAmountSelector
-            value={amount}
-            onChange={setAmount}
-            maxAmount={offer.amount}
-          />
-
-          {/* Order Summary */}
-          {amount && (
-            <Card className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">
-                    {isRTL ? 'ستبيع' : "You'll sell"}
-                  </p>
-                  <p className="text-xl font-bold text-nova">И {amount}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">
-                    {isRTL ? 'ستستلم' : "You'll receive"}
-                  </p>
-                  <p className="text-xl font-bold text-success">
-                    {offer.currencySymbol} {total.toFixed(2)}
-                  </p>
-                </div>
+            {/* Warning about escrow */}
+            <Card className="p-3 bg-info/10 border-info/30">
+              <div className="flex items-start gap-2">
+                <Timer className="h-4 w-4 text-info shrink-0 mt-0.5" />
+                <p className="text-xs text-info">
+                  {isRTL 
+                    ? `سيتم حجز Nova في الضمان حتى يؤكد المشتري الدفع. المهلة: ${offer.timeLimit} دقيقة`
+                    : `Nova will be held in escrow until buyer confirms payment. Time limit: ${offer.timeLimit} minutes`
+                  }
+                </p>
               </div>
             </Card>
-          )}
 
-          {/* Warning about escrow */}
-          <Card className="p-3 bg-info/10 border-info/30">
-            <div className="flex items-start gap-2">
-              <Timer className="h-4 w-4 text-info shrink-0 mt-0.5" />
-              <p className="text-xs text-info">
-                {isRTL 
-                  ? `سيتم حجز Nova في الضمان حتى يؤكد المشتري الدفع. المهلة: ${offer.timeLimit} دقيقة`
-                  : `Nova will be held in escrow until buyer confirms payment. Time limit: ${offer.timeLimit} minutes`
-                }
-              </p>
-            </div>
-          </Card>
+            {/* Confirm Button */}
+            <Button
+              className="w-full h-12 text-base font-semibold"
+              onClick={handleConfirm}
+              disabled={!canConfirm}
+            >
+              {isRTL ? 'متابعة وبدء الصفقة' : 'Continue & Start Trade'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-          {/* Confirm Button */}
-          <Button
-            className="w-full h-12 text-base font-semibold"
-            onClick={handleConfirm}
-            disabled={!canConfirm}
-          >
-            {isRTL ? 'متابعة وبدء الصفقة' : 'Continue & Start Trade'}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isRTL ? 'حذف الحساب؟' : 'Delete Account?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isRTL 
+                ? 'هل أنت متأكد من حذف هذا الحساب؟'
+                : 'Are you sure you want to delete this account?'
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isRTL ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteConfirmId && handleDeleteAccount(deleteConfirmId)}
+            >
+              {isRTL ? 'حذف' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

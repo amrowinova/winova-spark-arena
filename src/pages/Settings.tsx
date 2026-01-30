@@ -1,46 +1,19 @@
-import { useState } from 'react';
-import { CreditCard, Bell, Shield, ChevronRight, Wallet } from 'lucide-react';
+import { Bell, Shield, ChevronRight } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { P2PPaymentMethodsManager, useSavedPaymentMethods } from '@/components/p2p/P2PPaymentMethodsManager';
-import { COUNTRIES } from '@/components/p2p/P2PCountrySelector';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 export default function Settings() {
   const { language, toggleLanguage } = useLanguage();
   const isRTL = language === 'ar';
-  
-  const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
-  const [selectedCountryCode, setSelectedCountryCode] = useState('SA');
-  
-  const savedMethods = useSavedPaymentMethods();
-  const selectedCountry = COUNTRIES.find(c => c.code === selectedCountryCode) || COUNTRIES[0];
 
   const settingsSections = [
-    {
-      id: 'payment',
-      icon: CreditCard,
-      emoji: '💳',
-      titleEn: 'Payment Methods',
-      titleAr: 'طرق الدفع',
-      descriptionEn: 'Manage your bank accounts and wallets for P2P',
-      descriptionAr: 'إدارة حساباتك البنكية ومحافظك لـ P2P',
-      badge: savedMethods.length > 0 ? `${savedMethods.length}` : undefined,
-      action: () => setIsPaymentSheetOpen(true),
-    },
     {
       id: 'notifications',
       icon: Bell,
@@ -155,67 +128,6 @@ export default function Settings() {
       </motion.main>
 
       <BottomNav />
-
-      {/* Payment Methods Sheet */}
-      <Sheet open={isPaymentSheetOpen} onOpenChange={setIsPaymentSheetOpen}>
-        <SheetContent side={isRTL ? 'left' : 'right'} className="w-full sm:max-w-md p-0 overflow-y-auto">
-          <SheetHeader className="p-4 border-b border-border sticky top-0 bg-background z-10">
-            <SheetTitle className="flex items-center gap-2">
-              <Wallet className="h-5 w-5" />
-              {isRTL ? 'طرق الدفع' : 'Payment Methods'}
-            </SheetTitle>
-            <SheetDescription>
-              {isRTL 
-                ? 'إدارة حساباتك البنكية ومحافظك الإلكترونية'
-                : 'Manage your bank accounts and wallets'
-              }
-            </SheetDescription>
-          </SheetHeader>
-          
-          <div className="p-4 space-y-4">
-            {/* Country Selector */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">
-                {isRTL ? 'اختر الدولة' : 'Select Country'}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {COUNTRIES.map((country) => {
-                  const countryMethods = savedMethods.filter(m => m.countryCode === country.code);
-                  return (
-                    <button
-                      key={country.code}
-                      onClick={() => setSelectedCountryCode(country.code)}
-                      className={cn(
-                        "px-3 py-2 rounded-lg border transition-all flex items-center gap-2",
-                        selectedCountryCode === country.code
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:bg-muted"
-                      )}
-                    >
-                      <span>{country.flag}</span>
-                      <span className="text-sm font-medium">
-                        {isRTL ? country.nameAr : country.name}
-                      </span>
-                      {countryMethods.length > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {countryMethods.length}
-                        </Badge>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Payment Methods Manager */}
-            <P2PPaymentMethodsManager 
-              country={selectedCountry}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
