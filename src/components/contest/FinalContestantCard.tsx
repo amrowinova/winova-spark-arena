@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Crown, Target, Rocket } from 'lucide-react';
+import { Crown, Target, Rocket, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ interface FinalContestantCardProps {
   index: number;
   onVote: (contestant: Contestant) => void;
   canVote?: boolean;
+  votesExhausted?: boolean;
 }
 
 // Prize data for top 5
@@ -37,7 +38,8 @@ export function FinalContestantCard({
   contestant, 
   index, 
   onVote,
-  canVote = true 
+  canVote = true,
+  votesExhausted = false 
 }: FinalContestantCardProps) {
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -121,14 +123,28 @@ export function FinalContestantCard({
             
             {/* Vote Button */}
             {canVote && (
-              <Button 
-                size="sm" 
-                variant={isTop5 ? "default" : "outline"}
-                className={`shrink-0 text-xs h-8 px-3 ${isTop5 ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' : ''}`}
-                onClick={() => onVote(contestant)}
-              >
-                {isRTL ? 'صوّت' : 'Vote'}
-              </Button>
+              votesExhausted ? (
+                <div className="shrink-0 flex flex-col items-center">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="text-xs h-8 px-3 opacity-50 cursor-not-allowed"
+                    disabled
+                  >
+                    <Lock className="h-3 w-3 me-1" />
+                    {isRTL ? 'مقفل' : 'Locked'}
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  size="sm" 
+                  variant={isTop5 ? "default" : "outline"}
+                  className={`shrink-0 text-xs h-8 px-3 ${isTop5 ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' : ''}`}
+                  onClick={() => onVote(contestant)}
+                >
+                  {isRTL ? 'صوّت' : 'Vote'}
+                </Button>
+              )
             )}
           </div>
 

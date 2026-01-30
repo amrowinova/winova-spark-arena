@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, XCircle, Rocket } from 'lucide-react';
+import { Check, XCircle, Rocket, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ interface ContestContestantCardProps {
   index: number;
   onVote: (contestant: Contestant) => void;
   canVote?: boolean;
+  votesExhausted?: boolean;
 }
 
 // Prize data for top 5
@@ -37,7 +38,8 @@ export function ContestContestantCard({
   contestant, 
   index, 
   onVote,
-  canVote = true 
+  canVote = true,
+  votesExhausted = false 
 }: ContestContestantCardProps) {
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -125,14 +127,28 @@ export function ContestContestantCard({
             
             {/* Vote Button */}
             {canVote && (
-              <Button 
-                size="sm" 
-                variant={isQualified ? "default" : "outline"}
-                className="shrink-0 text-xs h-8 px-3"
-                onClick={() => onVote(contestant)}
-              >
-                {isRTL ? 'صوّت' : 'Vote'}
-              </Button>
+              votesExhausted ? (
+                <div className="shrink-0 flex flex-col items-center">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="text-xs h-8 px-3 opacity-50 cursor-not-allowed"
+                    disabled
+                  >
+                    <Lock className="h-3 w-3 me-1" />
+                    {isRTL ? 'مقفل' : 'Locked'}
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  size="sm" 
+                  variant={isQualified ? "default" : "outline"}
+                  className="shrink-0 text-xs h-8 px-3"
+                  onClick={() => onVote(contestant)}
+                >
+                  {isRTL ? 'صوّت' : 'Vote'}
+                </Button>
+              )
             )}
           </div>
 
