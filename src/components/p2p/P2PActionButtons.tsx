@@ -24,6 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useBanner } from '@/contexts/BannerContext';
 import { P2PConfirmPaymentDialog } from './P2PConfirmPaymentDialog';
+import { P2PPaymentSteps } from './P2PPaymentSteps';
 
 interface P2PActionButtonsProps {
   order: P2POrder;
@@ -94,7 +95,8 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
   const { language } = useLanguage();
   const { 
     confirmPayment, 
-    cancelOrder, 
+    cancelOrder,
+    cancelOrderWithReason,
     openDispute, 
     releaseFunds, 
     reportNoPayment, 
@@ -114,6 +116,9 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
   const isBuyer = order.buyer.id === currentUserId;
   const isSeller = order.seller.id === currentUserId;
   const isRTL = language === 'ar';
+
+  // Check if we should show the payment steps flow (for buyer in waiting_payment status)
+  const showPaymentSteps = isBuyer && order.status === 'waiting_payment';
 
   const handleAction = (action: ActionType) => {
     switch (action) {
@@ -181,6 +186,29 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
     }
   };
 
+  // Handler for PaymentSteps payment confirmation
+  const handlePaymentStepsConfirm = () => {
+    confirmPayment(order.id);
+    showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
+    
+    if (isMockMode) {
+      triggerMockSellerConfirmation(order.id);
+    }
+  };
+
+  // Handler for PaymentSteps cancellation with reason
+  const handlePaymentStepsCancel = (reason: string) => {
+    const cancelled = cancelOrderWithReason(order.id, reason);
+    if (cancelled) {
+      showSuccess(isRTL ? 'تم إلغاء الطلب' : 'Order cancelled');
+    } else {
+      showError(isRTL 
+        ? 'لا يمكنك الإلغاء. تم تجاوز حد الإلغاءات (3 خلال 24 ساعة).'
+        : 'Cannot cancel. You have exceeded the cancellation limit (3 per 24 hours).'
+      );
+    }
+  };
+
   const getAvailableActions = (): ActionType[] => {
     const actions: ActionType[] = [];
 
@@ -190,16 +218,14 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
       return actions;
     }
 
-    // Buyer actions
+    // Buyer actions (Note: waiting_payment is handled by P2PPaymentSteps, not here)
     if (isBuyer) {
-      if (order.status === 'waiting_payment') {
-        actions.push('confirm_payment');
-      }
-      if (['created', 'waiting_payment'].includes(order.status)) {
+      // For 'created' status only, show cancel button (waiting_payment is handled by PaymentSteps)
+      if (order.status === 'created') {
         actions.push('cancel');
       }
       // Note: When status is 'paid', buyer is waiting - no actions available
-      // Dispute is handled separately after some time waiting
+      // Note: When status is 'waiting_payment', PaymentSteps component handles it
     }
 
     // Seller actions
@@ -217,6 +243,19 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
   };
 
   const availableActions = getAvailableActions();
+
+  // If buyer is in waiting_payment, show the payment steps flow (before the null check)
+  if (showPaymentSteps) {
+    return (
+      <div className="p-3 bg-muted/30 border-t border-border">
+        <P2PPaymentSteps
+          order={order}
+          onConfirmPayment={handlePaymentStepsConfirm}
+          onCancelOrder={handlePaymentStepsCancel}
+        />
+      </div>
+    );
+  }
 
   if (availableActions.length === 0) return null;
 
@@ -251,6 +290,7 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
       </Button>
     );
   };
+
 
   return (
     <>
