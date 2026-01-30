@@ -29,6 +29,14 @@ export interface P2PPaymentDetails {
   isLocked: boolean; // Locked after creation
 }
 
+// Cancellation reasons for tracking
+export type P2PCancellationReason = 
+  | 'frozen_account'
+  | 'payment_not_receiving'
+  | 'transfer_error'
+  | 'time_expired'
+  | 'other';
+
 export interface P2PSystemMessage {
   id: string;
   type: 'status_change' | 'payment_confirmed' | 'released' | 'dispute_opened' | 'support_joined' | 'support_message' | 'dispute_resolved' | 'seller_confirmed' | 'funds_released' | 'completion_summary';
@@ -137,6 +145,7 @@ interface P2PContextType {
   // Buyer actions
   confirmPayment: (orderId: string) => void;
   cancelOrder: (orderId: string) => boolean; // Returns false if blocked
+  cancelOrderWithReason: (orderId: string, reason: string) => boolean; // Cancel with specific reason
   openDispute: (orderId: string, reason: string) => void;
   
   // Seller actions
@@ -437,7 +446,7 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     const order: P2POrder = {
       ...orderData,
       id: orderId,
-      status: 'created',
+      status: 'waiting_payment', // Start as waiting_payment so buyer sees payment steps
       createdAt: now,
       expiresAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
     };
@@ -569,6 +578,36 @@ export function P2PProvider({ children }: { children: ReactNode }) {
           type: 'status_change',
           content: 'Order cancelled',
           contentAr: 'تم إلغاء الطلب',
+          time: getTimeString(),
+          orderId,
+        });
+      }
+      return true;
+    }
+    return false;
+  };
+
+  // Cancel order with a specific reason (for UI flow)
+  const cancelOrderWithReason = (orderId: string, reason: string): boolean => {
+    // Check if user has exceeded cancellation limit
+    if (isBlockedFromOrders()) {
+      return false;
+    }
+    
+    const order = chats.flatMap(c => c.orders).find(o => o.id === orderId);
+    if (order && (order.status === 'created' || order.status === 'waiting_payment')) {
+      updateOrderStatus(orderId, 'cancelled');
+      
+      // Track the cancellation
+      setCancellations(prev => [...prev, { timestamp: new Date() }]);
+      
+      const chat = chats.find(c => c.orders.some(o => o.id === orderId));
+      if (chat) {
+        addSystemMessage(chat.id, {
+          id: `sys-${Date.now()}`,
+          type: 'status_change',
+          content: `❌ Order cancelled by buyer\nReason: ${reason}`,
+          contentAr: `❌ تم إلغاء الطلب من المشتري\nالسبب: ${reason}`,
           time: getTimeString(),
           orderId,
         });
@@ -811,6 +850,7 @@ export function P2PProvider({ children }: { children: ReactNode }) {
         updateOrderStatus,
         confirmPayment,
         cancelOrder,
+        cancelOrderWithReason,
         openDispute,
         releaseFunds,
         reportNoPayment,

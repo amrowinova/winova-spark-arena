@@ -28,6 +28,10 @@ export type { P2POrderListItem, OrderStatusFilter } from './P2POrdersList';
 export { P2PCreateOrderDialog } from './P2PCreateOrderDialog';
 export { P2PBuyDialog } from './P2PBuyDialog';
 export { P2PRatingDialog } from './P2PRatingDialog';
+export { P2PCancelOrderDialog } from './P2PCancelOrderDialog';
+
+// Payment Flow
+export { P2PPaymentSteps } from './P2PPaymentSteps';
 
 // Payment Management
 export { P2PPaymentMethodsManager, useSavedPaymentMethods, PAYMENT_METHOD_TYPES, COUNTRY_PROVIDERS } from './P2PPaymentMethodsManager';
