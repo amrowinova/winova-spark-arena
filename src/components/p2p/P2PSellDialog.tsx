@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Star, Timer, AlertTriangle, Wallet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Star, Timer, AlertTriangle, Wallet, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +39,7 @@ export function P2PSellDialog({
 }: P2PSellDialogProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
+  const navigate = useNavigate();
   const paymentMethods = useSavedPaymentMethods();
 
   const [amount, setAmount] = useState<number | null>(null);
@@ -147,18 +149,32 @@ export function P2PSellDialog({
             
             {paymentMethods.length === 0 ? (
               <Card className="p-4 bg-warning/10 border-warning/30">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-warning">
-                      {isRTL ? 'لا توجد حسابات بنكية محفوظة' : 'No saved bank accounts'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {isRTL 
-                        ? 'يجب إضافة حساب بنكي من إعدادات الدفع أولاً'
-                        : 'Add a bank account from payment settings first'
-                      }
-                    </p>
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-warning">
+                        {isRTL ? 'لا توجد حسابات بنكية محفوظة' : 'No saved bank accounts'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {isRTL 
+                          ? 'يجب إضافة حساب بنكي من إعدادات الدفع أولاً'
+                          : 'Add a bank account from payment settings first'
+                        }
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-warning/50 text-warning hover:bg-warning/10 hover:text-warning"
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate('/profile?tab=settings');
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4 me-2" />
+                      {isRTL ? 'الذهاب لإعدادات الدفع' : 'Go to Payment Settings'}
+                    </Button>
                   </div>
                 </div>
               </Card>
