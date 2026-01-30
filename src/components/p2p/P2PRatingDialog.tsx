@@ -23,14 +23,14 @@ interface RatingTag {
 }
 
 const RATING_TAGS: RatingTag[] = [
-  { id: 'fast', labelEn: 'Fast', labelAr: 'سريع', type: 'positive' },
-  { id: 'professional', labelEn: 'Professional', labelAr: 'محترف', type: 'positive' },
-  { id: 'friendly', labelEn: 'Friendly', labelAr: 'ودود', type: 'positive' },
-  { id: 'trustworthy', labelEn: 'Trustworthy', labelAr: 'موثوق', type: 'positive' },
+  { id: 'fast', labelEn: 'Fast Transfer', labelAr: 'تحويل سريع', type: 'positive' },
+  { id: 'committed', labelEn: 'Committed', labelAr: 'ملتزم', type: 'positive' },
+  { id: 'name_match', labelEn: 'Name Matched', labelAr: 'اسم مطابق', type: 'positive' },
+  { id: 'good_communication', labelEn: 'Good Communication', labelAr: 'تواصل جيد', type: 'positive' },
   { id: 'slow', labelEn: 'Slow', labelAr: 'بطيء', type: 'negative' },
   { id: 'delayed', labelEn: 'Delayed Payment', labelAr: 'تأخر في الدفع', type: 'negative' },
   { id: 'unresponsive', labelEn: 'Unresponsive', labelAr: 'غير متجاوب', type: 'negative' },
-  { id: 'unprofessional', labelEn: 'Unprofessional', labelAr: 'غير محترف', type: 'negative' },
+  { id: 'name_mismatch', labelEn: 'Name Mismatch', labelAr: 'اسم غير مطابق', type: 'negative' },
 ];
 
 interface P2PRatingDialogProps {
@@ -95,7 +95,8 @@ export function P2PRatingDialog({
     onOpenChange(false);
   };
 
-  const canSubmit = isPositive !== null;
+  // Comment is now mandatory
+  const canSubmit = isPositive !== null && comment.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,23 +202,32 @@ export function P2PRatingDialog({
             </div>
           )}
 
-          {/* Optional Comment */}
+          {/* Mandatory Comment - no anonymous option */}
           {isPositive !== null && (
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                {isRTL ? 'تعليق (اختياري)' : 'Comment (optional)'}
+                {isRTL ? 'تعليق (إجباري)' : 'Comment (required)'}
+                <span className="text-destructive">*</span>
               </label>
               <Textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder={isRTL ? 'أضف تعليقك هنا...' : 'Add your comment here...'}
+                placeholder={isRTL ? 'اكتب تعليقك هنا...' : 'Write your comment here...'}
                 rows={3}
                 maxLength={200}
+                className={cn(
+                  comment.trim().length === 0 && "border-destructive/50 focus-visible:ring-destructive"
+                )}
               />
-              <p className="text-xs text-muted-foreground text-end">
-                {comment.length}/200
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {isRTL ? '❌ لا يوجد تعليق مجهول' : '❌ No anonymous comments'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {comment.length}/200
+                </p>
+              </div>
             </div>
           )}
 
@@ -233,18 +243,16 @@ export function P2PRatingDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {isRTL ? 'تخطي' : 'Skip'}
-          </Button>
           <Button 
             onClick={handleSubmit} 
             disabled={!canSubmit}
             className={cn(
+              "w-full",
               isPositive === true && "bg-success hover:bg-success/90",
               isPositive === false && "bg-destructive hover:bg-destructive/90"
             )}
           >
-            {isRTL ? 'إرسال التقييم' : 'Submit Rating'}
+            {isRTL ? '🟢 إرسال التقييم' : '🟢 Submit Rating'}
           </Button>
         </DialogFooter>
       </DialogContent>

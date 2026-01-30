@@ -63,6 +63,23 @@ const typeConfig: Record<P2PSystemMessageType['type'], {
     icon: Receipt,
     colorClass: 'text-success bg-success/10 border-success/20',
   },
+  // New sell flow types
+  buyer_copied_bank: {
+    icon: CreditCard,
+    colorClass: 'text-info bg-info/10 border-info/20',
+  },
+  awaiting_buyer_payment: {
+    icon: Clock,
+    colorClass: 'text-warning bg-warning/10 border-warning/20',
+  },
+  buyer_paid: {
+    icon: CreditCard,
+    colorClass: 'text-nova bg-nova/10 border-nova/20',
+  },
+  sell_order_created: {
+    icon: Receipt,
+    colorClass: 'text-primary bg-primary/10 border-primary/20',
+  },
 };
 
 export function P2PSystemMessage({ message }: P2PSystemMessageProps) {

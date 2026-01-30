@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { useBanner } from '@/contexts/BannerContext';
 import { P2PConfirmPaymentDialog } from './P2PConfirmPaymentDialog';
 import { P2PPaymentSteps } from './P2PPaymentSteps';
+import { P2PSellerSteps } from './P2PSellerSteps';
 
 interface P2PActionButtonsProps {
   order: P2POrder;
@@ -119,6 +120,9 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
 
   // Check if we should show the payment steps flow (for buyer in waiting_payment status)
   const showPaymentSteps = isBuyer && order.status === 'waiting_payment';
+  
+  // Check if we should show seller steps (for seller in waiting_payment or paid status)
+  const showSellerSteps = isSeller && (order.status === 'waiting_payment' || order.status === 'paid' || order.status === 'dispute');
 
   const handleAction = (action: ActionType) => {
     switch (action) {
@@ -244,7 +248,7 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
 
   const availableActions = getAvailableActions();
 
-  // If buyer is in waiting_payment, show the payment steps flow (before the null check)
+  // If buyer is in waiting_payment, show the payment steps flow
   if (showPaymentSteps) {
     return (
       <div className="p-3 bg-muted/30 border-t border-border">
@@ -254,6 +258,17 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
           onCancelOrder={handlePaymentStepsCancel}
         />
       </div>
+    );
+  }
+
+  // If seller, show seller-specific flow
+  if (showSellerSteps) {
+    return (
+      <P2PSellerSteps
+        order={order}
+        currentUserId={currentUserId}
+        onOrderCompleted={onOrderCompleted}
+      />
     );
   }
 
