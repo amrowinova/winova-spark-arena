@@ -169,7 +169,7 @@ export function P2PSellDialog({
                       className="w-full border-warning/50 text-warning hover:bg-warning/10 hover:text-warning"
                       onClick={() => {
                         onOpenChange(false);
-                        navigate('/profile?tab=settings');
+                        navigate('/settings');
                       }}
                     >
                       <ExternalLink className="h-4 w-4 me-2" />
