@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Wallet } from 'lucide-react';
+import { Wallet, AlertCircle } from 'lucide-react';
+import { useP2P } from '@/contexts/P2PContext';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -65,9 +66,22 @@ export default function HomePage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { user, autoConvertNovaToAura, spendAura, spendNova } = useUser();
+  const { chats: p2pChats } = useP2P();
   
   // Active users counter - updates every 30 seconds
   const globalActiveUsers = useActiveUsers();
+  
+  // Check for active P2P orders, disputes, or unread messages
+  const hasActiveP2POrder = p2pChats.some(chat => 
+    chat.orders.some(order => 
+      ['created', 'waiting_payment', 'paid', 'dispute'].includes(order.status)
+    )
+  );
+  const hasP2PDispute = p2pChats.some(chat => 
+    chat.orders.some(order => order.status === 'dispute')
+  );
+  const hasUnreadP2P = p2pChats.some(chat => chat.unreadCount > 0);
+  const showP2PAlert = hasActiveP2POrder || hasP2PDispute || hasUnreadP2P;
   
   // Contest timing - closes at 6 PM today
   const now = new Date();
@@ -142,10 +156,9 @@ export default function HomePage() {
         {/* 1️⃣ Welcome Message */}
         <motion.div variants={itemVariants} className="text-center px-2">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            <span className="text-base">👋</span>{' '}
             {language === 'ar' 
-              ? 'أهلاً بك في WINOVA — شارك في المسابقة، اجمع نقاط، وابنِ فريقك لزيادة أرباحك وترتيبك.'
-              : 'Welcome to WINOVA — join contests, earn points, and build your team to boost your earnings and rank.'}
+              ? 'أهلاً بك في WINOVA 👋\n\nاليوم فرصتك تربح، تصوّت، وتزيد ترتيبك.'
+              : 'Welcome to WINOVA 👋\n\nToday is your chance to win, vote, and boost your rank.'}
           </p>
         </motion.div>
 
@@ -227,6 +240,20 @@ export default function HomePage() {
               ? 'يمكنك تحويل Nova فورًا لأي شخص داخل التطبيق — التحويل يتم مباشرة وبأمان.'
               : 'Transfer Nova instantly to anyone in the app — safe and direct.'}
           </p>
+          
+          {/* P2P Active Order Alert */}
+          {showP2PAlert && (
+            <Link to="/p2p" className="block mt-2">
+              <div className="flex items-center justify-center gap-2 py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg text-warning">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span className="text-xs font-medium">
+                  {language === 'ar' 
+                    ? '🟡 لديك صفقة قيد التنفيذ'
+                    : '🟡 You have an active P2P order'}
+                </span>
+              </div>
+            </Link>
+          )}
         </motion.div>
 
         {/* Daily Contest Card - Most prominent */}
