@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Pin, Search, X, Image, Paperclip } from 'lucide-react';
+import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useP2P, P2PChat, P2PMessage } from '@/contexts/P2PContext';
+import { useSupport } from '@/contexts/SupportContext';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { Receipt } from '@/contexts/TransactionContext';
@@ -23,6 +24,7 @@ import { ForwardDialog } from '@/components/chat/ForwardDialog';
 import { ReplyBar } from '@/components/chat/ReplyBar';
 import { TeamInfoSheet, TeamChatMember } from '@/components/chat/TeamInfoSheet';
 import { ChatSearchResults, ConversationResult, UserResult } from '@/components/chat/ChatSearchResults';
+import { SupportChatView } from '@/components/chat/SupportChatView';
 import { 
   P2PChatHeader, 
   P2POrderCard, 
@@ -206,8 +208,10 @@ export default function ChatPage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUser();
   const { chats: p2pChats, activeChat: activeP2PChat, activeOrder, setActiveChat: setActiveP2PChat, setActiveOrder, sendMessage: sendP2PMessage } = useP2P();
+  const { messages: supportMessages, totalUnread: supportUnread, currentTicket } = useSupport();
   
   const [selectedTab, setSelectedTab] = useState('all');
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
@@ -221,9 +225,19 @@ export default function ChatPage() {
   const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(null);
   const [teamInfoOpen, setTeamInfoOpen] = useState(false);
   const [showP2PDetails, setShowP2PDetails] = useState(false);
+  const [showSupportChat, setShowSupportChat] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Check if navigated from Help page to open support
+  useEffect(() => {
+    if (location.state?.openSupport) {
+      setShowSupportChat(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -252,12 +266,33 @@ export default function ChatPage() {
     };
   });
 
-  const allConversations = [...conversations, ...p2pConversations];
+  // Create support conversation for the list
+  const lastSupportMessage = supportMessages[supportMessages.length - 1];
+  const supportConversation: Conversation = {
+    id: 'support',
+    type: 'dm',
+    name: language === 'ar' ? 'دعم Winova' : 'Winova Support',
+    nameAr: 'دعم Winova',
+    username: 'winova_support',
+    avatar: '🎧',
+    lastMessage: lastSupportMessage 
+      ? (lastSupportMessage.type === 'system' 
+          ? (language === 'ar' ? 'تم فتح طلب دعم' : 'Support ticket opened')
+          : lastSupportMessage.content)
+      : (language === 'ar' ? 'تواصل مع فريق الدعم' : 'Contact support team'),
+    time: lastSupportMessage?.time || '',
+    unread: supportUnread,
+    messages: [],
+    pinnedMessages: [],
+  };
+
+  const allConversations = [supportConversation, ...conversations, ...p2pConversations];
 
   const filteredConversations = allConversations.filter(conv => {
     // System notifications excluded from chat - they go to bell icon only
     if (conv.type === 'system') return false;
     if (selectedTab === 'all') return true;
+    if (conv.id === 'support') return selectedTab === 'dm'; // Support shows in DM tab
     return conv.type === selectedTab;
   });
 
@@ -498,6 +533,14 @@ export default function ChatPage() {
   };
 
   const handleOpenConversation = (conv: Conversation) => {
+    // Handle support conversation specially
+    if (conv.id === 'support') {
+      setShowSupportChat(true);
+      setActiveChat(null);
+      setActiveP2PChat(null);
+      return;
+    }
+    
     if (conv.type === 'p2p' && conv.p2pChatId) {
       setActiveP2PChat(conv.p2pChatId);
       setActiveChat(null);
@@ -511,6 +554,7 @@ export default function ChatPage() {
     setActiveChat(null);
     setActiveP2PChat(null);
     setShowP2PDetails(false);
+    setShowSupportChat(false);
   };
 
   // Merge human messages and system messages for team chat
@@ -539,6 +583,15 @@ export default function ChatPage() {
     
     return { humanMessages: activeChat.messages, allContent };
   };
+
+  // Support Chat View
+  if (showSupportChat) {
+    return (
+      <AppLayout title={language === 'ar' ? 'دعم Winova' : 'Winova Support'} showNav={false} showHeader={false}>
+        <SupportChatView onBack={handleBackFromChat} />
+      </AppLayout>
+    );
+  }
 
   // P2P Chat Active View
   if (activeP2PChat) {
@@ -937,9 +990,19 @@ export default function ChatPage() {
                       <CardContent className="p-3 flex items-center gap-3">
                         {/* Avatar */}
                         <div className={`relative w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                          conv.isSystem ? 'bg-primary/20' : conv.type === 'p2p' ? 'bg-success/20' : 'bg-muted'
+                          conv.id === 'support' 
+                            ? 'bg-primary/20' 
+                            : conv.isSystem 
+                              ? 'bg-primary/20' 
+                              : conv.type === 'p2p' 
+                                ? 'bg-success/20' 
+                                : 'bg-muted'
                         }`}>
-                          {conv.avatar}
+                          {conv.id === 'support' ? (
+                            <Headphones className="w-6 h-6 text-primary" />
+                          ) : (
+                            conv.avatar
+                          )}
                           {conv.isOnline && (
                             <span className="absolute bottom-0 end-0 w-3 h-3 bg-success rounded-full border-2 border-card" />
                           )}

@@ -7,6 +7,7 @@ import { TransactionProvider } from "@/contexts/TransactionContext";
 import { P2PProvider } from "@/contexts/P2PContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { BannerProvider } from "@/contexts/BannerContext";
+import { SupportProvider } from "@/contexts/SupportContext";
 import { InlineBanner } from "@/components/common/InlineBanner";
 import "@/lib/i18n";
 
@@ -26,7 +27,6 @@ import HallOfFame from "./pages/HallOfFame";
 import LuckyLeaders from "./pages/LuckyLeaders";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
-import SupportChat from "./pages/SupportChat";
 import NotFound from "./pages/NotFound";
 
 
@@ -40,31 +40,32 @@ const App = () => (
           <BannerProvider>
             <TransactionProvider>
               <P2PProvider>
-                <TooltipProvider>
-                  <InlineBanner />
-                  <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/contests" element={<Contests />} />
-                    <Route path="/winners" element={<Winners />} />
-                    <Route path="/team" element={<Team />} />
-                    <Route path="/wallet" element={<Wallet />} />
-                    <Route path="/chat" element={<Chat />} />
-                    <Route path="/p2p" element={<P2P />} />
-                    <Route path="/spotlight" element={<Spotlight />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/notifications" element={<Notifications />} />
-                    <Route path="/hall-of-fame" element={<HallOfFame />} />
-                    <Route path="/lucky-leaders" element={<LuckyLeaders />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/help" element={<Help />} />
-                    <Route path="/support-chat" element={<SupportChat />} />
-                    <Route path="/user/:userId" element={<PublicProfile />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  </BrowserRouter>
-                </TooltipProvider>
+                <SupportProvider>
+                  <TooltipProvider>
+                    <InlineBanner />
+                    <BrowserRouter>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/contests" element={<Contests />} />
+                      <Route path="/winners" element={<Winners />} />
+                      <Route path="/team" element={<Team />} />
+                      <Route path="/wallet" element={<Wallet />} />
+                      <Route path="/chat" element={<Chat />} />
+                      <Route path="/p2p" element={<P2P />} />
+                      <Route path="/spotlight" element={<Spotlight />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/notifications" element={<Notifications />} />
+                      <Route path="/hall-of-fame" element={<HallOfFame />} />
+                      <Route path="/lucky-leaders" element={<LuckyLeaders />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/help" element={<Help />} />
+                      <Route path="/user/:userId" element={<PublicProfile />} />
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    </BrowserRouter>
+                  </TooltipProvider>
+                </SupportProvider>
               </P2PProvider>
             </TransactionProvider>
           </BannerProvider>
