@@ -31,6 +31,7 @@ import {
   P2PSystemMessage,
   P2PCompactOrderCard,
   P2POrderCompletedScreen,
+  P2PWaitingReleaseCard,
   CountryConfig,
   PaymentMethod,
   P2POffer,
@@ -167,19 +168,31 @@ export default function P2PPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChatView?.messages]);
 
-  // Update order when chat changes
+  // Sync activeChatView and activeChatOrder with chats state
   useEffect(() => {
-    if (activeChatView && activeChatOrder) {
-      const updatedOrder = activeChatView.orders.find(o => o.id === activeChatOrder.id);
-      if (updatedOrder && updatedOrder.status !== activeChatOrder.status) {
-        setActiveChatOrder(updatedOrder);
-        // Show completed screen when order is completed
-        if (updatedOrder.status === 'completed') {
-          setShowCompletedScreen(true);
+    if (activeChatView) {
+      // Find updated chat from chats
+      const updatedChat = chats.find(c => c.id === activeChatView.id);
+      if (updatedChat) {
+        // Always sync the chat view to get latest messages
+        if (updatedChat.messages.length !== activeChatView.messages.length) {
+          setActiveChatView(updatedChat);
+        }
+        
+        // Sync the order status
+        if (activeChatOrder) {
+          const updatedOrder = updatedChat.orders.find(o => o.id === activeChatOrder.id);
+          if (updatedOrder && updatedOrder.status !== activeChatOrder.status) {
+            setActiveChatOrder(updatedOrder);
+            // Show completed screen when order is completed
+            if (updatedOrder.status === 'completed') {
+              setShowCompletedScreen(true);
+            }
+          }
         }
       }
     }
-  }, [activeChatView, activeChatOrder]);
+  }, [chats, activeChatView?.id, activeChatOrder?.id]);
 
   const handleBuyFromOffer = (offer: P2POffer) => {
     // Check if user can create order
@@ -282,6 +295,8 @@ export default function P2PPage() {
     const counterparty = isBuyer ? activeChatOrder.seller : activeChatOrder.buyer;
     const isCompleted = activeChatOrder.status === 'completed';
     const isCancelled = activeChatOrder.status === 'cancelled';
+    const isPaidWaiting = activeChatOrder.status === 'paid' && isBuyer; // Buyer waiting for seller to release
+    const isReleased = activeChatOrder.status === 'released';
 
     return (
       <div className="flex flex-col h-screen bg-background">
@@ -316,7 +331,7 @@ export default function P2PPage() {
         </div>
 
         {/* Order Card (Pinned at top) - Show compact for completed */}
-        <div className="shrink-0 border-b border-border p-3">
+        <div className="shrink-0 border-b border-border p-3 space-y-3">
           {isCompleted ? (
             <P2PCompactOrderCard 
               order={activeChatOrder}
@@ -331,12 +346,13 @@ export default function P2PPage() {
               
               {/* Payment Details */}
               {activeChatOrder.paymentDetails && (
-                <div className="mt-3">
-                  <P2PPaymentCard 
-                    paymentDetails={activeChatOrder.paymentDetails}
-                  />
-                </div>
+                <P2PPaymentCard 
+                  paymentDetails={activeChatOrder.paymentDetails}
+                />
               )}
+              
+              {/* Waiting for Release Status Card */}
+              {isPaidWaiting && <P2PWaitingReleaseCard />}
             </>
           )}
         </div>
@@ -380,8 +396,8 @@ export default function P2PPage() {
           </div>
         </ScrollArea>
 
-        {/* Action Buttons based on status/role */}
-        {!isCompleted && !isCancelled && (
+        {/* Action Buttons based on status/role - Hide when paid/waiting or released */}
+        {!isCompleted && !isCancelled && !isPaidWaiting && !isReleased && (
           <P2PActionButtons 
             order={activeChatOrder}
             currentUserId={user.id}
