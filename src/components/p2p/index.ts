@@ -27,6 +27,7 @@ export type { P2POrderListItem, OrderStatusFilter } from './P2POrdersList';
 // Dialogs
 export { P2PCreateOrderDialog } from './P2PCreateOrderDialog';
 export { P2PBuyDialog } from './P2PBuyDialog';
+export { P2PSellDialog } from './P2PSellDialog';
 export { P2PRatingDialog } from './P2PRatingDialog';
 export { P2PCancelOrderDialog } from './P2PCancelOrderDialog';
 
