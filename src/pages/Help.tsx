@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeftRight, 
   Users, 
@@ -11,7 +9,10 @@ import {
   ChevronRight,
   Headphones
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
+import { useSupport } from '@/contexts/SupportContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,46 +85,33 @@ const supportCategories: SupportCategory[] = [
   },
 ];
 
-// Mock support agent data
-const SUPPORT_AGENT = {
-  id: 'support-agent',
-  name: 'فريق الدعم',
-  nameEn: 'Support Team',
-  username: 'support',
-  avatar: '🎧',
-};
-
 export default function Help() {
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const { user } = useUser();
+  const { openNewTicket } = useSupport();
   const isRTL = language === 'ar';
 
   const handleCategoryClick = (category: SupportCategory) => {
-    // Navigate to dedicated support chat with category context
-    const categoryTitle = isRTL ? category.titleAr : category.titleEn;
-    navigate('/support-chat', { 
-      state: { 
-        supportTicket: {
-          category: category.id,
-          categoryTitle,
-          isSupport: true,
-          agent: SUPPORT_AGENT,
-        }
-      }
-    });
+    // Open a new ticket and navigate to chat with support conversation
+    openNewTicket(
+      category.id,
+      category.titleEn,
+      category.titleAr,
+      user.name.split(' ')[0]
+    );
+    navigate('/chat', { state: { openSupport: true } });
   };
 
   const handleDirectSupport = () => {
-    navigate('/support-chat', { 
-      state: { 
-        supportTicket: {
-          category: 'general',
-          categoryTitle: isRTL ? 'دعم عام' : 'General Support',
-          isSupport: true,
-          agent: SUPPORT_AGENT,
-        }
-      }
-    });
+    // Open general support ticket
+    openNewTicket(
+      'general',
+      'General Support',
+      'دعم عام',
+      user.name.split(' ')[0]
+    );
+    navigate('/chat', { state: { openSupport: true } });
   };
 
   return (
