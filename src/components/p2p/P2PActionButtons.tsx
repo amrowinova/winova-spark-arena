@@ -198,9 +198,8 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
       if (['created', 'waiting_payment'].includes(order.status)) {
         actions.push('cancel');
       }
-      if (['paid'].includes(order.status)) {
-        actions.push('dispute');
-      }
+      // Note: When status is 'paid', buyer is waiting - no actions available
+      // Dispute is handled separately after some time waiting
     }
 
     // Seller actions
