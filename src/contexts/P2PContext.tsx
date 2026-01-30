@@ -282,7 +282,8 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   
   // Check if user has an open order (not completed or cancelled)
   const hasOpenOrder = (): boolean => {
-    const openStatuses: P2POrderStatus[] = ['created', 'waiting_payment', 'paid', 'released', 'dispute'];
+    // "released" is considered completed for visibility and should not block creating a new order.
+    const openStatuses: P2POrderStatus[] = ['created', 'waiting_payment', 'paid', 'dispute'];
     return getAllOrders().some(o => openStatuses.includes(o.status));
   };
   
@@ -427,37 +428,87 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   const createOrder = (orderData: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>): P2POrder | null => {
     // Check if user can create order
     const check = canCreateOrder();
-    if (!check.allowed) {
-      return null;
-    }
-    
+    if (!check.allowed) return null;
+
+    const now = new Date();
+    const orderId = generateOrderId();
+    const chatId = generateChatId(orderData.buyer.id, orderData.seller.id);
+
     const order: P2POrder = {
       ...orderData,
-      id: generateOrderId(),
+      id: orderId,
       status: 'created',
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
     };
 
-    const chat = getOrCreateChat(orderData.buyer, orderData.seller);
-    
-    setChats(prev =>
-      prev.map(c =>
-        c.id === chat.id
-          ? { ...c, orders: [...c.orders, order] }
-          : c
-      )
-    );
-
-    // Add system message
-    addSystemMessage(chat.id, {
+    // IMPORTANT: Ensure the order + system message are inserted in a single state update.
+    // Otherwise, creating a brand-new chat and then appending orders/messages can race and lose the new order.
+    const sysMsg: P2PSystemMessage = {
       id: `sys-${Date.now()}`,
       type: 'status_change',
       content: `Order #${order.id} created`,
       contentAr: `تم إنشاء الطلب #${order.id}`,
       time: getTimeString(),
       orderId: order.id,
+    };
+
+    const sysChatMessage: P2PMessage = {
+      id: sysMsg.id,
+      senderId: 'system',
+      senderName: 'System',
+      content: '',
+      time: sysMsg.time,
+      isMine: false,
+      isSystem: true,
+      systemMessage: sysMsg,
+    };
+
+    setChats(prev => {
+      const existing = prev.find(c => c.id === chatId);
+
+      if (existing) {
+        return prev.map(c =>
+          c.id === chatId
+            ? {
+                ...c,
+                orders: [...c.orders, order],
+                messages: [...c.messages, sysChatMessage],
+                lastMessageTime: now,
+              }
+            : c
+        );
+      }
+
+      const newChat: P2PChat = {
+        id: chatId,
+        participantIds: [orderData.buyer.id, orderData.seller.id],
+        buyer: orderData.buyer,
+        seller: orderData.seller,
+        orders: [order],
+        messages: [sysChatMessage],
+        createdAt: now,
+        lastMessageTime: now,
+        unreadCount: 0,
+        supportPresent: false,
+      };
+
+      return [...prev, newChat];
     });
+
+    // Keep context-level active chat in sync if it happens to be open.
+    if (activeChat?.id === chatId) {
+      setActiveChatState(prev =>
+        prev
+          ? {
+              ...prev,
+              orders: [...prev.orders, order],
+              messages: [...prev.messages, sysChatMessage],
+              lastMessageTime: now,
+            }
+          : prev
+      );
+    }
 
     return order;
   };
