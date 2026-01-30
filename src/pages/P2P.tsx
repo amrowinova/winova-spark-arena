@@ -20,6 +20,15 @@ import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useBanner } from '@/contexts/BannerContext';
 
 import {
+  p2pParticipantFromOfferUser,
+  p2pParticipantFromUser,
+  p2pPaymentDetailsFromOffer,
+  p2pPaymentDetailsFromPaymentMethod,
+  p2pPaymentDetailsFromSavedMethod,
+  p2pPlaceholderParticipant,
+} from '@/lib/p2pMockBuilders';
+
+import {
   P2PCountrySelector,
   P2POfferCard,
   P2POrdersList,
@@ -137,7 +146,8 @@ export default function P2PPage() {
     isBlockedFromOrders,
     getCancellationsIn24h,
     rateOrder,
-    hasRatedOrder
+    hasRatedOrder,
+    createOrder,
   } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   const isRTL = language === 'ar';
@@ -208,7 +218,28 @@ export default function P2PPage() {
 
   const handleConfirmBuy = (amount: number, timeLimit: number) => {
     if (!selectedOffer) return;
-    
+
+    const buyer = p2pParticipantFromUser(user);
+    const seller = p2pParticipantFromOfferUser(selectedOffer);
+    const paymentDetails = p2pPaymentDetailsFromOffer(selectedOffer);
+
+    const created = createOrder({
+      type: 'buy',
+      amount,
+      price: selectedOffer.price,
+      total: amount * selectedOffer.price,
+      currency: selectedOffer.currency,
+      currencySymbol: selectedOffer.currencySymbol,
+      seller,
+      buyer,
+      paymentDetails,
+    });
+
+    if (!created) {
+      showError(isRTL ? 'لا يمكنك إنشاء طلب جديد حالياً' : 'Cannot create a new order right now');
+      return;
+    }
+
     showSuccess(isRTL ? 'تم إنشاء الطلب!' : 'Order created!');
     setBuyDialogOpen(false);
     setSelectedOffer(null);
@@ -220,8 +251,40 @@ export default function P2PPage() {
     amount: number;
     timeLimit: number;
     paymentMethod: PaymentMethod;
-    paymentDetails?: string;
+    savedPaymentMethod?: import('@/components/p2p').SavedPaymentMethod;
   }) => {
+    const me = p2pParticipantFromUser(user);
+    const counterpartyCountryName = selectedCountry.name;
+
+    const buyer =
+      orderData.type === 'buy' ? me : p2pPlaceholderParticipant('buyer', counterpartyCountryName);
+    const seller =
+      orderData.type === 'sell' ? me : p2pPlaceholderParticipant('seller', counterpartyCountryName);
+
+    const paymentAccountHolder =
+      orderData.type === 'buy' ? (isRTL ? seller.nameAr : seller.name) : (isRTL ? me.nameAr : me.name);
+
+    const paymentDetails = orderData.savedPaymentMethod
+      ? p2pPaymentDetailsFromSavedMethod(orderData.savedPaymentMethod)
+      : p2pPaymentDetailsFromPaymentMethod(orderData.paymentMethod, paymentAccountHolder);
+
+    const created = createOrder({
+      type: orderData.type,
+      amount: orderData.amount,
+      price: selectedCountry.novaRate,
+      total: orderData.amount * selectedCountry.novaRate,
+      currency: selectedCountry.currency,
+      currencySymbol: selectedCountry.currencySymbol,
+      seller,
+      buyer,
+      paymentDetails,
+    });
+
+    if (!created) {
+      showError(isRTL ? 'لا يمكنك إنشاء طلب جديد حالياً' : 'Cannot create a new order right now');
+      return;
+    }
+
     showSuccess(isRTL ? 'تم إنشاء الطلب!' : 'Order created!');
     setSelectedTab('orders');
   };
