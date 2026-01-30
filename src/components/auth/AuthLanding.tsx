@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
-import { Sparkles } from 'lucide-react';
+import { Trophy, Wallet, Users } from 'lucide-react';
 
 interface AuthLandingProps {
   onLogin: () => void;
@@ -11,6 +11,24 @@ interface AuthLandingProps {
 export function AuthLanding({ onLogin, onSignUp }: AuthLandingProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
+
+  const features = [
+    { 
+      icon: Trophy, 
+      ar: 'شارك في المسابقات اليومية', 
+      en: 'Participate in daily contests' 
+    },
+    { 
+      icon: Wallet, 
+      ar: 'أدر محفظتك بسهولة وأمان', 
+      en: 'Manage your wallet easily and securely' 
+    },
+    { 
+      icon: Users, 
+      ar: 'تواصل وابنِ فريقك', 
+      en: 'Connect and build your team' 
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -24,7 +42,7 @@ export function AuthLanding({ onLogin, onSignUp }: AuthLandingProps) {
         >
           {/* Logo/Icon */}
           <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Sparkles className="w-10 h-10 text-primary" />
+            <Trophy className="w-10 h-10 text-primary" />
           </div>
 
           {/* Title */}
@@ -33,27 +51,28 @@ export function AuthLanding({ onLogin, onSignUp }: AuthLandingProps) {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-muted-foreground text-sm mb-8">
+          <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
             {isRTL 
-              ? 'سجّل دخولك أو أنشئ حسابًا جديدًا للبدء في رحلتك'
-              : 'Sign in or create a new account to start your journey'}
+              ? 'منصّة واحدة تجمع المسابقات، المحفظة، والتجارة P2P مع فريقك'
+              : 'One platform for contests, wallet, and P2P trading with your team'}
           </p>
 
           {/* Features List */}
-          <div className="space-y-3 mb-10 text-start">
-            {[
-              { ar: '🏆 شارك في المسابقات واربح جوائز', en: '🏆 Participate in contests and win prizes' },
-              { ar: '💰 أدِر محفظتك بسهولة', en: '💰 Manage your wallet easily' },
-              { ar: '👥 تواصل مع فريقك', en: '👥 Connect with your team' },
-            ].map((feature, index) => (
+          <div className="space-y-4 mb-10">
+            {features.map((feature, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 + index * 0.1 }}
-                className="flex items-center gap-2 text-sm text-muted-foreground"
+                className="flex items-center gap-3 text-start"
               >
-                <span>{isRTL ? feature.ar : feature.en}</span>
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <feature.icon className="w-5 h-5 text-primary" />
+                </div>
+                <span className="text-sm text-foreground">
+                  {isRTL ? feature.ar : feature.en}
+                </span>
               </motion.div>
             ))}
           </div>
