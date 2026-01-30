@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Home, Trophy, Star, Crown, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -9,6 +10,8 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { AuthFlow } from '@/components/auth';
+import { toast } from '@/hooks/use-toast';
 
 interface SideDrawerProps {
   open: boolean;
@@ -43,6 +46,8 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isRTL = language === 'ar';
+  
+  const [authOpen, setAuthOpen] = useState(false);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -53,96 +58,119 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
     toggleLanguage();
   };
 
+  const handleLogoutClick = () => {
+    // TEMPORARY: Open Auth flow instead of logging out
+    onOpenChange(false);
+    setTimeout(() => setAuthOpen(true), 300);
+  };
+
+  const handleAuthSuccess = () => {
+    toast({
+      title: isRTL ? 'تم بنجاح!' : 'Success!',
+      description: isRTL ? 'تم تسجيل الدخول بنجاح' : 'You have been logged in successfully',
+    });
+    navigate('/');
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={isRTL ? 'right' : 'left'} className="w-72 p-0">
-        <SheetHeader className="p-4 border-b border-border">
-          <SheetTitle className="text-start">
-            {isRTL ? 'القائمة' : 'Menu'}
-          </SheetTitle>
-        </SheetHeader>
-        
-        <nav className="flex flex-col h-[calc(100%-65px)] overflow-y-auto">
-          <div className="p-2 flex-1">
-            {/* Main Navigation */}
-            {mainItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              const Icon = item.icon;
-              
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavigation(item.path)}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
-                    isActive 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'hover:bg-muted text-foreground'
-                  )}
-                >
-                  <span className="text-base">{item.emoji}</span>
-                  <Icon className="h-5 w-5" />
-                  <span className="font-medium text-sm">
-                    {isRTL ? item.labelAr : item.labelEn}
-                  </span>
-                </button>
-              );
-            })}
-            
-            <Separator className="my-3" />
-            
-            {/* Secondary Items */}
-            {secondaryItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              const Icon = item.icon;
-              
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavigation(item.path)}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
-                    isActive 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'hover:bg-muted text-foreground'
-                  )}
-                >
-                  <span className="text-base">{item.emoji}</span>
-                  <Icon className="h-5 w-5" />
-                  <span className="font-medium text-sm">
-                    {isRTL ? item.labelAr : item.labelEn}
-                  </span>
-                </button>
-              );
-            })}
-            
-            {/* Language Toggle */}
-            <button
-              onClick={handleLanguageToggle}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1 hover:bg-muted text-foreground"
-            >
-              <span className="text-base">🌐</span>
-              <Globe className="h-5 w-5" />
-              <span className="font-medium text-sm">
-                {isRTL ? 'English' : 'العربية'}
-              </span>
-            </button>
-          </div>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side={isRTL ? 'right' : 'left'} className="w-72 p-0">
+          <SheetHeader className="p-4 border-b border-border">
+            <SheetTitle className="text-start">
+              {isRTL ? 'القائمة' : 'Menu'}
+            </SheetTitle>
+          </SheetHeader>
           
-          <div className="p-2 border-t border-border">
-            <button
-              onClick={() => handleNavigation(logoutItem.path)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-destructive hover:bg-destructive/10"
-            >
-              <span className="text-base">{logoutItem.emoji}</span>
-              <logoutItem.icon className="h-5 w-5" />
-              <span className="font-medium text-sm">
-                {isRTL ? logoutItem.labelAr : logoutItem.labelEn}
-              </span>
-            </button>
-          </div>
-        </nav>
-      </SheetContent>
-    </Sheet>
+          <nav className="flex flex-col h-[calc(100%-65px)] overflow-y-auto">
+            <div className="p-2 flex-1">
+              {/* Main Navigation */}
+              {mainItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                const Icon = item.icon;
+                
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => handleNavigation(item.path)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
+                      isActive 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'hover:bg-muted text-foreground'
+                    )}
+                  >
+                    <span className="text-base">{item.emoji}</span>
+                    <Icon className="h-5 w-5" />
+                    <span className="font-medium text-sm">
+                      {isRTL ? item.labelAr : item.labelEn}
+                    </span>
+                  </button>
+                );
+              })}
+              
+              <Separator className="my-3" />
+              
+              {/* Secondary Items */}
+              {secondaryItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                const Icon = item.icon;
+                
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => handleNavigation(item.path)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
+                      isActive 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'hover:bg-muted text-foreground'
+                    )}
+                  >
+                    <span className="text-base">{item.emoji}</span>
+                    <Icon className="h-5 w-5" />
+                    <span className="font-medium text-sm">
+                      {isRTL ? item.labelAr : item.labelEn}
+                    </span>
+                  </button>
+                );
+              })}
+              
+              {/* Language Toggle */}
+              <button
+                onClick={handleLanguageToggle}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1 hover:bg-muted text-foreground"
+              >
+                <span className="text-base">🌐</span>
+                <Globe className="h-5 w-5" />
+                <span className="font-medium text-sm">
+                  {isRTL ? 'English' : 'العربية'}
+                </span>
+              </button>
+            </div>
+            
+            <div className="p-2 border-t border-border">
+              <button
+                onClick={handleLogoutClick}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-destructive hover:bg-destructive/10"
+              >
+                <span className="text-base">{logoutItem.emoji}</span>
+                <logoutItem.icon className="h-5 w-5" />
+                <span className="font-medium text-sm">
+                  {isRTL ? logoutItem.labelAr : logoutItem.labelEn}
+                </span>
+              </button>
+            </div>
+          </nav>
+        </SheetContent>
+      </Sheet>
+
+      {/* Auth Flow Sheet */}
+      <AuthFlow 
+        open={authOpen} 
+        onOpenChange={setAuthOpen}
+        onAuthSuccess={handleAuthSuccess}
+      />
+    </>
   );
 }
