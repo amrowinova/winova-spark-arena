@@ -387,25 +387,34 @@ export default function ContestsPage() {
           {/* Contestants List */}
           <div className="space-y-2">
             <AnimatePresence>
-              {displayParticipants.map((participant, index) => (
-                <>
-                  {isStage1 ? (
-                    <ContestContestantCard
-                      key={participant.id}
-                      contestant={participant}
-                      index={index}
-                      onVote={handleVote}
-                      canVote={hasJoined}
-                    />
-                  ) : (
-                    <FinalContestantCard
-                      key={participant.id}
-                      contestant={participant}
-                      index={index}
-                      onVote={handleVote}
-                      canVote={userQualified && hasJoined}
-                    />
-                  )}
+              {displayParticipants.map((participant, index) => {
+                // Calculate remaining votes for current stage
+                const maxVotesPerStage = 100;
+                const usedVotes = isStage1 ? usedVotesStage1 : usedVotesFinal;
+                const remainingVotes = maxVotesPerStage - usedVotes;
+                const votesExhausted = remainingVotes <= 0;
+                
+                return (
+                  <>
+                    {isStage1 ? (
+                      <ContestContestantCard
+                        key={participant.id}
+                        contestant={participant}
+                        index={index}
+                        onVote={handleVote}
+                        canVote={hasJoined}
+                        votesExhausted={votesExhausted}
+                      />
+                    ) : (
+                      <FinalContestantCard
+                        key={participant.id}
+                        contestant={participant}
+                        index={index}
+                        onVote={handleVote}
+                        canVote={userQualified && hasJoined}
+                        votesExhausted={votesExhausted}
+                      />
+                    )}
                   
                   {/* Fixed notice after 5th contestant */}
                   {participant.rank === 5 && (
@@ -422,8 +431,9 @@ export default function ContestsPage() {
                       </p>
                     </motion.div>
                   )}
-                </>
-              ))}
+                  </>
+                );
+              })}
             </AnimatePresence>
           </div>
         </div>
