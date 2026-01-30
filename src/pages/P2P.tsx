@@ -216,6 +216,7 @@ export default function P2PPage() {
   const [selectedCountry, setSelectedCountry] = useState<CountryConfig>(getDefaultCountry());
   const [selectedTab, setSelectedTab] = useState<'buy' | 'sell' | 'orders'>('buy');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createOrderType, setCreateOrderType] = useState<'buy' | 'sell'>('buy');
   const [buyDialogOpen, setBuyDialogOpen] = useState(false);
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<P2POffer | null>(null);
@@ -687,42 +688,112 @@ export default function P2PPage() {
 
           {/* Buy Tab - Offers List (Sellers offering Nova) */}
           <TabsContent value="buy" className="mt-4 space-y-3">
-            <AnimatePresence mode="popLayout">
-              {buyOffers.map((offer, index) => (
-                <motion.div
-                  key={offer.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <P2POfferCard
-                    offer={offer}
-                    onAction={handleBuyFromOffer}
-                    actionType="buy"
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {/* Create Buy Order Button - Always visible */}
+            <Button 
+              className="w-full bg-success hover:bg-success/90 text-success-foreground gap-2"
+              onClick={() => {
+                const check = canCreateOrder();
+                if (!check.allowed) {
+                  showError(check.reason || (isRTL ? 'لا يمكنك إنشاء طلب جديد' : 'Cannot create new order'));
+                  return;
+                }
+                setCreateOrderType('buy');
+                setCreateDialogOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              {isRTL ? 'إنشاء طلب شراء' : 'Create Buy Order'}
+            </Button>
+
+            {buyOffers.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-12 text-center"
+              >
+                <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <ShoppingCart className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                <p className="text-muted-foreground mb-2">
+                  {isRTL ? 'لا توجد عروض بيع متاحة حالياً' : 'No sell offers available'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {isRTL ? 'يمكنك إنشاء طلب شراء وانتظار البائعين' : 'You can create a buy order and wait for sellers'}
+                </p>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                {buyOffers.map((offer, index) => (
+                  <motion.div
+                    key={offer.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <P2POfferCard
+                      offer={offer}
+                      onAction={handleBuyFromOffer}
+                      actionType="buy"
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
           </TabsContent>
 
           {/* Sell Tab - Offers List (Buyers wanting Nova) */}
           <TabsContent value="sell" className="mt-4 space-y-3">
-            <AnimatePresence mode="popLayout">
-              {sellOffers.map((offer, index) => (
-                <motion.div
-                  key={offer.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <P2POfferCard
-                    offer={offer}
-                    onAction={handleSellToOffer}
-                    actionType="sell"
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {/* Create Sell Order Button - Always visible */}
+            <Button 
+              className="w-full gap-2"
+              onClick={() => {
+                const check = canCreateOrder();
+                if (!check.allowed) {
+                  showError(check.reason || (isRTL ? 'لا يمكنك إنشاء طلب جديد' : 'Cannot create new order'));
+                  return;
+                }
+                setCreateOrderType('sell');
+                setCreateDialogOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              {isRTL ? 'إنشاء طلب بيع' : 'Create Sell Order'}
+            </Button>
+
+            {sellOffers.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-12 text-center"
+              >
+                <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <Send className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                <p className="text-muted-foreground mb-2">
+                  {isRTL ? 'لا توجد طلبات شراء متاحة حالياً' : 'No buy requests available'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {isRTL ? 'يمكنك إنشاء طلب بيع وانتظار المشترين' : 'You can create a sell order and wait for buyers'}
+                </p>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                {sellOffers.map((offer, index) => (
+                  <motion.div
+                    key={offer.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <P2POfferCard
+                      offer={offer}
+                      onAction={handleSellToOffer}
+                      actionType="sell"
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
           </TabsContent>
 
           {/* Orders Tab */}
@@ -740,6 +811,7 @@ export default function P2PPage() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         country={selectedCountry}
+        initialOrderType={createOrderType}
         onCreateOrder={handleCreateOrder}
       />
 
