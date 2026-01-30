@@ -213,7 +213,7 @@ export default function ChatPage() {
   const { chats: p2pChats, activeChat: activeP2PChat, activeOrder, setActiveChat: setActiveP2PChat, setActiveOrder, sendMessage: sendP2PMessage } = useP2P();
   const { messages: supportMessages, totalUnread: supportUnread, currentTicket } = useSupport();
   
-  const [selectedTab, setSelectedTab] = useState('all');
+  const [selectedTab, setSelectedTab] = useState('dm');
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
   const [conversations, setConversations] = useState(initialConversations);
   const [message, setMessage] = useState('');
@@ -291,10 +291,27 @@ export default function ChatPage() {
   const filteredConversations = allConversations.filter(conv => {
     // System notifications excluded from chat - they go to bell icon only
     if (conv.type === 'system') return false;
-    if (selectedTab === 'all') return true;
     if (conv.id === 'support') return selectedTab === 'dm'; // Support shows in DM tab
     return conv.type === selectedTab;
   });
+
+  // Calculate unread conversation counts per tab
+  const getUnreadCountForTab = (tabType: 'dm' | 'team' | 'p2p') => {
+    return allConversations.filter(conv => {
+      if (conv.type === 'system') return false;
+      if (conv.id === 'support') return tabType === 'dm' && conv.unread > 0;
+      return conv.type === tabType && conv.unread > 0;
+    }).length;
+  };
+
+  const unreadCounts = {
+    dm: getUnreadCountForTab('dm'),
+    team: getUnreadCountForTab('team'),
+    p2p: getUnreadCountForTab('p2p'),
+  };
+
+  // Format badge count (max 99+)
+  const formatBadgeCount = (count: number) => count > 99 ? '99+' : count.toString();
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -952,18 +969,30 @@ export default function ChatPage() {
         ) : (
           /* Tabs - Only show when not searching */
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all" className="text-xs px-2">
-                {language === 'ar' ? 'الكل' : 'All'}
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="dm" className="text-xs px-2 relative">
+                <span>{language === 'ar' ? 'خاص' : 'Private'}</span>
+                {unreadCounts.dm > 0 && (
+                  <span className="ms-1.5 min-w-[18px] h-[18px] px-1 bg-destructive text-destructive-foreground text-[10px] font-semibold rounded-full inline-flex items-center justify-center">
+                    {formatBadgeCount(unreadCounts.dm)}
+                  </span>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="dm" className="text-xs px-2">
-                {language === 'ar' ? 'خاص' : 'DM'}
+              <TabsTrigger value="team" className="text-xs px-2 relative">
+                <span>{language === 'ar' ? 'الفريق' : 'Team'}</span>
+                {unreadCounts.team > 0 && (
+                  <span className="ms-1.5 min-w-[18px] h-[18px] px-1 bg-destructive text-destructive-foreground text-[10px] font-semibold rounded-full inline-flex items-center justify-center">
+                    {formatBadgeCount(unreadCounts.team)}
+                  </span>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="team" className="text-xs px-2">
-                {language === 'ar' ? 'الفريق' : 'Team'}
-              </TabsTrigger>
-              <TabsTrigger value="p2p" className="text-xs px-2">
-                P2P
+              <TabsTrigger value="p2p" className="text-xs px-2 relative">
+                <span>P2P</span>
+                {unreadCounts.p2p > 0 && (
+                  <span className="ms-1.5 min-w-[18px] h-[18px] px-1 bg-destructive text-destructive-foreground text-[10px] font-semibold rounded-full inline-flex items-center justify-center">
+                    {formatBadgeCount(unreadCounts.p2p)}
+                  </span>
+                )}
               </TabsTrigger>
             </TabsList>
 
