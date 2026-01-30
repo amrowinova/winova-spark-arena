@@ -99,9 +99,9 @@ export default function Help() {
   const isRTL = language === 'ar';
 
   const handleCategoryClick = (category: SupportCategory) => {
-    // Navigate to chat with support context
+    // Navigate to dedicated support chat with category context
     const categoryTitle = isRTL ? category.titleAr : category.titleEn;
-    navigate('/chat', { 
+    navigate('/support-chat', { 
       state: { 
         supportTicket: {
           category: category.id,
@@ -114,7 +114,7 @@ export default function Help() {
   };
 
   const handleDirectSupport = () => {
-    navigate('/chat', { 
+    navigate('/support-chat', { 
       state: { 
         supportTicket: {
           category: 'general',
