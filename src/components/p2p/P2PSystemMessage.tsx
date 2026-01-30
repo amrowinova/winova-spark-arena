@@ -112,23 +112,33 @@ export function P2PSystemMessage({ message }: P2PSystemMessageProps) {
               </span>
             </div>
 
-            {/* Price Rate */}
+            {/* Status */}
             <div className="flex items-center justify-between py-1.5 border-b border-border/50">
               <span className="text-xs text-muted-foreground">
-                {isRTL ? 'السعر' : 'Price'}
+                {isRTL ? 'الحالة' : 'Status'}
               </span>
-              <span className="text-xs font-medium">
-                1 Nova = {details.currencySymbol} {details.price.toFixed(2)}
+              <span className="text-xs font-medium text-success">
+                🟢 {isRTL ? 'مكتمل' : 'Completed'}
               </span>
             </div>
 
             {/* Amount */}
             <div className="flex items-center justify-between py-1.5 border-b border-border/50">
               <span className="text-xs text-muted-foreground">
-                {isRTL ? 'الكمية' : 'Amount'}
+                Nova
               </span>
               <span className="text-xs font-bold text-nova">
-                И {details.amount.toFixed(0)} Nova
+                И {details.amount.toFixed(0)}
+              </span>
+            </div>
+
+            {/* Price Rate */}
+            <div className="flex items-center justify-between py-1.5 border-b border-border/50">
+              <span className="text-xs text-muted-foreground">
+                {isRTL ? 'السعر' : 'Price'}
+              </span>
+              <span className="text-xs font-medium">
+                {details.currencySymbol} {details.price.toFixed(2)}
               </span>
             </div>
 
@@ -154,14 +164,24 @@ export function P2PSystemMessage({ message }: P2PSystemMessageProps) {
             </div>
 
             {/* Execution Time */}
-            <div className="flex items-center justify-between py-1.5">
+            <div className="flex items-center justify-between py-1.5 border-b border-border/50">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {isRTL ? 'مدة التنفيذ' : 'Duration'}
+                {isRTL ? 'وقت الإكمال' : 'Completed at'}
               </span>
               <span className="text-xs font-medium">
-                {details.executionMinutes} {isRTL ? 'دقيقة' : 'min'}
+                {message.time}
               </span>
+            </div>
+
+            {/* Notice - Cannot be reversed */}
+            <div className="mt-2 p-2 bg-muted/50 rounded-md">
+              <p className="text-[10px] text-muted-foreground text-center">
+                {isRTL 
+                  ? '✅ تمت العملية بنجاح ولا يمكن التراجع عنها'
+                  : '✅ Transaction completed and cannot be reversed'
+                }
+              </p>
             </div>
           </CardContent>
         </Card>

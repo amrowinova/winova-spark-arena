@@ -490,8 +490,8 @@ export function P2PProvider({ children }: { children: ReactNode }) {
       addSystemMessage(chat.id, {
         id: `sys-${Date.now()}`,
         type: 'payment_confirmed',
-        content: 'Payment confirmed by buyer - Waiting for seller to release',
-        contentAr: 'تم تأكيد الدفع من المشتري - بانتظار البائع لتحرير العملات',
+        content: '🟡 Payment confirmed\nWaiting for seller to confirm receipt',
+        contentAr: '🟡 تم تأكيد الدفع من المشتري\nبانتظار تأكيد البائع لتحرير Nova',
         time: getTimeString(),
         orderId,
       });
@@ -662,8 +662,8 @@ export function P2PProvider({ children }: { children: ReactNode }) {
       addSystemMessage(chat.id, {
         id: `sys-${Date.now()}`,
         type: 'seller_confirmed',
-        content: '✅ Seller confirmed receipt\nFunds released successfully',
-        contentAr: '✅ تم تأكيد الاستلام من البائع\nتم تحرير العملات بنجاح',
+        content: '✅ Seller confirmed receipt\nNova has been released',
+        contentAr: '✅ تم تأكيد الاستلام من البائع\nتم تحرير Nova بنجاح',
         time: getTimeString(),
         orderId,
       });
@@ -671,19 +671,26 @@ export function P2PProvider({ children }: { children: ReactNode }) {
       // 2. Update order status to released
       updateOrderStatus(orderId, 'released');
       
-      // 3. After a brief moment, add the funds released message
+      // 3. After a brief moment, add the funds released message with full details
       setTimeout(() => {
         addSystemMessage(chat.id, {
           id: `sys-${Date.now()}`,
           type: 'funds_released',
-          content: `💰 ${order.amount.toFixed(0)} Nova released\nFor ${order.currencySymbol} ${order.total.toFixed(2)}`,
-          contentAr: `💰 تم تحرير ${order.amount.toFixed(0)} Nova\nمقابل ${order.total.toFixed(2)} ${order.currencySymbol}`,
+          content: `✅ ${order.amount.toFixed(0)} Nova released to you\n💰 For ${order.currencySymbol} ${order.total.toFixed(2)}\n🔒 Transaction completed successfully in WINOVA`,
+          contentAr: `✅ تم تحرير ${order.amount.toFixed(0)} Nova لك\n💰 مقابل ${order.total.toFixed(2)} ${order.currencySymbol}\n🔒 تمت العملية بنجاح داخل WINOVA`,
           time: getTimeString(),
           orderId,
         });
         
-        // 4. After another moment, add the completion summary
+        // 4. After another moment, add the completion summary card
         setTimeout(() => {
+          // Get current timestamp for completion time
+          const completionTime = new Date().toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+          });
+          
           addSystemMessage(chat.id, {
             id: `sys-${Date.now()}`,
             type: 'completion_summary',
@@ -703,8 +710,8 @@ export function P2PProvider({ children }: { children: ReactNode }) {
           
           // 5. Finally, mark as completed
           updateOrderStatus(orderId, 'completed');
-        }, 500);
-      }, 800);
+        }, 600);
+      }, 1000);
     }, delay);
   };
 
