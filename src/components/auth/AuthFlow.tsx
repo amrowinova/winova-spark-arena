@@ -32,7 +32,10 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess }: AuthFlowProps) {
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="bottom" className="h-full p-0 rounded-t-none">
+      <SheetContent 
+        side="bottom" 
+        className="h-[100dvh] p-0 rounded-t-none overflow-hidden flex flex-col"
+      >
         <AnimatePresence mode="wait">
           {currentScreen === 'landing' && (
             <motion.div
@@ -41,7 +44,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess }: AuthFlowProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="h-full"
+              className="h-full overflow-y-auto"
             >
               <AuthLanding
                 onLogin={() => setCurrentScreen('login')}
@@ -57,7 +60,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess }: AuthFlowProps) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="h-full"
+              className="h-full overflow-y-auto"
             >
               <LoginScreen
                 onBack={() => setCurrentScreen('landing')}
@@ -74,7 +77,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess }: AuthFlowProps) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="h-full"
+              className="h-full overflow-y-auto overscroll-contain"
             >
               <SignUpScreen
                 onBack={() => setCurrentScreen('landing')}
