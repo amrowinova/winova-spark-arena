@@ -7,6 +7,7 @@ export { P2PChatHeader } from './P2PChatHeader';
 export { P2PCompactOrderCard } from './P2PCompactOrderCard';
 export { P2POrderCompletedScreen } from './P2POrderCompletedScreen';
 export { P2PConfirmPaymentDialog } from './P2PConfirmPaymentDialog';
+export { P2PCompletionCard } from './P2PCompletionCard';
 
 // Selectors
 export { P2PAmountSelector, FIXED_AMOUNTS } from './P2PAmountSelector';

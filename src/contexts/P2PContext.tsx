@@ -31,13 +31,22 @@ export interface P2PPaymentDetails {
 
 export interface P2PSystemMessage {
   id: string;
-  type: 'status_change' | 'payment_confirmed' | 'released' | 'dispute_opened' | 'support_joined' | 'support_message' | 'dispute_resolved';
+  type: 'status_change' | 'payment_confirmed' | 'released' | 'dispute_opened' | 'support_joined' | 'support_message' | 'dispute_resolved' | 'seller_confirmed' | 'funds_released' | 'completion_summary';
   content: string;
   contentAr: string;
   time: string;
   orderId: string;
   // For dispute-related messages
   supportAction?: 'request_proof' | 'release_to_buyer' | 'return_to_seller' | 'resolved';
+  // For completion summary
+  orderDetails?: {
+    amount: number;
+    total: number;
+    currencySymbol: string;
+    price: number;
+    paymentMethod: string;
+    executionMinutes: number;
+  };
 }
 
 export interface P2PMessage {
@@ -106,6 +115,9 @@ interface P2PContextType {
   activeChat: P2PChat | null;
   activeOrder: P2POrder | null;
   
+  // Mock mode flag
+  isMockMode: boolean;
+  
   // Order restriction checks
   hasOpenOrder: () => boolean;
   canCreateOrder: () => { allowed: boolean; reason?: string };
@@ -130,6 +142,9 @@ interface P2PContextType {
   // Seller actions
   releaseFunds: (orderId: string) => void;
   reportNoPayment: (orderId: string) => void;
+  
+  // Mock mode: Auto-confirm seller (for UI testing)
+  triggerMockSellerConfirmation: (orderId: string) => void;
   
   // Support actions
   joinDispute: (orderId: string) => void;
@@ -623,6 +638,76 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MOCK MODE: Auto-confirm seller for UI testing
+  // ═══════════════════════════════════════════════════════════════════════════
+  const MOCK_MODE = true; // Developer flag - set to false when connecting real backend
+  
+  const triggerMockSellerConfirmation = (orderId: string) => {
+    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
+    const order = chat?.orders.find(o => o.id === orderId);
+    
+    if (!chat || !order) return;
+    
+    // Calculate execution time in minutes
+    const executionMinutes = Math.round(
+      (new Date().getTime() - order.createdAt.getTime()) / (1000 * 60)
+    );
+    
+    // Simulate 3-5 second delay for mock seller confirmation
+    const delay = 3000 + Math.random() * 2000; // 3-5 seconds
+    
+    setTimeout(() => {
+      // 1. Add seller confirmation system message
+      addSystemMessage(chat.id, {
+        id: `sys-${Date.now()}`,
+        type: 'seller_confirmed',
+        content: '✅ Seller confirmed receipt\nFunds released successfully',
+        contentAr: '✅ تم تأكيد الاستلام من البائع\nتم تحرير العملات بنجاح',
+        time: getTimeString(),
+        orderId,
+      });
+      
+      // 2. Update order status to released
+      updateOrderStatus(orderId, 'released');
+      
+      // 3. After a brief moment, add the funds released message
+      setTimeout(() => {
+        addSystemMessage(chat.id, {
+          id: `sys-${Date.now()}`,
+          type: 'funds_released',
+          content: `💰 ${order.amount.toFixed(0)} Nova released\nFor ${order.currencySymbol} ${order.total.toFixed(2)}`,
+          contentAr: `💰 تم تحرير ${order.amount.toFixed(0)} Nova\nمقابل ${order.total.toFixed(2)} ${order.currencySymbol}`,
+          time: getTimeString(),
+          orderId,
+        });
+        
+        // 4. After another moment, add the completion summary
+        setTimeout(() => {
+          addSystemMessage(chat.id, {
+            id: `sys-${Date.now()}`,
+            type: 'completion_summary',
+            content: 'P2P Order Completion Summary',
+            contentAr: 'ملخص اكتمال طلب P2P',
+            time: getTimeString(),
+            orderId,
+            orderDetails: {
+              amount: order.amount,
+              total: order.total,
+              currencySymbol: order.currencySymbol,
+              price: order.price,
+              paymentMethod: order.paymentDetails.bankName,
+              executionMinutes: executionMinutes,
+            },
+          });
+          
+          // 5. Finally, mark as completed
+          updateOrderStatus(orderId, 'completed');
+        }, 500);
+      }, 800);
+    }, delay);
+  };
+
   // Rating
   const rateOrder = (orderId: string, isPositive: boolean) => {
     setRatedOrders(prev => new Set(prev).add(orderId));
@@ -655,6 +740,7 @@ export function P2PProvider({ children }: { children: ReactNode }) {
         chats,
         activeChat,
         activeOrder,
+        isMockMode: MOCK_MODE,
         hasOpenOrder,
         canCreateOrder,
         getCancellationsIn24h,
@@ -670,6 +756,7 @@ export function P2PProvider({ children }: { children: ReactNode }) {
         openDispute,
         releaseFunds,
         reportNoPayment,
+        triggerMockSellerConfirmation,
         joinDispute,
         requestProof,
         resolveDispute,
