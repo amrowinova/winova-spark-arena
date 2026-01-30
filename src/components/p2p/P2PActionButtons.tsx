@@ -101,7 +101,9 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
     requestProof, 
     resolveDispute,
     getCancellationsIn24h,
-    isBlockedFromOrders
+    isBlockedFromOrders,
+    triggerMockSellerConfirmation,
+    isMockMode
   } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   
@@ -172,6 +174,11 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
     confirmPayment(order.id);
     setShowPaymentConfirm(false);
     showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
+    
+    // In mock mode, trigger automatic seller confirmation after 3-5 seconds
+    if (isMockMode) {
+      triggerMockSellerConfirmation(order.id);
+    }
   };
 
   const getAvailableActions = (): ActionType[] => {
