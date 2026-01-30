@@ -24,6 +24,7 @@ import PublicProfile from "./pages/PublicProfile";
 import Notifications from "./pages/Notifications";
 import HallOfFame from "./pages/HallOfFame";
 import LuckyLeaders from "./pages/LuckyLeaders";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 
@@ -53,6 +54,7 @@ const App = () => (
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/hall-of-fame" element={<HallOfFame />} />
                     <Route path="/lucky-leaders" element={<LuckyLeaders />} />
+                    <Route path="/settings" element={<Settings />} />
                     <Route path="/user/:userId" element={<PublicProfile />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
