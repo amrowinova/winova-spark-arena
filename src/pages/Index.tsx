@@ -233,15 +233,12 @@ export default function HomePage() {
                   <span className="text-sm font-medium">{language === 'ar' ? 'تحويل فوري P2P' : 'P2P Transfer'}</span>
                 </Link>
               </Button>
-              {/* P2P Active Order Alert - Inside P2P section */}
-              {showP2PAlert && (
+              {/* P2P Active Order Status - Informational, teal color */}
+              {hasActiveP2POrder && (
                 <Link to="/p2p" className="block">
-                  <div className="flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 bg-warning/10 border border-warning/30 rounded-lg text-warning">
+                  <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-primary/10 border border-primary/30 rounded-lg text-primary">
                     <span className="text-[11px] font-medium">
-                      {language === 'ar' ? '🟡 لديك صفقة قيد التنفيذ' : '🟡 Active P2P order'}
-                    </span>
-                    <span className="text-[10px] opacity-80">
-                      {language === 'ar' ? '⌛ اضغط للمتابعة' : '⌛ Tap to continue'}
+                      {language === 'ar' ? '⏳ صفقة P2P قيد التنفيذ' : '⏳ P2P order in progress'}
                     </span>
                   </div>
                 </Link>

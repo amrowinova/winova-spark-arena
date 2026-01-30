@@ -66,13 +66,6 @@ export function Header({ title }: HeaderProps) {
                 <RankBadge rank={user.rank} size="sm" />
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-muted-foreground">
-                  {language === 'ar' ? 'ترتيبك:' : 'Rank:'}
-                </span>
-                <span className="text-xs font-bold text-primary">
-                  #{weeklyRank}
-                </span>
-                <span className="mx-1 text-muted-foreground/30">|</span>
                 {/* Contest Engagement Status */}
                 <span className={`text-[10px] font-medium flex items-center gap-0.5 ${
                   user.engagementStatus === 'both' || user.engagementStatus === 'contest' 
