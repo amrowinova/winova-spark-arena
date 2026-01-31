@@ -38,7 +38,8 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString(isRTL ? 'ar-SA' : 'en-US', {
+    // Use Gregorian calendar for Arabic (ar-EG-u-ca-gregory)
+    return date.toLocaleDateString(isRTL ? 'ar-EG-u-ca-gregory' : 'en-US', {
       day: 'numeric',
       month: 'short',
     });

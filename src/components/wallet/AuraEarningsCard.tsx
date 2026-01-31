@@ -20,14 +20,16 @@ export function AuraEarningsCard({ receipt, onClick }: AuraEarningsCardProps) {
     : (language === 'ar' ? 'المرحلة النهائية' : 'Final Stage');
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', {
+    // Use Gregorian calendar for Arabic (ar-EG-u-ca-gregory)
+    return date.toLocaleTimeString(language === 'ar' ? 'ar-EG-u-ca-gregory' : 'en-US', {
       hour: '2-digit',
       minute: '2-digit',
     });
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+    // Use Gregorian calendar for Arabic (ar-EG-u-ca-gregory)
+    return date.toLocaleDateString(language === 'ar' ? 'ar-EG-u-ca-gregory' : 'en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

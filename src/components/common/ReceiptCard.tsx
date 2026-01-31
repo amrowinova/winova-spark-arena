@@ -71,7 +71,8 @@ export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardPr
   const typeLabel = transactionTypeLabels[receipt.type]?.[language] || receipt.type;
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+    // Use Gregorian calendar for Arabic (ar-EG-u-ca-gregory)
+    return new Date(date).toLocaleDateString(language === 'ar' ? 'ar-EG-u-ca-gregory' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

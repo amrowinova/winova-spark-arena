@@ -51,7 +51,8 @@ function getEarningReleaseDate(createdAt: Date): { date: Date; formattedDate: st
     month: 'short',
   });
 
-  const formattedDateAr = releaseDate.toLocaleDateString('ar-SA', {
+  // Use ar-EG with Gregorian calendar for Arabic
+  const formattedDateAr = releaseDate.toLocaleDateString('ar-EG-u-ca-gregory', {
     day: 'numeric',
     month: 'short',
   });
@@ -69,7 +70,8 @@ export function TeamEarningsCard({ receipt, onClick }: TeamEarningsCardProps) {
   const releaseInfo = getEarningReleaseDate(receipt.createdAt);
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+    // Use Gregorian calendar for Arabic (ar-EG-u-ca-gregory)
+    return new Date(date).toLocaleDateString(language === 'ar' ? 'ar-EG-u-ca-gregory' : 'en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',

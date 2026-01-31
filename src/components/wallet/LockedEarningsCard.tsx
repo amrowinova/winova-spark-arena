@@ -31,13 +31,14 @@ export function getNextReleaseDate(): { date: Date; formattedDate: string; forma
     nextRelease = new Date(currentYear, currentMonth + 1, 15);
   }
 
-  // Format date for display
+  // Format date for display (Gregorian only)
   const formattedDate = nextRelease.toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'short',
   });
 
-  const formattedDateAr = nextRelease.toLocaleDateString('ar-SA', {
+  // Use ar-EG with Gregorian calendar for Arabic
+  const formattedDateAr = nextRelease.toLocaleDateString('ar-EG-u-ca-gregory', {
     day: 'numeric',
     month: 'short',
   });
