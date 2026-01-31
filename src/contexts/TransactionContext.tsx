@@ -9,7 +9,19 @@ export type TransactionType =
   | 'p2p_buy'
   | 'p2p_sell'
   | 'spotlight_win'
-  | 'aura_reward';
+  | 'aura_reward'
+  | 'team_earnings';
+
+// Rank commission rates (Nova per qualified participant)
+export const RANK_COMMISSION_RATES = {
+  subscriber: 0,
+  marketer: 0,
+  leader: 0.82,
+  manager: 0.15,
+  president: 0.03,
+} as const;
+
+export type UserRank = keyof typeof RANK_COMMISSION_RATES;
 
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
 
@@ -36,6 +48,14 @@ export interface Transaction {
   reason: string;
   createdAt: Date;
   contestId?: string;
+  // Team earnings specific fields
+  teamEarnings?: {
+    rank: UserRank;
+    country: string;
+    contestNumber: number;
+    participantCount: number;
+    ratePerParticipant: number;
+  };
   p2pOrderId?: string;
 }
 
@@ -106,15 +126,79 @@ function generateReceiptNumber(): string {
   return `RCP-${dateStr}-${random}`;
 }
 
-// Mock initial transactions
+// Mock initial transactions including team earnings
 const initialTransactions: Transaction[] = [
+  // Team Earnings - Today's contest
+  {
+    id: 'TXN-EARN-001',
+    type: 'team_earnings',
+    status: 'completed',
+    amount: 4.5,
+    currency: 'nova',
+    localAmount: 16.875,
+    localCurrency: 'SAR',
+    sender: { id: '1', name: 'أحمد', username: 'ahmed_sa', country: 'Saudi Arabia' },
+    reason: 'أرباح الفريق - مسابقة #1248',
+    createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 mins ago
+    contestId: 'C-1248',
+    teamEarnings: {
+      rank: 'leader',
+      country: 'Saudi Arabia',
+      contestNumber: 1248,
+      participantCount: 150,
+      ratePerParticipant: 0.03,
+    },
+  },
+  // Team Earnings - Yesterday
+  {
+    id: 'TXN-EARN-002',
+    type: 'team_earnings',
+    status: 'completed',
+    amount: 3.9,
+    currency: 'nova',
+    localAmount: 14.625,
+    localCurrency: 'SAR',
+    sender: { id: '1', name: 'أحمد', username: 'ahmed_sa', country: 'Saudi Arabia' },
+    reason: 'أرباح الفريق - مسابقة #1247',
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
+    contestId: 'C-1247',
+    teamEarnings: {
+      rank: 'leader',
+      country: 'Saudi Arabia',
+      contestNumber: 1247,
+      participantCount: 130,
+      ratePerParticipant: 0.03,
+    },
+  },
+  // Team Earnings - Different country (for Presidents)
+  {
+    id: 'TXN-EARN-003',
+    type: 'team_earnings',
+    status: 'completed',
+    amount: 2.1,
+    currency: 'nova',
+    localAmount: 64.89,
+    localCurrency: 'EGP',
+    sender: { id: '1', name: 'أحمد', username: 'ahmed_sa', country: 'Saudi Arabia' },
+    reason: 'أرباح الفريق - مسابقة #1247 (مصر)',
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    contestId: 'C-1247-EG',
+    teamEarnings: {
+      rank: 'leader',
+      country: 'Egypt',
+      contestNumber: 1247,
+      participantCount: 70,
+      ratePerParticipant: 0.03,
+    },
+  },
+  // Regular transactions
   {
     id: 'TXN-001',
     type: 'contest_entry',
     status: 'completed',
     amount: 10,
     currency: 'aura',
-    localAmount: 18.75, // Aura = Nova/2
+    localAmount: 18.75,
     localCurrency: 'SAR',
     sender: { id: '1', name: 'أحمد', username: 'ahmed_sa', country: 'Saudi Arabia' },
     reason: 'دخول المسابقة اليومية #1247',
