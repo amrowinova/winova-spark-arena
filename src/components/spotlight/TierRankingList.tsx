@@ -4,6 +4,7 @@ import { TrendingUp, Medal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
+import { getCountryFlag } from '@/lib/countryFlags';
 import type { UserRank } from '@/contexts/UserContext';
 
 interface RankingUser {
@@ -13,6 +14,7 @@ interface RankingUser {
   points: number;
   position: number;
   isCurrentUser?: boolean;
+  country?: string;
 }
 
 interface TierRankingListProps {
@@ -78,16 +80,21 @@ export function TierRankingList({ userRank, rankings }: TierRankingListProps) {
 
                 {/* Name */}
                 <div className="flex-1">
-                  <p 
-                    className={`font-medium ${
-                      user.isCurrentUser 
-                        ? 'text-primary' 
-                        : 'cursor-pointer hover:text-primary transition-colors'
-                    }`}
-                    onClick={() => handleProfileClick(user.id, user.isCurrentUser)}
-                  >
-                    {user.isCurrentUser ? (isRTL ? 'أنت' : 'You') : user.name}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p 
+                      className={`font-medium ${
+                        user.isCurrentUser 
+                          ? 'text-primary' 
+                          : 'cursor-pointer hover:text-primary transition-colors'
+                      }`}
+                      onClick={() => handleProfileClick(user.id, user.isCurrentUser)}
+                    >
+                      {user.isCurrentUser ? (isRTL ? 'أنت' : 'You') : user.name}
+                    </p>
+                    {user.country && getCountryFlag(user.country) && !user.isCurrentUser && (
+                      <span className="text-sm shrink-0">{getCountryFlag(user.country)}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Points */}

@@ -6,6 +6,7 @@ import { RankBadge } from '@/components/common/RankBadge';
 import { PromotionBadge } from './PromotionBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { banner } from '@/contexts/BannerContext';
+import { getCountryFlag } from '@/lib/countryFlags';
 import type { UserRank } from '@/contexts/UserContext';
 
 export interface TeamMember {
@@ -21,6 +22,7 @@ export interface TeamMember {
   directTeam: number;
   indirectTeam: number;
   teamSize: number;
+  country?: string;
 }
 
 interface TeamMemberCardProps {
@@ -103,6 +105,9 @@ export function TeamMemberCard({
                 <p className="font-medium truncate">
                   {language === 'ar' ? member.nameAr : member.name}
                 </p>
+                {member.country && getCountryFlag(member.country) && (
+                  <span className="text-sm shrink-0">{getCountryFlag(member.country)}</span>
+                )}
                 {/* Promotion Badge */}
                 {showPromotionBadge && <PromotionBadge member={member} size="sm" />}
               </div>

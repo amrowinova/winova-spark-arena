@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { getPlatformUserById } from '@/lib/platformUsers';
+import { getCountryFlag } from '@/lib/countryFlags';
 
 interface LeaderEntry {
   id: string;
@@ -114,12 +115,19 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
 
             {/* User Info */}
             <div className="flex-1 min-w-0">
-              <p 
-                className="font-medium text-sm truncate cursor-pointer hover:text-nova transition-colors"
-                onClick={() => handleProfileClick(entry.id)}
-              >
-                {entry.name}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p 
+                  className="font-medium text-sm truncate cursor-pointer hover:text-nova transition-colors"
+                  onClick={() => handleProfileClick(entry.id)}
+                >
+                  {entry.name}
+                </p>
+                {(() => {
+                  const user = getPlatformUserById(entry.id);
+                  const flag = user ? getCountryFlag(user.country) : '';
+                  return flag ? <span className="text-sm shrink-0">{flag}</span> : null;
+                })()}
+              </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
                 <span>{formatDate(entry.winDate)}</span>
