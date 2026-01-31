@@ -10,7 +10,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { BannerProvider } from "@/contexts/BannerContext";
 import { SupportProvider } from "@/contexts/SupportContext";
 import { InlineBanner } from "@/components/common/InlineBanner";
-import { AuthGuard } from "@/components/auth";
+import { AuthGuard, SupportGuard } from "@/components/auth";
 import "@/lib/i18n/index";
 
 // Pages
@@ -30,6 +30,12 @@ import LuckyLeaders from "./pages/LuckyLeaders";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
+
+// Support Pages
+import SupportDashboard from "./pages/support/SupportDashboard";
+import SupportTicketDetail from "./pages/support/SupportTicketDetail";
+import SupportDisputes from "./pages/support/SupportDisputes";
+import SupportUsers from "./pages/support/SupportUsers";
 
 
 const queryClient = new QueryClient();
@@ -66,6 +72,12 @@ const App = () => (
                         <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
                         <Route path="/lucky-leaders" element={<AuthGuard><LuckyLeaders /></AuthGuard>} />
                         <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
+                        
+                        {/* Support Panel routes - require support role */}
+                        <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />
+                        <Route path="/support/ticket/:ticketId" element={<SupportGuard><SupportTicketDetail /></SupportGuard>} />
+                        <Route path="/support/disputes" element={<SupportGuard><SupportDisputes /></SupportGuard>} />
+                        <Route path="/support/users" element={<SupportGuard><SupportUsers /></SupportGuard>} />
                         
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
