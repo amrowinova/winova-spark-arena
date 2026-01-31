@@ -178,6 +178,13 @@ export type Database = {
             referencedRelation: "p2p_orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "p2p_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       p2p_orders: {
@@ -362,6 +369,20 @@ export type Database = {
             foreignKeyName: "profiles_referred_by_fkey"
             columns: ["referred_by"]
             isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["creator_profile_id"]
+          },
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["executor_profile_id"]
+          },
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -515,7 +536,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      p2p_orders_with_profiles: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          country: string | null
+          created_at: string | null
+          creator_avatar_url: string | null
+          creator_country: string | null
+          creator_id: string | null
+          creator_name: string | null
+          creator_profile_id: string | null
+          creator_username: string | null
+          exchange_rate: number | null
+          executor_avatar_url: string | null
+          executor_country: string | null
+          executor_id: string | null
+          executor_name: string | null
+          executor_profile_id: string | null
+          executor_username: string | null
+          id: string | null
+          local_amount: number | null
+          nova_amount: number | null
+          order_type: Database["public"]["Enums"]["p2p_order_type"] | null
+          payment_method_id: string | null
+          status: Database["public"]["Enums"]["p2p_order_status"] | null
+          time_limit_minutes: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "p2p_orders_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       generate_referral_code: { Args: never; Returns: string }
