@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 
 interface SignUpScreenProps {
   onBack: () => void;
@@ -15,10 +15,14 @@ interface SignUpScreenProps {
 
 export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) {
   const { language } = useLanguage();
-  const { signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
+  const { signUp, signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
   const isRTL = language === 'ar';
   
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [usePassword, setUsePassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -31,7 +35,6 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError(isRTL ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email');
@@ -40,28 +43,49 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
 
     setIsLoading(true);
     
-    // Send OTP via Supabase Auth (works for both new and existing users)
-    const { error: authError } = await signInWithOtp(email);
-    
-    setIsLoading(false);
-    
-    if (authError) {
-      setError(isRTL ? 'حدث خطأ أثناء الإرسال. حاول مرة أخرى.' : 'An error occurred. Please try again.');
-      return;
+    if (usePassword) {
+      if (!name) {
+        setError(isRTL ? 'يرجى إدخال الاسم' : 'Please enter your name');
+        setIsLoading(false);
+        return;
+      }
+      if (!password || password.length < 6) {
+        setError(isRTL ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters');
+        setIsLoading(false);
+        return;
+      }
+      
+      const { error: authError } = await signUp(email, password, { name });
+      setIsLoading(false);
+      
+      if (authError) {
+        if (authError.message?.includes('already registered')) {
+          setError(isRTL ? 'هذا البريد مسجل مسبقاً' : 'This email is already registered');
+        } else {
+          setError(isRTL ? 'حدث خطأ أثناء التسجيل' : 'An error occurred during signup');
+        }
+        return;
+      }
+      // Success - auto-confirm will log the user in
+    } else {
+      const { error: authError } = await signInWithOtp(email);
+      setIsLoading(false);
+      
+      if (authError) {
+        setError(isRTL ? 'حدث خطأ أثناء الإرسال. حاول مرة أخرى.' : 'An error occurred. Please try again.');
+        return;
+      }
+      onSendOTP(email);
     }
-    
-    onSendOTP(email);
   };
 
   const handleSocialSignUp = async (provider: 'google' | 'apple') => {
     setIsLoading(true);
-    
     if (provider === 'google') {
       await signInWithGoogle();
     } else {
       await signInWithApple();
     }
-    
     setIsLoading(false);
   };
 
@@ -132,8 +156,54 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
           </div>
         </div>
 
-        {/* Email Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Method Toggle */}
+        <div className="flex gap-2 mb-6">
+          <Button
+            type="button"
+            variant={usePassword ? 'default' : 'outline'}
+            onClick={() => setUsePassword(true)}
+            className="flex-1 h-10"
+          >
+            <Lock className="w-4 h-4 me-2" />
+            {isRTL ? 'كلمة المرور' : 'Password'}
+          </Button>
+          <Button
+            type="button"
+            variant={!usePassword ? 'default' : 'outline'}
+            onClick={() => setUsePassword(false)}
+            className="flex-1 h-10"
+          >
+            <Mail className="w-4 h-4 me-2" />
+            {isRTL ? 'رمز OTP' : 'OTP Code'}
+          </Button>
+        </div>
+
+        {/* Sign Up Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name Field - Only for password signup */}
+          {usePassword && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-2"
+            >
+              <Label htmlFor="name" className="text-sm font-medium">
+                {isRTL ? 'الاسم الكامل' : 'Full Name'}
+              </Label>
+              <div className="relative">
+                <User className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={isRTL ? 'أدخل اسمك الكامل' : 'Enter your full name'}
+                  className="ps-10 h-12"
+                />
+              </div>
+            </motion.div>
+          )}
+
           {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">
@@ -153,11 +223,43 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
             </div>
           </div>
 
+          {/* Password Field - Only for password signup */}
+          {usePassword && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-2"
+            >
+              <Label htmlFor="password" className="text-sm font-medium">
+                {isRTL ? 'كلمة المرور' : 'Password'}
+              </Label>
+              <div className="relative">
+                <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={isRTL ? 'أنشئ كلمة مرور (6 أحرف على الأقل)' : 'Create a password (min 6 chars)'}
+                  className="ps-10 pe-10 h-12"
+                  dir="ltr"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Info Note */}
-          <p className="text-xs text-muted-foreground text-center">
-            {isRTL 
-              ? 'سنرسل لك رمز تحقق مكون من 6 أرقام للتحقق من بريدك'
-              : "We'll send you a 6-digit code to verify your email"}
+          <p className="text-xs text-muted-foreground text-center pt-2">
+            {usePassword 
+              ? (isRTL ? 'أنشئ حسابك بالاسم والبريد وكلمة المرور' : 'Create your account with name, email and password')
+              : (isRTL ? 'سنرسل لك رمز تحقق مكون من 6 أرقام للتحقق من بريدك' : "We'll send you a 6-digit code to verify your email")}
           </p>
 
           {/* Error Message */}
@@ -178,8 +280,10 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
             className="w-full h-12 text-base font-semibold"
           >
             {isLoading 
-              ? (isRTL ? 'جارٍ الإرسال...' : 'Sending...') 
-              : (isRTL ? 'إرسال رمز التحقق' : 'Send Verification Code')}
+              ? (isRTL ? 'جارٍ التحميل...' : 'Loading...') 
+              : usePassword
+                ? (isRTL ? 'إنشاء الحساب' : 'Create Account')
+                : (isRTL ? 'إرسال رمز التحقق' : 'Send Verification Code')}
           </Button>
         </form>
 

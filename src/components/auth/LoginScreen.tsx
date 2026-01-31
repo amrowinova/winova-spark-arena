@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface LoginScreenProps {
   onBack: () => void;
@@ -13,12 +13,17 @@ interface LoginScreenProps {
   onSendOTP: (email: string) => void;
 }
 
+type LoginMethod = 'otp' | 'password';
+
 export function LoginScreen({ onBack, onSignUp, onSendOTP }: LoginScreenProps) {
   const { language } = useLanguage();
-  const { signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
+  const { signIn, signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
   const isRTL = language === 'ar';
   
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>('password');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -31,7 +36,6 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP }: LoginScreenProps) {
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError(isRTL ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email');
@@ -40,28 +44,40 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP }: LoginScreenProps) {
 
     setIsLoading(true);
     
-    // Send OTP via Supabase Auth
-    const { error: authError } = await signInWithOtp(email);
-    
-    setIsLoading(false);
-    
-    if (authError) {
-      setError(isRTL ? 'حدث خطأ أثناء الإرسال. حاول مرة أخرى.' : 'An error occurred. Please try again.');
-      return;
+    if (loginMethod === 'password') {
+      if (!password) {
+        setError(isRTL ? 'يرجى إدخال كلمة المرور' : 'Please enter your password');
+        setIsLoading(false);
+        return;
+      }
+      
+      const { error: authError } = await signIn(email, password);
+      setIsLoading(false);
+      
+      if (authError) {
+        setError(isRTL ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Invalid email or password');
+        return;
+      }
+      // Success - auth state change will handle navigation
+    } else {
+      const { error: authError } = await signInWithOtp(email);
+      setIsLoading(false);
+      
+      if (authError) {
+        setError(isRTL ? 'حدث خطأ أثناء الإرسال. حاول مرة أخرى.' : 'An error occurred. Please try again.');
+        return;
+      }
+      onSendOTP(email);
     }
-    
-    onSendOTP(email);
   };
 
   const handleSocialLogin = async (provider: 'google' | 'apple') => {
     setIsLoading(true);
-    
     if (provider === 'google') {
       await signInWithGoogle();
     } else {
       await signInWithApple();
     }
-    
     setIsLoading(false);
   };
 
@@ -132,6 +148,28 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP }: LoginScreenProps) {
           </div>
         </div>
 
+        {/* Login Method Toggle */}
+        <div className="flex gap-2 mb-6">
+          <Button
+            type="button"
+            variant={loginMethod === 'password' ? 'default' : 'outline'}
+            onClick={() => setLoginMethod('password')}
+            className="flex-1 h-10"
+          >
+            <Lock className="w-4 h-4 me-2" />
+            {isRTL ? 'كلمة المرور' : 'Password'}
+          </Button>
+          <Button
+            type="button"
+            variant={loginMethod === 'otp' ? 'default' : 'outline'}
+            onClick={() => setLoginMethod('otp')}
+            className="flex-1 h-10"
+          >
+            <Mail className="w-4 h-4 me-2" />
+            {isRTL ? 'رمز OTP' : 'OTP Code'}
+          </Button>
+        </div>
+
         {/* Email Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email Field */}
@@ -153,11 +191,44 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP }: LoginScreenProps) {
             </div>
           </div>
 
+          {/* Password Field - Only show for password method */}
+          {loginMethod === 'password' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-2"
+            >
+              <Label htmlFor="password" className="text-sm font-medium">
+                {isRTL ? 'كلمة المرور' : 'Password'}
+              </Label>
+              <div className="relative">
+                <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={isRTL ? 'أدخل كلمة المرور' : 'Enter your password'}
+                  className="ps-10 pe-10 h-12"
+                  dir="ltr"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Info Note */}
           <p className="text-xs text-muted-foreground text-center">
-            {isRTL 
-              ? 'سنرسل لك رمز تحقق مكون من 6 أرقام'
-              : "We'll send you a 6-digit verification code"}
+            {loginMethod === 'password' 
+              ? (isRTL ? 'ستُدخل بريدك وكلمة المرور للدخول' : 'Enter your email and password to sign in')
+              : (isRTL ? 'سنرسل لك رمز تحقق مكون من 6 أرقام' : "We'll send you a 6-digit verification code")}
           </p>
 
           {/* Error Message */}
@@ -178,8 +249,10 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP }: LoginScreenProps) {
             className="w-full h-12 text-base font-semibold"
           >
             {isLoading 
-              ? (isRTL ? 'جارٍ الإرسال...' : 'Sending...') 
-              : (isRTL ? 'إرسال رمز التحقق' : 'Send Verification Code')}
+              ? (isRTL ? 'جارٍ التحميل...' : 'Loading...') 
+              : loginMethod === 'password'
+                ? (isRTL ? 'تسجيل الدخول' : 'Sign In')
+                : (isRTL ? 'إرسال رمز التحقق' : 'Send Verification Code')}
           </Button>
         </form>
 
