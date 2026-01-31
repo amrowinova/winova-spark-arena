@@ -49,7 +49,7 @@ export function ContestEntryCard({ receipt, onClick }: ContestEntryCardProps) {
           <div className="flex-1 min-w-0">
             {/* Amount */}
             <p className="text-lg font-bold text-destructive mb-1">
-              🔴 −{formatAmount(receipt.amount)} Nova
+              <span className="text-nova">Ꞥ</span> −{formatAmount(receipt.amount)} Nova
             </p>
 
             {/* Description */}
@@ -115,7 +115,7 @@ export function NovaTransferSentCard({ receipt, onClick }: NovaTransferSentCardP
           <div className="flex-1 min-w-0">
             {/* Amount */}
             <p className="text-lg font-bold text-foreground mb-1">
-              🔁 −{formatAmount(receipt.amount)} Nova
+              <span className="text-nova">Ꞥ</span> −{formatAmount(receipt.amount)} Nova
             </p>
 
             {/* Description */}
@@ -183,7 +183,7 @@ export function NovaReceivedCard({ receipt, onClick }: NovaReceivedCardProps) {
           <div className="flex-1 min-w-0">
             {/* Amount */}
             <p className="text-lg font-bold text-success mb-1">
-              🟢 +{formatAmount(receipt.amount)} Nova
+              <span className="text-nova">Ꞥ</span> +{formatAmount(receipt.amount)} Nova
             </p>
 
             {/* Description */}
