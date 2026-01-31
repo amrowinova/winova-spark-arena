@@ -21,15 +21,27 @@ interface WalletCountry {
   novaRate: number;
 }
 
-// Wallet-specific countries derived from countryPricing
+// All 19 supported countries
 const WALLET_COUNTRIES: WalletCountry[] = [
   { name: 'Saudi Arabia', nameAr: 'السعودية', flag: '🇸🇦', currency: 'SAR', symbol: 'ر.س', novaRate: 3.75 },
-  { name: 'Egypt', nameAr: 'مصر', flag: '🇪🇬', currency: 'EGP', symbol: 'ج.م', novaRate: 30.90 },
-  { name: 'Palestine', nameAr: 'فلسطين', flag: '🇵🇸', currency: 'ILS', symbol: '₪', novaRate: 3.65 },
-  { name: 'Syria', nameAr: 'سوريا', flag: '🇸🇾', currency: 'SYP', symbol: 'ل.س', novaRate: 13000 },
   { name: 'UAE', nameAr: 'الإمارات', flag: '🇦🇪', currency: 'AED', symbol: 'د.إ', novaRate: 3.67 },
-  { name: 'Jordan', nameAr: 'الأردن', flag: '🇯🇴', currency: 'JOD', symbol: 'د.أ', novaRate: 0.71 },
   { name: 'Kuwait', nameAr: 'الكويت', flag: '🇰🇼', currency: 'KWD', symbol: 'د.ك', novaRate: 0.31 },
+  { name: 'Qatar', nameAr: 'قطر', flag: '🇶🇦', currency: 'QAR', symbol: 'ر.ق', novaRate: 3.64 },
+  { name: 'Bahrain', nameAr: 'البحرين', flag: '🇧🇭', currency: 'BHD', symbol: 'د.ب', novaRate: 0.38 },
+  { name: 'Oman', nameAr: 'عُمان', flag: '🇴🇲', currency: 'OMR', symbol: 'ر.ع', novaRate: 0.38 },
+  { name: 'Egypt', nameAr: 'مصر', flag: '🇪🇬', currency: 'EGP', symbol: 'ج.م', novaRate: 30.90 },
+  { name: 'Jordan', nameAr: 'الأردن', flag: '🇯🇴', currency: 'JOD', symbol: 'د.أ', novaRate: 0.71 },
+  { name: 'Palestine', nameAr: 'فلسطين', flag: '🇵🇸', currency: 'ILS', symbol: '₪', novaRate: 3.65 },
+  { name: 'Lebanon', nameAr: 'لبنان', flag: '🇱🇧', currency: 'LBP', symbol: 'ل.ل', novaRate: 89500 },
+  { name: 'Syria', nameAr: 'سوريا', flag: '🇸🇾', currency: 'SYP', symbol: 'ل.س', novaRate: 13000 },
+  { name: 'Yemen', nameAr: 'اليمن', flag: '🇾🇪', currency: 'YER', symbol: 'ر.ي', novaRate: 250 },
+  { name: 'Morocco', nameAr: 'المغرب', flag: '🇲🇦', currency: 'MAD', symbol: 'د.م', novaRate: 10.05 },
+  { name: 'Tunisia', nameAr: 'تونس', flag: '🇹🇳', currency: 'TND', symbol: 'د.ت', novaRate: 3.12 },
+  { name: 'Algeria', nameAr: 'الجزائر', flag: '🇩🇿', currency: 'DZD', symbol: 'د.ج', novaRate: 134.50 },
+  { name: 'Libya', nameAr: 'ليبيا', flag: '🇱🇾', currency: 'LYD', symbol: 'د.ل', novaRate: 4.85 },
+  { name: 'Sudan', nameAr: 'السودان', flag: '🇸🇩', currency: 'SDG', symbol: 'ج.س', novaRate: 601 },
+  { name: 'Turkey', nameAr: 'تركيا', flag: '🇹🇷', currency: 'TRY', symbol: '₺', novaRate: 32.15 },
+  { name: 'Iraq', nameAr: 'العراق', flag: '🇮🇶', currency: 'IQD', symbol: 'د.ع', novaRate: 1310 },
 ];
 
 export function WalletCountrySelector() {

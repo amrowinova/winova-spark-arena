@@ -30,13 +30,8 @@ export interface PaymentMethod {
 
 export const COUNTRIES: CountryConfig[] = [
   {
-    code: 'SA',
-    name: 'Saudi Arabia',
-    nameAr: 'السعودية',
-    flag: '🇸🇦',
-    currency: 'SAR',
-    currencySymbol: 'ر.س',
-    novaRate: 3.75,
+    code: 'SA', name: 'Saudi Arabia', nameAr: 'السعودية', flag: '🇸🇦',
+    currency: 'SAR', currencySymbol: 'ر.س', novaRate: 3.75,
     paymentMethods: [
       { id: 'rajhi', name: 'Al Rajhi Bank', nameAr: 'بنك الراجحي', icon: '🏦' },
       { id: 'ncb', name: 'NCB', nameAr: 'البنك الأهلي', icon: '🏦' },
@@ -44,13 +39,45 @@ export const COUNTRIES: CountryConfig[] = [
     ],
   },
   {
-    code: 'EG',
-    name: 'Egypt',
-    nameAr: 'مصر',
-    flag: '🇪🇬',
-    currency: 'EGP',
-    currencySymbol: 'ج.م',
-    novaRate: 31.50,
+    code: 'AE', name: 'UAE', nameAr: 'الإمارات', flag: '🇦🇪',
+    currency: 'AED', currencySymbol: 'د.إ', novaRate: 3.67,
+    paymentMethods: [
+      { id: 'adcb', name: 'ADCB', nameAr: 'أبوظبي التجاري', icon: '🏦' },
+      { id: 'enbd', name: 'Emirates NBD', nameAr: 'الإمارات دبي الوطني', icon: '🏦' },
+    ],
+  },
+  {
+    code: 'KW', name: 'Kuwait', nameAr: 'الكويت', flag: '🇰🇼',
+    currency: 'KWD', currencySymbol: 'د.ك', novaRate: 0.31,
+    paymentMethods: [
+      { id: 'nbk', name: 'NBK', nameAr: 'بنك الكويت الوطني', icon: '🏦' },
+      { id: 'knet', name: 'KNET', nameAr: 'كي نت', icon: '💳' },
+    ],
+  },
+  {
+    code: 'QA', name: 'Qatar', nameAr: 'قطر', flag: '🇶🇦',
+    currency: 'QAR', currencySymbol: 'ر.ق', novaRate: 3.64,
+    paymentMethods: [
+      { id: 'qnb', name: 'QNB', nameAr: 'بنك قطر الوطني', icon: '🏦' },
+    ],
+  },
+  {
+    code: 'BH', name: 'Bahrain', nameAr: 'البحرين', flag: '🇧🇭',
+    currency: 'BHD', currencySymbol: 'د.ب', novaRate: 0.38,
+    paymentMethods: [
+      { id: 'benefit', name: 'BenefitPay', nameAr: 'بنفت باي', icon: '📱' },
+    ],
+  },
+  {
+    code: 'OM', name: 'Oman', nameAr: 'عُمان', flag: '🇴🇲',
+    currency: 'OMR', currencySymbol: 'ر.ع', novaRate: 0.38,
+    paymentMethods: [
+      { id: 'bankmuscat', name: 'Bank Muscat', nameAr: 'بنك مسقط', icon: '🏦' },
+    ],
+  },
+  {
+    code: 'EG', name: 'Egypt', nameAr: 'مصر', flag: '🇪🇬',
+    currency: 'EGP', currencySymbol: 'ج.م', novaRate: 30.90,
     paymentMethods: [
       { id: 'cib', name: 'CIB', nameAr: 'البنك التجاري الدولي', icon: '🏦' },
       { id: 'vodafone', name: 'Vodafone Cash', nameAr: 'فودافون كاش', icon: '📱' },
@@ -58,29 +85,93 @@ export const COUNTRIES: CountryConfig[] = [
     ],
   },
   {
-    code: 'AE',
-    name: 'UAE',
-    nameAr: 'الإمارات',
-    flag: '🇦🇪',
-    currency: 'AED',
-    currencySymbol: 'د.إ',
-    novaRate: 3.67,
-    paymentMethods: [
-      { id: 'adcb', name: 'ADCB', nameAr: 'أبوظبي التجاري', icon: '🏦' },
-      { id: 'enbd', name: 'Emirates NBD', nameAr: 'الإمارات دبي الوطني', icon: '🏦' },
-    ],
-  },
-  {
-    code: 'JO',
-    name: 'Jordan',
-    nameAr: 'الأردن',
-    flag: '🇯🇴',
-    currency: 'JOD',
-    currencySymbol: 'د.أ',
-    novaRate: 0.71,
+    code: 'JO', name: 'Jordan', nameAr: 'الأردن', flag: '🇯🇴',
+    currency: 'JOD', currencySymbol: 'د.أ', novaRate: 0.71,
     paymentMethods: [
       { id: 'abc', name: 'Arab Bank', nameAr: 'البنك العربي', icon: '🏦' },
       { id: 'cliq', name: 'CliQ', nameAr: 'كليك', icon: '💳' },
+    ],
+  },
+  {
+    code: 'PS', name: 'Palestine', nameAr: 'فلسطين', flag: '🇵🇸',
+    currency: 'ILS', currencySymbol: '₪', novaRate: 3.65,
+    paymentMethods: [
+      { id: 'bop', name: 'Bank of Palestine', nameAr: 'بنك فلسطين', icon: '🏦' },
+      { id: 'jawwal', name: 'Jawwal Pay', nameAr: 'جوال باي', icon: '📱' },
+    ],
+  },
+  {
+    code: 'LB', name: 'Lebanon', nameAr: 'لبنان', flag: '🇱🇧',
+    currency: 'LBP', currencySymbol: 'ل.ل', novaRate: 89500,
+    paymentMethods: [
+      { id: 'whish', name: 'Whish Money', nameAr: 'ويش موني', icon: '📱' },
+    ],
+  },
+  {
+    code: 'SY', name: 'Syria', nameAr: 'سوريا', flag: '🇸🇾',
+    currency: 'SYP', currencySymbol: 'ل.س', novaRate: 13000,
+    paymentMethods: [
+      { id: 'syriatel', name: 'Syriatel Cash', nameAr: 'سيرياتيل كاش', icon: '📱' },
+    ],
+  },
+  {
+    code: 'YE', name: 'Yemen', nameAr: 'اليمن', flag: '🇾🇪',
+    currency: 'YER', currencySymbol: 'ر.ي', novaRate: 250,
+    paymentMethods: [
+      { id: 'floosak', name: 'Floosak', nameAr: 'فلوسك', icon: '📱' },
+    ],
+  },
+  {
+    code: 'MA', name: 'Morocco', nameAr: 'المغرب', flag: '🇲🇦',
+    currency: 'MAD', currencySymbol: 'د.م', novaRate: 10.05,
+    paymentMethods: [
+      { id: 'cih', name: 'CIH Bank', nameAr: 'بنك CIH', icon: '🏦' },
+      { id: 'cashplus', name: 'Cash Plus', nameAr: 'كاش بلس', icon: '📱' },
+    ],
+  },
+  {
+    code: 'TN', name: 'Tunisia', nameAr: 'تونس', flag: '🇹🇳',
+    currency: 'TND', currencySymbol: 'د.ت', novaRate: 3.12,
+    paymentMethods: [
+      { id: 'biat', name: 'BIAT', nameAr: 'البنك العربي الدولي', icon: '🏦' },
+    ],
+  },
+  {
+    code: 'DZ', name: 'Algeria', nameAr: 'الجزائر', flag: '🇩🇿',
+    currency: 'DZD', currencySymbol: 'د.ج', novaRate: 134.50,
+    paymentMethods: [
+      { id: 'ccp', name: 'CCP', nameAr: 'بريد الجزائر', icon: '🏦' },
+      { id: 'baridimob', name: 'BaridiMob', nameAr: 'بريدي موب', icon: '📱' },
+    ],
+  },
+  {
+    code: 'LY', name: 'Libya', nameAr: 'ليبيا', flag: '🇱🇾',
+    currency: 'LYD', currencySymbol: 'د.ل', novaRate: 4.85,
+    paymentMethods: [
+      { id: 'sadad', name: 'Sadad', nameAr: 'سداد', icon: '📱' },
+    ],
+  },
+  {
+    code: 'SD', name: 'Sudan', nameAr: 'السودان', flag: '🇸🇩',
+    currency: 'SDG', currencySymbol: 'ج.س', novaRate: 601,
+    paymentMethods: [
+      { id: 'bankak', name: 'Bankak', nameAr: 'بنكك', icon: '📱' },
+    ],
+  },
+  {
+    code: 'TR', name: 'Turkey', nameAr: 'تركيا', flag: '🇹🇷',
+    currency: 'TRY', currencySymbol: '₺', novaRate: 32.15,
+    paymentMethods: [
+      { id: 'papara', name: 'Papara', nameAr: 'بابارا', icon: '📱' },
+      { id: 'ziraat', name: 'Ziraat Bank', nameAr: 'زراعات بنك', icon: '🏦' },
+    ],
+  },
+  {
+    code: 'IQ', name: 'Iraq', nameAr: 'العراق', flag: '🇮🇶',
+    currency: 'IQD', currencySymbol: 'د.ع', novaRate: 1310,
+    paymentMethods: [
+      { id: 'zain', name: 'Zain Cash', nameAr: 'زين كاش', icon: '📱' },
+      { id: 'fastpay', name: 'FastPay', nameAr: 'فاست باي', icon: '📱' },
     ],
   },
 ];
