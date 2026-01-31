@@ -10,7 +10,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { BannerProvider } from "@/contexts/BannerContext";
 import { SupportProvider } from "@/contexts/SupportContext";
 import { InlineBanner } from "@/components/common/InlineBanner";
-import { AuthGuard, SupportGuard } from "@/components/auth";
+import { AuthGuard, SupportGuard, AdminGuard } from "@/components/auth";
 import "@/lib/i18n/index";
 
 // Pages
@@ -36,6 +36,10 @@ import SupportDashboard from "./pages/support/SupportDashboard";
 import SupportTicketDetail from "./pages/support/SupportTicketDetail";
 import SupportDisputes from "./pages/support/SupportDisputes";
 import SupportUsers from "./pages/support/SupportUsers";
+
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminWallets from "./pages/admin/AdminWallets";
 
 
 const queryClient = new QueryClient();
@@ -78,6 +82,10 @@ const App = () => (
                         <Route path="/support/ticket/:ticketId" element={<SupportGuard><SupportTicketDetail /></SupportGuard>} />
                         <Route path="/support/disputes" element={<SupportGuard><SupportDisputes /></SupportGuard>} />
                         <Route path="/support/users" element={<SupportGuard><SupportUsers /></SupportGuard>} />
+                        
+                        {/* Admin Panel routes - require admin role */}
+                        <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+                        <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />
                         
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />

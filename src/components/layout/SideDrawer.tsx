@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { Trophy, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Trophy, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut, ChevronDown, Shield, Crown } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage, SUPPORTED_LANGUAGES, Language } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Sheet,
   SheetContent,
@@ -44,12 +46,42 @@ const logoutItem = { icon: LogOut, path: '/logout', labelEn: 'Logout', labelAr: 
 
 export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
   const { language, setLanguage, currentLanguage } = useLanguage();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isRTL = currentLanguage.direction === 'rtl';
   
   const [authOpen, setAuthOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check user roles
+  useEffect(() => {
+    const checkRoles = async () => {
+      if (!user) {
+        setIsStaff(false);
+        setIsAdmin(false);
+        return;
+      }
+
+      // Check support staff
+      const { data: staffData } = await supabase
+        .rpc('is_support_staff', { _user_id: user.id });
+      setIsStaff(staffData || false);
+
+      // Check admin
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .single();
+      setIsAdmin(!!roleData);
+    };
+
+    checkRoles();
+  }, [user]);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -112,6 +144,52 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                 );
               })}
               
+              {/* Staff/Admin Section */}
+              {(isStaff || isAdmin) && (
+                <>
+                  <Separator className="my-3" />
+                  <p className="px-4 py-1 text-xs text-muted-foreground font-medium">
+                    {isRTL ? 'الإدارة' : 'Management'}
+                  </p>
+                  
+                  {isStaff && (
+                    <button
+                      onClick={() => handleNavigation('/support')}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
+                        location.pathname.startsWith('/support')
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'hover:bg-muted text-foreground'
+                      )}
+                    >
+                      <span className="text-base">🛡️</span>
+                      <Shield className="h-5 w-5" />
+                      <span className="font-medium text-sm">
+                        {isRTL ? 'لوحة الدعم' : 'Support Panel'}
+                      </span>
+                    </button>
+                  )}
+                  
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleNavigation('/admin')}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
+                        location.pathname.startsWith('/admin')
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'hover:bg-muted text-foreground'
+                      )}
+                    >
+                      <span className="text-base">👑</span>
+                      <Crown className="h-5 w-5" />
+                      <span className="font-medium text-sm">
+                        {isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}
+                      </span>
+                    </button>
+                  )}
+                </>
+              )}
+
               <Separator className="my-3" />
               
               {/* Secondary Items */}
