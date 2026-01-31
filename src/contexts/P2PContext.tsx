@@ -53,7 +53,8 @@ export interface P2PSystemMessage {
     | 'buyer_copied_bank'     // New: Buyer copied bank info
     | 'awaiting_buyer_payment' // New: Seller waiting for buyer's transfer
     | 'buyer_paid'            // New: Buyer executed transfer
-    | 'sell_order_created';   // New: Sell order created
+    | 'sell_order_created'    // New: Sell order created
+    | 'order_cancelled';      // New: Order cancelled with reason
   content: string;
   contentAr: string;
   time: string;
@@ -622,9 +623,9 @@ export function P2PProvider({ children }: { children: ReactNode }) {
       if (chat) {
         addSystemMessage(chat.id, {
           id: `sys-${Date.now()}`,
-          type: 'status_change',
-          content: `❌ Order cancelled by buyer\nReason: ${reason}`,
-          contentAr: `❌ تم إلغاء الطلب من المشتري\nالسبب: ${reason}`,
+          type: 'order_cancelled',
+          content: `❌ Order cancelled by buyer\nReason: ${reason}\n🛈 You can continue chatting, but no actions can be performed on this order.`,
+          contentAr: `❌ تم إلغاء الطلب من قبل المشتري\nالسبب: ${reason}\n🛈 يمكنكما متابعة الدردشة، لكن لا يمكن تنفيذ أي إجراء على هذا الطلب.`,
           time: getTimeString(),
           orderId,
         });

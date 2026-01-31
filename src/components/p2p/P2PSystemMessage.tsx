@@ -80,6 +80,10 @@ const typeConfig: Record<P2PSystemMessageType['type'], {
     icon: Receipt,
     colorClass: 'text-primary bg-primary/10 border-primary/20',
   },
+  order_cancelled: {
+    icon: XCircle,
+    colorClass: 'text-destructive bg-destructive/10 border-destructive/20',
+  },
 };
 
 export function P2PSystemMessage({ message }: P2PSystemMessageProps) {
