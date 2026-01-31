@@ -14,16 +14,544 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contest_entries: {
+        Row: {
+          contest_id: string
+          created_at: string
+          id: string
+          prize_won: number | null
+          rank: number | null
+          user_id: string
+          votes_received: number
+        }
+        Insert: {
+          contest_id: string
+          created_at?: string
+          id?: string
+          prize_won?: number | null
+          rank?: number | null
+          user_id: string
+          votes_received?: number
+        }
+        Update: {
+          contest_id?: string
+          created_at?: string
+          id?: string
+          prize_won?: number | null
+          rank?: number | null
+          user_id?: string
+          votes_received?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contest_entries_contest_id_fkey"
+            columns: ["contest_id"]
+            isOneToOne: false
+            referencedRelation: "contests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contests: {
+        Row: {
+          created_at: string
+          current_participants: number
+          description: string | null
+          description_ar: string | null
+          end_time: string
+          entry_fee: number
+          id: string
+          max_participants: number | null
+          prize_pool: number
+          start_time: string
+          status: string
+          title: string
+          title_ar: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_participants?: number
+          description?: string | null
+          description_ar?: string | null
+          end_time: string
+          entry_fee: number
+          id?: string
+          max_participants?: number | null
+          prize_pool?: number
+          start_time: string
+          status?: string
+          title: string
+          title_ar?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_participants?: number
+          description?: string | null
+          description_ar?: string | null
+          end_time?: string
+          entry_fee?: number
+          id?: string
+          max_participants?: number | null
+          prize_pool?: number
+          start_time?: string
+          status?: string
+          title?: string
+          title_ar?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          message_ar: string | null
+          reference_id: string | null
+          title: string
+          title_ar: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          message_ar?: string | null
+          reference_id?: string | null
+          title: string
+          title_ar?: string | null
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          message_ar?: string | null
+          reference_id?: string | null
+          title?: string
+          title_ar?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      p2p_messages: {
+        Row: {
+          content: string
+          content_ar: string | null
+          created_at: string
+          id: string
+          is_system_message: boolean
+          message_type: string
+          order_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          content_ar?: string | null
+          created_at?: string
+          id?: string
+          is_system_message?: boolean
+          message_type?: string
+          order_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          content_ar?: string | null
+          created_at?: string
+          id?: string
+          is_system_message?: boolean
+          message_type?: string
+          order_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "p2p_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      p2p_orders: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          country: string
+          created_at: string
+          creator_id: string
+          exchange_rate: number
+          executor_id: string | null
+          id: string
+          local_amount: number
+          nova_amount: number
+          order_type: Database["public"]["Enums"]["p2p_order_type"]
+          payment_method_id: string | null
+          status: Database["public"]["Enums"]["p2p_order_status"]
+          time_limit_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          country: string
+          created_at?: string
+          creator_id: string
+          exchange_rate: number
+          executor_id?: string | null
+          id?: string
+          local_amount: number
+          nova_amount: number
+          order_type: Database["public"]["Enums"]["p2p_order_type"]
+          payment_method_id?: string | null
+          status?: Database["public"]["Enums"]["p2p_order_status"]
+          time_limit_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          country?: string
+          created_at?: string
+          creator_id?: string
+          exchange_rate?: number
+          executor_id?: string | null
+          id?: string
+          local_amount?: number
+          nova_amount?: number
+          order_type?: Database["public"]["Enums"]["p2p_order_type"]
+          payment_method_id?: string | null
+          status?: Database["public"]["Enums"]["p2p_order_status"]
+          time_limit_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "p2p_orders_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_methods: {
+        Row: {
+          account_number: string | null
+          country: string
+          created_at: string
+          full_name: string
+          iban: string | null
+          id: string
+          is_default: boolean
+          phone_number: string | null
+          provider_name: string
+          provider_name_ar: string | null
+          user_id: string
+        }
+        Insert: {
+          account_number?: string | null
+          country: string
+          created_at?: string
+          full_name: string
+          iban?: string | null
+          id?: string
+          is_default?: boolean
+          phone_number?: string | null
+          provider_name: string
+          provider_name_ar?: string | null
+          user_id: string
+        }
+        Update: {
+          account_number?: string | null
+          country?: string
+          created_at?: string
+          full_name?: string
+          iban?: string | null
+          id?: string
+          is_default?: boolean
+          phone_number?: string | null
+          provider_name?: string
+          provider_name_ar?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          active_weeks: number
+          activity_percentage: number
+          avatar_url: string | null
+          city: string | null
+          country: string
+          created_at: string
+          current_week: number
+          engagement_status: Database["public"]["Enums"]["engagement_status"]
+          has_joined_with_nova: boolean
+          id: string
+          name: string
+          rank: Database["public"]["Enums"]["user_rank"]
+          referral_code: string | null
+          referred_by: string | null
+          spotlight_points: number
+          team_activity_percentage: number
+          updated_at: string
+          user_id: string
+          username: string
+          wallet_country: string
+          weekly_active: boolean
+        }
+        Insert: {
+          active_weeks?: number
+          activity_percentage?: number
+          avatar_url?: string | null
+          city?: string | null
+          country?: string
+          created_at?: string
+          current_week?: number
+          engagement_status?: Database["public"]["Enums"]["engagement_status"]
+          has_joined_with_nova?: boolean
+          id?: string
+          name: string
+          rank?: Database["public"]["Enums"]["user_rank"]
+          referral_code?: string | null
+          referred_by?: string | null
+          spotlight_points?: number
+          team_activity_percentage?: number
+          updated_at?: string
+          user_id: string
+          username: string
+          wallet_country?: string
+          weekly_active?: boolean
+        }
+        Update: {
+          active_weeks?: number
+          activity_percentage?: number
+          avatar_url?: string | null
+          city?: string | null
+          country?: string
+          created_at?: string
+          current_week?: number
+          engagement_status?: Database["public"]["Enums"]["engagement_status"]
+          has_joined_with_nova?: boolean
+          id?: string
+          name?: string
+          rank?: Database["public"]["Enums"]["user_rank"]
+          referral_code?: string | null
+          referred_by?: string | null
+          spotlight_points?: number
+          team_activity_percentage?: number
+          updated_at?: string
+          user_id?: string
+          username?: string
+          wallet_country?: string
+          weekly_active?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          leader_id: string
+          level: number
+          member_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          leader_id: string
+          level?: number
+          member_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          leader_id?: string
+          level?: number
+          member_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_type"]
+          description: string | null
+          description_ar: string | null
+          id: string
+          reference_id: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: Database["public"]["Enums"]["currency_type"]
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          reference_id?: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_type"]
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          reference_id?: string | null
+          type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      votes: {
+        Row: {
+          aura_spent: number
+          contest_id: string
+          contestant_id: string
+          created_at: string
+          id: string
+          voter_id: string
+        }
+        Insert: {
+          aura_spent: number
+          contest_id: string
+          contestant_id: string
+          created_at?: string
+          id?: string
+          voter_id: string
+        }
+        Update: {
+          aura_spent?: number
+          contest_id?: string
+          contestant_id?: string
+          created_at?: string
+          id?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_contest_id_fkey"
+            columns: ["contest_id"]
+            isOneToOne: false
+            referencedRelation: "contests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          aura_balance: number
+          created_at: string
+          id: string
+          locked_nova_balance: number
+          nova_balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aura_balance?: number
+          created_at?: string
+          id?: string
+          locked_nova_balance?: number
+          nova_balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aura_balance?: number
+          created_at?: string
+          id?: string
+          locked_nova_balance?: number
+          nova_balance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_referral_code: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      currency_type: "nova" | "aura"
+      engagement_status: "both" | "contest" | "vote" | "none"
+      p2p_order_status:
+        | "open"
+        | "matched"
+        | "awaiting_payment"
+        | "payment_sent"
+        | "completed"
+        | "cancelled"
+        | "disputed"
+      p2p_order_type: "buy" | "sell"
+      transaction_type:
+        | "deposit"
+        | "withdrawal"
+        | "transfer"
+        | "contest_entry"
+        | "contest_win"
+        | "vote"
+        | "p2p_buy"
+        | "p2p_sell"
+        | "referral_bonus"
+        | "team_earnings"
+      user_rank: "subscriber" | "marketer" | "leader" | "manager" | "president"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +678,33 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      currency_type: ["nova", "aura"],
+      engagement_status: ["both", "contest", "vote", "none"],
+      p2p_order_status: [
+        "open",
+        "matched",
+        "awaiting_payment",
+        "payment_sent",
+        "completed",
+        "cancelled",
+        "disputed",
+      ],
+      p2p_order_type: ["buy", "sell"],
+      transaction_type: [
+        "deposit",
+        "withdrawal",
+        "transfer",
+        "contest_entry",
+        "contest_win",
+        "vote",
+        "p2p_buy",
+        "p2p_sell",
+        "referral_bonus",
+        "team_earnings",
+      ],
+      user_rank: ["subscriber", "marketer", "leader", "manager", "president"],
+    },
   },
 } as const
