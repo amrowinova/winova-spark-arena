@@ -32,10 +32,10 @@ function getDayName(date: Date, language: string): string {
 
 // Format date as DD/MM/YYYY
 function formatDate(date: Date): string {
-  const day = date.getDate();
-  const month = date.getMonth() + 1;
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
-  return `${day} / ${month} / ${year}`;
+  return `${day}/${month}/${year}`;
 }
 
 export function ContestJoinCard({
@@ -109,20 +109,14 @@ export function ContestJoinCard({
       {/* Header with Title and Date */}
       <div className="bg-card p-4 border-b border-border">
         <div className="relative z-10">
-          {/* Title */}
-          <div className="flex items-center justify-center gap-2 mb-2">
+          {/* Title with Date */}
+          <div className="flex items-center justify-center gap-2 mb-4">
             <Trophy className="h-5 w-5 text-primary" />
             <span className="text-foreground font-bold text-lg">
               {language === 'ar' 
-                ? `المسابقة اليومية – يوم ${getDayName(now, language)}`
-                : `Daily Contest – ${getDayName(now, language)}`}
+                ? `المسابقة اليومية – ${getDayName(now, language)} ${formatDate(now)}`
+                : `Daily Contest – ${getDayName(now, language)} ${formatDate(now)}`}
             </span>
-          </div>
-          
-          {/* Date */}
-          <div className="flex items-center justify-center gap-1 text-muted-foreground text-sm mb-4">
-            <Calendar className="h-4 w-4" />
-            <span>📅 {formatDate(now)}</span>
           </div>
 
           {/* Prize Pool - Dynamic */}
