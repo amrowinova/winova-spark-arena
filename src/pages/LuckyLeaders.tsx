@@ -40,7 +40,8 @@ export default function LuckyLeadersPage() {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString(isRTL ? 'ar-SA' : 'en-US', {
+    // Use Gregorian calendar for Arabic (ar-EG-u-ca-gregory)
+    return date.toLocaleDateString(isRTL ? 'ar-EG-u-ca-gregory' : 'en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
