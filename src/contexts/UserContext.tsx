@@ -22,8 +22,9 @@ export interface User {
   teamActivityPercentage: number;
   spotlightPoints: number;
   referralCode: string;
-  country: string;
+  country: string; // User's registered country (affects team/referrals)
   city: string;
+  walletCountry: string; // Display currency country (affects wallet/receipts only)
   hasJoinedWithNova: boolean;
   activeWeeks: number;
   totalWeeks: number; // Always 14 in a cycle
@@ -57,8 +58,9 @@ const defaultUser: User = {
   teamActivityPercentage: 65,
   spotlightPoints: 1250,
   referralCode: 'WINOVA-AH7X9',
-  country: 'Saudi Arabia',
+  country: 'Saudi Arabia', // Registered country (team/referrals)
   city: 'Riyadh',
+  walletCountry: 'Saudi Arabia', // Display currency country
   hasJoinedWithNova: true,
   activeWeeks: 5,
   totalWeeks: 14,
