@@ -10,6 +10,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { BannerProvider } from "@/contexts/BannerContext";
 import { SupportProvider } from "@/contexts/SupportContext";
 import { InlineBanner } from "@/components/common/InlineBanner";
+import { AuthGuard } from "@/components/auth";
 import "@/lib/i18n/index";
 
 // Pages
@@ -47,21 +48,25 @@ const App = () => (
                       <InlineBanner />
                       <BrowserRouter>
                       <Routes>
+                        {/* Public routes */}
                         <Route path="/" element={<Index />} />
-                        <Route path="/contests" element={<Contests />} />
-                        <Route path="/winners" element={<Winners />} />
-                        <Route path="/team" element={<Team />} />
-                        <Route path="/wallet" element={<Wallet />} />
-                        <Route path="/chat" element={<Chat />} />
-                        <Route path="/p2p" element={<P2P />} />
-                        <Route path="/spotlight" element={<Spotlight />} />
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/notifications" element={<Notifications />} />
                         <Route path="/hall-of-fame" element={<HallOfFame />} />
-                        <Route path="/lucky-leaders" element={<LuckyLeaders />} />
-                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/winners" element={<Winners />} />
                         <Route path="/help" element={<Help />} />
                         <Route path="/user/:userId" element={<PublicProfile />} />
+                        
+                        {/* Protected routes - require authentication */}
+                        <Route path="/contests" element={<AuthGuard><Contests /></AuthGuard>} />
+                        <Route path="/team" element={<AuthGuard><Team /></AuthGuard>} />
+                        <Route path="/wallet" element={<AuthGuard><Wallet /></AuthGuard>} />
+                        <Route path="/chat" element={<AuthGuard><Chat /></AuthGuard>} />
+                        <Route path="/p2p" element={<AuthGuard><P2P /></AuthGuard>} />
+                        <Route path="/spotlight" element={<AuthGuard><Spotlight /></AuthGuard>} />
+                        <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
+                        <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
+                        <Route path="/lucky-leaders" element={<AuthGuard><LuckyLeaders /></AuthGuard>} />
+                        <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
+                        
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
