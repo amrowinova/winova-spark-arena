@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Wallet as WalletIcon, Send, RefreshCw, History, TrendingUp, Users } from 'lucide-react';
+import { Wallet as WalletIcon, Send, RefreshCw, History, TrendingUp, Users, Lock } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { ConvertNovaAuraDialog } from '@/components/wallet/ConvertNovaAuraDialog
 import { WalletCountrySelector, getWalletCountryPricing } from '@/components/wallet/WalletCountrySelector';
 import { TeamEarningsCard } from '@/components/wallet/TeamEarningsCard';
 import { EarningsSummarySheet } from '@/components/wallet/EarningsSummarySheet';
+import { LockedEarningsCard, getNextReleaseDate } from '@/components/wallet/LockedEarningsCard';
 import type { Receipt } from '@/contexts/TransactionContext';
 
 // Format number - remove decimals if whole number (matches Home)
@@ -38,7 +39,9 @@ export default function WalletPage() {
   // Get local currency info based on wallet country (not registered country)
   const pricing = getWalletCountryPricing(user.walletCountry);
   const novaLocalValue = user.novaBalance * pricing.novaRate;
+  const lockedLocalValue = user.lockedNovaBalance * pricing.novaRate;
   const auraLocalValue = user.auraBalance * pricing.auraRate;
+  const releaseInfo = getNextReleaseDate();
 
   // Filter user receipts
   const userReceipts = receipts.filter(
@@ -95,15 +98,19 @@ export default function WalletPage() {
                 <WalletCountrySelector />
               </div>
 
-              {/* Nova & Aura Balances - Matching Home layout */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Nova Balance - Gold accent with И symbol */}
+              {/* Nova & Aura Balances - Updated with Locked */}
+              <div className="space-y-4">
+                {/* Available Nova - Main balance */}
                 <div className="bg-nova/5 border border-nova/20 rounded-xl p-4">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-nova text-lg font-bold">И</span>
-                    <span className="text-foreground/70 text-xs font-medium">Nova</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-nova text-lg font-bold">И</span>
+                      <span className="text-foreground/70 text-xs font-medium">
+                        {language === 'ar' ? 'Nova المتاح' : 'Available Nova'}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-foreground text-2xl font-bold">
+                  <p className="text-foreground text-3xl font-bold">
                     {formatBalance(user.novaBalance)}
                   </p>
                   <p className="text-muted-foreground text-xs mt-1">
@@ -111,7 +118,38 @@ export default function WalletPage() {
                   </p>
                 </div>
 
-                {/* Aura Balance - Purple accent with ✦ symbol, NO local currency */}
+                {/* Locked Nova - Only show if > 0 */}
+                {user.lockedNovaBalance > 0 && (
+                  <div className="bg-warning/5 border border-warning/20 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Lock className="h-4 w-4 text-warning" />
+                          <span className="text-foreground/70 text-xs font-medium">
+                            {language === 'ar' ? 'أرباح مقفلة' : 'Locked Earnings'}
+                          </span>
+                        </div>
+                        <p className="text-foreground text-xl font-bold">
+                          <span className="text-nova">И</span> {formatBalance(user.lockedNovaBalance)}
+                        </p>
+                        <p className="text-muted-foreground text-xs mt-1">
+                          ≈ {pricing.symbol} {formatBalance(lockedLocalValue)}
+                        </p>
+                      </div>
+                      <div className="text-end bg-warning/10 rounded-lg px-3 py-2">
+                        <p className="text-xs text-warning font-medium">
+                          {language === 'ar' ? 'الإفراج' : 'Release'}
+                        </p>
+                        <p className="text-xl font-bold text-foreground">{releaseInfo.label}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {releaseInfo.daysRemaining} {language === 'ar' ? 'يوم' : 'days'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Aura Balance */}
                 <div className="bg-aura/5 border border-aura/20 rounded-xl p-4">
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="text-aura text-lg font-bold">✦</span>

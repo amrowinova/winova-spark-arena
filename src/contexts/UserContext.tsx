@@ -11,6 +11,7 @@ export interface User {
   username: string;
   avatar?: string;
   novaBalance: number;
+  lockedNovaBalance: number; // Team earnings - released on 15th & 30th
   auraBalance: number;
   rank: UserRank;
   teamSize: number;
@@ -35,6 +36,8 @@ interface UserContextType {
   user: User;
   updateUser: (updates: Partial<User>) => void;
   addNova: (amount: number) => void;
+  addLockedNova: (amount: number) => void; // For team earnings
+  releaseLockedNova: () => number; // Release all locked → available
   addAura: (amount: number) => void;
   spendNova: (amount: number) => boolean;
   spendAura: (amount: number) => boolean;
@@ -47,6 +50,7 @@ const defaultUser: User = {
   name: 'Ahmed',
   username: 'ahmed_sa',
   novaBalance: 150,
+  lockedNovaBalance: 10.5, // Accumulated team earnings (mock)
   auraBalance: 320,
   rank: 'marketer',
   teamSize: 47,
@@ -78,6 +82,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const addNova = (amount: number) => {
     setUser((prev) => ({ ...prev, novaBalance: prev.novaBalance + amount }));
+  };
+
+  const addLockedNova = (amount: number) => {
+    setUser((prev) => ({ ...prev, lockedNovaBalance: prev.lockedNovaBalance + amount }));
+  };
+
+  const releaseLockedNova = (): number => {
+    const released = user.lockedNovaBalance;
+    setUser((prev) => ({
+      ...prev,
+      novaBalance: prev.novaBalance + prev.lockedNovaBalance,
+      lockedNovaBalance: 0,
+    }));
+    return released;
   };
 
   const addAura = (amount: number) => {
@@ -131,7 +149,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     <UserContext.Provider value={{ 
       user, 
       updateUser, 
-      addNova, 
+      addNova,
+      addLockedNova,
+      releaseLockedNova,
       addAura, 
       spendNova, 
       spendAura,
