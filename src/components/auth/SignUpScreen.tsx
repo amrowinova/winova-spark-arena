@@ -1,138 +1,65 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, Mail, Lock, User, MapPin, Gift, Info, Phone } from 'lucide-react';
-import { locationData, getCitiesByCountry, getDistrictsByCity, type City, type District } from '@/lib/locationData';
+import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
 
 interface SignUpScreenProps {
   onBack: () => void;
   onLogin: () => void;
-  onSuccess: () => void;
+  onSendOTP: (email: string) => void;
 }
 
-export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) {
+export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
   
-  // Form state
-  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [phoneCountry, setPhoneCountry] = useState('SA');
-  const [phone, setPhone] = useState('');
-  
-  // Location state
-  const [country, setCountry] = useState('');
-  const [city, setCity] = useState('');
-  const [area, setArea] = useState('');
-  const [availableCities, setAvailableCities] = useState<City[]>([]);
-  const [availableDistricts, setAvailableDistricts] = useState<District[]>([]);
-  
-  const [referralCode, setReferralCode] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const selectedPhoneCountry = locationData.find(c => c.code === phoneCountry);
-
-  // Update cities when country changes
-  useEffect(() => {
-    if (country) {
-      const cities = getCitiesByCountry(country);
-      setAvailableCities(cities);
-      setCity('');
-      setArea('');
-      setAvailableDistricts([]);
-    } else {
-      setAvailableCities([]);
-      setCity('');
-      setArea('');
-      setAvailableDistricts([]);
-    }
-  }, [country]);
-
-  // Update districts when city changes
-  useEffect(() => {
-    if (country && city) {
-      const districts = getDistrictsByCity(country, city);
-      setAvailableDistricts(districts);
-      setArea('');
-    } else {
-      setAvailableDistricts([]);
-      setArea('');
-    }
-  }, [country, city]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
-    // Basic validation
-    if (!fullName) {
-      setError(isRTL ? 'يرجى إدخال الاسم الكامل' : 'Please enter your full name');
+    if (!email) {
+      setError(isRTL ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter your email');
       return;
     }
 
-    if (!email && !phone) {
-      setError(isRTL ? 'يرجى إدخال البريد الإلكتروني أو رقم الهاتف' : 'Please enter email or phone');
-      return;
-    }
-
-    // Location is required if no referral code
-    if (!referralCode && (!country || !city || !area)) {
-      setError(isRTL ? 'يرجى إدخال الموقع أو كود الإحالة' : 'Please enter location or referral code');
-      return;
-    }
-
-    if (!password || !confirmPassword) {
-      setError(isRTL ? 'يرجى إدخال كلمة المرور' : 'Please enter password');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError(isRTL ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError(isRTL ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters');
-      return;
-    }
-
-    if (!agreedToTerms) {
-      setError(isRTL ? 'يجب الموافقة على الشروط والسياسات' : 'You must agree to the terms and policies');
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError(isRTL ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email');
       return;
     }
 
     setIsLoading(true);
     
-    // Mock signup - simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Mock sending OTP - simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     setIsLoading(false);
-    onSuccess();
+    onSendOTP(email);
+  };
+
+  const handleSocialSignUp = async (provider: 'google' | 'apple') => {
+    // Mock social signup - in production, this would redirect to OAuth
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsLoading(false);
+    // For demo, treat social signup as immediate OTP sent
+    onSendOTP(`${provider}@demo.com`);
   };
 
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
 
   return (
-    <div className="min-h-full bg-background flex flex-col">
-      {/* Header - Fixed */}
-      <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-4 border-b border-border bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-border">
         <button 
           onClick={onBack}
           className="p-2 -m-2 hover:bg-muted rounded-full transition-colors"
@@ -140,23 +67,23 @@ export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) 
           <BackArrow className="w-5 h-5 text-foreground" />
         </button>
         <h1 className="text-lg font-semibold text-foreground">
-          {isRTL ? 'إنشاء حساب في Winova' : 'Create Account in Winova'}
+          {isRTL ? 'إنشاء حساب جديد' : 'Create Account'}
         </h1>
       </div>
 
-      {/* Form - Scrollable */}
-      <motion.form
+      {/* Content */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        onSubmit={handleSubmit}
-        className="flex-1 px-6 py-6 space-y-6 pb-safe"
-        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+        className="flex-1 px-6 py-6 overflow-y-auto"
       >
-        {/* Social Signup Buttons - AT THE TOP */}
-        <div className="space-y-3">
+        {/* Social Sign Up Buttons */}
+        <div className="space-y-3 mb-6">
           <Button
             type="button"
             variant="outline"
+            onClick={() => handleSocialSignUp('google')}
+            disabled={isLoading}
             className="w-full h-12 text-base font-medium gap-3"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -171,6 +98,8 @@ export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) 
           <Button
             type="button"
             variant="outline"
+            onClick={() => handleSocialSignUp('apple')}
+            disabled={isLoading}
             className="w-full h-12 text-base font-medium gap-3"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -181,46 +110,23 @@ export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) 
         </div>
 
         {/* Divider */}
-        <div className="relative my-4">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
-              {isRTL ? 'أو' : 'OR'}
+              {isRTL ? 'أو باستخدام البريد الإلكتروني' : 'or with email'}
             </span>
           </div>
         </div>
 
-        {/* Section 1: Basic Information */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-primary">
-            <User className="w-4 h-4" />
-            <span>{isRTL ? 'المعلومات الأساسية' : 'Basic Information'}</span>
-          </div>
-
-          {/* Full Name */}
-          <div className="space-y-2">
-            <Label htmlFor="fullName" className="text-sm font-medium">
-              {isRTL ? 'الاسم الكامل' : 'Full Name'}
-            </Label>
-            <div className="relative">
-              <User className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="fullName"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder={isRTL ? 'أدخل اسمك الكامل' : 'Enter your full name'}
-                className="ps-10 h-12"
-              />
-            </div>
-          </div>
-
-          {/* Email */}
+        {/* Email Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">
-              {isRTL ? 'البريد الإلكتروني' : 'Email'}
+              {isRTL ? 'البريد الإلكتروني' : 'Email Address'}
             </Label>
             <div className="relative">
               <Mail className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -229,283 +135,45 @@ export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) 
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@email.com"
+                placeholder={isRTL ? 'أدخل بريدك الإلكتروني' : 'Enter your email'}
                 className="ps-10 h-12"
                 dir="ltr"
               />
             </div>
           </div>
 
-          {/* Phone with Country Selector */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {isRTL ? 'أو رقم الهاتف' : 'Or Phone Number'}
-            </Label>
-            <div className="flex gap-2">
-              <Select value={phoneCountry} onValueChange={setPhoneCountry}>
-                <SelectTrigger className="w-32 h-12">
-                  <SelectValue>
-                    {selectedPhoneCountry && (
-                      <span className="flex items-center gap-1">
-                        <span>{selectedPhoneCountry.flag}</span>
-                        <span className="text-xs">{selectedPhoneCountry.dial}</span>
-                      </span>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {locationData.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      <span className="flex items-center gap-2">
-                        <span>{c.flag}</span>
-                        <span>{c.dial}</span>
-                        <span className="text-muted-foreground text-xs">
-                          {isRTL ? c.nameAr : c.name}
-                        </span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="relative flex-1">
-                <Phone className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={isRTL ? 'أدخل رقم الهاتف' : 'Enter phone number'}
-                  className="ps-10 h-12"
-                  dir="ltr"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+          {/* Info Note */}
+          <p className="text-xs text-muted-foreground text-center">
+            {isRTL 
+              ? 'سنرسل لك رمز تحقق مكون من 6 أرقام للتحقق من بريدك'
+              : "We'll send you a 6-digit code to verify your email"}
+          </p>
 
-        {/* Section 2: Location (Dependent Dropdowns) */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-primary">
-            <MapPin className="w-4 h-4" />
-            <span>{isRTL ? 'الموقع' : 'Location'}</span>
-            <span className="text-xs text-muted-foreground">
-              ({isRTL ? 'إجباري في حال عدم وجود كود إحالة' : 'Required if no referral code'})
-            </span>
-          </div>
-
-          {/* Country Dropdown */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {isRTL ? 'الدولة' : 'Country'}
-            </Label>
-            <Select value={country} onValueChange={setCountry}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder={isRTL ? 'اختر الدولة' : 'Select country'} />
-              </SelectTrigger>
-              <SelectContent>
-                {locationData.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    <span className="flex items-center gap-2">
-                      <span>{c.flag}</span>
-                      <span>{isRTL ? c.nameAr : c.name}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* City Dropdown - depends on Country */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {isRTL ? 'المدينة' : 'City'}
-            </Label>
-            <Select 
-              value={city} 
-              onValueChange={setCity}
-              disabled={!country || availableCities.length === 0}
+          {/* Error Message */}
+          {error && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-sm text-destructive text-center"
             >
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder={isRTL ? 'اختر المدينة' : 'Select city'} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableCities.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {isRTL ? c.nameAr : c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              {error}
+            </motion.p>
+          )}
 
-          {/* Area/District Dropdown - depends on City */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {isRTL ? 'المنطقة / الحي' : 'Area / District'}
-            </Label>
-            <Select 
-              value={area} 
-              onValueChange={setArea}
-              disabled={!city || availableDistricts.length === 0}
-            >
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder={isRTL ? 'اختر الحي أو المنطقة' : 'Select area or district'} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableDistricts.map((d) => (
-                  <SelectItem key={d.code} value={d.code}>
-                    {isRTL ? d.nameAr : d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Location Note */}
-          <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
-            <Info className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {isRTL 
-                ? 'في حال عدم إدخال كود إحالة، سيتم ربطك تلقائيًا بأقرب مسؤول نشط في منطقتك.'
-                : 'If no referral code is entered, you will be automatically linked to the nearest active manager in your area.'}
-            </p>
-          </div>
-        </div>
-
-        {/* Section 3: Referral Code */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-primary">
-            <Gift className="w-4 h-4" />
-            <span>{isRTL ? 'كود الإحالة' : 'Referral Code'}</span>
-            <span className="text-xs text-muted-foreground">
-              ({isRTL ? 'اختياري' : 'Optional'})
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            <Input
-              type="text"
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value)}
-              placeholder={isRTL ? 'أدخل كود الإحالة (إن وجد)' : 'Enter referral code (if any)'}
-              className="h-12"
-              dir="ltr"
-            />
-          </div>
-
-          {/* Referral Note */}
-          <div className="flex items-start gap-2 p-3 bg-primary/5 rounded-lg border border-primary/10">
-            <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {isRTL 
-                ? 'إذا لم يكن لديك كود إحالة، لا تقلق — سيقوم النظام تلقائيًا بربطك بأنشط مسؤول في منطقتك.'
-                : "If you don't have a referral code, don't worry — the system will automatically link you to the most active manager in your area."}
-            </p>
-          </div>
-        </div>
-
-        {/* Section 4: Password */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-primary">
-            <Lock className="w-4 h-4" />
-            <span>{isRTL ? 'كلمة المرور' : 'Password'}</span>
-          </div>
-
-          {/* Password */}
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium">
-              {isRTL ? 'كلمة المرور' : 'Password'}
-            </Label>
-            <div className="relative">
-              <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={isRTL ? 'أدخل كلمة المرور' : 'Enter your password'}
-                className="ps-10 pe-10 h-12"
-                dir="ltr"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute end-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Confirm Password */}
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-sm font-medium">
-              {isRTL ? 'تأكيد كلمة المرور' : 'Confirm Password'}
-            </Label>
-            <div className="relative">
-              <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder={isRTL ? 'أعد إدخال كلمة المرور' : 'Re-enter your password'}
-                className="ps-10 pe-10 h-12"
-                dir="ltr"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute end-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-              >
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 5: Terms Agreement */}
-        <div className="space-y-4">
-          <div className="flex items-start gap-3 py-2">
-            <Checkbox
-              id="terms"
-              checked={agreedToTerms}
-              onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
-              className="mt-0.5"
-            />
-            <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-              {isRTL 
-                ? <>أوافق على <span className="text-primary hover:underline">الشروط والأحكام</span> و <span className="text-primary hover:underline">سياسة الخصوصية</span></>
-                : <>I agree to the <span className="text-primary hover:underline">Terms of Service</span> and <span className="text-primary hover:underline">Privacy Policy</span></>}
-            </label>
-          </div>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-sm text-destructive text-center"
-          >
-            {error}
-          </motion.p>
-        )}
-
-        {/* Submit Button - More visible */}
-        <div className="pt-4">
+          {/* Submit Button */}
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full h-14 text-base font-semibold shadow-lg"
+            className="w-full h-12 text-base font-semibold"
           >
             {isLoading 
-              ? (isRTL ? 'جارٍ إنشاء الحساب...' : 'Creating account...') 
-              : (isRTL ? 'إنشاء حساب' : 'Create Account')}
+              ? (isRTL ? 'جارٍ الإرسال...' : 'Sending...') 
+              : (isRTL ? 'إرسال رمز التحقق' : 'Send Verification Code')}
           </Button>
-        </div>
+        </form>
 
         {/* Login Link */}
-        <p className="text-center text-sm text-muted-foreground py-6">
+        <p className="text-center text-sm text-muted-foreground pt-8">
           {isRTL ? 'لديك حساب بالفعل؟ ' : 'Already have an account? '}
           <button
             type="button"
@@ -515,10 +183,7 @@ export function SignUpScreen({ onBack, onLogin, onSuccess }: SignUpScreenProps) 
             {isRTL ? 'تسجيل الدخول' : 'Sign In'}
           </button>
         </p>
-        
-        {/* Extra bottom spacing for safe area */}
-        <div className="h-8" />
-      </motion.form>
+      </motion.div>
     </div>
   );
 }

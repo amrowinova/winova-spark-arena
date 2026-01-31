@@ -3,12 +3,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AuthLanding } from './AuthLanding';
 import { LoginScreen } from './LoginScreen';
 import { SignUpScreen } from './SignUpScreen';
+import { OTPVerificationScreen } from './OTPVerificationScreen';
+import { ProfileCompletionScreen } from './ProfileCompletionScreen';
 import {
   Sheet,
   SheetContent,
 } from '@/components/ui/sheet';
 
-type AuthScreen = 'landing' | 'login' | 'signup';
+type AuthScreen = 'landing' | 'login' | 'signup' | 'login-otp' | 'signup-otp' | 'profile-completion';
 
 interface AuthFlowProps {
   open: boolean;
@@ -18,16 +20,52 @@ interface AuthFlowProps {
 
 export function AuthFlow({ open, onOpenChange, onAuthSuccess }: AuthFlowProps) {
   const [currentScreen, setCurrentScreen] = useState<AuthScreen>('landing');
+  const [email, setEmail] = useState('');
 
   const handleClose = () => {
     onOpenChange(false);
     // Reset to landing when closed
-    setTimeout(() => setCurrentScreen('landing'), 300);
+    setTimeout(() => {
+      setCurrentScreen('landing');
+      setEmail('');
+    }, 300);
   };
 
   const handleSuccess = () => {
     handleClose();
     onAuthSuccess();
+  };
+
+  // Login flow: email → OTP → success
+  const handleLoginSendOTP = (userEmail: string) => {
+    setEmail(userEmail);
+    setCurrentScreen('login-otp');
+  };
+
+  const handleLoginVerify = () => {
+    // Login successful
+    handleSuccess();
+  };
+
+  // Signup flow: email → OTP → profile completion → success
+  const handleSignupSendOTP = (userEmail: string) => {
+    setEmail(userEmail);
+    setCurrentScreen('signup-otp');
+  };
+
+  const handleSignupVerify = () => {
+    // OTP verified, now complete profile
+    setCurrentScreen('profile-completion');
+  };
+
+  const handleProfileComplete = () => {
+    // Signup successful
+    handleSuccess();
+  };
+
+  const handleResendOTP = () => {
+    // Mock resend - in production this would call API
+    console.log('Resending OTP to:', email);
   };
 
   return (
@@ -65,7 +103,25 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess }: AuthFlowProps) {
               <LoginScreen
                 onBack={() => setCurrentScreen('landing')}
                 onSignUp={() => setCurrentScreen('signup')}
-                onSuccess={handleSuccess}
+                onSendOTP={handleLoginSendOTP}
+              />
+            </motion.div>
+          )}
+
+          {currentScreen === 'login-otp' && (
+            <motion.div
+              key="login-otp"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full overflow-y-auto"
+            >
+              <OTPVerificationScreen
+                email={email}
+                onBack={() => setCurrentScreen('login')}
+                onVerify={handleLoginVerify}
+                onResend={handleResendOTP}
               />
             </motion.div>
           )}
@@ -82,7 +138,42 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess }: AuthFlowProps) {
               <SignUpScreen
                 onBack={() => setCurrentScreen('landing')}
                 onLogin={() => setCurrentScreen('login')}
-                onSuccess={handleSuccess}
+                onSendOTP={handleSignupSendOTP}
+              />
+            </motion.div>
+          )}
+
+          {currentScreen === 'signup-otp' && (
+            <motion.div
+              key="signup-otp"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full overflow-y-auto"
+            >
+              <OTPVerificationScreen
+                email={email}
+                onBack={() => setCurrentScreen('signup')}
+                onVerify={handleSignupVerify}
+                onResend={handleResendOTP}
+              />
+            </motion.div>
+          )}
+
+          {currentScreen === 'profile-completion' && (
+            <motion.div
+              key="profile-completion"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full overflow-y-auto overscroll-contain"
+            >
+              <ProfileCompletionScreen
+                email={email}
+                onBack={() => setCurrentScreen('signup-otp')}
+                onComplete={handleProfileComplete}
               />
             </motion.div>
           )}
