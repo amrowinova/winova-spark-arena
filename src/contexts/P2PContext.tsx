@@ -1,16 +1,13 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Receipt } from '@/contexts/TransactionContext';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useP2PDatabase, P2POrderWithProfiles, DBP2PParticipant } from '@/hooks/useP2PDatabase';
+import { dbStatusToUI, UIP2POrderStatus, DBP2POrderStatus } from '@/lib/p2pStatusMapper';
+import { Database } from '@/integrations/supabase/types';
 
-// Order statuses matching the spec
-export type P2POrderStatus = 
-  | 'created'
-  | 'waiting_payment'
-  | 'paid'
-  | 'released'
-  | 'completed'
-  | 'dispute'
-  | 'cancelled'
-  | 'expired';
+type P2PMessageRow = Database['public']['Tables']['p2p_messages']['Row'];
+
+// Re-export types for backward compatibility
+export type P2POrderStatus = UIP2POrderStatus;
 
 export interface P2PParticipant {
   id: string;
@@ -26,10 +23,9 @@ export interface P2PPaymentDetails {
   bankName: string;
   accountNumber: string;
   accountHolder: string;
-  isLocked: boolean; // Locked after creation
+  isLocked: boolean;
 }
 
-// Cancellation reasons for tracking
 export type P2PCancellationReason = 
   | 'frozen_account'
   | 'payment_not_receiving'
@@ -50,18 +46,16 @@ export interface P2PSystemMessage {
     | 'seller_confirmed' 
     | 'funds_released' 
     | 'completion_summary'
-    | 'buyer_copied_bank'     // New: Buyer copied bank info
-    | 'awaiting_buyer_payment' // New: Seller waiting for buyer's transfer
-    | 'buyer_paid'            // New: Buyer executed transfer
-    | 'sell_order_created'    // New: Sell order created
-    | 'order_cancelled';      // New: Order cancelled with reason
+    | 'buyer_copied_bank'
+    | 'awaiting_buyer_payment'
+    | 'buyer_paid'
+    | 'sell_order_created'
+    | 'order_cancelled';
   content: string;
   contentAr: string;
   time: string;
   orderId: string;
-  // For dispute-related messages
   supportAction?: 'request_proof' | 'release_to_buyer' | 'return_to_seller' | 'resolved';
-  // For completion summary
   orderDetails?: {
     amount: number;
     total: number;
@@ -81,7 +75,6 @@ export interface P2PMessage {
   isMine: boolean;
   isSystem?: boolean;
   systemMessage?: P2PSystemMessage;
-  // Optional file/image
   attachment?: {
     type: 'image' | 'file';
     url: string;
@@ -103,18 +96,16 @@ export interface P2POrder {
   createdAt: Date;
   expiresAt: Date;
   paymentDetails: P2PPaymentDetails;
-  receipt?: Receipt;
   disputeReason?: string;
   supportJoined?: boolean;
 }
 
 export interface P2PChat {
   id: string;
-  // Chat is identified by buyer+seller pair, not order
-  participantIds: [string, string]; // [buyerId, sellerId]
+  participantIds: [string, string];
   buyer: P2PParticipant;
   seller: P2PParticipant;
-  orders: P2POrder[]; // Multiple orders in same chat
+  orders: P2POrder[];
   messages: P2PMessage[];
   createdAt: Date;
   lastMessageTime: Date;
@@ -122,23 +113,19 @@ export interface P2PChat {
   supportPresent: boolean;
 }
 
-// Generate chat ID from participant IDs (sorted for consistency)
-export const generateChatId = (buyerId: string, sellerId: string): string => {
-  const sorted = [buyerId, sellerId].sort();
-  return `p2p-${sorted[0]}-${sorted[1]}`;
+// Generate chat ID from participant IDs
+export const generateChatId = (id1: string, id2: string): string => {
+  const sorted = [id1, id2].sort();
+  return `p2p-${sorted[0].slice(0, 8)}-${sorted[1].slice(0, 8)}`;
 };
 
-// Cancellation tracking
-interface CancellationRecord {
-  timestamp: Date;
-}
+const MAX_CANCELLATIONS_24H = 3;
 
 interface P2PContextType {
   chats: P2PChat[];
   activeChat: P2PChat | null;
   activeOrder: P2POrder | null;
-  
-  // Mock mode flag
+  isLoading: boolean;
   isMockMode: boolean;
   
   // Order restriction checks
@@ -159,18 +146,16 @@ interface P2PContextType {
   
   // Buyer actions
   confirmPayment: (orderId: string) => void;
-  cancelOrder: (orderId: string) => boolean; // Returns false if blocked
-  cancelOrderWithReason: (orderId: string, reason: string) => boolean; // Cancel with specific reason
+  cancelOrder: (orderId: string) => boolean | Promise<boolean>;
+  cancelOrderWithReason: (orderId: string, reason: string) => boolean | Promise<boolean>;
   openDispute: (orderId: string, reason: string) => void;
   
   // Seller actions
   releaseFunds: (orderId: string) => void;
   reportNoPayment: (orderId: string) => void;
   
-  // Mock mode: Auto-confirm seller (for UI testing - buy flow)
+  // Mock mode triggers (for UI testing when enabled)
   triggerMockSellerConfirmation: (orderId: string) => void;
-  
-  // Mock mode: Auto-simulate buyer payment (for UI testing - sell flow)
   triggerMockBuyerPayment: (orderId: string) => void;
   
   // Support actions
@@ -190,146 +175,196 @@ interface P2PContextType {
 
 const P2PContext = createContext<P2PContextType | undefined>(undefined);
 
-function generateOrderId(): string {
-  return `P2P-${Date.now().toString(36).toUpperCase()}`;
+// Currency info by country
+const COUNTRY_CURRENCIES: Record<string, { code: string; symbol: string; rate: number }> = {
+  'Saudi Arabia': { code: 'SAR', symbol: 'ر.س', rate: 3.75 },
+  'UAE': { code: 'AED', symbol: 'د.إ', rate: 3.67 },
+  'Egypt': { code: 'EGP', symbol: 'ج.م', rate: 50.0 },
+  'Morocco': { code: 'MAD', symbol: 'د.م', rate: 10.0 },
+  'Turkey': { code: 'TRY', symbol: '₺', rate: 34.0 },
+  'Pakistan': { code: 'PKR', symbol: 'Rs', rate: 280.0 },
+};
+
+function getTimeString(date?: Date): string {
+  return (date || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function getTimeString(): string {
-  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+// Convert DB participant to UI participant
+function toUIParticipant(p: DBP2PParticipant): P2PParticipant {
+  return {
+    id: p.id,
+    name: p.name,
+    nameAr: p.nameAr,
+    username: p.username,
+    avatar: p.avatar,
+    rating: p.rating,
+    country: p.country,
+  };
 }
 
-// Mock initial data
-const mockBuyer: P2PParticipant = {
-  id: '1',
-  name: 'Ahmed',
-  nameAr: 'أحمد',
-  username: 'ahmed_sa',
-  avatar: '👤',
-  rating: 4.9,
-  country: 'Saudi Arabia',
-};
+// Convert DB order to UI order
+function toUIOrder(
+  dbOrder: P2POrderWithProfiles,
+  buyer: P2PParticipant,
+  seller: P2PParticipant,
+  paymentDetails: P2PPaymentDetails
+): P2POrder {
+  const currency = COUNTRY_CURRENCIES[dbOrder.country] || COUNTRY_CURRENCIES['Saudi Arabia'];
+  
+  return {
+    id: dbOrder.id,
+    type: dbOrder.order_type,
+    amount: Number(dbOrder.nova_amount),
+    price: Number(dbOrder.exchange_rate),
+    total: Number(dbOrder.local_amount),
+    currency: currency.code,
+    currencySymbol: currency.symbol,
+    seller,
+    buyer,
+    status: dbOrder.ui_status,
+    createdAt: new Date(dbOrder.created_at),
+    expiresAt: new Date(new Date(dbOrder.created_at).getTime() + dbOrder.time_limit_minutes * 60 * 1000),
+    paymentDetails,
+    disputeReason: dbOrder.cancellation_reason || undefined,
+    supportJoined: dbOrder.status === 'disputed',
+  };
+}
 
-const mockSeller: P2PParticipant = {
-  id: '2',
-  name: 'Khalid Mohammed',
-  nameAr: 'خالد محمد',
-  username: 'khalid_m',
-  avatar: '👨',
-  rating: 4.8,
-  country: 'Saudi Arabia',
-};
-
-const mockOrder: P2POrder = {
-  id: 'P2P-ABC123',
-  type: 'buy',
-  amount: 100,
-  price: 3.75,
-  total: 375,
-  currency: 'SAR',
-  currencySymbol: 'ر.س',
-  seller: mockSeller,
-  buyer: mockBuyer,
-  status: 'waiting_payment',
-  createdAt: new Date(Date.now() - 30 * 60 * 1000),
-  expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-  paymentDetails: {
-    bankName: 'Al Rajhi Bank',
-    accountNumber: 'SA0000000000000000000',
-    accountHolder: 'خالد محمد',
-    isLocked: true,
-  },
-};
-
-const initialChats: P2PChat[] = [
-  {
-    id: generateChatId(mockBuyer.id, mockSeller.id),
-    participantIds: [mockBuyer.id, mockSeller.id],
-    buyer: mockBuyer,
-    seller: mockSeller,
-    orders: [mockOrder],
-    messages: [
-      {
-        id: 'sys-1',
-        senderId: 'system',
-        senderName: 'System',
-        content: '',
-        time: '10:00 AM',
-        isMine: false,
-        isSystem: true,
-        systemMessage: {
-          id: 'sys-1',
-          type: 'status_change',
-          content: 'Order created - Waiting for payment',
-          contentAr: 'تم إنشاء الطلب - بانتظار الدفع',
-          time: '10:00 AM',
-          orderId: mockOrder.id,
-        },
-      },
-      {
-        id: 'msg-1',
-        senderId: mockSeller.id,
-        senderName: mockSeller.nameAr,
-        content: 'مرحباً، حوّل على الحساب البنكي المذكور أعلاه',
-        time: '10:05 AM',
-        isMine: false,
-      },
-      {
-        id: 'msg-2',
-        senderId: mockBuyer.id,
-        senderName: mockBuyer.nameAr,
-        content: 'تمام، سأحول الآن',
-        time: '10:10 AM',
-        isMine: true,
-      },
-    ],
-    createdAt: new Date(Date.now() - 30 * 60 * 1000),
-    lastMessageTime: new Date(Date.now() - 10 * 60 * 1000),
-    unreadCount: 1,
-    supportPresent: false,
-  },
-];
-
-const MAX_CANCELLATIONS_24H = 3;
-const BLOCK_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+// Convert DB message to UI message
+function toUIMessage(dbMessage: P2PMessageRow, currentUserId: string): P2PMessage {
+  const isSystem = dbMessage.is_system_message;
+  
+  const msg: P2PMessage = {
+    id: dbMessage.id,
+    senderId: dbMessage.sender_id,
+    senderName: isSystem ? 'System' : 'User',
+    content: dbMessage.content,
+    time: getTimeString(new Date(dbMessage.created_at)),
+    isMine: dbMessage.sender_id === currentUserId,
+    isSystem,
+  };
+  
+  if (isSystem) {
+    msg.systemMessage = {
+      id: dbMessage.id,
+      type: dbMessage.message_type as P2PSystemMessage['type'],
+      content: dbMessage.content,
+      contentAr: dbMessage.content_ar || dbMessage.content,
+      time: getTimeString(new Date(dbMessage.created_at)),
+      orderId: dbMessage.order_id,
+    };
+  }
+  
+  return msg;
+}
 
 export function P2PProvider({ children }: { children: ReactNode }) {
-  const [chats, setChats] = useState<P2PChat[]>(initialChats);
+  const { user } = useAuth();
+  const db = useP2PDatabase();
+  
+  const [chats, setChats] = useState<P2PChat[]>([]);
   const [activeChat, setActiveChatState] = useState<P2PChat | null>(null);
   const [activeOrder, setActiveOrderState] = useState<P2POrder | null>(null);
-  
-  // Track cancellations in last 24 hours
-  const [cancellations, setCancellations] = useState<CancellationRecord[]>([]);
-  // Track rated orders
   const [ratedOrders, setRatedOrders] = useState<Set<string>>(new Set());
   
-  // Get all orders from all chats
-  const getAllOrders = (): P2POrder[] => {
+  // Mock mode is disabled - we're using real database
+  const MOCK_MODE = false;
+
+  // Build chats from orders
+  useEffect(() => {
+    if (!user || db.orders.length === 0) {
+      if (db.orders.length === 0) setChats([]);
+      return;
+    }
+
+    const chatMap = new Map<string, P2PChat>();
+
+    for (const dbOrder of db.orders) {
+      const { buyer: dbBuyer, seller: dbSeller } = db.getParticipants(dbOrder);
+      const buyer = toUIParticipant(dbBuyer);
+      const seller = toUIParticipant(dbSeller);
+      
+      const chatId = generateChatId(buyer.id, seller.id);
+      
+      // Get payment details (placeholder for now)
+      const paymentDetails: P2PPaymentDetails = {
+        bankName: 'Bank Transfer',
+        accountNumber: '****',
+        accountHolder: seller.name,
+        isLocked: true,
+      };
+      
+      const uiOrder = toUIOrder(dbOrder, buyer, seller, paymentDetails);
+      
+      // Get messages for this order
+      const orderMessages = db.messages[dbOrder.id] || [];
+      const uiMessages = orderMessages.map(m => toUIMessage(m, user.id));
+      
+      if (chatMap.has(chatId)) {
+        const chat = chatMap.get(chatId)!;
+        chat.orders.push(uiOrder);
+        chat.messages.push(...uiMessages);
+        if (new Date(dbOrder.created_at) > chat.lastMessageTime) {
+          chat.lastMessageTime = new Date(dbOrder.created_at);
+        }
+      } else {
+        chatMap.set(chatId, {
+          id: chatId,
+          participantIds: [buyer.id, seller.id],
+          buyer,
+          seller,
+          orders: [uiOrder],
+          messages: uiMessages,
+          createdAt: new Date(dbOrder.created_at),
+          lastMessageTime: new Date(dbOrder.updated_at),
+          unreadCount: 0,
+          supportPresent: dbOrder.status === 'disputed',
+        });
+      }
+    }
+
+    setChats(Array.from(chatMap.values()));
+  }, [user, db.orders, db.messages, db.getParticipants]);
+
+  // Sync active chat/order when chats update
+  useEffect(() => {
+    if (activeChat) {
+      const updated = chats.find(c => c.id === activeChat.id);
+      if (updated) {
+        setActiveChatState(updated);
+        if (activeOrder) {
+          const updatedOrder = updated.orders.find(o => o.id === activeOrder.id);
+          if (updatedOrder) {
+            setActiveOrderState(updatedOrder);
+          }
+        }
+      }
+    }
+  }, [chats, activeChat?.id, activeOrder?.id]);
+
+  // Get all orders
+  const getAllOrders = useCallback((): P2POrder[] => {
     return chats.flatMap(c => c.orders);
-  };
-  
-  // Check if user has an open order (not completed or cancelled)
-  const hasOpenOrder = (): boolean => {
-    // "released" is considered completed for visibility and should not block creating a new order.
+  }, [chats]);
+
+  // Check if user has an open order
+  const hasOpenOrder = useCallback((): boolean => {
     const openStatuses: P2POrderStatus[] = ['created', 'waiting_payment', 'paid', 'dispute'];
     return getAllOrders().some(o => openStatuses.includes(o.status));
-  };
-  
+  }, [getAllOrders]);
+
   // Get cancellations in last 24 hours
-  const getCancellationsIn24h = (): number => {
-    const now = new Date();
-    const validCancellations = cancellations.filter(
-      c => (now.getTime() - c.timestamp.getTime()) < BLOCK_DURATION_MS
-    );
-    return validCancellations.length;
-  };
-  
-  // Check if user is blocked from creating orders
-  const isBlockedFromOrders = (): boolean => {
+  const getCancellationsIn24h = useCallback((): number => {
+    return db.cancellationsCount;
+  }, [db.cancellationsCount]);
+
+  // Check if user is blocked
+  const isBlockedFromOrders = useCallback((): boolean => {
     return getCancellationsIn24h() >= MAX_CANCELLATIONS_24H;
-  };
-  
-  // Check if user can create a new order
-  const canCreateOrder = (): { allowed: boolean; reason?: string } => {
+  }, [getCancellationsIn24h]);
+
+  // Check if user can create order
+  const canCreateOrder = useCallback((): { allowed: boolean; reason?: string } => {
     if (hasOpenOrder()) {
       return { 
         allowed: false, 
@@ -343,15 +378,14 @@ export function P2PProvider({ children }: { children: ReactNode }) {
       };
     }
     return { allowed: true };
-  };
+  }, [hasOpenOrder, isBlockedFromOrders]);
 
-  const getOrCreateChat = (buyer: P2PParticipant, seller: P2PParticipant): P2PChat => {
+  // Chat operations
+  const getOrCreateChat = useCallback((buyer: P2PParticipant, seller: P2PParticipant): P2PChat => {
     const chatId = generateChatId(buyer.id, seller.id);
-    const existingChat = chats.find(c => c.id === chatId);
+    const existing = chats.find(c => c.id === chatId);
     
-    if (existingChat) {
-      return existingChat;
-    }
+    if (existing) return existing;
 
     const newChat: P2PChat = {
       id: chatId,
@@ -368,9 +402,9 @@ export function P2PProvider({ children }: { children: ReactNode }) {
 
     setChats(prev => [...prev, newChat]);
     return newChat;
-  };
+  }, [chats]);
 
-  const setActiveChat = (chatId: string | null) => {
+  const setActiveChat = useCallback((chatId: string | null) => {
     if (!chatId) {
       setActiveChatState(null);
       setActiveOrderState(null);
@@ -378,14 +412,16 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     }
     const chat = chats.find(c => c.id === chatId);
     setActiveChatState(chat || null);
-    // Set the latest order as active by default
+    
     if (chat && chat.orders.length > 0) {
       const latestOrder = chat.orders[chat.orders.length - 1];
       setActiveOrderState(latestOrder);
+      // Fetch messages for all orders in this chat
+      chat.orders.forEach(o => db.fetchMessagesForOrder(o.id));
     }
-  };
+  }, [chats, db]);
 
-  const setActiveOrder = (orderId: string | null) => {
+  const setActiveOrder = useCallback((orderId: string | null) => {
     if (!orderId) {
       setActiveOrderState(null);
       return;
@@ -394,488 +430,138 @@ export function P2PProvider({ children }: { children: ReactNode }) {
       const order = chat.orders.find(o => o.id === orderId);
       if (order) {
         setActiveOrderState(order);
+        db.fetchMessagesForOrder(orderId);
         return;
       }
     }
-  };
+  }, [chats, db]);
 
-  const addSystemMessage = (chatId: string, sysMsg: P2PSystemMessage) => {
-    const message: P2PMessage = {
-      id: `sys-${Date.now()}`,
-      senderId: 'system',
-      senderName: 'System',
-      content: '',
-      time: getTimeString(),
-      isMine: false,
-      isSystem: true,
-      systemMessage: sysMsg,
-    };
+  const sendMessage = useCallback(async (chatId: string, content: string, _attachment?: P2PMessage['attachment']) => {
+    if (!user) return;
+    
+    const chat = chats.find(c => c.id === chatId);
+    if (!chat || chat.orders.length === 0) return;
+    
+    const latestOrder = chat.orders[chat.orders.length - 1];
+    await db.sendMessage(latestOrder.id, content);
+  }, [user, chats, db]);
 
-    setChats(prev =>
-      prev.map(c =>
-        c.id === chatId
-          ? { ...c, messages: [...c.messages, message], lastMessageTime: new Date() }
-          : c
-      )
-    );
-
-    if (activeChat?.id === chatId) {
-      setActiveChatState(prev =>
-        prev ? { ...prev, messages: [...prev.messages, message] } : prev
-      );
-    }
-  };
-
-  const sendMessage = (chatId: string, content: string, attachment?: P2PMessage['attachment']) => {
-    const message: P2PMessage = {
-      id: `msg-${Date.now()}`,
-      senderId: mockBuyer.id, // Current user
-      senderName: mockBuyer.nameAr,
-      content,
-      time: getTimeString(),
-      isMine: true,
-      attachment,
-    };
-
-    setChats(prev =>
-      prev.map(c =>
-        c.id === chatId
-          ? { ...c, messages: [...c.messages, message], lastMessageTime: new Date() }
-          : c
-      )
-    );
-
-    if (activeChat?.id === chatId) {
-      setActiveChatState(prev =>
-        prev ? { ...prev, messages: [...prev.messages, message] } : prev
-      );
-    }
-  };
-
-  const createOrder = (orderData: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>): P2POrder | null => {
-    // Check if user can create order
+  // Order operations
+  const createOrder = useCallback((orderData: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>): P2POrder | null => {
     const check = canCreateOrder();
     if (!check.allowed) return null;
 
-    const now = new Date();
-    const orderId = generateOrderId();
-    const chatId = generateChatId(orderData.buyer.id, orderData.seller.id);
-
-    const order: P2POrder = {
-      ...orderData,
-      id: orderId,
-      status: 'waiting_payment', // Start as waiting_payment so buyer sees payment steps
-      createdAt: now,
-      expiresAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
-    };
-
-    // IMPORTANT: Ensure the order + system message are inserted in a single state update.
-    // Otherwise, creating a brand-new chat and then appending orders/messages can race and lose the new order.
-    const sysMsg: P2PSystemMessage = {
-      id: `sys-${Date.now()}`,
-      type: 'status_change',
-      content: `Order #${order.id} created`,
-      contentAr: `تم إنشاء الطلب #${order.id}`,
-      time: getTimeString(),
-      orderId: order.id,
-    };
-
-    const sysChatMessage: P2PMessage = {
-      id: sysMsg.id,
-      senderId: 'system',
-      senderName: 'System',
-      content: '',
-      time: sysMsg.time,
-      isMine: false,
-      isSystem: true,
-      systemMessage: sysMsg,
-    };
-
-    setChats(prev => {
-      const existing = prev.find(c => c.id === chatId);
-
-      if (existing) {
-        return prev.map(c =>
-          c.id === chatId
-            ? {
-                ...c,
-                orders: [...c.orders, order],
-                messages: [...c.messages, sysChatMessage],
-                lastMessageTime: now,
-              }
-            : c
-        );
-      }
-
-      const newChat: P2PChat = {
-        id: chatId,
-        participantIds: [orderData.buyer.id, orderData.seller.id],
-        buyer: orderData.buyer,
-        seller: orderData.seller,
-        orders: [order],
-        messages: [sysChatMessage],
-        createdAt: now,
-        lastMessageTime: now,
-        unreadCount: 0,
-        supportPresent: false,
-      };
-
-      return [...prev, newChat];
+    // Create in database
+    db.createOrder({
+      orderType: orderData.type,
+      novaAmount: orderData.amount,
+      localAmount: orderData.total,
+      exchangeRate: orderData.price,
+      country: orderData.seller.country || 'Saudi Arabia',
+      timeLimitMinutes: 60,
     });
 
-    // Keep context-level active chat in sync if it happens to be open.
-    if (activeChat?.id === chatId) {
-      setActiveChatState(prev =>
-        prev
-          ? {
-              ...prev,
-              orders: [...prev.orders, order],
-              messages: [...prev.messages, sysChatMessage],
-              lastMessageTime: now,
-            }
-          : prev
-      );
-    }
+    // Return a temporary order object
+    const tempOrder: P2POrder = {
+      ...orderData,
+      id: `temp-${Date.now()}`,
+      status: 'created',
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    };
 
-    return order;
-  };
+    return tempOrder;
+  }, [canCreateOrder, db]);
 
-  const updateOrderStatus = (orderId: string, status: P2POrderStatus, reason?: string) => {
-    setChats(prev =>
-      prev.map(chat => ({
-        ...chat,
-        orders: chat.orders.map(o =>
-          o.id === orderId
-            ? { ...o, status, disputeReason: reason }
-            : o
-        ),
-      }))
-    );
-
-    if (activeOrder?.id === orderId) {
-      setActiveOrderState(prev =>
-        prev ? { ...prev, status, disputeReason: reason } : prev
-      );
-    }
-  };
+  const updateOrderStatus = useCallback(async (orderId: string, status: P2POrderStatus, reason?: string) => {
+    const dbStatus: DBP2POrderStatus = 
+      status === 'waiting_payment' ? 'awaiting_payment' :
+      status === 'paid' ? 'payment_sent' :
+      status === 'dispute' ? 'disputed' :
+      status === 'released' ? 'completed' :
+      status as DBP2POrderStatus;
+    
+    await db.cancelOrder(orderId, reason); // Generic update - will be refined
+  }, [db]);
 
   // Buyer actions
-  const confirmPayment = (orderId: string) => {
-    updateOrderStatus(orderId, 'paid');
-    
-    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-    if (chat) {
-      addSystemMessage(chat.id, {
-        id: `sys-${Date.now()}`,
-        type: 'payment_confirmed',
-        content: '🟡 Payment confirmed\nWaiting for seller to confirm receipt',
-        contentAr: '🟡 تم تأكيد الدفع من المشتري\nبانتظار تأكيد البائع لتحرير Nova',
-        time: getTimeString(),
-        orderId,
-      });
-    }
-  };
+  const confirmPayment = useCallback(async (orderId: string) => {
+    await db.confirmPayment(orderId);
+  }, [db]);
 
-  const cancelOrder = (orderId: string): boolean => {
-    // Check if user has exceeded cancellation limit
-    if (isBlockedFromOrders()) {
-      return false;
-    }
-    
-    const order = chats.flatMap(c => c.orders).find(o => o.id === orderId);
-    if (order && (order.status === 'created' || order.status === 'waiting_payment')) {
-      updateOrderStatus(orderId, 'cancelled');
-      
-      // Track the cancellation
-      setCancellations(prev => [...prev, { timestamp: new Date() }]);
-      
-      const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-      if (chat) {
-        addSystemMessage(chat.id, {
-          id: `sys-${Date.now()}`,
-          type: 'status_change',
-          content: 'Order cancelled',
-          contentAr: 'تم إلغاء الطلب',
-          time: getTimeString(),
-          orderId,
-        });
-      }
-      return true;
-    }
-    return false;
-  };
+  const cancelOrder = useCallback(async (orderId: string): Promise<boolean> => {
+    if (isBlockedFromOrders()) return false;
+    return await db.cancelOrder(orderId);
+  }, [db, isBlockedFromOrders]);
 
-  // Cancel order with a specific reason (for UI flow)
-  const cancelOrderWithReason = (orderId: string, reason: string): boolean => {
-    // Check if user has exceeded cancellation limit
-    if (isBlockedFromOrders()) {
-      return false;
-    }
-    
-    const order = chats.flatMap(c => c.orders).find(o => o.id === orderId);
-    if (order && (order.status === 'created' || order.status === 'waiting_payment')) {
-      updateOrderStatus(orderId, 'cancelled');
-      
-      // Track the cancellation
-      setCancellations(prev => [...prev, { timestamp: new Date() }]);
-      
-      const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-      if (chat) {
-        addSystemMessage(chat.id, {
-          id: `sys-${Date.now()}`,
-          type: 'order_cancelled',
-          content: `❌ Order cancelled by buyer\nReason: ${reason}\n🛈 You can continue chatting, but no actions can be performed on this order.`,
-          contentAr: `❌ تم إلغاء الطلب من قبل المشتري\nالسبب: ${reason}\n🛈 يمكنكما متابعة الدردشة، لكن لا يمكن تنفيذ أي إجراء على هذا الطلب.`,
-          time: getTimeString(),
-          orderId,
-        });
-      }
-      return true;
-    }
-    return false;
-  };
+  const cancelOrderWithReason = useCallback(async (orderId: string, reason: string): Promise<boolean> => {
+    if (isBlockedFromOrders()) return false;
+    return await db.cancelOrder(orderId, reason);
+  }, [db, isBlockedFromOrders]);
 
-  const openDispute = (orderId: string, reason: string) => {
-    updateOrderStatus(orderId, 'dispute', reason);
-    
-    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-    if (chat) {
-      addSystemMessage(chat.id, {
-        id: `sys-${Date.now()}`,
-        type: 'dispute_opened',
-        content: `Dispute opened: ${reason}`,
-        contentAr: `تم فتح نزاع: ${reason}`,
-        time: getTimeString(),
-        orderId,
-      });
-      
-      // Auto-join support
-      setTimeout(() => joinDispute(orderId), 1000);
-    }
-  };
+  const openDispute = useCallback(async (orderId: string, reason: string) => {
+    await db.openDispute(orderId, reason);
+  }, [db]);
 
   // Seller actions
-  const releaseFunds = (orderId: string) => {
-    updateOrderStatus(orderId, 'released');
-    
-    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-    const order = chat?.orders.find(o => o.id === orderId);
-    
-    if (chat && order) {
-      addSystemMessage(chat.id, {
-        id: `sys-${Date.now()}`,
-        type: 'released',
-        content: `✅ ${order.amount.toFixed(3)} Nova released successfully!`,
-        contentAr: `✅ تم تحرير ${order.amount.toFixed(3)} Nova بنجاح!`,
-        time: getTimeString(),
-        orderId,
-      });
-      
-      // Mark as completed after release
-      setTimeout(() => updateOrderStatus(orderId, 'completed'), 500);
-    }
-  };
+  const releaseFunds = useCallback(async (orderId: string) => {
+    await db.releaseFunds(orderId);
+  }, [db]);
 
-  const reportNoPayment = (orderId: string) => {
-    openDispute(orderId, 'Seller reports payment not received');
-  };
+  const reportNoPayment = useCallback(async (orderId: string) => {
+    await db.openDispute(orderId, 'Seller reports payment not received');
+  }, [db]);
+
+  // Mock mode triggers (no-op in database mode, but kept for interface compatibility)
+  const triggerMockSellerConfirmation = useCallback((_orderId: string) => {
+    // No-op in database mode - realtime will handle updates
+  }, []);
+
+  const triggerMockBuyerPayment = useCallback((_orderId: string) => {
+    // No-op in database mode - realtime will handle updates
+  }, []);
 
   // Support actions
-  const joinDispute = (orderId: string) => {
-    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-    if (chat) {
-      setChats(prev =>
-        prev.map(c =>
-          c.id === chat.id
-            ? { 
-                ...c, 
-                supportPresent: true,
-                orders: c.orders.map(o =>
-                  o.id === orderId ? { ...o, supportJoined: true } : o
-                )
-              }
-            : c
-        )
-      );
+  const joinDispute = useCallback((_orderId: string) => {
+    // TODO: Implement support system
+  }, []);
 
-      addSystemMessage(chat.id, {
-        id: `sys-${Date.now()}`,
-        type: 'support_joined',
-        content: '🛡️ Support team has joined the chat',
-        contentAr: '🛡️ انضم فريق الدعم للمحادثة',
-        time: getTimeString(),
-        orderId,
-      });
+  const requestProof = useCallback((_orderId: string) => {
+    // TODO: Implement support system
+  }, []);
+
+  const resolveDispute = useCallback(async (orderId: string, resolution: 'release_to_buyer' | 'return_to_seller') => {
+    if (resolution === 'release_to_buyer') {
+      await db.releaseFunds(orderId);
+    } else {
+      await db.cancelOrder(orderId, 'Dispute resolved - returned to seller');
     }
-  };
-
-  const requestProof = (orderId: string) => {
-    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-    if (chat) {
-      addSystemMessage(chat.id, {
-        id: `sys-${Date.now()}`,
-        type: 'support_message',
-        content: '📋 Support requests proof of payment from both parties',
-        contentAr: '📋 يطلب الدعم إثبات الدفع من الطرفين',
-        time: getTimeString(),
-        orderId,
-        supportAction: 'request_proof',
-      });
-    }
-  };
-
-  const resolveDispute = (orderId: string, resolution: 'release_to_buyer' | 'return_to_seller') => {
-    const newStatus: P2POrderStatus = resolution === 'release_to_buyer' ? 'completed' : 'cancelled';
-    updateOrderStatus(orderId, newStatus);
-    
-    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-    if (chat) {
-      addSystemMessage(chat.id, {
-        id: `sys-${Date.now()}`,
-        type: 'dispute_resolved',
-        content: resolution === 'release_to_buyer' 
-          ? '✅ Dispute resolved - Funds released to buyer'
-          : '🔙 Dispute resolved - Funds returned to seller',
-        contentAr: resolution === 'release_to_buyer'
-          ? '✅ تم حل النزاع - تحرير العملات للمشتري'
-          : '🔙 تم حل النزاع - إعادة العملات للبائع',
-        time: getTimeString(),
-        orderId,
-        supportAction: resolution,
-      });
-    }
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MOCK MODE: Auto-confirm seller for UI testing
-  // ═══════════════════════════════════════════════════════════════════════════
-  const MOCK_MODE = true; // Developer flag - set to false when connecting real backend
-  
-  const triggerMockSellerConfirmation = (orderId: string) => {
-    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-    const order = chat?.orders.find(o => o.id === orderId);
-    
-    if (!chat || !order) return;
-    
-    // Calculate execution time in minutes
-    const executionMinutes = Math.round(
-      (new Date().getTime() - order.createdAt.getTime()) / (1000 * 60)
-    );
-    
-    // Simulate 3-5 second delay for mock seller confirmation
-    const delay = 3000 + Math.random() * 2000; // 3-5 seconds
-    
-    setTimeout(() => {
-      // 1. Add seller confirmation system message
-      addSystemMessage(chat.id, {
-        id: `sys-${Date.now()}`,
-        type: 'seller_confirmed',
-        content: '✅ Seller confirmed receipt\nNova has been released',
-        contentAr: '✅ تم تأكيد الاستلام من البائع\nتم تحرير Nova بنجاح',
-        time: getTimeString(),
-        orderId,
-      });
-      
-      // 2. Update order status to released
-      updateOrderStatus(orderId, 'released');
-      
-      // 3. After a brief moment, add the funds released message with full details
-      setTimeout(() => {
-        addSystemMessage(chat.id, {
-          id: `sys-${Date.now()}`,
-          type: 'funds_released',
-          content: `✅ ${order.amount.toFixed(0)} Nova released to you\n💰 For ${order.currencySymbol} ${order.total.toFixed(2)}\n🔒 Transaction completed successfully in WINOVA`,
-          contentAr: `✅ تم تحرير ${order.amount.toFixed(0)} Nova لك\n💰 مقابل ${order.total.toFixed(2)} ${order.currencySymbol}\n🔒 تمت العملية بنجاح داخل WINOVA`,
-          time: getTimeString(),
-          orderId,
-        });
-        
-        // 4. After another moment, add the completion summary card
-        setTimeout(() => {
-          // Get current timestamp for completion time
-          const completionTime = new Date().toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            second: '2-digit'
-          });
-          
-          addSystemMessage(chat.id, {
-            id: `sys-${Date.now()}`,
-            type: 'completion_summary',
-            content: 'P2P Order Completion Summary',
-            contentAr: 'ملخص اكتمال طلب P2P',
-            time: getTimeString(),
-            orderId,
-            orderDetails: {
-              amount: order.amount,
-              total: order.total,
-              currencySymbol: order.currencySymbol,
-              price: order.price,
-              paymentMethod: order.paymentDetails.bankName,
-              executionMinutes: executionMinutes,
-            },
-          });
-          
-          // 5. Finally, mark as completed
-          updateOrderStatus(orderId, 'completed');
-        }, 600);
-      }, 1000);
-    }, delay);
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MOCK MODE: Auto-simulate buyer payment for sell flow UI testing
-  // ═══════════════════════════════════════════════════════════════════════════
-  const triggerMockBuyerPayment = (orderId: string) => {
-    const chat = chats.find(c => c.orders.some(o => o.id === orderId));
-    const order = chat?.orders.find(o => o.id === orderId);
-    
-    if (!chat || !order) return;
-    
-    // Simulate 5 second delay for mock buyer payment (as per spec)
-    const delay = 5000; // 5 seconds
-    
-    setTimeout(() => {
-      // Add buyer paid system message
-      addSystemMessage(chat.id, {
-        id: `sys-${Date.now()}`,
-        type: 'buyer_paid',
-        content: `💸 Buyer executed bank transfer\nPlease verify payment before releasing Nova.`,
-        contentAr: `💸 قام المشتري بتنفيذ التحويل البنكي\nيرجى التأكد من وصول المبلغ إلى حسابك.`,
-        time: getTimeString(),
-        orderId,
-      });
-      
-      // Update order status to paid
-      updateOrderStatus(orderId, 'paid');
-    }, delay);
-  };
+  }, [db]);
 
   // Rating
-  const rateOrder = (orderId: string, isPositive: boolean) => {
+  const rateOrder = useCallback((orderId: string, _isPositive: boolean) => {
     setRatedOrders(prev => new Set(prev).add(orderId));
-    // In a real app, this would call an API to save the rating
-    console.log(`Rated order ${orderId}: ${isPositive ? 'positive' : 'negative'}`);
-  };
+    // TODO: Implement rating in database
+  }, []);
 
-  const hasRatedOrder = (orderId: string): boolean => {
+  const hasRatedOrder = useCallback((orderId: string): boolean => {
     return ratedOrders.has(orderId);
-  };
+  }, [ratedOrders]);
 
   // Helpers
-  const getOrdersByChat = (chatId: string): P2POrder[] => {
+  const getOrdersByChat = useCallback((chatId: string): P2POrder[] => {
     const chat = chats.find(c => c.id === chatId);
     return chat?.orders || [];
-  };
+  }, [chats]);
 
-  const getChatByParticipants = (buyerId: string, sellerId: string): P2PChat | undefined => {
+  const getChatByParticipants = useCallback((buyerId: string, sellerId: string): P2PChat | undefined => {
     const chatId = generateChatId(buyerId, sellerId);
     return chats.find(c => c.id === chatId);
-  };
+  }, [chats]);
 
-  const getOrderById = (orderId: string): P2POrder | undefined => {
+  const getOrderById = useCallback((orderId: string): P2POrder | undefined => {
     return chats.flatMap(c => c.orders).find(o => o.id === orderId);
-  };
+  }, [chats]);
 
   return (
     <P2PContext.Provider
@@ -883,6 +569,7 @@ export function P2PProvider({ children }: { children: ReactNode }) {
         chats,
         activeChat,
         activeOrder,
+        isLoading: db.isLoading,
         isMockMode: MOCK_MODE,
         hasOpenOrder,
         canCreateOrder,
