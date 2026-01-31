@@ -14,11 +14,9 @@ import { ReceiptCard, ReceiptDialog } from '@/components/common/ReceiptCard';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ConvertNovaAuraDialog } from '@/components/wallet/ConvertNovaAuraDialog';
 import { WalletCountrySelector, getWalletCountryPricing } from '@/components/wallet/WalletCountrySelector';
-import { TeamEarningsCard, EarningsReleaseCard } from '@/components/wallet/TeamEarningsCard';
 import { EarningsSummarySheet } from '@/components/wallet/EarningsSummarySheet';
 import { LockedEarningsCard, getNextReleaseDate } from '@/components/wallet/LockedEarningsCard';
-import { AuraEarningsCard, VoteDeductionCard } from '@/components/wallet/AuraEarningsCard';
-import { ContestEntryCard, NovaTransferSentCard, NovaReceivedCard } from '@/components/wallet/NovaTransactionCards';
+import { UnifiedTransactionCard } from '@/components/wallet/UnifiedTransactionCard';
 import type { Receipt } from '@/contexts/TransactionContext';
 
 // Format number - remove decimals if whole number (matches Home)
@@ -263,11 +261,11 @@ export default function WalletPage() {
           
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="aura" className="text-xs gap-1">
-                <span className="text-aura">✨</span> Aura
+              <TabsTrigger value="aura" className="text-xs gap-1.5">
+                <span className="text-aura font-bold">✦</span> Aura
               </TabsTrigger>
-              <TabsTrigger value="nova" className="text-xs gap-1">
-                <span className="text-nova">🟡</span> Nova
+              <TabsTrigger value="nova" className="text-xs gap-1.5">
+                <span className="text-nova font-bold">И</span> Nova
               </TabsTrigger>
             </TabsList>
 
@@ -287,48 +285,10 @@ export default function WalletPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    {receipt.type === 'team_earnings' ? (
-                      <TeamEarningsCard 
-                        receipt={receipt} 
-                        onClick={() => handleReceiptClick(receipt)}
-                      />
-                    ) : receipt.type === 'earnings_release' ? (
-                      <EarningsReleaseCard 
-                        receipt={receipt} 
-                        onClick={() => handleReceiptClick(receipt)}
-                      />
-                    ) : receipt.type === 'aura_vote_earnings' ? (
-                      <AuraEarningsCard 
-                        receipt={receipt} 
-                        onClick={() => handleReceiptClick(receipt)}
-                      />
-                    ) : receipt.type === 'vote_sent' ? (
-                      <VoteDeductionCard 
-                        receipt={receipt} 
-                        onClick={() => handleReceiptClick(receipt)}
-                      />
-                    ) : receipt.type === 'contest_entry' ? (
-                      <ContestEntryCard 
-                        receipt={receipt} 
-                        onClick={() => handleReceiptClick(receipt)}
-                      />
-                    ) : receipt.type === 'transfer_nova' && receipt.sender.id === user.id ? (
-                      <NovaTransferSentCard 
-                        receipt={receipt} 
-                        onClick={() => handleReceiptClick(receipt)}
-                      />
-                    ) : receipt.type === 'transfer_nova' && receipt.receiver?.id === user.id ? (
-                      <NovaReceivedCard 
-                        receipt={receipt} 
-                        onClick={() => handleReceiptClick(receipt)}
-                      />
-                    ) : (
-                      <ReceiptCard 
-                        receipt={receipt} 
-                        compact 
-                        onClick={() => handleReceiptClick(receipt)}
-                      />
-                    )}
+                    <UnifiedTransactionCard 
+                      receipt={receipt} 
+                      onClick={() => handleReceiptClick(receipt)}
+                    />
                   </motion.div>
                 ))
               )}

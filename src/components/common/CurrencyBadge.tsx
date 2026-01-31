@@ -41,7 +41,7 @@ export function CurrencyBadge({
     >
       {showIcon && (
         <span className={cn(iconSizes[size])}>
-          {type === 'nova' ? 'Ꞥ' : '✨'}
+          {type === 'nova' ? 'И' : '✦'}
         </span>
       )}
       <span>{amount.toLocaleString()}</span>
