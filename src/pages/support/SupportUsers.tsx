@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { UserRoleManager } from '@/components/admin/UserRoleManager';
 
 interface UserProfile {
   id: string;
@@ -36,16 +38,33 @@ interface UserProfile {
   // Extended info
   nova_balance?: number;
   aura_balance?: number;
-  role?: string;
+  roles?: string[];
 }
 
 export default function SupportUsers() {
   const { language } = useLanguage();
+  const { user: currentUser } = useAuth();
   const isRTL = language === 'ar';
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if current user is admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!currentUser) return;
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', currentUser.id)
+        .eq('role', 'admin')
+        .single();
+      setIsAdmin(!!data);
+    };
+    checkAdmin();
+  }, [currentUser]);
 
   useEffect(() => {
     fetchUsers();
@@ -78,17 +97,16 @@ export default function SupportUsers() {
       .eq('user_id', userId)
       .single();
 
-    // Fetch role
-    const { data: roleData } = await supabase
+    // Fetch all roles for user
+    const { data: rolesData } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
-      .single();
+      .eq('user_id', userId);
 
     return {
       nova_balance: wallet?.nova_balance || 0,
       aura_balance: wallet?.aura_balance || 0,
-      role: roleData?.role || 'user',
+      roles: rolesData?.map(r => r.role) || ['user'],
     };
   };
 
@@ -200,14 +218,14 @@ export default function SupportUsers() {
                 </Avatar>
                 <SheetTitle>{selectedUser.name}</SheetTitle>
                 <p className="text-sm text-muted-foreground">@{selectedUser.username}</p>
-                <div className="flex justify-center gap-2 mt-2">
+                <div className="flex justify-center gap-2 mt-2 flex-wrap">
                   {getRankBadge(selectedUser.rank)}
-                  {selectedUser.role && selectedUser.role !== 'user' && (
-                    <Badge variant="destructive">
+                  {selectedUser.roles?.filter(r => r !== 'user').map(role => (
+                    <Badge key={role} variant="destructive">
                       <Shield className="w-3 h-3 me-1" />
-                      {selectedUser.role}
+                      {role}
                     </Badge>
-                  )}
+                  ))}
                 </div>
               </SheetHeader>
 
@@ -250,6 +268,20 @@ export default function SupportUsers() {
                     <span className="text-sm">{selectedUser.country}</span>
                   </div>
                 </Card>
+
+                {/* Admin Role Management */}
+                {isAdmin && (
+                  <UserRoleManager
+                    userId={selectedUser.user_id}
+                    currentRoles={selectedUser.roles || ['user']}
+                    onRolesChange={() => {
+                      // Refresh user details after role change
+                      fetchUserDetails(selectedUser.user_id).then(details => {
+                        setSelectedUser(prev => prev ? { ...prev, ...details } : null);
+                      });
+                    }}
+                  />
+                )}
               </div>
             </>
           )}
