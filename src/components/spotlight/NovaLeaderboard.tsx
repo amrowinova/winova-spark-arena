@@ -2,6 +2,7 @@ import { Trophy, Crown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
+import { getCountryFlag } from '@/lib/countryFlags';
 
 interface LeaderboardEntry {
   id: string;
@@ -9,6 +10,7 @@ interface LeaderboardEntry {
   avatar?: string;
   highestNovaWin: number;
   position: number;
+  country?: string;
 }
 
 interface NovaLeaderboardProps {
@@ -79,12 +81,17 @@ export function NovaLeaderboard({ entries }: NovaLeaderboardProps) {
 
             {/* User Info */}
             <div className="flex-1">
-              <p 
-                className="font-medium cursor-pointer hover:text-nova transition-colors"
-                onClick={() => handleProfileClick(entry.id)}
-              >
-                {entry.name}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p 
+                  className="font-medium cursor-pointer hover:text-nova transition-colors"
+                  onClick={() => handleProfileClick(entry.id)}
+                >
+                  {entry.name}
+                </p>
+                {entry.country && getCountryFlag(entry.country) && (
+                  <span className="text-sm shrink-0">{getCountryFlag(entry.country)}</span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {isRTL ? 'أعلى فوز' : 'Highest Win'}
               </p>
