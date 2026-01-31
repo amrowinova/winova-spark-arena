@@ -11,11 +11,12 @@ interface LoginScreenProps {
   onBack: () => void;
   onSignUp: () => void;
   onSendOTP: (email: string) => void;
+  onForgotPassword: () => void;
 }
 
 type LoginMethod = 'otp' | 'password';
 
-export function LoginScreen({ onBack, onSignUp, onSendOTP }: LoginScreenProps) {
+export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword }: LoginScreenProps) {
   const { language } = useLanguage();
   const { signIn, signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
   const isRTL = language === 'ar';
@@ -219,6 +220,16 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP }: LoginScreenProps) {
                   className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {/* Forgot Password Link */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={onForgotPassword}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {isRTL ? 'نسيت كلمة المرور؟' : 'Forgot Password?'}
                 </button>
               </div>
             </motion.div>
