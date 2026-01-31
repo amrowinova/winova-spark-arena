@@ -77,7 +77,7 @@ export function LockedEarningsCard({ lockedBalance, walletCountry }: LockedEarni
 
           {/* Locked Amount */}
           <p className="text-xl font-bold text-foreground">
-            <span className="text-nova">И</span> {formatAmount(lockedBalance)}
+            <span className="text-nova">Ꞥ</span> {formatAmount(lockedBalance)}
           </p>
           <p className="text-xs text-muted-foreground">
             ≈ {pricing.symbol} {formatAmount(localValue)}

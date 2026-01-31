@@ -40,8 +40,8 @@ export function CurrencyBadge({
       )}
     >
       {showIcon && (
-        <span className={cn('rounded-full', iconSizes[size])}>
-          {type === 'nova' ? '✦' : '◈'}
+        <span className={cn(iconSizes[size])}>
+          {type === 'nova' ? 'Ꞥ' : '✨'}
         </span>
       )}
       <span>{amount.toLocaleString()}</span>

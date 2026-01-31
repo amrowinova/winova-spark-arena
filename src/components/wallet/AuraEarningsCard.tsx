@@ -50,7 +50,7 @@ export function AuraEarningsCard({ receipt, onClick }: AuraEarningsCardProps) {
           <div className="flex-1 min-w-0">
             {/* Amount - Primary */}
             <p className="text-lg font-bold text-aura mb-1">
-              ✨ +{receipt.amount} Aura
+              <span className="text-aura">✨</span> +{receipt.amount} Aura
             </p>
 
             {/* Description */}
@@ -119,7 +119,7 @@ export function VoteDeductionCard({ receipt, onClick }: VoteDeductionCardProps) 
           <div className="flex-1 min-w-0">
             {/* Amount - Primary (Red for deduction) */}
             <p className="text-lg font-bold text-destructive mb-1">
-              ✨ −{receipt.amount} Aura
+              <span className="text-aura">✨</span> −{receipt.amount} Aura
             </p>
 
             {/* Description */}

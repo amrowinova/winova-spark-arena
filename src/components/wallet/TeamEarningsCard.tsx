@@ -81,7 +81,7 @@ export function TeamEarningsCard({ receipt, onClick }: TeamEarningsCardProps) {
           <div className="flex-1 min-w-0">
             {/* Amount with Lock/Unlock icon */}
             <p className={`text-lg font-bold mb-1 ${releaseInfo.isReleased ? 'text-success' : 'text-warning'}`}>
-              🟡 +{formatAmount(receipt.amount)} Nova {releaseInfo.isReleased ? '🔓' : '🔒'}
+              <span className="text-nova">Ꞥ</span> +{formatAmount(receipt.amount)} Nova {releaseInfo.isReleased ? '🔓' : '🔒'}
             </p>
 
             {/* Description */}
@@ -153,7 +153,7 @@ export function EarningsReleaseCard({ receipt, onClick }: EarningsReleaseCardPro
           <div className="flex-1 min-w-0">
             {/* Amount */}
             <p className="text-lg font-bold text-success mb-1">
-              🟢 +{formatAmount(receipt.amount)} Nova 🔓
+              <span className="text-nova">Ꞥ</span> +{formatAmount(receipt.amount)} Nova 🔓
             </p>
 
             {/* Description */}
