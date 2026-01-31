@@ -5,14 +5,15 @@ import { Wallet as WalletIcon, Send, RefreshCw, History } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/contexts/UserContext';
-import { useTransactions, countryPricing, getPricing } from '@/contexts/TransactionContext';
+import { useTransactions } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ReceiptCard, ReceiptDialog } from '@/components/common/ReceiptCard';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ConvertNovaAuraDialog } from '@/components/wallet/ConvertNovaAuraDialog';
+import { WalletCountrySelector, getWalletCountryPricing } from '@/components/wallet/WalletCountrySelector';
 import type { Receipt } from '@/contexts/TransactionContext';
 
 // Format number - remove decimals if whole number (matches Home)
@@ -32,11 +33,10 @@ export default function WalletPage() {
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
 
-  // Get local currency info - single price per country
-  const pricing = getPricing(user.country);
-  const novaLocalValue = calculateLocalAmount(user.novaBalance, user.country, 'nova');
-  const auraLocalValue = calculateLocalAmount(user.auraBalance, user.country, 'aura');
-  const totalLocalValue = novaLocalValue.amount + auraLocalValue.amount;
+  // Get local currency info based on wallet country (not registered country)
+  const pricing = getWalletCountryPricing(user.walletCountry);
+  const novaLocalValue = user.novaBalance * pricing.novaRate;
+  const auraLocalValue = user.auraBalance * pricing.auraRate;
 
   // Filter user receipts
   const userReceipts = receipts.filter(
@@ -72,7 +72,7 @@ export default function WalletPage() {
         >
           <Card className="overflow-hidden border border-border bg-card shadow-sm">
             <div className="p-5">
-              {/* Header */}
+              {/* Header with Country Selector */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <WalletIcon className="h-5 w-5 text-foreground" />
@@ -80,9 +80,7 @@ export default function WalletPage() {
                     {t('wallet.title')}
                   </h1>
                 </div>
-                <span className="px-2 py-1 bg-muted/30 rounded text-muted-foreground text-xs font-medium">
-                  {pricing.currency}
-                </span>
+                <WalletCountrySelector />
               </div>
 
               {/* Nova & Aura Balances - Matching Home layout */}
@@ -97,7 +95,7 @@ export default function WalletPage() {
                     {formatBalance(user.novaBalance)}
                   </p>
                   <p className="text-muted-foreground text-xs mt-1">
-                    ≈ {pricing.symbol} {formatBalance(novaLocalValue.amount)}
+                    ≈ {pricing.symbol} {formatBalance(novaLocalValue)}
                   </p>
                 </div>
 
@@ -165,7 +163,7 @@ export default function WalletPage() {
                 {language === 'ar' ? 'سعر Nova' : 'Nova Rate'}
               </span>
               <span className="font-semibold text-foreground">
-                <span className="text-nova">И</span> 1 = {pricing.symbol} {pricing.novaRate.toFixed(2)}
+                <span className="text-nova">И</span> 1 = {pricing.symbol} {pricing.novaRate.toLocaleString()}
               </span>
             </div>
           </Card>
