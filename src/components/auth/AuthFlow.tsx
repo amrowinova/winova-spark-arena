@@ -13,28 +13,29 @@ import {
 
 type AuthScreen = 'landing' | 'login' | 'signup' | 'login-otp' | 'signup-otp' | 'profile-completion' | 'forgot-password';
 
-interface AuthFlowProps {
+export interface AuthFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAuthSuccess: () => void;
+  onAuthSuccess?: () => void;
+  initialScreen?: 'login' | 'signup';
 }
 
-export function AuthFlow({ open, onOpenChange, onAuthSuccess }: AuthFlowProps) {
-  const [currentScreen, setCurrentScreen] = useState<AuthScreen>('landing');
+export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: AuthFlowProps) {
+  const [currentScreen, setCurrentScreen] = useState<AuthScreen>(initialScreen || 'landing');
   const [email, setEmail] = useState('');
 
   const handleClose = () => {
     onOpenChange(false);
-    // Reset to landing when closed
+    // Reset to initial screen when closed
     setTimeout(() => {
-      setCurrentScreen('landing');
+      setCurrentScreen(initialScreen || 'landing');
       setEmail('');
     }, 300);
   };
 
   const handleSuccess = () => {
     handleClose();
-    onAuthSuccess();
+    onAuthSuccess?.();
   };
 
   // Login flow: email → OTP → success

@@ -1,4 +1,5 @@
 export { AuthFlow } from './AuthFlow';
+export type { AuthFlowProps } from './AuthFlow';
 export { AuthLanding } from './AuthLanding';
 export { AuthGuard } from './AuthGuard';
 export { SupportGuard } from './SupportGuard';
@@ -8,3 +9,5 @@ export { SignUpScreen } from './SignUpScreen';
 export { OTPVerificationScreen } from './OTPVerificationScreen';
 export { ProfileCompletionScreen } from './ProfileCompletionScreen';
 export { ForgotPasswordScreen } from './ForgotPasswordScreen';
+export { AuthRequiredModal } from './AuthRequiredModal';
+export { GlobalAuthGuard } from './GlobalAuthGuard';

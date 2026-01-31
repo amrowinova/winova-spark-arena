@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthRequiredProvider } from "@/contexts/AuthRequiredContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { TransactionProvider } from "@/contexts/TransactionContext";
 import { P2PProvider } from "@/contexts/P2PContext";
@@ -10,6 +11,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { BannerProvider } from "@/contexts/BannerContext";
 import { SupportProvider } from "@/contexts/SupportContext";
 import { InlineBanner } from "@/components/common/InlineBanner";
+import { GlobalAuthGuard } from "@/components/auth/GlobalAuthGuard";
 import { AuthGuard, SupportGuard, AdminGuard } from "@/components/auth";
 import "@/lib/i18n/index";
 
@@ -48,14 +50,16 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <AuthProvider>
-        <UserProvider>
-          <NotificationProvider>
-            <BannerProvider>
-              <TransactionProvider>
-                <P2PProvider>
-                  <SupportProvider>
-                    <TooltipProvider>
-                      <InlineBanner />
+        <AuthRequiredProvider>
+          <UserProvider>
+            <NotificationProvider>
+              <BannerProvider>
+                <TransactionProvider>
+                  <P2PProvider>
+                    <SupportProvider>
+                      <TooltipProvider>
+                        <GlobalAuthGuard />
+                        <InlineBanner />
                       <BrowserRouter>
                       <Routes>
                         {/* Public routes */}
@@ -90,14 +94,15 @@ const App = () => (
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
-                      </BrowserRouter>
-                    </TooltipProvider>
-                  </SupportProvider>
-                </P2PProvider>
-              </TransactionProvider>
-            </BannerProvider>
-          </NotificationProvider>
-        </UserProvider>
+                        </BrowserRouter>
+                      </TooltipProvider>
+                    </SupportProvider>
+                  </P2PProvider>
+                </TransactionProvider>
+              </BannerProvider>
+            </NotificationProvider>
+          </UserProvider>
+        </AuthRequiredProvider>
       </AuthProvider>
     </LanguageProvider>
   </QueryClientProvider>
