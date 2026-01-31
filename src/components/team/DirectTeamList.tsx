@@ -111,20 +111,10 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <h2 className="font-bold text-lg">
-            {language === 'ar' ? 'الفريق المباشر' : 'Direct Team'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {activeCount}/{members.length} {language === 'ar' ? 'نشط' : 'active'}
-          </p>
-        </div>
-      </div>
+      {/* Team Stats Summary */}
+      <p className="text-sm text-muted-foreground">
+        {activeCount}/{members.length} {language === 'ar' ? 'نشط' : 'active'}
+      </p>
 
       {/* Quick Actions Card */}
       <QuickActionsCard members={members} onTakeAction={handleTakeAction} />
