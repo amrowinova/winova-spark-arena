@@ -9,7 +9,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { BannerProvider } from "@/contexts/BannerContext";
 import { SupportProvider } from "@/contexts/SupportContext";
 import { InlineBanner } from "@/components/common/InlineBanner";
-import "@/lib/i18n";
+import "@/lib/i18n/index";
 
 // Pages
 import Index from "./pages/Index";
