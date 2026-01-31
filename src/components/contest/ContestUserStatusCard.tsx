@@ -151,22 +151,6 @@ export function ContestUserStatusCard({
               <Check className="h-4 w-4" />
               {isRTL ? 'أنت ضمن المتأهلين للمرحلة النهائية 🎉' : 'You qualified for Final Stage 🎉'}
             </div>
-            {votesRemainingForRank1 > 0 && (
-              <>
-                <Progress value={getProgress()} className="h-1.5" />
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Target className="h-3 w-3" />
-                  {isRTL 
-                    ? `متبقّي لك ${votesRemainingForRank1} صوت للوصول إلى المركز الأول`
-                    : `${votesRemainingForRank1} votes to reach Rank #1`
-                  }
-                </p>
-              </>
-            )}
-            <p className="text-xs text-success/80 flex items-center gap-1">
-              <Flame className="h-3 w-3" />
-              {isRTL ? 'حافظ على مركزك لضمان التأهل 🔥' : 'Keep your position to ensure qualification 🔥'}
-            </p>
           </div>
         );
       } else {
@@ -199,22 +183,6 @@ export function ContestUserStatusCard({
               <Trophy className="h-4 w-4" />
               {isRTL ? 'أنت ضمن المرشحين للفوز 🏆' : 'You\'re a winning candidate 🏆'}
             </div>
-            {votesRemainingForRank1 > 0 && (
-              <>
-                <Progress value={getProgress()} className="h-1.5" />
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Target className="h-3 w-3" />
-                  {isRTL 
-                    ? `متبقّي لك ${votesRemainingForRank1} صوت للوصول إلى المركز الأول`
-                    : `${votesRemainingForRank1} votes to reach Rank #1`
-                  }
-                </p>
-              </>
-            )}
-            <p className="text-xs text-primary/80 flex items-center gap-1">
-              <Flame className="h-3 w-3" />
-              {isRTL ? 'والفوز بأعلى جائزة في المسابقة 🔥💰' : 'Win the highest prize 🔥💰'}
-            </p>
           </div>
         );
       } else {
@@ -222,18 +190,6 @@ export function ContestUserStatusCard({
           <div className="space-y-2">
             <p className="text-sm font-medium text-warning">
               {isRTL ? 'لم تدخل بعد ضمن المراكز الخمسة الأولى' : 'Not yet in Top 5'}
-            </p>
-            <Progress value={getProgress()} className="h-1.5" />
-            <p className="text-xs text-warning flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              {isRTL 
-                ? `متبقّي لك ${votesRemainingForTop5} صوت للدخول ضمن أعلى 5 والفوز بالجائزة`
-                : `${votesRemainingForTop5} votes to enter Top 5 and win`
-              }
-            </p>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Rocket className="h-3 w-3" />
-              {isRTL ? 'الفرصة ما زالت موجودة 🚀' : 'Opportunity still exists 🚀'}
             </p>
           </div>
         );
