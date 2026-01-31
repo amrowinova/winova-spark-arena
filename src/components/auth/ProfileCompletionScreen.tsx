@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,15 +24,15 @@ interface ProfileCompletionScreenProps {
   onComplete: () => void;
 }
 
-// Mock referrer data for demo
-const mockReferrers: Record<string, { name: string; avatar: string }> = {
-  'WIN123': { name: 'أحمد محمد', avatar: '' },
-  'WIN456': { name: 'سارة علي', avatar: '' },
-  'DEMO': { name: 'فريق Winova', avatar: '' },
-};
+interface Referrer {
+  name: string;
+  avatar_url: string | null;
+  id: string;
+}
 
 export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCompletionScreenProps) {
   const { language } = useLanguage();
+  const { user, signUp } = useAuth();
   const isRTL = language === 'ar';
   
   // Form state
@@ -45,7 +47,7 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
   
   // Referral state
   const [referralCode, setReferralCode] = useState('');
-  const [referrer, setReferrer] = useState<{ name: string; avatar: string } | null>(null);
+  const [referrer, setReferrer] = useState<Referrer | null>(null);
   const [isCheckingReferral, setIsCheckingReferral] = useState(false);
   
   // Password state
@@ -85,13 +87,30 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
     }
   }, [country, city]);
 
-  // Check referral code
+  // Check referral code against database
   useEffect(() => {
-    if (referralCode.length >= 3) {
+    if (referralCode.length >= 6) {
       setIsCheckingReferral(true);
-      const timer = setTimeout(() => {
-        const found = mockReferrers[referralCode.toUpperCase()];
-        setReferrer(found || null);
+      const timer = setTimeout(async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, name, avatar_url')
+            .eq('referral_code', referralCode.toUpperCase())
+            .maybeSingle();
+          
+          if (data && !error) {
+            setReferrer({
+              id: data.id,
+              name: data.name,
+              avatar_url: data.avatar_url,
+            });
+          } else {
+            setReferrer(null);
+          }
+        } catch (err) {
+          setReferrer(null);
+        }
         setIsCheckingReferral(false);
       }, 500);
       return () => clearTimeout(timer);
@@ -138,11 +157,42 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
 
     setIsLoading(true);
     
-    // Mock account creation - simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Generate username from name
+      const username = fullName.toLowerCase().replace(/\s+/g, '_') + '_' + Math.random().toString(36).substr(2, 4);
+      
+      // Sign up the user with password
+      const { error: signUpError } = await signUp(email, password, {
+        name: fullName,
+        username,
+      });
+
+      if (signUpError) {
+        setError(isRTL ? 'حدث خطأ أثناء إنشاء الحساب' : 'An error occurred while creating account');
+        setIsLoading(false);
+        return;
+      }
+
+      // Update profile with additional data if user exists
+      if (user) {
+        const countryData = locationData.find(c => c.code === country);
+        const cityData = availableCities.find(c => c.code === city);
+        
+        await supabase.from('profiles').update({
+          name: fullName,
+          username,
+          country: countryData?.name || country,
+          city: cityData?.name || city,
+          referred_by: referrer?.id || null,
+        }).eq('user_id', user.id);
+      }
+
+      onComplete();
+    } catch (err) {
+      setError(isRTL ? 'حدث خطأ غير متوقع' : 'An unexpected error occurred');
+    }
     
     setIsLoading(false);
-    onComplete();
   };
 
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
@@ -234,7 +284,7 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
               className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg"
             >
               <Avatar className="h-10 w-10">
-                <AvatarImage src={referrer.avatar} />
+                <AvatarImage src={referrer.avatar_url || undefined} />
                 <AvatarFallback className="bg-primary/10 text-primary text-sm">
                   {referrer.name.charAt(0)}
                 </AvatarFallback>
@@ -249,7 +299,7 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
             </motion.div>
           )}
 
-          {referralCode && !referrer && !isCheckingReferral && (
+          {referralCode.length >= 6 && !referrer && !isCheckingReferral && (
             <p className="text-xs text-destructive">
               {isRTL ? 'كود الإحالة غير صحيح' : 'Invalid referral code'}
             </p>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,7 @@ interface SignUpScreenProps {
 
 export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) {
   const { language } = useLanguage();
+  const { signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
   const isRTL = language === 'ar';
   
   const [email, setEmail] = useState('');
@@ -38,20 +40,29 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
 
     setIsLoading(true);
     
-    // Mock sending OTP - simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Send OTP via Supabase Auth (works for both new and existing users)
+    const { error: authError } = await signInWithOtp(email);
     
     setIsLoading(false);
+    
+    if (authError) {
+      setError(isRTL ? 'حدث خطأ أثناء الإرسال. حاول مرة أخرى.' : 'An error occurred. Please try again.');
+      return;
+    }
+    
     onSendOTP(email);
   };
 
   const handleSocialSignUp = async (provider: 'google' | 'apple') => {
-    // Mock social signup - in production, this would redirect to OAuth
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    if (provider === 'google') {
+      await signInWithGoogle();
+    } else {
+      await signInWithApple();
+    }
+    
     setIsLoading(false);
-    // For demo, treat social signup as immediate OTP sent
-    onSendOTP(`${provider}@demo.com`);
   };
 
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;

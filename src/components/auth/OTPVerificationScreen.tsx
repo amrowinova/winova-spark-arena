@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Mail, RefreshCw } from 'lucide-react';
 import {
@@ -23,6 +24,7 @@ export function OTPVerificationScreen({
   onResend 
 }: OTPVerificationScreenProps) {
   const { language } = useLanguage();
+  const { verifyOtp, signInWithOtp } = useAuth();
   const isRTL = language === 'ar';
   
   const [otp, setOtp] = useState('');
@@ -50,11 +52,16 @@ export function OTPVerificationScreen({
     setIsLoading(true);
     setError('');
     
-    // Mock verification - simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Verify OTP via Supabase Auth
+    const { error: authError } = await verifyOtp(email, otp);
     
-    // For demo, any 6-digit code works
     setIsLoading(false);
+    
+    if (authError) {
+      setError(isRTL ? 'رمز التحقق غير صحيح. حاول مرة أخرى.' : 'Invalid verification code. Please try again.');
+      return;
+    }
+    
     onVerify();
   };
 
@@ -63,6 +70,17 @@ export function OTPVerificationScreen({
     
     setCanResend(false);
     setResendTimer(60);
+    setError('');
+    
+    // Resend OTP via Supabase Auth
+    const { error: authError } = await signInWithOtp(email);
+    
+    if (authError) {
+      setError(isRTL ? 'حدث خطأ أثناء إعادة الإرسال' : 'Failed to resend code');
+      setCanResend(true);
+      return;
+    }
+    
     onResend();
   };
 
