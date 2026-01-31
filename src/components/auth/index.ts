@@ -1,6 +1,7 @@
 export { AuthFlow } from './AuthFlow';
 export { AuthLanding } from './AuthLanding';
 export { AuthGuard } from './AuthGuard';
+export { SupportGuard } from './SupportGuard';
 export { LoginScreen } from './LoginScreen';
 export { SignUpScreen } from './SignUpScreen';
 export { OTPVerificationScreen } from './OTPVerificationScreen';
