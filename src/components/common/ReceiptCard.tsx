@@ -39,6 +39,7 @@ const transactionTypeLabels: Record<string, { en: string; ar: string }> = {
   p2p_sell: { en: 'P2P Sale', ar: 'بيع P2P' },
   spotlight_win: { en: 'Spotlight Win', ar: 'فوز بالأضواء' },
   aura_reward: { en: 'Aura Reward', ar: 'مكافأة Aura' },
+  team_earnings: { en: 'Team Earnings', ar: 'أرباح الفريق' },
 };
 
 const statusIcons = {

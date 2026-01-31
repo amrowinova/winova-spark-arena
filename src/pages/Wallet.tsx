@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Wallet as WalletIcon, Send, RefreshCw, History } from 'lucide-react';
+import { Wallet as WalletIcon, Send, RefreshCw, History, TrendingUp, Users } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/contexts/UserContext';
-import { useTransactions } from '@/contexts/TransactionContext';
+import { useTransactions, RANK_COMMISSION_RATES } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ReceiptCard, ReceiptDialog } from '@/components/common/ReceiptCard';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ConvertNovaAuraDialog } from '@/components/wallet/ConvertNovaAuraDialog';
 import { WalletCountrySelector, getWalletCountryPricing } from '@/components/wallet/WalletCountrySelector';
+import { TeamEarningsCard } from '@/components/wallet/TeamEarningsCard';
+import { EarningsSummarySheet } from '@/components/wallet/EarningsSummarySheet';
 import type { Receipt } from '@/contexts/TransactionContext';
 
 // Format number - remove decimals if whole number (matches Home)
@@ -43,14 +45,24 @@ export default function WalletPage() {
     r => r.sender.id === user.id || r.receiver?.id === user.id
   );
 
+  // Check if user can earn (Leader+)
+  const canEarn = RANK_COMMISSION_RATES[user.rank as keyof typeof RANK_COMMISSION_RATES] > 0;
+  const commissionRate = RANK_COMMISSION_RATES[user.rank as keyof typeof RANK_COMMISSION_RATES] || 0;
+
+  // Calculate total team earnings
+  const teamEarningsTotal = userReceipts
+    .filter(r => r.type === 'team_earnings')
+    .reduce((sum, r) => sum + r.amount, 0);
+
   const filteredReceipts = userReceipts.filter(r => {
     if (selectedTab === 'all') return true;
+    if (selectedTab === 'earnings') return r.type === 'team_earnings';
     if (selectedTab === 'nova') {
-      // Nova operations: transfers, P2P, Nova→Aura conversion (Nova deducted)
+      // Nova operations: transfers, P2P (exclude team earnings - has its own tab)
       return r.type === 'transfer_nova' || r.type === 'p2p_buy' || r.type === 'p2p_sell' || r.type === 'convert_nova_aura';
     }
     if (selectedTab === 'aura') {
-      // Aura operations: contest entry, voting (all paid with Aura)
+      // Aura operations: contest entry, voting
       return r.type === 'contest_entry' || r.type === 'vote_received' || r.type === 'vote_sent';
     }
     return true;
@@ -118,7 +130,7 @@ export default function WalletPage() {
         </motion.div>
 
 
-        {/* Action Buttons - 2 columns only (History is below) */}
+        {/* Action Buttons - 2 columns + Earnings Summary for eligible ranks */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -151,6 +163,43 @@ export default function WalletPage() {
           </Button>
         </motion.div>
 
+        {/* Team Earnings Card - Only for Leader+ */}
+        {canEarn && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <EarningsSummarySheet>
+              <Card className="p-4 bg-primary/5 border-primary/20 cursor-pointer hover:bg-primary/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm text-foreground">
+                      {language === 'ar' ? 'أرباح الفريق' : 'Team Earnings'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'ar' 
+                        ? `عمولة ${commissionRate} Nova لكل مشارك`
+                        : `${commissionRate} Nova per participant`}
+                    </p>
+                  </div>
+                  <div className="text-end">
+                    <p className="font-bold text-primary">
+                      +<span className="text-nova">И</span> {formatBalance(teamEarningsTotal)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'ar' ? 'إجمالي' : 'Total'}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </EarningsSummarySheet>
+          </motion.div>
+        )}
+
         {/* Price Info - Nova rate display */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -176,10 +225,16 @@ export default function WalletPage() {
           </h2>
           
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsList className={`grid w-full mb-4 ${canEarn ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <TabsTrigger value="all" className="text-xs">
                 {language === 'ar' ? 'الكل' : 'All'}
               </TabsTrigger>
+              {canEarn && (
+                <TabsTrigger value="earnings" className="text-xs">
+                  <Users className="h-3 w-3 me-1" />
+                  {language === 'ar' ? 'الأرباح' : 'Earnings'}
+                </TabsTrigger>
+              )}
               <TabsTrigger value="nova" className="text-xs">
                 Nova (<span className="text-nova">И</span>)
               </TabsTrigger>
@@ -204,11 +259,18 @@ export default function WalletPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <ReceiptCard 
-                      receipt={receipt} 
-                      compact 
-                      onClick={() => handleReceiptClick(receipt)}
-                    />
+                    {receipt.type === 'team_earnings' ? (
+                      <TeamEarningsCard 
+                        receipt={receipt} 
+                        onClick={() => handleReceiptClick(receipt)}
+                      />
+                    ) : (
+                      <ReceiptCard 
+                        receipt={receipt} 
+                        compact 
+                        onClick={() => handleReceiptClick(receipt)}
+                      />
+                    )}
                   </motion.div>
                 ))
               )}
