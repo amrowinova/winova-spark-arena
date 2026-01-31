@@ -42,6 +42,7 @@ import SupportUsers from "./pages/support/SupportUsers";
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminWallets from "./pages/admin/AdminWallets";
+import AdminRoles from "./pages/admin/AdminRoles";
 
 
 const queryClient = new QueryClient();
@@ -90,6 +91,7 @@ const App = () => (
                         {/* Admin Panel routes - require admin role */}
                         <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
                         <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />
+                        <Route path="/admin/roles" element={<AdminGuard><AdminRoles /></AdminGuard>} />
                         
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />

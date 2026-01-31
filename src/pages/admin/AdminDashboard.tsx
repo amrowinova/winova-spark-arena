@@ -15,7 +15,8 @@ import {
   Shield,
   Settings,
   BarChart3,
-  RefreshCcw
+  RefreshCcw,
+  Crown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -212,10 +213,10 @@ export default function AdminDashboard() {
             <Button 
               variant="outline" 
               className="h-auto py-3 flex-col gap-1"
-              onClick={() => navigate('/support')}
+              onClick={() => navigate('/admin/roles')}
             >
-              <Shield className="w-5 h-5" />
-              <span className="text-xs">{isRTL ? 'لوحة الدعم' : 'Support Panel'}</span>
+              <Crown className="w-5 h-5 text-destructive" />
+              <span className="text-xs">{isRTL ? 'إدارة الأدوار' : 'Role Management'}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -228,6 +229,14 @@ export default function AdminDashboard() {
             <Button 
               variant="outline" 
               className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/support')}
+            >
+              <Shield className="w-5 h-5" />
+              <span className="text-xs">{isRTL ? 'لوحة الدعم' : 'Support Panel'}</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-3 flex-col gap-1"
               onClick={() => navigate('/support/disputes')}
             >
               <AlertTriangle className="w-5 h-5" />
@@ -235,7 +244,7 @@ export default function AdminDashboard() {
             </Button>
             <Button 
               variant="outline" 
-              className="h-auto py-3 flex-col gap-1"
+              className="h-auto py-3 flex-col gap-1 col-span-2"
               onClick={() => navigate('/admin/wallets')}
             >
               <Wallet className="w-5 h-5" />
