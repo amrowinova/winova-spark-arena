@@ -1,20 +1,13 @@
 import { motion } from 'framer-motion';
-import { Users, TrendingUp, Trophy, ChevronRight, Lock, Unlock, Calendar } from 'lucide-react';
+import { Users, Lock, Unlock, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { Receipt } from '@/contexts/TransactionContext';
-import { getNextReleaseDate } from './LockedEarningsCard';
 
 interface TeamEarningsCardProps {
   receipt: Receipt;
   onClick?: () => void;
 }
-
-const rankLabels: Record<string, { en: string; ar: string; icon: string }> = {
-  leader: { en: 'Leader', ar: 'قائد', icon: '⭐' },
-  manager: { en: 'Manager', ar: 'مدير', icon: '💎' },
-  president: { en: 'President', ar: 'رئيس', icon: '👑' },
-};
 
 // Format number - remove decimals if whole number
 const formatAmount = (value: number): string => {
@@ -47,14 +40,16 @@ function getEarningReleaseDate(createdAt: Date): { date: Date; formattedDate: st
   const isReleased = now >= releaseDate;
 
   const formattedDate = releaseDate.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   });
 
   // Use ar-EG with Gregorian calendar for Arabic
   const formattedDateAr = releaseDate.toLocaleDateString('ar-EG-u-ca-gregory', {
-    day: 'numeric',
-    month: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   });
 
   return { date: releaseDate, formattedDate, formattedDateAr, isReleased };
@@ -66,18 +61,7 @@ export function TeamEarningsCard({ receipt, onClick }: TeamEarningsCardProps) {
   
   if (!earnings) return null;
 
-  const rankInfo = rankLabels[earnings.rank] || { en: earnings.rank, ar: earnings.rank, icon: '🔵' };
   const releaseInfo = getEarningReleaseDate(receipt.createdAt);
-
-  const formatDate = (date: Date) => {
-    // Use Gregorian calendar for Arabic (ar-EG-u-ca-gregory)
-    return new Date(date).toLocaleDateString(language === 'ar' ? 'ar-EG-u-ca-gregory' : 'en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   return (
     <motion.div
@@ -86,78 +70,107 @@ export function TeamEarningsCard({ receipt, onClick }: TeamEarningsCardProps) {
       onClick={onClick}
       className="cursor-pointer"
     >
-      <Card className={`p-3 hover:bg-muted/30 transition-colors ${releaseInfo.isReleased ? 'border-primary/20 bg-primary/5' : 'border-warning/20 bg-warning/5'}`}>
+      <Card className={`p-4 hover:shadow-md transition-all ${releaseInfo.isReleased ? 'bg-success/5 border-success/20' : 'bg-warning/5 border-warning/20'}`}>
         <div className="flex items-start gap-3">
           {/* Icon */}
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${releaseInfo.isReleased ? 'bg-primary/10' : 'bg-warning/10'}`}>
-            <Users className={`h-5 w-5 ${releaseInfo.isReleased ? 'text-primary' : 'text-warning'}`} />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${releaseInfo.isReleased ? 'bg-success/20' : 'bg-warning/20'}`}>
+            <Users className={`h-5 w-5 ${releaseInfo.isReleased ? 'text-success' : 'text-warning'}`} />
           </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-sm font-medium text-foreground">
-                {language === 'ar' ? 'أرباح الفريق' : 'Team Earnings'}
-              </span>
-              {/* Lock/Released Status */}
-              {releaseInfo.isReleased ? (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary flex items-center gap-1">
-                  <Unlock className="h-2.5 w-2.5" />
-                  {language === 'ar' ? 'مُفرج' : 'Released'}
-                </span>
-              ) : (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-warning/10 text-warning flex items-center gap-1">
-                  <Lock className="h-2.5 w-2.5" />
-                  {language === 'ar' ? 'مقفل' : 'Locked'}
-                </span>
-              )}
-              <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                {rankInfo.icon} {language === 'ar' ? rankInfo.ar : rankInfo.en}
-              </span>
-            </div>
+            {/* Amount with Lock/Unlock icon */}
+            <p className={`text-lg font-bold mb-1 ${releaseInfo.isReleased ? 'text-success' : 'text-warning'}`}>
+              🟡 +{formatAmount(receipt.amount)} Nova {releaseInfo.isReleased ? '🔓' : '🔒'}
+            </p>
 
-            {/* Contest info */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <Trophy className="h-3 w-3" />
-              <span>
-                {language === 'ar' ? `مسابقة #${earnings.contestNumber}` : `Contest #${earnings.contestNumber}`}
-              </span>
-              <span>•</span>
-              <span>{earnings.country}</span>
-            </div>
+            {/* Description */}
+            <p className="text-sm font-medium text-foreground mb-0.5">
+              {releaseInfo.isReleased 
+                ? (language === 'ar' ? 'أرباح الفريق – مُفرج عنها' : 'Team Earnings – Released')
+                : (language === 'ar' ? 'أرباح الفريق – مقفلة' : 'Team Earnings – Locked')}
+            </p>
 
-            {/* Release date - only show if locked */}
+            {/* Country */}
+            <p className="text-xs text-muted-foreground mb-1">
+              {language === 'ar' ? 'الدولة:' : 'Country:'} {earnings.country}
+            </p>
+
+            {/* Release date for locked earnings */}
             {!releaseInfo.isReleased && (
-              <div className="flex items-center gap-1 text-xs text-warning">
-                <Calendar className="h-3 w-3" />
-                <span>
-                  {language === 'ar' 
-                    ? `الإفراج: ${releaseInfo.formattedDateAr}`
-                    : `Release: ${releaseInfo.formattedDate}`}
-                </span>
-              </div>
+              <p className="text-xs text-warning font-medium">
+                {language === 'ar' 
+                  ? `الإفراج بتاريخ: ${releaseInfo.formattedDateAr}`
+                  : `Release Date: ${releaseInfo.formattedDate}`}
+              </p>
             )}
-
-            {/* Breakdown */}
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-              <TrendingUp className="h-3 w-3" />
-              <span>
-                {earnings.participantCount} {language === 'ar' ? 'مشارك' : 'participants'} × {earnings.ratePerParticipant} Nova
-              </span>
-            </div>
-          </div>
-
-          {/* Amount */}
-          <div className="text-end">
-            <p className={`font-bold text-sm ${releaseInfo.isReleased ? 'text-primary' : 'text-warning'}`}>
-              +<span className="text-nova">И</span> {formatAmount(receipt.amount)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {formatDate(receipt.createdAt)}
-            </p>
           </div>
 
           <ChevronRight className="h-4 w-4 text-muted-foreground/50 self-center" />
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
+
+// Earnings Release Card (إفراج الأرباح)
+interface EarningsReleaseCardProps {
+  receipt: Receipt;
+  onClick?: () => void;
+}
+
+export function EarningsReleaseCard({ receipt, onClick }: EarningsReleaseCardProps) {
+  const { language } = useLanguage();
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString(language === 'ar' ? 'ar-EG-u-ca-gregory' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString(language === 'ar' ? 'ar-EG-u-ca-gregory' : 'en-US', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  return (
+    <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+      <Card 
+        className="p-4 cursor-pointer hover:shadow-md transition-all bg-success/5 border-success/20"
+        onClick={onClick}
+      >
+        <div className="flex items-start gap-3">
+          {/* Icon */}
+          <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+            <Unlock className="h-5 w-5 text-success" />
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Amount */}
+            <p className="text-lg font-bold text-success mb-1">
+              🟢 +{formatAmount(receipt.amount)} Nova 🔓
+            </p>
+
+            {/* Description */}
+            <p className="text-sm font-medium text-foreground mb-0.5">
+              {language === 'ar' ? 'تم الإفراج عن أرباحك' : 'Your Earnings Released'}
+            </p>
+
+            {/* Sub description */}
+            <p className="text-xs text-muted-foreground mb-1">
+              {language === 'ar' ? 'أُضيفت إلى رصيد Nova المتاح' : 'Added to available Nova balance'}
+            </p>
+
+            {/* Date & Time */}
+            <p className="text-xs text-muted-foreground">
+              {formatDate(new Date(receipt.createdAt))} • {formatTime(new Date(receipt.createdAt))}
+            </p>
+          </div>
         </div>
       </Card>
     </motion.div>

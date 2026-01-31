@@ -14,10 +14,11 @@ import { ReceiptCard, ReceiptDialog } from '@/components/common/ReceiptCard';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ConvertNovaAuraDialog } from '@/components/wallet/ConvertNovaAuraDialog';
 import { WalletCountrySelector, getWalletCountryPricing } from '@/components/wallet/WalletCountrySelector';
-import { TeamEarningsCard } from '@/components/wallet/TeamEarningsCard';
+import { TeamEarningsCard, EarningsReleaseCard } from '@/components/wallet/TeamEarningsCard';
 import { EarningsSummarySheet } from '@/components/wallet/EarningsSummarySheet';
 import { LockedEarningsCard, getNextReleaseDate } from '@/components/wallet/LockedEarningsCard';
-import { AuraEarningsCard } from '@/components/wallet/AuraEarningsCard';
+import { AuraEarningsCard, VoteDeductionCard } from '@/components/wallet/AuraEarningsCard';
+import { ContestEntryCard, NovaTransferSentCard, NovaReceivedCard } from '@/components/wallet/NovaTransactionCards';
 import type { Receipt } from '@/contexts/TransactionContext';
 
 // Format number - remove decimals if whole number (matches Home)
@@ -31,7 +32,7 @@ export default function WalletPage() {
   const { user } = useUser();
   const { receipts, calculateLocalAmount } = useTransactions();
 
-  const [selectedTab, setSelectedTab] = useState('all');
+  const [selectedTab, setSelectedTab] = useState('aura');
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
@@ -59,15 +60,13 @@ export default function WalletPage() {
     .reduce((sum, r) => sum + r.amount, 0);
 
   const filteredReceipts = userReceipts.filter(r => {
-    if (selectedTab === 'all') return true;
-    if (selectedTab === 'earnings') return r.type === 'team_earnings';
     if (selectedTab === 'nova') {
-      // Nova operations: transfers, P2P, AND team earnings (real Nova profits)
-      return r.type === 'transfer_nova' || r.type === 'p2p_buy' || r.type === 'p2p_sell' || r.type === 'convert_nova_aura' || r.type === 'team_earnings';
+      // Nova operations: transfers, P2P, team earnings, contest entry, earnings release
+      return r.type === 'transfer_nova' || r.type === 'p2p_buy' || r.type === 'p2p_sell' || r.type === 'team_earnings' || r.type === 'earnings_release' || r.type === 'contest_entry';
     }
     if (selectedTab === 'aura') {
-      // Aura operations: vote earnings, contest entry, voting
-      return r.type === 'aura_vote_earnings' || r.type === 'contest_entry' || r.type === 'vote_received' || r.type === 'vote_sent';
+      // Aura operations: vote earnings, voting (sent/received), convert nova to aura
+      return r.type === 'aura_vote_earnings' || r.type === 'vote_received' || r.type === 'vote_sent' || r.type === 'convert_nova_aura';
     }
     return true;
   });
@@ -263,21 +262,12 @@ export default function WalletPage() {
           </h2>
           
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList className={`grid w-full mb-4 ${canEarn ? 'grid-cols-4' : 'grid-cols-3'}`}>
-              <TabsTrigger value="all" className="text-xs">
-                {language === 'ar' ? 'الكل' : 'All'}
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="aura" className="text-xs gap-1">
+                <span className="text-aura">✨</span> Aura
               </TabsTrigger>
-              {canEarn && (
-                <TabsTrigger value="earnings" className="text-xs">
-                  <Users className="h-3 w-3 me-1" />
-                  {language === 'ar' ? 'الأرباح' : 'Earnings'}
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="nova" className="text-xs">
-                Nova (<span className="text-nova">И</span>)
-              </TabsTrigger>
-              <TabsTrigger value="aura" className="text-xs">
-                Aura
+              <TabsTrigger value="nova" className="text-xs gap-1">
+                <span className="text-nova">🟡</span> Nova
               </TabsTrigger>
             </TabsList>
 
@@ -302,8 +292,33 @@ export default function WalletPage() {
                         receipt={receipt} 
                         onClick={() => handleReceiptClick(receipt)}
                       />
+                    ) : receipt.type === 'earnings_release' ? (
+                      <EarningsReleaseCard 
+                        receipt={receipt} 
+                        onClick={() => handleReceiptClick(receipt)}
+                      />
                     ) : receipt.type === 'aura_vote_earnings' ? (
                       <AuraEarningsCard 
+                        receipt={receipt} 
+                        onClick={() => handleReceiptClick(receipt)}
+                      />
+                    ) : receipt.type === 'vote_sent' ? (
+                      <VoteDeductionCard 
+                        receipt={receipt} 
+                        onClick={() => handleReceiptClick(receipt)}
+                      />
+                    ) : receipt.type === 'contest_entry' ? (
+                      <ContestEntryCard 
+                        receipt={receipt} 
+                        onClick={() => handleReceiptClick(receipt)}
+                      />
+                    ) : receipt.type === 'transfer_nova' && receipt.sender.id === user.id ? (
+                      <NovaTransferSentCard 
+                        receipt={receipt} 
+                        onClick={() => handleReceiptClick(receipt)}
+                      />
+                    ) : receipt.type === 'transfer_nova' && receipt.receiver?.id === user.id ? (
+                      <NovaReceivedCard 
                         receipt={receipt} 
                         onClick={() => handleReceiptClick(receipt)}
                       />
