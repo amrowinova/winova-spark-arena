@@ -93,8 +93,17 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
     setLangOpen(false);
   };
 
-  const handleLogoutClick = () => {
-    // TEMPORARY: Open Auth flow instead of logging out
+  const handleLogout = async () => {
+    onOpenChange(false);
+    await supabase.auth.signOut();
+    toast({
+      title: isRTL ? 'تم تسجيل الخروج' : 'Signed Out',
+      description: isRTL ? 'تم تسجيل خروجك بنجاح' : 'You have been signed out successfully',
+    });
+    navigate('/');
+  };
+
+  const handleLoginClick = () => {
     onOpenChange(false);
     setTimeout(() => setAuthOpen(true), 300);
   };
@@ -261,16 +270,41 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
             </div>
             
             <div className="p-2 border-t border-border">
-              <button
-                onClick={handleLogoutClick}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-destructive hover:bg-destructive/10"
-              >
-                <span className="text-base">{logoutItem.emoji}</span>
-                <logoutItem.icon className="h-5 w-5" />
-                <span className="font-medium text-sm">
-                  {isRTL ? logoutItem.labelAr : logoutItem.labelEn}
-                </span>
-              </button>
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-destructive hover:bg-destructive/10"
+                >
+                  <span className="text-base">🚪</span>
+                  <LogOut className="h-5 w-5" />
+                  <span className="font-medium text-sm">
+                    {isRTL ? 'تسجيل الخروج' : 'Logout'}
+                  </span>
+                </button>
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    onClick={handleLoginClick}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-primary hover:bg-primary/10"
+                  >
+                    <span className="text-base">🔑</span>
+                    <LogOut className="h-5 w-5 rotate-180" />
+                    <span className="font-medium text-sm">
+                      {isRTL ? 'تسجيل الدخول' : 'Login'}
+                    </span>
+                  </button>
+                  <button
+                    onClick={handleLoginClick}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-primary hover:bg-primary/10"
+                  >
+                    <span className="text-base">✨</span>
+                    <Users className="h-5 w-5" />
+                    <span className="font-medium text-sm">
+                      {isRTL ? 'إنشاء حساب' : 'Sign Up'}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
           </nav>
         </SheetContent>

@@ -5,12 +5,13 @@ import { LoginScreen } from './LoginScreen';
 import { SignUpScreen } from './SignUpScreen';
 import { OTPVerificationScreen } from './OTPVerificationScreen';
 import { ProfileCompletionScreen } from './ProfileCompletionScreen';
+import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 import {
   Sheet,
   SheetContent,
 } from '@/components/ui/sheet';
 
-type AuthScreen = 'landing' | 'login' | 'signup' | 'login-otp' | 'signup-otp' | 'profile-completion';
+type AuthScreen = 'landing' | 'login' | 'signup' | 'login-otp' | 'signup-otp' | 'profile-completion' | 'forgot-password';
 
 interface AuthFlowProps {
   open: boolean;
@@ -104,6 +105,22 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess }: AuthFlowProps) {
                 onBack={() => setCurrentScreen('landing')}
                 onSignUp={() => setCurrentScreen('signup')}
                 onSendOTP={handleLoginSendOTP}
+                onForgotPassword={() => setCurrentScreen('forgot-password')}
+              />
+            </motion.div>
+          )}
+
+          {currentScreen === 'forgot-password' && (
+            <motion.div
+              key="forgot-password"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full overflow-y-auto"
+            >
+              <ForgotPasswordScreen
+                onBack={() => setCurrentScreen('login')}
               />
             </motion.div>
           )}

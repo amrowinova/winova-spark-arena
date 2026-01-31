@@ -12,6 +12,7 @@ interface AuthContextType {
   verifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithApple: () => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -129,6 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/settings`,
+      });
+      return { error: error as Error | null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -147,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyOtp,
         signInWithGoogle,
         signInWithApple,
+        resetPassword,
         signOut,
       }}
     >
