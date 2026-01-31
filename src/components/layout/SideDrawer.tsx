@@ -269,8 +269,21 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
               </Collapsible>
             </div>
             
-            <div className="p-2 border-t border-border">
-              {user ? (
+            <div className="p-2 border-t border-border space-y-1">
+              {/* Try Login Button - Always visible */}
+              <button
+                onClick={handleLoginClick}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-primary hover:bg-primary/10"
+              >
+                <span className="text-base">🔑</span>
+                <LogOut className="h-5 w-5 rotate-180" />
+                <span className="font-medium text-sm">
+                  {isRTL ? 'تجربة دخول' : 'Try Login'}
+                </span>
+              </button>
+              
+              {/* Logout Button - Only for authenticated users */}
+              {user && (
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-destructive hover:bg-destructive/10"
@@ -281,29 +294,6 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                     {isRTL ? 'تسجيل الخروج' : 'Logout'}
                   </span>
                 </button>
-              ) : (
-                <div className="space-y-1">
-                  <button
-                    onClick={handleLoginClick}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-primary hover:bg-primary/10"
-                  >
-                    <span className="text-base">🔑</span>
-                    <LogOut className="h-5 w-5 rotate-180" />
-                    <span className="font-medium text-sm">
-                      {isRTL ? 'تسجيل الدخول' : 'Login'}
-                    </span>
-                  </button>
-                  <button
-                    onClick={handleLoginClick}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-primary hover:bg-primary/10"
-                  >
-                    <span className="text-base">✨</span>
-                    <Users className="h-5 w-5" />
-                    <span className="font-medium text-sm">
-                      {isRTL ? 'إنشاء حساب' : 'Sign Up'}
-                    </span>
-                  </button>
-                </div>
               )}
             </div>
           </nav>
