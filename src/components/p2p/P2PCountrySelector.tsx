@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, Globe } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -209,33 +210,40 @@ export function P2PCountrySelector({
           <ChevronDown className="h-4 w-4 ms-auto text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        {COUNTRIES.map((country) => (
-          <DropdownMenuItem
-            key={country.code}
-            onClick={() => {
-              onCountryChange(country);
-              setOpen(false);
-            }}
-            className={cn(
-              "gap-3 py-3 cursor-pointer",
-              selectedCountry.code === country.code && "bg-primary/10"
-            )}
-          >
-            <span className="text-2xl">{country.flag}</span>
-            <div className="flex-1">
-              <p className="font-medium">
-                {language === 'ar' ? country.nameAr : country.name}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {country.currencySymbol} {country.currency} • И 1 = {country.novaRate}
-              </p>
-            </div>
-            {selectedCountry.code === country.code && (
-              <div className="h-2 w-2 rounded-full bg-primary" />
-            )}
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent align="start" className="w-64 p-0 bg-popover z-50">
+        <div className="px-3 py-2 text-xs text-muted-foreground border-b bg-muted/30 sticky top-0">
+          {language === 'ar' ? 'اختر الدولة' : 'Select Country'}
+        </div>
+        <ScrollArea className="h-[min(70vh,400px)]">
+          <div className="p-1">
+            {COUNTRIES.map((country) => (
+              <DropdownMenuItem
+                key={country.code}
+                onClick={() => {
+                  onCountryChange(country);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "gap-3 py-2.5 px-3 cursor-pointer rounded-md",
+                  selectedCountry.code === country.code && "bg-primary/10"
+                )}
+              >
+                <span className="text-xl">{country.flag}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">
+                    {language === 'ar' ? country.nameAr : country.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {country.currencySymbol} • И 1 = {country.novaRate.toLocaleString()}
+                  </p>
+                </div>
+                {selectedCountry.code === country.code && (
+                  <div className="h-2 w-2 rounded-full bg-primary" />
+                )}
+              </DropdownMenuItem>
+            ))}
+          </div>
+        </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
   );
