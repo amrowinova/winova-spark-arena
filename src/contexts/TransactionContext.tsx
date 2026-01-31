@@ -10,7 +10,8 @@ export type TransactionType =
   | 'p2p_sell'
   | 'spotlight_win'
   | 'aura_reward'
-  | 'team_earnings';
+  | 'team_earnings'
+  | 'earnings_release'; // Bi-monthly locked earnings release (15th & 30th)
 
 // Rank commission rates (Nova per qualified participant)
 export const RANK_COMMISSION_RATES = {

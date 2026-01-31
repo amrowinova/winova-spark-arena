@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Users, TrendingUp, Trophy, ChevronRight } from 'lucide-react';
+import { Users, TrendingUp, Trophy, ChevronRight, Lock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { Receipt } from '@/contexts/TransactionContext';
@@ -56,6 +56,10 @@ export function TeamEarningsCard({ receipt, onClick }: TeamEarningsCardProps) {
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm font-medium text-foreground">
                 {language === 'ar' ? 'أرباح الفريق' : 'Team Earnings'}
+              </span>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-warning/10 text-warning flex items-center gap-1">
+                <Lock className="h-2.5 w-2.5" />
+                {language === 'ar' ? 'مقفل' : 'Locked'}
               </span>
               <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                 {rankInfo.icon} {language === 'ar' ? rankInfo.ar : rankInfo.en}
