@@ -41,6 +41,7 @@ const transactionTypeLabels: Record<string, { en: string; ar: string }> = {
   aura_reward: { en: 'Aura Reward', ar: 'مكافأة Aura' },
   team_earnings: { en: 'Team Earnings (Locked)', ar: 'أرباح الفريق (مقفلة)' },
   earnings_release: { en: 'Earnings Released', ar: 'إفراج الأرباح' },
+  aura_vote_earnings: { en: 'Vote Earnings', ar: 'أرباح تصويت' },
 };
 
 const statusIcons = {
@@ -100,11 +101,17 @@ export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardPr
             </div>
             <div className="text-end">
               <p className="font-bold text-sm text-foreground">
-                <span className="text-nova">И</span> {formatAmount(receipt.amount)}
+                {receipt.currency === 'aura' ? (
+                  <><span className="text-aura">✦</span> {formatAmount(receipt.amount)}</>
+                ) : (
+                  <><span className="text-nova">И</span> {formatAmount(receipt.amount)}</>
+                )}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {formatAmount(receipt.localAmount)} {receipt.localCurrency}
-              </p>
+              {receipt.localAmount > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {formatAmount(receipt.localAmount)} {receipt.localCurrency}
+                </p>
+              )}
             </div>
             <StatusIcon className={`h-4 w-4 ${statusColors[receipt.status]}`} />
           </div>
@@ -133,11 +140,17 @@ export function ReceiptCard({ receipt, compact = false, onClick }: ReceiptCardPr
         {/* Amount - Clean, no icon inside number */}
         <div className="text-center p-4 bg-muted/30 rounded-lg">
           <p className="text-3xl font-bold text-foreground">
-            <span className="text-nova">И</span> {formatAmount(receipt.amount)}
+            {receipt.currency === 'aura' ? (
+              <><span className="text-aura">✦</span> {formatAmount(receipt.amount)}</>
+            ) : (
+              <><span className="text-nova">И</span> {formatAmount(receipt.amount)}</>
+            )}
           </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            ≈ {formatAmount(receipt.localAmount)} {receipt.localCurrency}
-          </p>
+          {receipt.localAmount > 0 && (
+            <p className="text-sm text-muted-foreground mt-1">
+              ≈ {formatAmount(receipt.localAmount)} {receipt.localCurrency}
+            </p>
+          )}
         </div>
 
         <Separator />

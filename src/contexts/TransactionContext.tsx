@@ -11,7 +11,8 @@ export type TransactionType =
   | 'spotlight_win'
   | 'aura_reward'
   | 'team_earnings'
-  | 'earnings_release'; // Bi-monthly locked earnings release (15th & 30th)
+  | 'earnings_release' // Bi-monthly locked earnings release (15th & 30th)
+  | 'aura_vote_earnings'; // 20% of paid votes received - added after stage ends
 
 // Rank commission rates (Nova per qualified participant)
 export const RANK_COMMISSION_RATES = {
@@ -56,6 +57,14 @@ export interface Transaction {
     contestNumber: number;
     participantCount: number;
     ratePerParticipant: number;
+  };
+  // Aura vote earnings (20% of paid votes received)
+  auraVoteEarnings?: {
+    stage: 'stage1' | 'final';
+    contestNumber: number;
+    totalVotesReceived: number; // Total paid votes contestant received
+    earningsPercentage: number; // Always 20%
+    country?: string;
   };
   p2pOrderId?: string;
 }
@@ -127,8 +136,74 @@ function generateReceiptNumber(): string {
   return `RCP-${dateStr}-${random}`;
 }
 
-// Mock initial transactions including team earnings
+// Mock initial transactions including team earnings and aura vote earnings
 const initialTransactions: Transaction[] = [
+  // Aura Vote Earnings - Stage 1 (today)
+  {
+    id: 'TXN-AURA-001',
+    type: 'aura_vote_earnings',
+    status: 'completed',
+    amount: 20, // 20% of 100 votes
+    currency: 'aura',
+    localAmount: 0, // Aura has no cash value
+    localCurrency: 'SAR',
+    sender: { id: 'system', name: 'النظام', username: 'system', country: 'Saudi Arabia' },
+    receiver: { id: '1', name: 'أحمد', username: 'ahmed_sa', country: 'Saudi Arabia' },
+    reason: 'أرباح تصويت – المرحلة الأولى',
+    createdAt: new Date(Date.now() - 45 * 60 * 1000), // 45 mins ago
+    contestId: 'C-1248',
+    auraVoteEarnings: {
+      stage: 'stage1',
+      contestNumber: 1248,
+      totalVotesReceived: 100,
+      earningsPercentage: 20,
+      country: 'Saudi Arabia',
+    },
+  },
+  // Aura Vote Earnings - Final Stage (yesterday)
+  {
+    id: 'TXN-AURA-002',
+    type: 'aura_vote_earnings',
+    status: 'completed',
+    amount: 30, // 20% of 150 votes
+    currency: 'aura',
+    localAmount: 0,
+    localCurrency: 'SAR',
+    sender: { id: 'system', name: 'النظام', username: 'system', country: 'Saudi Arabia' },
+    receiver: { id: '1', name: 'أحمد', username: 'ahmed_sa', country: 'Saudi Arabia' },
+    reason: 'أرباح تصويت – المرحلة النهائية',
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
+    contestId: 'C-1247',
+    auraVoteEarnings: {
+      stage: 'final',
+      contestNumber: 1247,
+      totalVotesReceived: 150,
+      earningsPercentage: 20,
+      country: 'Saudi Arabia',
+    },
+  },
+  // Another Aura earnings from earlier
+  {
+    id: 'TXN-AURA-003',
+    type: 'aura_vote_earnings',
+    status: 'completed',
+    amount: 14, // 20% of 70 votes
+    currency: 'aura',
+    localAmount: 0,
+    localCurrency: 'SAR',
+    sender: { id: 'system', name: 'النظام', username: 'system', country: 'Saudi Arabia' },
+    receiver: { id: '1', name: 'أحمد', username: 'ahmed_sa', country: 'Saudi Arabia' },
+    reason: 'أرباح تصويت – المرحلة الأولى',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+    contestId: 'C-1246',
+    auraVoteEarnings: {
+      stage: 'stage1',
+      contestNumber: 1246,
+      totalVotesReceived: 70,
+      earningsPercentage: 20,
+      country: 'Saudi Arabia',
+    },
+  },
   // Team Earnings - Today's contest
   {
     id: 'TXN-EARN-001',

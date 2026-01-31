@@ -17,6 +17,7 @@ import { WalletCountrySelector, getWalletCountryPricing } from '@/components/wal
 import { TeamEarningsCard } from '@/components/wallet/TeamEarningsCard';
 import { EarningsSummarySheet } from '@/components/wallet/EarningsSummarySheet';
 import { LockedEarningsCard, getNextReleaseDate } from '@/components/wallet/LockedEarningsCard';
+import { AuraEarningsCard } from '@/components/wallet/AuraEarningsCard';
 import type { Receipt } from '@/contexts/TransactionContext';
 
 // Format number - remove decimals if whole number (matches Home)
@@ -65,8 +66,8 @@ export default function WalletPage() {
       return r.type === 'transfer_nova' || r.type === 'p2p_buy' || r.type === 'p2p_sell' || r.type === 'convert_nova_aura';
     }
     if (selectedTab === 'aura') {
-      // Aura operations: contest entry, voting
-      return r.type === 'contest_entry' || r.type === 'vote_received' || r.type === 'vote_sent';
+      // Aura operations: vote earnings, contest entry, voting
+      return r.type === 'aura_vote_earnings' || r.type === 'contest_entry' || r.type === 'vote_received' || r.type === 'vote_sent';
     }
     return true;
   });
@@ -299,6 +300,11 @@ export default function WalletPage() {
                   >
                     {receipt.type === 'team_earnings' ? (
                       <TeamEarningsCard 
+                        receipt={receipt} 
+                        onClick={() => handleReceiptClick(receipt)}
+                      />
+                    ) : receipt.type === 'aura_vote_earnings' ? (
+                      <AuraEarningsCard 
                         receipt={receipt} 
                         onClick={() => handleReceiptClick(receipt)}
                       />
