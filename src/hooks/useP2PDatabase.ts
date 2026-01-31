@@ -11,24 +11,12 @@ type P2PMessageRow = Database['public']['Tables']['p2p_messages']['Row'];
 type P2PMessageInsert = Database['public']['Tables']['p2p_messages']['Insert'];
 type P2POrderStatus = Database['public']['Enums']['p2p_order_status'];
 type P2POrderType = Database['public']['Enums']['p2p_order_type'];
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
+// Order with joined profile data
 export interface P2POrderWithProfiles extends P2POrderRow {
-  creator_profile?: {
-    id: string;
-    user_id: string;
-    name: string;
-    username: string;
-    avatar_url: string | null;
-    country: string;
-  } | null;
-  executor_profile?: {
-    id: string;
-    user_id: string;
-    name: string;
-    username: string;
-    avatar_url: string | null;
-    country: string;
-  } | null;
+  creator_profile?: ProfileRow | null;
+  executor_profile?: ProfileRow | null;
 }
 
 export function useP2PDatabase() {
@@ -43,18 +31,49 @@ export function useP2PDatabase() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      // Fetch orders first
+      const { data: ordersData, error: ordersError } = await supabase
         .from('p2p_orders')
-        .select(`
-          *,
-          creator_profile:profiles!p2p_orders_creator_id_fkey(id, user_id, name, username, avatar_url, country),
-          executor_profile:profiles!p2p_orders_executor_id_fkey(id, user_id, name, username, avatar_url, country)
-        `)
+        .select('*')
         .or(`creator_id.eq.${user.id},executor_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setOrders((data as P2POrderWithProfiles[]) || []);
+      if (ordersError) throw ordersError;
+      
+      if (!ordersData || ordersData.length === 0) {
+        setOrders([]);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = new Set<string>();
+      ordersData.forEach(order => {
+        userIds.add(order.creator_id);
+        if (order.executor_id) userIds.add(order.executor_id);
+      });
+
+      // Fetch profiles for all users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', Array.from(userIds));
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of user_id to profile
+      const profilesMap = new Map<string, ProfileRow>();
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.user_id, profile);
+      });
+
+      // Combine orders with profiles
+      const ordersWithProfiles: P2POrderWithProfiles[] = ordersData.map(order => ({
+        ...order,
+        creator_profile: profilesMap.get(order.creator_id) || null,
+        executor_profile: order.executor_id ? profilesMap.get(order.executor_id) || null : null,
+      }));
+
+      setOrders(ordersWithProfiles);
     } catch (err) {
       setError(err as Error);
       console.error('Error fetching P2P orders:', err);
@@ -113,12 +132,16 @@ export function useP2PDatabase() {
         .single();
 
       if (error) throw error;
+      
+      // Refresh orders to get profile data
+      fetchOrders();
+      
       return data;
     } catch (err) {
       console.error('Error creating P2P order:', err);
       return null;
     }
-  }, [user]);
+  }, [user, fetchOrders]);
 
   // Match/execute an order
   const executeOrder = useCallback(async (orderId: string) => {
@@ -135,12 +158,16 @@ export function useP2PDatabase() {
         .eq('status', 'open');
 
       if (error) throw error;
+      
+      // Refresh orders
+      fetchOrders();
+      
       return true;
     } catch (err) {
       console.error('Error executing P2P order:', err);
       return false;
     }
-  }, [user]);
+  }, [user, fetchOrders]);
 
   // Update order status
   const updateOrderStatus = useCallback(async (
@@ -168,12 +195,16 @@ export function useP2PDatabase() {
         .eq('id', orderId);
 
       if (error) throw error;
+      
+      // Refresh orders
+      fetchOrders();
+      
       return true;
     } catch (err) {
       console.error('Error updating P2P order status:', err);
       return false;
     }
-  }, [user]);
+  }, [user, fetchOrders]);
 
   // Send a message
   const sendMessage = useCallback(async (
@@ -210,12 +241,10 @@ export function useP2PDatabase() {
   // Get open orders (marketplace)
   const fetchOpenOrders = useCallback(async (country?: string) => {
     try {
+      // Fetch open orders
       let query = supabase
         .from('p2p_orders')
-        .select(`
-          *,
-          creator_profile:profiles!p2p_orders_creator_id_fkey(id, user_id, name, username, avatar_url, country)
-        `)
+        .select('*')
         .eq('status', 'open')
         .order('created_at', { ascending: false });
 
@@ -223,10 +252,39 @@ export function useP2PDatabase() {
         query = query.eq('country', country);
       }
 
-      const { data, error } = await query;
+      const { data: ordersData, error: ordersError } = await query;
 
-      if (error) throw error;
-      return (data as P2POrderWithProfiles[]) || [];
+      if (ordersError) throw ordersError;
+      
+      if (!ordersData || ordersData.length === 0) {
+        return [];
+      }
+
+      // Get unique creator IDs
+      const creatorIds = [...new Set(ordersData.map(o => o.creator_id))];
+
+      // Fetch profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', creatorIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map
+      const profilesMap = new Map<string, ProfileRow>();
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.user_id, profile);
+      });
+
+      // Combine
+      const ordersWithProfiles: P2POrderWithProfiles[] = ordersData.map(order => ({
+        ...order,
+        creator_profile: profilesMap.get(order.creator_id) || null,
+        executor_profile: null,
+      }));
+
+      return ordersWithProfiles;
     } catch (err) {
       console.error('Error fetching open P2P orders:', err);
       return [];
