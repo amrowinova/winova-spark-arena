@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Home, Trophy, Star, Crown, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut } from 'lucide-react';
+import { Home, Trophy, Star, Crown, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut, ChevronDown } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage, SUPPORTED_LANGUAGES, Language } from '@/contexts/LanguageContext';
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,11 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { AuthFlow } from '@/components/auth';
 import { toast } from '@/hooks/use-toast';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface SideDrawerProps {
   open: boolean;
@@ -42,20 +47,22 @@ const secondaryItems = [
 const logoutItem = { icon: LogOut, path: '/logout', labelEn: 'Logout', labelAr: 'تسجيل الخروج', emoji: '🚪' };
 
 export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
-  const { language, toggleLanguage } = useLanguage();
+  const { language, setLanguage, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const isRTL = language === 'ar';
+  const isRTL = currentLanguage.direction === 'rtl';
   
   const [authOpen, setAuthOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
 
   const handleNavigation = (path: string) => {
     navigate(path);
     onOpenChange(false);
   };
 
-  const handleLanguageToggle = () => {
-    toggleLanguage();
+  const handleLanguageSelect = (langCode: Language) => {
+    setLanguage(langCode);
+    setLangOpen(false);
   };
 
   const handleLogoutClick = () => {
@@ -136,17 +143,47 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                 );
               })}
               
-              {/* Language Toggle */}
-              <button
-                onClick={handleLanguageToggle}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1 hover:bg-muted text-foreground"
-              >
-                <span className="text-base">🌐</span>
-                <Globe className="h-5 w-5" />
-                <span className="font-medium text-sm">
-                  {isRTL ? 'English' : 'العربية'}
-                </span>
-              </button>
+              {/* Language Selector */}
+              <Collapsible open={langOpen} onOpenChange={setLangOpen}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1 hover:bg-muted text-foreground"
+                  >
+                    <span className="text-base">{currentLanguage.flag}</span>
+                    <Globe className="h-5 w-5" />
+                    <span className="font-medium text-sm flex-1 text-start">
+                      {currentLanguage.nameNative}
+                    </span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 text-muted-foreground transition-transform",
+                      langOpen && "rotate-180"
+                    )} />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="ps-4">
+                  <div className="space-y-1 py-1">
+                    {SUPPORTED_LANGUAGES.map((lang) => {
+                      const isSelected = language === lang.code;
+                      return (
+                        <button
+                          key={lang.code}
+                          onClick={() => handleLanguageSelect(lang.code)}
+                          className={cn(
+                            'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm',
+                            isSelected 
+                              ? 'bg-primary/10 text-primary font-medium' 
+                              : 'hover:bg-muted text-foreground'
+                          )}
+                        >
+                          <span className="text-base">{lang.flag}</span>
+                          <span>{lang.nameNative}</span>
+                          {isSelected && <span className="ms-auto">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
             
             <div className="p-2 border-t border-border">

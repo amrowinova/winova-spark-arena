@@ -1,5 +1,6 @@
 import { UserRank } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
+import { Language } from '@/contexts/LanguageContext';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -27,7 +28,7 @@ const RANKS: { value: UserRank; labelAr: string; labelEn: string; icon: string }
 interface RankSwitcherProps {
   currentRank: UserRank;
   onRankChange: (rank: UserRank) => void;
-  language: 'ar' | 'en';
+  language: Language;
 }
 
 export function RankSwitcher({ currentRank, onRankChange, language }: RankSwitcherProps) {

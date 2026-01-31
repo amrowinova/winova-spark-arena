@@ -1,12 +1,32 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-type Language = 'en' | 'ar';
+export type Language = 'ar' | 'en' | 'fr' | 'de' | 'nl' | 'tr' | 'fa' | 'es';
 type Direction = 'ltr' | 'rtl';
+
+export interface LanguageOption {
+  code: Language;
+  nameEn: string;
+  nameNative: string;
+  direction: Direction;
+  flag: string;
+}
+
+export const SUPPORTED_LANGUAGES: LanguageOption[] = [
+  { code: 'ar', nameEn: 'Arabic', nameNative: 'العربية', direction: 'rtl', flag: '🇸🇦' },
+  { code: 'en', nameEn: 'English', nameNative: 'English', direction: 'ltr', flag: '🇬🇧' },
+  { code: 'fr', nameEn: 'French', nameNative: 'Français', direction: 'ltr', flag: '🇫🇷' },
+  { code: 'de', nameEn: 'German', nameNative: 'Deutsch', direction: 'ltr', flag: '🇩🇪' },
+  { code: 'nl', nameEn: 'Dutch', nameNative: 'Nederlands', direction: 'ltr', flag: '🇳🇱' },
+  { code: 'tr', nameEn: 'Turkish', nameNative: 'Türkçe', direction: 'ltr', flag: '🇹🇷' },
+  { code: 'fa', nameEn: 'Persian', nameNative: 'فارسی', direction: 'rtl', flag: '🇮🇷' },
+  { code: 'es', nameEn: 'Spanish', nameNative: 'Español', direction: 'ltr', flag: '🇪🇸' },
+];
 
 interface LanguageContextType {
   language: Language;
   direction: Direction;
+  currentLanguage: LanguageOption;
   toggleLanguage: () => void;
   setLanguage: (lang: Language) => void;
 }
@@ -17,10 +37,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation();
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('winova-language');
-    return (saved as Language) || 'en';
+    return (saved as Language) || 'ar';
   });
 
-  const direction: Direction = language === 'ar' ? 'rtl' : 'ltr';
+  const currentLanguage = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
+  const direction: Direction = currentLanguage.direction;
 
   useEffect(() => {
     document.documentElement.dir = direction;
@@ -30,7 +51,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [language, direction, i18n]);
 
   const toggleLanguage = () => {
-    setLanguageState((prev) => (prev === 'en' ? 'ar' : 'en'));
+    // Cycle through languages
+    const currentIndex = SUPPORTED_LANGUAGES.findIndex(l => l.code === language);
+    const nextIndex = (currentIndex + 1) % SUPPORTED_LANGUAGES.length;
+    setLanguageState(SUPPORTED_LANGUAGES[nextIndex].code);
   };
 
   const setLanguage = (lang: Language) => {
@@ -38,7 +62,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, direction, toggleLanguage, setLanguage }}>
+    <LanguageContext.Provider value={{ language, direction, currentLanguage, toggleLanguage, setLanguage }}>
       {children}
     </LanguageContext.Provider>
   );
