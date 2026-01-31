@@ -7,9 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
-import { countryPricing } from '@/contexts/TransactionContext';
 import { cn } from '@/lib/utils';
 
 interface WalletCountry {
@@ -69,33 +69,37 @@ export function WalletCountrySelector() {
           <ChevronDown className="h-3 w-3" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <div className="px-2 py-1.5 text-xs text-muted-foreground border-b mb-1">
+      <DropdownMenuContent align="end" className="w-64 p-0 bg-popover z-50">
+        <div className="px-3 py-2 text-xs text-muted-foreground border-b bg-muted/30 sticky top-0">
           {language === 'ar' ? 'عملة العرض' : 'Display Currency'}
         </div>
-        {WALLET_COUNTRIES.map((country) => (
-          <DropdownMenuItem
-            key={country.name}
-            onClick={() => handleCountryChange(country)}
-            className={cn(
-              "gap-3 py-2.5 cursor-pointer",
-              selectedCountry.name === country.name && "bg-primary/10"
-            )}
-          >
-            <span className="text-xl">{country.flag}</span>
-            <div className="flex-1">
-              <p className="text-sm font-medium">
-                {language === 'ar' ? country.nameAr : country.name}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {country.symbol} • И 1 = {country.novaRate.toLocaleString()}
-              </p>
-            </div>
-            {selectedCountry.name === country.name && (
-              <div className="h-2 w-2 rounded-full bg-primary" />
-            )}
-          </DropdownMenuItem>
-        ))}
+        <ScrollArea className="h-[min(70vh,400px)]">
+          <div className="p-1">
+            {WALLET_COUNTRIES.map((country) => (
+              <DropdownMenuItem
+                key={country.name}
+                onClick={() => handleCountryChange(country)}
+                className={cn(
+                  "gap-3 py-2.5 px-3 cursor-pointer rounded-md",
+                  selectedCountry.name === country.name && "bg-primary/10"
+                )}
+              >
+                <span className="text-xl">{country.flag}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">
+                    {language === 'ar' ? country.nameAr : country.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {country.symbol} • И 1 = {country.novaRate.toLocaleString()}
+                  </p>
+                </div>
+                {selectedCountry.name === country.name && (
+                  <div className="h-2 w-2 rounded-full bg-primary" />
+                )}
+              </DropdownMenuItem>
+            ))}
+          </div>
+        </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
   );
