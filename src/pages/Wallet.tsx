@@ -62,8 +62,8 @@ export default function WalletPage() {
     if (selectedTab === 'all') return true;
     if (selectedTab === 'earnings') return r.type === 'team_earnings';
     if (selectedTab === 'nova') {
-      // Nova operations: transfers, P2P (exclude team earnings - has its own tab)
-      return r.type === 'transfer_nova' || r.type === 'p2p_buy' || r.type === 'p2p_sell' || r.type === 'convert_nova_aura';
+      // Nova operations: transfers, P2P, AND team earnings (real Nova profits)
+      return r.type === 'transfer_nova' || r.type === 'p2p_buy' || r.type === 'p2p_sell' || r.type === 'convert_nova_aura' || r.type === 'team_earnings';
     }
     if (selectedTab === 'aura') {
       // Aura operations: vote earnings, contest entry, voting
