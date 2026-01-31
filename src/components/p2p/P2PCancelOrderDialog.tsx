@@ -21,10 +21,10 @@ interface CancelReason {
 }
 
 const CANCEL_REASONS: CancelReason[] = [
-  { id: 'frozen_account', labelEn: 'My account is frozen', labelAr: 'حسابي مجمّد' },
-  { id: 'payment_not_receiving', labelEn: "Payment account doesn't receive", labelAr: 'حساب المدفوعات لا يستقبل' },
-  { id: 'transfer_error', labelEn: 'Error during transfer', labelAr: 'خطأ أثناء التحويل' },
-  { id: 'time_expired', labelEn: 'Time expired', labelAr: 'انتهى الوقت' },
+  { id: 'could_not_transfer', labelEn: "Couldn't complete transfer", labelAr: 'لم أتمكن من التحويل' },
+  { id: 'bank_issue', labelEn: 'Bank / Account issue', labelAr: 'مشكلة في البنك / الحساب' },
+  { id: 'changed_mind', labelEn: 'Changed my mind', labelAr: 'غيّرت رأيي' },
+  { id: 'price_not_suitable', labelEn: 'Price no longer suitable', labelAr: 'السعر لم يعد مناسبًا' },
   { id: 'other', labelEn: 'Other reason', labelAr: 'سبب آخر' },
 ];
 
