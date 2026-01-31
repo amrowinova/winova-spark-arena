@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Trophy, Star, Crown, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut, ChevronDown } from 'lucide-react';
+import { Trophy, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut, ChevronDown } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage, SUPPORTED_LANGUAGES, Language } from '@/contexts/LanguageContext';
 import {
@@ -25,20 +25,16 @@ interface SideDrawerProps {
 
 // Main navigation sections
 const mainItems = [
-  { icon: Home, path: '/', labelEn: 'Home', labelAr: 'الرئيسية', emoji: '🏠' },
-  { icon: Trophy, path: '/contests', labelEn: 'Contests', labelAr: 'المسابقات', emoji: '🏆' },
-  { icon: Star, path: '/hall-of-fame', labelEn: 'Top Winners', labelAr: 'متصدري الفائزون', emoji: '⭐' },
-  { icon: Crown, path: '/lucky-leaders', labelEn: 'Lucky Leaders', labelAr: 'متصدّري المحظوظين', emoji: '🍀' },
-  { icon: Sparkles, path: '/spotlight', labelEn: 'Lucky Points', labelAr: 'نقاط المحظوظين', emoji: '✨' },
-  { icon: Wallet, path: '/wallet', labelEn: 'Wallet', labelAr: 'المحفظة', emoji: '💰' },
+  { icon: Sparkles, path: '/spotlight', labelEn: 'Lucky Points', labelAr: 'نقاط المحظوظين', emoji: '⭐' },
+  { icon: Wallet, path: '/wallet', labelEn: 'Wallet', labelAr: 'المحفظة', emoji: '💼' },
   { icon: MessageCircle, path: '/chat', labelEn: 'Chat', labelAr: 'الدردشة', emoji: '💬' },
   { icon: Users, path: '/team', labelEn: 'Team', labelAr: 'الفريق', emoji: '👥' },
+  { icon: Trophy, path: '/winners', labelEn: 'Contest History', labelAr: 'سجل المسابقات والفائزين', emoji: '🏆' },
+  { icon: ArrowLeftRight, path: '/p2p', labelEn: 'P2P', labelAr: 'P2P', emoji: '🔁' },
 ];
 
 // Secondary menu items
 const secondaryItems = [
-  { icon: Trophy, path: '/winners', labelEn: 'Contest History', labelAr: 'سجل المسابقات والفائزين', emoji: '📜' },
-  { icon: ArrowLeftRight, path: '/p2p', labelEn: 'P2P', labelAr: 'P2P', emoji: '🔁' },
   { icon: Settings, path: '/settings', labelEn: 'Settings', labelAr: 'الإعدادات', emoji: '⚙️' },
   { icon: HelpCircle, path: '/help', labelEn: 'Help', labelAr: 'المساعدة', emoji: '❓' },
   { icon: FileText, path: '/policies', labelEn: 'Policies', labelAr: 'السياسات', emoji: '📄' },
