@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export type Language = 'ar' | 'en' | 'fr' | 'de' | 'nl' | 'tr' | 'fa' | 'es';
+export type Language = 'ar' | 'en' | 'fr' | 'de' | 'nl' | 'tr' | 'fa' | 'es' | 'ur' | 'it';
 type Direction = 'ltr' | 'rtl';
 
 export interface LanguageOption {
@@ -21,6 +21,8 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'tr', nameEn: 'Turkish', nameNative: 'Türkçe', direction: 'ltr', flag: '🇹🇷' },
   { code: 'fa', nameEn: 'Persian', nameNative: 'فارسی', direction: 'rtl', flag: '🇮🇷' },
   { code: 'es', nameEn: 'Spanish', nameNative: 'Español', direction: 'ltr', flag: '🇪🇸' },
+  { code: 'ur', nameEn: 'Urdu', nameNative: 'اردو', direction: 'rtl', flag: '🇵🇰' },
+  { code: 'it', nameEn: 'Italian', nameNative: 'Italiano', direction: 'ltr', flag: '🇮🇹' },
 ];
 
 interface LanguageContextType {
