@@ -139,11 +139,10 @@ export default function WalletPage() {
                       </div>
                       <div className="text-end bg-warning/10 rounded-lg px-3 py-2">
                         <p className="text-xs text-warning font-medium">
-                          {language === 'ar' ? 'الإفراج' : 'Release'}
+                          {language === 'ar' ? 'تاريخ الإفراج' : 'Release Date'}
                         </p>
-                        <p className="text-xl font-bold text-foreground">{releaseInfo.label}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {releaseInfo.daysRemaining} {language === 'ar' ? 'يوم' : 'days'}
+                        <p className="text-base font-bold text-foreground">
+                          {language === 'ar' ? releaseInfo.formattedDateAr : releaseInfo.formattedDate}
                         </p>
                       </div>
                     </div>

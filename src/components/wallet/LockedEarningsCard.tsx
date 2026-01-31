@@ -10,35 +10,39 @@ const formatAmount = (value: number): string => {
 
 /**
  * Calculate next release date (15th or 30th of month)
+ * Returns exact date formatted for display
  */
-export function getNextReleaseDate(): { date: Date; label: string; daysRemaining: number } {
+export function getNextReleaseDate(): { date: Date; formattedDate: string; formattedDateAr: string } {
   const now = new Date();
   const currentDay = now.getDate();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
   let nextRelease: Date;
-  let label: string;
 
   if (currentDay < 15) {
     // Next release is 15th of current month
     nextRelease = new Date(currentYear, currentMonth, 15);
-    label = '15';
   } else if (currentDay < 30) {
     // Next release is 30th of current month
     nextRelease = new Date(currentYear, currentMonth, 30);
-    label = '30';
   } else {
     // Next release is 15th of next month
     nextRelease = new Date(currentYear, currentMonth + 1, 15);
-    label = '15';
   }
 
-  // Calculate days remaining
-  const timeDiff = nextRelease.getTime() - now.getTime();
-  const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+  // Format date for display
+  const formattedDate = nextRelease.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+  });
 
-  return { date: nextRelease, label, daysRemaining };
+  const formattedDateAr = nextRelease.toLocaleDateString('ar-SA', {
+    day: 'numeric',
+    month: 'short',
+  });
+
+  return { date: nextRelease, formattedDate, formattedDateAr };
 }
 
 interface LockedEarningsCardProps {
@@ -84,14 +88,11 @@ export function LockedEarningsCard({ lockedBalance, walletCountry }: LockedEarni
           <div className="flex items-center gap-1 text-warning mb-1">
             <Calendar className="h-3 w-3" />
             <span className="text-xs font-medium">
-              {language === 'ar' ? 'الإفراج القادم' : 'Next Release'}
+              {language === 'ar' ? 'تاريخ الإفراج' : 'Release Date'}
             </span>
           </div>
-          <p className="text-lg font-bold text-foreground">
-            {releaseInfo.label}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {releaseInfo.daysRemaining} {language === 'ar' ? 'يوم' : 'days'}
+          <p className="text-base font-bold text-foreground">
+            {language === 'ar' ? releaseInfo.formattedDateAr : releaseInfo.formattedDate}
           </p>
         </div>
       </div>
