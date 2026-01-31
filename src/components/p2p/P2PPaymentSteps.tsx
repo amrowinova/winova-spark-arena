@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, CheckCircle, XCircle, Clock, ArrowRight } from 'lucide-react';
+import { Copy, CheckCircle, XCircle, Clock, ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -92,6 +92,18 @@ export function P2PPaymentSteps({
                   : '⚠️ Make sure to copy all account details before proceeding'
                 }
               </p>
+
+              {/* Cancel order button - available before payment */}
+              <Button
+                variant="ghost"
+                onClick={() => setShowCancelDialog(true)}
+                className="w-full h-10 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <X className="h-4 w-4" />
+                <span className="text-sm">
+                  {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
+                </span>
+              </Button>
             </motion.div>
           )}
 
