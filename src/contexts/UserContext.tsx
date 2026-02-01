@@ -1,9 +1,13 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
 export type UserRank = 'subscriber' | 'marketer' | 'leader' | 'manager' | 'president';
-
-// Engagement status based on weekly activity
 export type EngagementStatus = 'both' | 'contest' | 'vote' | 'none';
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type Wallet = Database['public']['Tables']['wallets']['Row'];
 
 export interface User {
   id: string;
@@ -11,70 +15,180 @@ export interface User {
   username: string;
   avatar?: string;
   novaBalance: number;
-  lockedNovaBalance: number; // Team earnings - released on 15th & 30th
+  lockedNovaBalance: number;
   auraBalance: number;
   rank: UserRank;
   teamSize: number;
   directTeam: number;
   indirectTeam: number;
   weeklyActive: boolean;
-  engagementStatus: EngagementStatus; // New: tracks what user did this week
+  engagementStatus: EngagementStatus;
   activityPercentage: number;
   teamActivityPercentage: number;
   spotlightPoints: number;
   referralCode: string;
-  country: string; // User's registered country (affects team/referrals)
+  country: string;
   city: string;
-  walletCountry: string; // Display currency country (affects wallet/receipts only)
+  walletCountry: string;
   hasJoinedWithNova: boolean;
   activeWeeks: number;
-  totalWeeks: number; // Always 14 in a cycle
-  currentWeek: number; // Current week in cycle (1-14)
+  totalWeeks: number;
+  currentWeek: number;
 }
 
 interface UserContextType {
   user: User;
+  isLoading: boolean;
+  isAuthenticated: boolean;
   updateUser: (updates: Partial<User>) => void;
   addNova: (amount: number) => void;
-  addLockedNova: (amount: number) => void; // For team earnings
-  releaseLockedNova: () => number; // Release all locked → available
+  addLockedNova: (amount: number) => void;
+  releaseLockedNova: () => number;
   addAura: (amount: number) => void;
   spendNova: (amount: number) => boolean;
   spendAura: (amount: number) => boolean;
-  // Auto-convert Nova to Aura for contests/voting (1:1 ratio)
   autoConvertNovaToAura: (auraNeeded: number) => boolean;
+  refetchUserData: () => Promise<void>;
 }
 
-const defaultUser: User = {
-  id: '1',
-  name: 'Ahmed',
-  username: 'ahmed_sa',
-  novaBalance: 150,
-  lockedNovaBalance: 10.5, // Accumulated team earnings (mock)
-  auraBalance: 320,
-  rank: 'marketer',
-  teamSize: 47,
-  directTeam: 12,
-  indirectTeam: 35,
-  weeklyActive: true,
-  engagementStatus: 'both', // User joined contest AND voted this week
-  activityPercentage: 71, // 5 active weeks / 7 weeks passed = 71%
-  teamActivityPercentage: 65,
-  spotlightPoints: 1250,
-  referralCode: 'WINOVA-AH7X9',
-  country: 'Saudi Arabia', // Registered country (team/referrals)
-  city: 'Riyadh',
-  walletCountry: 'Saudi Arabia', // Display currency country
-  hasJoinedWithNova: true,
-  activeWeeks: 5,
+// Default guest user (unauthenticated)
+const guestUser: User = {
+  id: 'guest',
+  name: 'Guest',
+  username: 'guest',
+  novaBalance: 0,
+  lockedNovaBalance: 0,
+  auraBalance: 0,
+  rank: 'subscriber',
+  teamSize: 0,
+  directTeam: 0,
+  indirectTeam: 0,
+  weeklyActive: false,
+  engagementStatus: 'none',
+  activityPercentage: 0,
+  teamActivityPercentage: 0,
+  spotlightPoints: 0,
+  referralCode: '',
+  country: 'Saudi Arabia',
+  city: '',
+  walletCountry: 'Saudi Arabia',
+  hasJoinedWithNova: false,
+  activeWeeks: 0,
   totalWeeks: 14,
-  currentWeek: 7,
+  currentWeek: 1,
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>(defaultUser);
+  const { user: authUser, session } = useAuth();
+  const [user, setUser] = useState<User>(guestUser);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch user data from database
+  const fetchUserData = useCallback(async () => {
+    if (!authUser) {
+      // Reset to guest state when logged out
+      setUser(guestUser);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Fetch profile and wallet in parallel
+      const [profileResult, walletResult, teamResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .maybeSingle(),
+        supabase
+          .from('wallets')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .maybeSingle(),
+        supabase
+          .from('team_members')
+          .select('id, level')
+          .eq('leader_id', authUser.id),
+      ]);
+
+      const profile = profileResult.data as Profile | null;
+      const wallet = walletResult.data as Wallet | null;
+      const teamMembers = teamResult.data || [];
+
+      if (profile && wallet) {
+        // Calculate team sizes
+        const directTeam = teamMembers.filter(m => m.level === 1).length;
+        const indirectTeam = teamMembers.filter(m => m.level > 1).length;
+        const totalTeam = teamMembers.length;
+
+        setUser({
+          id: profile.id,
+          name: profile.name,
+          username: profile.username,
+          avatar: profile.avatar_url || undefined,
+          novaBalance: Number(wallet.nova_balance) || 0,
+          lockedNovaBalance: Number(wallet.locked_nova_balance) || 0,
+          auraBalance: Number(wallet.aura_balance) || 0,
+          rank: profile.rank as UserRank,
+          teamSize: totalTeam,
+          directTeam,
+          indirectTeam,
+          weeklyActive: profile.weekly_active,
+          engagementStatus: profile.engagement_status as EngagementStatus,
+          activityPercentage: profile.activity_percentage,
+          teamActivityPercentage: profile.team_activity_percentage,
+          spotlightPoints: profile.spotlight_points,
+          referralCode: profile.referral_code || '',
+          country: profile.country,
+          city: profile.city || '',
+          walletCountry: profile.wallet_country,
+          hasJoinedWithNova: profile.has_joined_with_nova,
+          activeWeeks: profile.active_weeks,
+          totalWeeks: 14,
+          currentWeek: profile.current_week,
+        });
+      } else {
+        // No profile/wallet found - user might be newly created, use defaults
+        setUser({
+          ...guestUser,
+          id: authUser.id,
+          name: authUser.user_metadata?.name || 'User',
+          username: authUser.user_metadata?.username || `user_${authUser.id.slice(0, 8)}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      // On error, reset to guest
+      setUser(guestUser);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authUser]);
+
+  // Refetch when auth state changes
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData, session]);
+
+  // Listen for auth state changes to trigger refetch
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event) => {
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          // Small delay to ensure DB triggers have completed
+          setTimeout(() => {
+            fetchUserData();
+          }, 500);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [fetchUserData]);
 
   const updateUser = (updates: Partial<User>) => {
     setUser((prev) => ({ ...prev, ...updates }));
@@ -118,22 +232,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
-  // Auto-convert Nova to Aura when user doesn't have enough Aura
-  // Conversion rate: 1 Nova = 1 Aura
   const autoConvertNovaToAura = (auraNeeded: number): boolean => {
-    // First, check if user has enough Aura
     if (user.auraBalance >= auraNeeded) {
       return spendAura(auraNeeded);
     }
     
-    // Calculate how much more Aura is needed
     const auraDeficit = auraNeeded - user.auraBalance;
     
-    // Check if user has enough Nova to cover the deficit
     if (user.novaBalance >= auraDeficit) {
-      // Spend all available Aura first
-      const auraSpent = user.auraBalance;
-      // Convert Nova to cover the rest
       setUser((prev) => ({
         ...prev,
         auraBalance: 0,
@@ -148,6 +254,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   return (
     <UserContext.Provider value={{ 
       user, 
+      isLoading,
+      isAuthenticated: !!authUser,
       updateUser, 
       addNova,
       addLockedNova,
@@ -155,7 +263,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       addAura, 
       spendNova, 
       spendAura,
-      autoConvertNovaToAura 
+      autoConvertNovaToAura,
+      refetchUserData: fetchUserData,
     }}>
       {children}
     </UserContext.Provider>

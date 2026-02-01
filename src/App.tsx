@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -14,6 +15,7 @@ import { InlineBanner } from "@/components/common/InlineBanner";
 import { GlobalAuthGuard } from "@/components/auth/GlobalAuthGuard";
 import { ProfileEnsureWrapper } from "@/components/auth/ProfileEnsureWrapper";
 import { AuthGuard, SupportGuard, AdminGuard } from "@/components/auth";
+import { supabase } from "@/integrations/supabase/client";
 import "@/lib/i18n/index";
 
 // Pages
@@ -50,6 +52,14 @@ import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
 
 
 const queryClient = new QueryClient();
+
+// Clear React Query cache on auth state changes
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+    // Clear all cached queries to force fresh data fetch
+    queryClient.clear();
+  }
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
