@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Wallet, AlertCircle } from 'lucide-react';
 import { useP2PSafe } from '@/contexts/P2PContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 // Home Components
 import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
@@ -17,6 +19,7 @@ import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
 import { useActiveUsers } from '@/hooks/useActiveUsers';
+import { getContestTiming } from '@/lib/contestTiming';
 
 import {
   Dialog,
@@ -48,8 +51,11 @@ const formatBalance = (value: number): string => {
 export default function HomePage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
-  const { user, autoConvertNovaToAura, spendAura, spendNova } = useUser();
+  const navigate = useNavigate();
+  const { user: authUser } = useAuth();
+  const { user } = useUser();
   const { chats: p2pChats } = useP2PSafe();
+  const { success: showSuccess, error: showError } = useBanner();
   
   // Active users counter - updates every 30 seconds
   const globalActiveUsers = useActiveUsers();
@@ -66,62 +72,121 @@ export default function HomePage() {
   const hasUnreadP2P = p2pChats.some(chat => chat.unreadCount > 0);
   const showP2PAlert = hasActiveP2POrder || hasP2PDispute || hasUnreadP2P;
   
-  // Contest timing - closes at 6 PM today
-  const now = new Date();
-  const closesAt = new Date();
-  closesAt.setHours(18, 0, 0, 0);
-  if (closesAt < now) {
-    closesAt.setDate(closesAt.getDate() + 1);
-  }
-  const endsAt = new Date(closesAt.getTime() + 4 * 60 * 60 * 1000);
-  
   // Get local currency info
   const { getCurrencyInfo } = useNovaPricing();
   const pricing = getCurrencyInfo(user.country);
   const novaLocalValue = user.novaBalance * pricing.novaRate;
 
-  // User contest state - starts as not joined (real state)
+  // Real contest data from DB
+  const [activeContestId, setActiveContestId] = useState<string | null>(null);
+  const [prizePool, setPrizePool] = useState(0);
+  const [participantCount, setParticipantCount] = useState(0);
   const [hasJoined, setHasJoined] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+
+  // Contest timing from KSA
+  const [timing, setTiming] = useState(getContestTiming());
+  const entryFee = 10;
+
+  // Update timing every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTiming(getContestTiming());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch real contest data
+  const fetchContestData = useCallback(async () => {
+    try {
+      const { data: contestData } = await supabase
+        .from('contests')
+        .select('id, prize_pool, current_participants')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (contestData) {
+        setActiveContestId(contestData.id);
+        setPrizePool(contestData.prize_pool || 0);
+        setParticipantCount(contestData.current_participants || 0);
+
+        // Check if user has joined
+        if (authUser) {
+          const { data: entryData } = await supabase
+            .from('contest_entries')
+            .select('id')
+            .eq('contest_id', contestData.id)
+            .eq('user_id', authUser.id)
+            .maybeSingle();
+
+          setHasJoined(!!entryData);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching contest:', err);
+    }
+  }, [authUser]);
+
+  useEffect(() => {
+    fetchContestData();
+  }, [fetchContestData]);
 
   const handleJoinContest = () => {
+    if (!authUser) {
+      showError(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
+      return;
+    }
     setJoinDialogOpen(true);
   };
 
-  const { success: showSuccess, error: showError } = useBanner();
-  const entryFee = 10;
+  const confirmJoin = async () => {
+    if (!authUser || !activeContestId) {
+      showError(language === 'ar' ? 'لا توجد مسابقة نشطة' : 'No active contest');
+      return;
+    }
 
-  const confirmJoin = () => {
-    const auraEquivalent = entryFee * 2; // 1 Nova = 2 Aura
-    
-    // Auto-deduction logic: Try Aura first, then Nova, then mix
-    if (user.auraBalance >= auraEquivalent) {
-      // Pay fully with Aura
-      spendAura(auraEquivalent);
-    } else if (user.novaBalance >= entryFee) {
-      // Pay fully with Nova
-      spendNova(entryFee);
-    } else if (user.auraBalance > 0 && user.novaBalance > 0) {
-      // Mix: Use all Aura first, then Nova for the rest
-      const auraToUse = user.auraBalance;
-      const novaEquivalentFromAura = auraToUse / 2;
-      const remainingNovaNeeded = entryFee - novaEquivalentFromAura;
-      
-      if (user.novaBalance >= remainingNovaNeeded) {
-        spendAura(auraToUse);
-        spendNova(remainingNovaNeeded);
-      } else {
-        showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
-        return;
-      }
-    } else {
+    if (user.novaBalance < entryFee) {
       showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
       return;
     }
-    
-    setHasJoined(true);
-    setJoinDialogOpen(false);
-    showSuccess(language === 'ar' ? '🎉 تم الانضمام للمسابقة بنجاح!' : '🎉 Successfully joined the contest!');
+
+    setIsJoining(true);
+
+    try {
+      const { data, error } = await supabase.rpc('join_contest', {
+        p_user_id: authUser.id,
+        p_contest_id: activeContestId,
+        p_entry_fee: entryFee,
+      });
+
+      if (error) {
+        console.error('Join contest error:', error);
+        showError(error.message);
+        return;
+      }
+
+      const result = data as { success: boolean; error?: string };
+
+      if (!result.success) {
+        showError(result.error || (language === 'ar' ? 'فشل الانضمام' : 'Failed to join'));
+        return;
+      }
+
+      setHasJoined(true);
+      setJoinDialogOpen(false);
+      showSuccess(language === 'ar' ? '🎉 تم الانضمام للمسابقة بنجاح!' : '🎉 Successfully joined the contest!');
+      
+      // Navigate to contests page
+      navigate('/contests');
+    } catch (err) {
+      console.error('Join error:', err);
+      showError(language === 'ar' ? 'حدث خطأ' : 'An error occurred');
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   return (
@@ -241,11 +306,11 @@ export default function HomePage() {
         {/* Daily Contest Card - Most prominent */}
         <motion.div variants={itemVariants}>
           <ContestJoinCard
-            prizePool={0}
-            participants={0}
-            stage="stage1"
-            closesAt={closesAt}
-            endsAt={endsAt}
+            prizePool={prizePool}
+            participants={participantCount}
+            stage={timing.currentStage === 'final' ? 'final' : 'stage1'}
+            closesAt={timing.stage1End}
+            endsAt={timing.finalEnd}
             entryFee={entryFee}
             hasJoined={hasJoined}
             onJoin={handleJoinContest}
@@ -303,17 +368,19 @@ export default function HomePage() {
             <Button 
               className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
               onClick={confirmJoin}
-              disabled={
-                (user.novaBalance + (user.auraBalance / 2)) < entryFee
-              }
+              disabled={isJoining || user.novaBalance < entryFee}
             >
-              {language === 'ar' ? 'ادفع الآن' : 'Pay Now'}
+              {isJoining ? (
+                <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+              ) : (
+                language === 'ar' ? 'ادفع الآن' : 'Pay Now'
+              )}
             </Button>
 
             <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
               {language === 'ar' 
-                ? 'يتم الخصم تلقائياً من Aura أولاً ثم Nova'
-                : 'Auto-deducts from Aura first, then Nova'}
+                ? 'الخصم يتم من رصيد Nova فقط'
+                : 'Deducted from Nova balance only'}
             </p>
           </div>
         </DialogContent>

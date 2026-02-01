@@ -170,6 +170,48 @@ export default function ContestsPage() {
     fetchContestData();
   }, [fetchContestData]);
 
+  // Realtime subscription for contest updates
+  useEffect(() => {
+    if (!activeContestId) return;
+
+    const contestChannel = supabase
+      .channel(`contest-realtime-${activeContestId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contest_entries',
+          filter: `contest_id=eq.${activeContestId}`,
+        },
+        () => {
+          // Refetch data on any contest entry change
+          fetchContestData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'contests',
+          filter: `id=eq.${activeContestId}`,
+        },
+        (payload) => {
+          // Update prize pool in realtime
+          const updated = payload.new as { prize_pool?: number; current_participants?: number };
+          if (updated.prize_pool !== undefined) {
+            setPrizePool(updated.prize_pool);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(contestChannel);
+    };
+  }, [activeContestId, fetchContestData]);
+
   // In final stage, only top 50 are shown
   const displayParticipants = isFinal ? participants.slice(0, 50) : participants;
   
@@ -181,57 +223,98 @@ export default function ContestsPage() {
   const top5Threshold = participants[4]?.votes || 0;
   const rank1Threshold = participants[0]?.votes || 0;
 
-  const handleJoinContest = () => {
+  const [isJoining, setIsJoining] = useState(false);
+
+  const handleJoinContest = async () => {
     // Check if contest is open for joining
     if (!timing.canJoin) {
       showError(language === 'ar' ? 'التسجيل مغلق حالياً' : 'Registration is currently closed');
       return;
     }
 
-    const auraEquivalent = entryFee * 2;
-    
-    if (user.auraBalance >= auraEquivalent) {
-      spendAura(auraEquivalent);
-    } else if (user.novaBalance >= entryFee) {
-      spendNova(entryFee);
-    } else if (user.auraBalance > 0 && user.novaBalance > 0) {
-      const auraToUse = user.auraBalance;
-      const novaEquivalentFromAura = auraToUse / 2;
-      const remainingNovaNeeded = entryFee - novaEquivalentFromAura;
-      
-      if (user.novaBalance >= remainingNovaNeeded) {
-        spendAura(auraToUse);
-        spendNova(remainingNovaNeeded);
-      } else {
-        showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
-        return;
-      }
-    } else {
+    if (!authUser || !activeContestId) {
+      showError(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
+      return;
+    }
+
+    // Check balance before calling RPC
+    if (user.novaBalance < entryFee) {
       showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
       return;
     }
 
-    const receipt = createTransaction({
-      type: 'contest_entry',
-      status: 'completed',
-      amount: entryFee,
-      currency: 'nova',
-      sender: {
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        country: user.country,
-      },
-      reason: language === 'ar' 
-        ? 'دخول المسابقة اليومية'
-        : 'Daily Contest Entry',
-    });
+    setIsJoining(true);
 
-    setHasJoined(true);
-    setJoinDialogOpen(false);
-    setSelectedReceipt(receipt);
-    setReceiptDialogOpen(true);
-    showSuccess(language === 'ar' ? '🎉 تم الانضمام للمسابقة!' : '🎉 Joined the contest!');
+    try {
+      // Call atomic RPC function
+      const { data, error } = await supabase.rpc('join_contest', {
+        p_user_id: authUser.id,
+        p_contest_id: activeContestId,
+        p_entry_fee: entryFee,
+      });
+
+      if (error) {
+        console.error('Join contest error:', error);
+        showError(error.message);
+        return;
+      }
+
+      const result = data as { success: boolean; error?: string; new_participants?: number; new_prize_pool?: number };
+
+      if (!result.success) {
+        showError(result.error || (language === 'ar' ? 'فشل الانضمام' : 'Failed to join'));
+        return;
+      }
+
+      // Update local state
+      setHasJoined(true);
+      setPrizePool(result.new_prize_pool || prizePool);
+      
+      // Add user to participants list
+      setParticipants(prev => {
+        const newParticipant: Participant = {
+          id: authUser.id,
+          name: user.name,
+          username: user.username,
+          votes: 0,
+          avatar: '👤',
+          rank: prev.length + 1,
+          country: user.country,
+        };
+        return [...prev, newParticipant];
+      });
+
+      setUserRank(participants.length + 1);
+
+      const receipt = createTransaction({
+        type: 'contest_entry',
+        status: 'completed',
+        amount: entryFee,
+        currency: 'nova',
+        sender: {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          country: user.country,
+        },
+        reason: language === 'ar' 
+          ? 'دخول المسابقة اليومية'
+          : 'Daily Contest Entry',
+      });
+
+      setJoinDialogOpen(false);
+      setSelectedReceipt(receipt);
+      setReceiptDialogOpen(true);
+      showSuccess(language === 'ar' ? '🎉 تم الانضمام للمسابقة!' : '🎉 Joined the contest!');
+      
+      // Refresh data
+      fetchContestData();
+    } catch (err) {
+      console.error('Join error:', err);
+      showError(language === 'ar' ? 'حدث خطأ' : 'An error occurred');
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   const handleVote = (participant: Participant) => {
@@ -243,53 +326,80 @@ export default function ContestsPage() {
     setVoteDialogOpen(true);
   };
 
-  const handleConfirmVote = (voteCount: number, isFreeVote: boolean) => {
-    if (!selectedParticipant) return;
+  const [isVoting, setIsVoting] = useState(false);
+
+  const handleConfirmVote = async (voteCount: number, isFreeVote: boolean) => {
+    if (!selectedParticipant || !authUser || !activeContestId) return;
     if (!timing.canVote) {
       showError(language === 'ar' ? 'التصويت مغلق حالياً' : 'Voting is currently closed');
       return;
     }
 
-    if (!isFreeVote) {
-      let remainingVotes = voteCount;
-      
-      if (user.auraBalance >= remainingVotes) {
-        spendAura(remainingVotes);
-      } else {
-        const auraToUse = user.auraBalance;
-        spendAura(auraToUse);
-        remainingVotes -= auraToUse;
-        const novaCost = remainingVotes / 2;
-        spendNova(novaCost);
+    // Free vote handled separately
+    if (isFreeVote) {
+      handleUseFreeVote();
+      return;
+    }
+
+    setIsVoting(true);
+
+    try {
+      // Call atomic RPC function
+      const { data, error } = await supabase.rpc('cast_vote', {
+        p_voter_id: authUser.id,
+        p_contestant_id: selectedParticipant.id,
+        p_contest_id: activeContestId,
+        p_vote_count: voteCount,
+      });
+
+      if (error) {
+        console.error('Vote error:', error);
+        showError(error.message);
+        return;
       }
 
+      const result = data as { success: boolean; error?: string; votes_cast?: number };
+
+      if (!result.success) {
+        showError(result.error || (language === 'ar' ? 'فشل التصويت' : 'Vote failed'));
+        return;
+      }
+
+      // Update local state
       if (isStage1) {
         setUsedVotesStage1(prev => prev + voteCount);
       } else {
         setUsedVotesFinal(prev => prev + voteCount);
       }
+
+      // Update participant votes and re-sort
+      const updatedParticipants = participants.map(p => 
+        p.id === selectedParticipant.id 
+          ? { ...p, votes: p.votes + voteCount }
+          : p
+      ).sort((a, b) => b.votes - a.votes).map((p, i) => ({ ...p, rank: i + 1 }));
+
+      setParticipants(updatedParticipants);
+
+      const newParticipantData = updatedParticipants.find(p => p.id === selectedParticipant.id);
+      const newRank = newParticipantData?.rank || selectedParticipant.rank;
+
+      setVoteDialogOpen(false);
+
+      showSuccess(
+        language === 'ar' 
+          ? `رائع! نجحت بالتصويت لـ ${selectedParticipant.name} بـ ${voteCount} صوت وأصبح الآن #${newRank}`
+          : `Great! You voted for ${selectedParticipant.name} with ${voteCount} vote${voteCount > 1 ? 's' : ''} and is now #${newRank}`
+      );
+
+      // Refresh data
+      fetchContestData();
+    } catch (err) {
+      console.error('Vote error:', err);
+      showError(language === 'ar' ? 'حدث خطأ' : 'An error occurred');
+    } finally {
+      setIsVoting(false);
     }
-
-    // Update participant votes and re-sort
-    const updatedParticipants = participants.map(p => 
-      p.id === selectedParticipant.id 
-        ? { ...p, votes: p.votes + (isFreeVote ? 1 : voteCount) }
-        : p
-    ).sort((a, b) => b.votes - a.votes).map((p, i) => ({ ...p, rank: i + 1 }));
-
-    setParticipants(updatedParticipants);
-
-    const newParticipantData = updatedParticipants.find(p => p.id === selectedParticipant.id);
-    const newRank = newParticipantData?.rank || selectedParticipant.rank;
-
-    setVoteDialogOpen(false);
-
-    const votesText = isFreeVote ? 1 : voteCount;
-    showSuccess(
-      language === 'ar' 
-        ? `رائع! نجحت بالتصويت لـ ${selectedParticipant.name} بـ ${votesText} صوت وأصبح الآن #${newRank}`
-        : `Great! You voted for ${selectedParticipant.name} with ${votesText} vote${votesText > 1 ? 's' : ''} and is now #${newRank}`
-    );
   };
 
   const handleUseFreeVote = () => {
@@ -471,7 +581,7 @@ export default function ContestsPage() {
               <Button 
                 className="w-full"
                 onClick={() => setJoinDialogOpen(true)}
-                disabled={(user.novaBalance + (user.auraBalance / 2)) < entryFee}
+                disabled={user.novaBalance < entryFee}
               >
                 {language === 'ar' ? 'انضم الآن' : 'Join Now'}
               </Button>
@@ -582,9 +692,13 @@ export default function ContestsPage() {
             <Button 
               className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
               onClick={handleJoinContest}
-              disabled={(user.novaBalance + (user.auraBalance / 2)) < entryFee}
+              disabled={isJoining || user.novaBalance < entryFee}
             >
-              {language === 'ar' ? 'ادفع الآن' : 'Pay Now'}
+              {isJoining ? (
+                <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+              ) : (
+                language === 'ar' ? 'ادفع الآن' : 'Pay Now'
+              )}
             </Button>
 
             <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
