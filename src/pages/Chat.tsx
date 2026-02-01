@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones } from 'lucide-react';
+import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones, UserPlus } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useP2P, P2PChat, P2PMessage } from '@/contexts/P2PContext';
 import { useSupport } from '@/contexts/SupportContext';
+import { useDirectMessages, DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { Receipt } from '@/contexts/TransactionContext';
@@ -25,6 +26,7 @@ import { ReplyBar } from '@/components/chat/ReplyBar';
 import { TeamInfoSheet, TeamChatMember } from '@/components/chat/TeamInfoSheet';
 import { ChatSearchResults, ConversationResult, UserResult } from '@/components/chat/ChatSearchResults';
 import { SupportChatView } from '@/components/chat/SupportChatView';
+import { UserSearchSheet } from '@/components/chat/UserSearchSheet';
 import { 
   P2PChatHeader, 
   P2POrderCard, 
@@ -66,6 +68,9 @@ interface Conversation {
   };
   // P2P-specific
   p2pChatId?: string;
+  // DM-specific (real database DM)
+  dmConversationId?: string;
+  dmParticipantId?: string;
 }
 
 // Mock conversations with enhanced messages
@@ -214,8 +219,19 @@ function ChatContent() {
   const { chats: p2pChats, activeChat: activeP2PChat, activeOrder, setActiveChat: setActiveP2PChat, setActiveOrder, sendMessage: sendP2PMessage, deleteOrder } = useP2P();
   const { messages: supportMessages, totalUnread: supportUnread, currentTicket } = useSupport();
   
+  // Real DM hook
+  const { 
+    conversations: dmConversations, 
+    messages: dmMessages, 
+    isLoading: dmLoading,
+    fetchMessages: fetchDMMessages,
+    sendMessage: sendDMMessage,
+    getOrCreateConversation,
+  } = useDirectMessages();
+
   const [selectedTab, setSelectedTab] = useState('dm');
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
+  const [activeDMConversation, setActiveDMConversation] = useState<DMConversation | null>(null);
   const [conversations, setConversations] = useState(initialConversations);
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -227,6 +243,7 @@ function ChatContent() {
   const [teamInfoOpen, setTeamInfoOpen] = useState(false);
   const [showP2PDetails, setShowP2PDetails] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
+  const [showUserSearch, setShowUserSearch] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -244,7 +261,7 @@ function ChatContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChat?.messages, activeP2PChat?.messages]);
 
-  // Convert P2P chats to conversation format for the list
+  // Convert P2P chats to conversation format for the list (P2P = order-bound chats only)
   const p2pConversations: Conversation[] = p2pChats.map(chat => {
     const otherParty = chat.buyer.id === user.id ? chat.seller : chat.buyer;
     const latestOrder = chat.orders[chat.orders.length - 1];
@@ -267,6 +284,26 @@ function ChatContent() {
     };
   });
 
+  // Convert real DM conversations from database
+  const realDMConversations: Conversation[] = dmConversations.map(conv => ({
+    id: `dm-${conv.id}`,
+    type: 'dm' as const,
+    name: conv.participantName,
+    username: conv.participantUsername,
+    avatar: conv.participantAvatar ? '👤' : '👤',
+    isOnline: false,
+    lastMessage: conv.lastMessage || (language === 'ar' ? 'ابدأ المحادثة' : 'Start chatting'),
+    time: conv.lastMessageAt 
+      ? new Date(conv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '',
+    unread: conv.unreadCount,
+    messages: [],
+    pinnedMessages: [],
+    // Store the actual conversation ID for fetching
+    dmConversationId: conv.id,
+    dmParticipantId: conv.participantId,
+  } as Conversation & { dmConversationId: string; dmParticipantId: string }));
+
   // Create support conversation for the list
   const lastSupportMessage = supportMessages[supportMessages.length - 1];
   const supportConversation: Conversation = {
@@ -287,13 +324,17 @@ function ChatContent() {
     pinnedMessages: [],
   };
 
-  const allConversations = [supportConversation, ...conversations, ...p2pConversations];
+  // Combine all conversations - Real DMs + Support + P2P (remove mock DMs from conversations)
+  const teamConversations = conversations.filter(c => c.type === 'team');
+  const allConversations = [supportConversation, ...realDMConversations, ...teamConversations, ...p2pConversations];
 
   const filteredConversations = allConversations.filter(conv => {
-    // System notifications excluded from chat - they go to bell icon only
     if (conv.type === 'system') return false;
-    if (conv.id === 'support') return selectedTab === 'dm'; // Support shows in DM tab
-    return conv.type === selectedTab;
+    if (conv.id === 'support') return selectedTab === 'dm';
+    if (selectedTab === 'dm') return conv.type === 'dm';
+    if (selectedTab === 'team') return conv.type === 'team';
+    if (selectedTab === 'p2p') return conv.type === 'p2p';
+    return false;
   });
 
   // Calculate unread conversation counts per tab
@@ -556,23 +597,59 @@ function ChatContent() {
       setShowSupportChat(true);
       setActiveChat(null);
       setActiveP2PChat(null);
+      setActiveDMConversation(null);
       return;
     }
     
+    // Handle P2P conversations (order-bound chats)
     if (conv.type === 'p2p' && conv.p2pChatId) {
       setActiveP2PChat(conv.p2pChatId);
       setActiveChat(null);
-    } else {
-      setActiveChat(conv);
-      setActiveP2PChat(null);
+      setActiveDMConversation(null);
+      return;
     }
+    
+    // Handle real DM conversations from database
+    if (conv.type === 'dm' && conv.dmConversationId) {
+      const dmConv = dmConversations.find(c => c.id === conv.dmConversationId);
+      if (dmConv) {
+        setActiveDMConversation(dmConv);
+        fetchDMMessages(dmConv.id);
+        setActiveChat(null);
+        setActiveP2PChat(null);
+        return;
+      }
+    }
+    
+    // Handle mock team/other chats
+    setActiveChat(conv);
+    setActiveP2PChat(null);
+    setActiveDMConversation(null);
   };
 
   const handleBackFromChat = () => {
     setActiveChat(null);
     setActiveP2PChat(null);
+    setActiveDMConversation(null);
     setShowP2PDetails(false);
     setShowSupportChat(false);
+  };
+
+  // Handle user selection from search (create/open DM)
+  const handleUserSelectedFromSearch = async (user: any, conversationId: string) => {
+    const dmConv = dmConversations.find(c => c.id === conversationId);
+    if (dmConv) {
+      setActiveDMConversation(dmConv);
+      fetchDMMessages(conversationId);
+    } else {
+      // Refetch and then open
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const updatedConv = dmConversations.find(c => c.id === conversationId);
+      if (updatedConv) {
+        setActiveDMConversation(updatedConv);
+        fetchDMMessages(conversationId);
+      }
+    }
   };
 
   // Merge human messages and system messages for team chat
@@ -607,6 +684,120 @@ function ChatContent() {
     return (
       <AppLayout title={language === 'ar' ? 'دعم Winova' : 'Winova Support'} showNav={false} showHeader={false}>
         <SupportChatView onBack={handleBackFromChat} />
+      </AppLayout>
+    );
+  }
+
+  // Active DM Conversation View (real database DM)
+  if (activeDMConversation) {
+    const conversationMessages = dmMessages[activeDMConversation.id] || [];
+    
+    return (
+      <AppLayout title={activeDMConversation.participantName} showNav={false} showHeader={false}>
+        <div className="flex flex-col h-screen">
+          {/* DM Chat Header */}
+          <ChatHeader
+            name={activeDMConversation.participantName}
+            username={activeDMConversation.participantUsername}
+            avatar="👤"
+            isOnline={false}
+            onBack={handleBackFromChat}
+            onTransfer={() => setTransferDialogOpen(true)}
+          />
+
+          {/* Messages */}
+          <ScrollArea className="flex-1 p-4">
+            <div className="space-y-2">
+              {conversationMessages.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {language === 'ar' ? 'ابدأ المحادثة' : 'Start the conversation'}
+                </div>
+              ) : (
+                conversationMessages.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'} mb-2`}
+                  >
+                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl ${
+                      msg.isMine 
+                        ? 'bg-primary text-primary-foreground rounded-br-sm' 
+                        : 'bg-muted rounded-bl-sm'
+                    }`}>
+                      {!msg.isMine && (
+                        <p className="text-xs font-medium mb-1 opacity-70">{msg.senderName}</p>
+                      )}
+                      {msg.messageType === 'transfer' && msg.transferAmount ? (
+                        <div className="bg-success/20 rounded-lg p-2 mb-1">
+                          <p className="text-sm font-medium">
+                            💸 {language === 'ar' ? 'تحويل Nova' : 'Nova Transfer'}
+                          </p>
+                          <p className="text-lg font-bold">{msg.transferAmount} И</p>
+                        </div>
+                      ) : null}
+                      <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                      <span className="text-[10px] opacity-60 block text-end mt-1">
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Input */}
+          <div className="p-4 border-t border-border bg-card safe-bottom">
+            <div className="flex items-center gap-2">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={language === 'ar' ? 'اكتب رسالة...' : 'Type a message...'}
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && message.trim()) {
+                    sendDMMessage(activeDMConversation.id, message);
+                    setMessage('');
+                  }
+                }}
+              />
+              <Button 
+                size="icon" 
+                onClick={() => {
+                  if (message.trim()) {
+                    sendDMMessage(activeDMConversation.id, message);
+                    setMessage('');
+                  }
+                }} 
+                disabled={!message.trim()}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Transfer Dialog */}
+          <TransferNovaDialog 
+            open={transferDialogOpen}
+            onClose={() => setTransferDialogOpen(false)}
+            recipientId={activeDMConversation.participantId}
+            recipientName={activeDMConversation.participantName}
+            recipientUsername={activeDMConversation.participantUsername}
+            onTransferComplete={(receipt) => {
+              // Send a transfer message in the chat
+              sendDMMessage(
+                activeDMConversation.id, 
+                language === 'ar' 
+                  ? `تم تحويل ${receipt.amount} Nova` 
+                  : `Transferred ${receipt.amount} Nova`,
+                receipt.amount,
+                activeDMConversation.participantId
+              );
+            }}
+          />
+        </div>
       </AppLayout>
     );
   }
@@ -937,25 +1128,36 @@ function ChatContent() {
   return (
     <AppLayout title={t('chat.title')}>
       <div className="px-4 py-4 space-y-4">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('common.search')}
-            className="ps-10"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-              onClick={() => setSearchQuery('')}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+        {/* Search + New Chat Button */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('common.search')}
+              className="ps-10"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                onClick={() => setSearchQuery('')}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          {/* New Chat / Find User Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowUserSearch(true)}
+            className="shrink-0"
+          >
+            <UserPlus className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Search Results */}
@@ -1071,6 +1273,13 @@ function ChatContent() {
           </Tabs>
         )}
       </div>
+
+      {/* User Search Sheet */}
+      <UserSearchSheet
+        open={showUserSearch}
+        onOpenChange={setShowUserSearch}
+        onSelectUser={handleUserSelectedFromSearch}
+      />
     </AppLayout>
   );
 }
