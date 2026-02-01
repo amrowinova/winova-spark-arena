@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Wallet, AlertCircle } from 'lucide-react';
-import { useP2P } from '@/contexts/P2PContext';
+import { useP2PSafe } from '@/contexts/P2PContext';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -66,7 +66,7 @@ export default function HomePage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { user, autoConvertNovaToAura, spendAura, spendNova } = useUser();
-  const { chats: p2pChats } = useP2P();
+  const { chats: p2pChats } = useP2PSafe();
   
   // Active users counter - updates every 30 seconds
   const globalActiveUsers = useActiveUsers();
