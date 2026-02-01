@@ -22,10 +22,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { 
-  getCurrencyConfigFromCountry, 
-  formatNovaWithLocal 
-} from '@/lib/novaExchangeRates';
+import { formatNovaWithLocal } from '@/lib/novaExchangeRates';
 
 interface UserWallet {
   id: string;
@@ -59,7 +56,6 @@ export function AddNovaDialog({ open, onOpenChange, user, onSuccess }: AddNovaDi
   const [isLoading, setIsLoading] = useState(false);
 
   const country = user?.country || 'Egypt';
-  const currencyConfig = getCurrencyConfigFromCountry(country);
 
   const numericAmount = parseFloat(amount) || 0;
   const localValue = formatNovaWithLocal(numericAmount, country, isRTL);
