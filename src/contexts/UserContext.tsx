@@ -190,6 +190,38 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [fetchUserData]);
 
+  // Subscribe to realtime wallet changes (for admin updates)
+  useEffect(() => {
+    if (!authUser) return;
+
+    const channel = supabase
+      .channel(`wallet-changes-${authUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'wallets',
+          filter: `user_id=eq.${authUser.id}`,
+        },
+        (payload) => {
+          // Update wallet balances instantly from realtime payload
+          const newWallet = payload.new as { nova_balance: number; locked_nova_balance: number; aura_balance: number };
+          setUser((prev) => ({
+            ...prev,
+            novaBalance: Number(newWallet.nova_balance) || 0,
+            lockedNovaBalance: Number(newWallet.locked_nova_balance) || 0,
+            auraBalance: Number(newWallet.aura_balance) || 0,
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [authUser]);
+
   const updateUser = (updates: Partial<User>) => {
     setUser((prev) => ({ ...prev, ...updates }));
   };
