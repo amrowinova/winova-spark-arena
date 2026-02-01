@@ -47,3 +47,4 @@ export { P2PNoPaymentSheet } from './P2PNoPaymentSheet';
 // Payment Management
 export { P2PPaymentMethodsManager, useSavedPaymentMethods, PAYMENT_METHOD_TYPES, COUNTRY_PROVIDERS } from './P2PPaymentMethodsManager';
 export type { SavedPaymentMethod, PaymentMethodType, PaymentProvider } from './P2PPaymentMethodsManager';
+export { P2PPaymentMethodSelector } from './P2PPaymentMethodSelector';
