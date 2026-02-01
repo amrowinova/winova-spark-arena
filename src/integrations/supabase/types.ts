@@ -166,6 +166,80 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          participant1_id: string
+          participant2_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          participant1_id: string
+          participant2_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          participant1_id?: string
+          participant2_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      direct_messages: {
+        Row: {
+          content: string
+          content_ar: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message_type: string
+          sender_id: string
+          transfer_amount: number | null
+          transfer_recipient_id: string | null
+        }
+        Insert: {
+          content: string
+          content_ar?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_type?: string
+          sender_id: string
+          transfer_amount?: number | null
+          transfer_recipient_id?: string | null
+        }
+        Update: {
+          content?: string
+          content_ar?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_type?: string
+          sender_id?: string
+          transfer_amount?: number | null
+          transfer_recipient_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
