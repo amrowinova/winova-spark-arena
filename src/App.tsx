@@ -73,52 +73,51 @@ const App = () => (
                   <P2PProvider>
                     <SupportProvider>
                       <TooltipProvider>
-                        <GlobalAuthGuard />
-                        <ProfileEnsureWrapper />
-                        <InlineBanner />
-                      <BrowserRouter>
-                      <Routes>
-                        {/* Public routes */}
-                        <Route path="/" element={<Index />} />
-                        <Route path="/hall-of-fame" element={<HallOfFame />} />
-                        <Route path="/winners" element={<Winners />} />
-                        <Route path="/help" element={<Help />} />
-                        <Route path="/user/:userId" element={<PublicProfile />} />
-                        
-                        {/* Policy pages - public, no login required */}
-                        <Route path="/terms" element={<Terms />} />
-                        <Route path="/privacy" element={<Privacy />} />
-                        <Route path="/refund" element={<Refund />} />
-                        <Route path="/aml" element={<AML />} />
-                        <Route path="/contact" element={<Contact />} />
-                        <Route path="/user/:userId" element={<PublicProfile />} />
-                        
-                        {/* Protected routes - require authentication */}
-                        <Route path="/contests" element={<AuthGuard><Contests /></AuthGuard>} />
-                        <Route path="/team" element={<AuthGuard><Team /></AuthGuard>} />
-                        <Route path="/wallet" element={<AuthGuard><Wallet /></AuthGuard>} />
-                        <Route path="/chat" element={<AuthGuard><Chat /></AuthGuard>} />
-                        <Route path="/p2p" element={<AuthGuard><P2P /></AuthGuard>} />
-                        <Route path="/spotlight" element={<AuthGuard><Spotlight /></AuthGuard>} />
-                        <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
-                        <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
-                        <Route path="/lucky-leaders" element={<AuthGuard><LuckyLeaders /></AuthGuard>} />
-                        <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
-                        
-                        {/* Support Panel routes - require support role */}
-                        <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />
-                        <Route path="/support/ticket/:ticketId" element={<SupportGuard><SupportTicketDetail /></SupportGuard>} />
-                        <Route path="/support/disputes" element={<SupportGuard><SupportDisputes /></SupportGuard>} />
-                        <Route path="/support/users" element={<SupportGuard><SupportUsers /></SupportGuard>} />
-                        
-                        {/* Admin Panel routes - require admin role */}
-                        <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
-                        <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />
-                        <Route path="/admin/roles" element={<AdminGuard><AdminRoles /></AdminGuard>} />
-                        
-                        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
+                        <BrowserRouter>
+                          <GlobalAuthGuard />
+                          <ProfileEnsureWrapper />
+                          <InlineBanner />
+                          <Routes>
+                            {/* Public routes */}
+                            <Route path="/" element={<Index />} />
+                            <Route path="/hall-of-fame" element={<HallOfFame />} />
+                            <Route path="/winners" element={<Winners />} />
+                            <Route path="/help" element={<Help />} />
+                            <Route path="/user/:userId" element={<PublicProfile />} />
+                            
+                            {/* Policy pages - public, no login required */}
+                            <Route path="/terms" element={<Terms />} />
+                            <Route path="/privacy" element={<Privacy />} />
+                            <Route path="/refund" element={<Refund />} />
+                            <Route path="/aml" element={<AML />} />
+                            <Route path="/contact" element={<Contact />} />
+                            
+                            {/* Protected routes - require authentication */}
+                            <Route path="/contests" element={<AuthGuard><Contests /></AuthGuard>} />
+                            <Route path="/team" element={<AuthGuard><Team /></AuthGuard>} />
+                            <Route path="/wallet" element={<AuthGuard><Wallet /></AuthGuard>} />
+                            <Route path="/chat" element={<AuthGuard><Chat /></AuthGuard>} />
+                            <Route path="/p2p" element={<AuthGuard><P2P /></AuthGuard>} />
+                            <Route path="/spotlight" element={<AuthGuard><Spotlight /></AuthGuard>} />
+                            <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
+                            <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
+                            <Route path="/lucky-leaders" element={<AuthGuard><LuckyLeaders /></AuthGuard>} />
+                            <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
+                            
+                            {/* Support Panel routes - require support role */}
+                            <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />
+                            <Route path="/support/ticket/:ticketId" element={<SupportGuard><SupportTicketDetail /></SupportGuard>} />
+                            <Route path="/support/disputes" element={<SupportGuard><SupportDisputes /></SupportGuard>} />
+                            <Route path="/support/users" element={<SupportGuard><SupportUsers /></SupportGuard>} />
+                            
+                            {/* Admin Panel routes - require admin role */}
+                            <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+                            <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />
+                            <Route path="/admin/roles" element={<AdminGuard><AdminRoles /></AdminGuard>} />
+                            
+                            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
                         </BrowserRouter>
                       </TooltipProvider>
                     </SupportProvider>
