@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, ShoppingCart, Send, ArrowLeft,
-  Star, AlertCircle
+  Star, AlertCircle, Loader2
 } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -18,7 +18,8 @@ import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useBanner } from '@/contexts/BannerContext';
-
+import { useP2PMarketplace, MarketplaceOrder } from '@/hooks/useP2PMarketplace';
+import { useP2PDatabase } from '@/hooks/useP2PDatabase';
 
 import {
   p2pParticipantFromOfferUser,
@@ -43,6 +44,7 @@ import {
   P2PCompactOrderCard,
   P2POrderCompletedScreen,
   P2PWaitingReleaseCard,
+  P2PMarketplaceCard,
   CountryConfig,
   PaymentMethod,
   P2POffer,
@@ -52,122 +54,6 @@ import {
 } from '@/components/p2p';
 
 import { P2POrder, P2POrderStatus, P2PChat, P2PMessage, useP2P } from '@/contexts/P2PContext';
-
-// Mock offers data based on country - for BUY tab (sellers offering Nova)
-const generateBuyOffersForCountry = (country: CountryConfig): P2POffer[] => {
-  const baseOffers = [
-    {
-      id: 'offer-buy-1',
-      user: {
-        id: 'user-seller-1',
-        name: 'Mohammed Ali',
-        nameAr: 'محمد علي',
-        avatar: '👨',
-        rating: 4.9,
-        completedTrades: 156,
-        completionRate: 98.5,
-      },
-      amount: 500,
-      timeLimit: 30,
-    },
-    {
-      id: 'offer-buy-2',
-      user: {
-        id: 'user-seller-2',
-        name: 'Sarah Hassan',
-        nameAr: 'سارة حسن',
-        avatar: '👩',
-        rating: 4.8,
-        completedTrades: 89,
-        completionRate: 97.2,
-      },
-      amount: 200,
-      timeLimit: 15,
-    },
-    {
-      id: 'offer-buy-3',
-      user: {
-        id: 'user-seller-3',
-        name: 'Ahmed Khalil',
-        nameAr: 'أحمد خليل',
-        avatar: '👨‍💼',
-        rating: 4.7,
-        completedTrades: 234,
-        completionRate: 99.1,
-      },
-      amount: 100,
-      timeLimit: 60,
-    },
-  ];
-
-  return baseOffers.map(offer => ({
-    ...offer,
-    type: 'sell' as const, // Seller is selling Nova
-    price: country.novaRate,
-    currency: country.currency,
-    currencySymbol: country.currencySymbol,
-    paymentMethods: country.paymentMethods,
-    country,
-  }));
-};
-
-// Mock offers for SELL tab - buyers wanting to buy Nova
-const generateSellOffersForCountry = (country: CountryConfig): P2POffer[] => {
-  const baseOffers = [
-    {
-      id: 'offer-sell-1',
-      user: {
-        id: 'user-buyer-1',
-        name: 'Omar Faisal',
-        nameAr: 'عمر فيصل',
-        avatar: '🧑',
-        rating: 4.85,
-        completedTrades: 78,
-        completionRate: 96.2,
-      },
-      amount: 300,
-      timeLimit: 30,
-    },
-    {
-      id: 'offer-sell-2',
-      user: {
-        id: 'user-buyer-2',
-        name: 'Fatima Abdullah',
-        nameAr: 'فاطمة عبدالله',
-        avatar: '👩‍💼',
-        rating: 4.92,
-        completedTrades: 142,
-        completionRate: 99.3,
-      },
-      amount: 150,
-      timeLimit: 20,
-    },
-    {
-      id: 'offer-sell-3',
-      user: {
-        id: 'user-buyer-3',
-        name: 'Yusuf Ali',
-        nameAr: 'يوسف علي',
-        avatar: '👨‍🦱',
-        rating: 4.6,
-        completedTrades: 45,
-        completionRate: 94.5,
-      },
-      amount: 500,
-      timeLimit: 45,
-    },
-  ];
-
-  return baseOffers.map(offer => ({
-    ...offer,
-    type: 'buy' as const, // This user wants to BUY Nova (so you sell to them)
-    price: country.novaRate,
-    currency: country.currency,
-    currencySymbol: country.currencySymbol,
-    paymentMethods: country.paymentMethods,
-    country,
-  }));
-};
 
 // Convert P2POrder to P2POrderListItem
 const orderToListItem = (order: P2POrder, currentUserId: string): P2POrderListItem => {
@@ -224,21 +110,30 @@ function P2PContent() {
   const [buyDialogOpen, setBuyDialogOpen] = useState(false);
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<P2POffer | null>(null);
+  const [selectedMarketplaceOrder, setSelectedMarketplaceOrder] = useState<MarketplaceOrder | null>(null);
   const [message, setMessage] = useState('');
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [activeChatView, setActiveChatView] = useState<P2PChat | null>(null);
   const [activeChatOrder, setActiveChatOrder] = useState<P2POrder | null>(null);
   const [showCompletedScreen, setShowCompletedScreen] = useState(false);
+  const [isExecutingOrder, setIsExecutingOrder] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Use the live-rate country (selectedCountry or default)
   const currentCountry = selectedCountry || defaultCountry;
 
-  // Generate offers based on selected country with live rates
-  const buyOffers = generateBuyOffersForCountry(currentCountry);
-  const sellOffers = generateSellOffersForCountry(currentCountry);
+  // Fetch real marketplace orders from database
+  const { 
+    buyOrders: marketplaceBuyOrders,    // Users want to buy Nova (you sell to them)
+    sellOrders: marketplaceSellOrders,  // Users want to sell Nova (you buy from them)
+    isLoading: isMarketplaceLoading,
+    refetch: refetchMarketplace 
+  } = useP2PMarketplace(currentCountry?.name);
+
+  // Get database functions
+  const db = useP2PDatabase();
 
   // Get all orders from chats
   const allOrders: P2POrder[] = chats.flatMap(chat => chat.orders);
@@ -273,6 +168,34 @@ function P2PContent() {
       }
     }
   }, [chats, activeChatView?.id, activeChatOrder?.id]);
+
+  // Handle executing a marketplace order (match with existing order)
+  const handleExecuteOrder = async (order: MarketplaceOrder) => {
+    // Check if user can create/execute order
+    const check = canCreateOrder();
+    if (!check.allowed) {
+      showError(check.reason || (isRTL ? 'لا يمكنك تنفيذ طلب جديد' : 'Cannot execute new order'));
+      return;
+    }
+
+    setIsExecutingOrder(true);
+    try {
+      const success = await db.executeOrder(order.id);
+      if (success) {
+        showSuccess(isRTL ? 'تم تأكيد الطلب! جاري فتح المحادثة...' : 'Order matched! Opening chat...');
+        // Refetch marketplace and switch to orders tab
+        refetchMarketplace();
+        setSelectedTab('orders');
+      } else {
+        showError(isRTL ? 'حدث خطأ أثناء تنفيذ الطلب' : 'Error executing order');
+      }
+    } catch (err) {
+      console.error('Error executing order:', err);
+      showError(isRTL ? 'حدث خطأ أثناء تنفيذ الطلب' : 'Error executing order');
+    } finally {
+      setIsExecutingOrder(false);
+    }
+  };
 
   const handleBuyFromOffer = (offer: P2POffer) => {
     // Check if user can create order
@@ -693,7 +616,7 @@ function P2PContent() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Buy Tab - Offers List (Sellers offering Nova) */}
+          {/* Buy Tab - Real marketplace orders (users selling Nova, you can buy) */}
           <TabsContent value="buy" className="mt-4 space-y-3">
             {/* Create Buy Order Button - Always visible */}
             <Button 
@@ -712,7 +635,14 @@ function P2PContent() {
               {isRTL ? 'إنشاء طلب شراء' : 'Create Buy Order'}
             </Button>
 
-            {buyOffers.length === 0 ? (
+            {isMarketplaceLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {isRTL ? 'جاري تحميل العروض...' : 'Loading offers...'}
+                </p>
+              </div>
+            ) : marketplaceSellOrders.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -730,17 +660,18 @@ function P2PContent() {
               </motion.div>
             ) : (
               <AnimatePresence mode="popLayout">
-                {buyOffers.map((offer, index) => (
+                {marketplaceSellOrders.map((order, index) => (
                   <motion.div
-                    key={offer.id}
+                    key={order.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <P2POfferCard
-                      offer={offer}
-                      onAction={handleBuyFromOffer}
+                    <P2PMarketplaceCard
+                      order={order}
+                      onExecute={handleExecuteOrder}
                       actionType="buy"
+                      isExecuting={isExecutingOrder}
                     />
                   </motion.div>
                 ))}
@@ -748,7 +679,7 @@ function P2PContent() {
             )}
           </TabsContent>
 
-          {/* Sell Tab - Offers List (Buyers wanting Nova) */}
+          {/* Sell Tab - Real marketplace orders (users buying Nova, you can sell) */}
           <TabsContent value="sell" className="mt-4 space-y-3">
             {/* Create Sell Order Button - Always visible */}
             <Button 
@@ -767,7 +698,14 @@ function P2PContent() {
               {isRTL ? 'إنشاء طلب بيع' : 'Create Sell Order'}
             </Button>
 
-            {sellOffers.length === 0 ? (
+            {isMarketplaceLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {isRTL ? 'جاري تحميل الطلبات...' : 'Loading requests...'}
+                </p>
+              </div>
+            ) : marketplaceBuyOrders.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -785,23 +723,25 @@ function P2PContent() {
               </motion.div>
             ) : (
               <AnimatePresence mode="popLayout">
-                {sellOffers.map((offer, index) => (
+                {marketplaceBuyOrders.map((order, index) => (
                   <motion.div
-                    key={offer.id}
+                    key={order.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <P2POfferCard
-                      offer={offer}
-                      onAction={handleSellToOffer}
+                    <P2PMarketplaceCard
+                      order={order}
+                      onExecute={handleExecuteOrder}
                       actionType="sell"
+                      isExecuting={isExecutingOrder}
                     />
                   </motion.div>
                 ))}
               </AnimatePresence>
             )}
           </TabsContent>
+
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="mt-4">
