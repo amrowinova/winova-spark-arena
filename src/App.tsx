@@ -12,6 +12,7 @@ import { BannerProvider } from "@/contexts/BannerContext";
 import { SupportProvider } from "@/contexts/SupportContext";
 import { InlineBanner } from "@/components/common/InlineBanner";
 import { GlobalAuthGuard } from "@/components/auth/GlobalAuthGuard";
+import { ProfileEnsureWrapper } from "@/components/auth/ProfileEnsureWrapper";
 import { AuthGuard, SupportGuard, AdminGuard } from "@/components/auth";
 import "@/lib/i18n/index";
 
@@ -63,6 +64,7 @@ const App = () => (
                     <SupportProvider>
                       <TooltipProvider>
                         <GlobalAuthGuard />
+                        <ProfileEnsureWrapper />
                         <InlineBanner />
                       <BrowserRouter>
                       <Routes>

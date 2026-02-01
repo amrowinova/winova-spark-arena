@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthRequiredContextType {
   showAuthRequired: () => void;
@@ -38,8 +39,22 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
     setIsModalOpen(false);
   };
 
-  const openAuthFlow = (mode: 'login' | 'signup') => {
+  /**
+   * Opens the auth flow with session isolation.
+   * Signs out any existing session to prevent conflicts between devices.
+   */
+  const openAuthFlow = async (mode: 'login' | 'signup') => {
     setIsModalOpen(false);
+    
+    // Session isolation: sign out any existing session before starting auth
+    // This prevents session conflicts when switching accounts or devices
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn('Session cleanup failed:', error);
+      // Continue anyway - the auth flow will handle any issues
+    }
+    
     setAuthFlowMode(mode);
     setAuthFlowOpen(true);
   };
