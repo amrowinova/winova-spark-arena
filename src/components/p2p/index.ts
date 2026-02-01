@@ -10,6 +10,10 @@ export { P2PConfirmPaymentDialog } from './P2PConfirmPaymentDialog';
 export { P2PCompletionCard } from './P2PCompletionCard';
 export { P2PWaitingReleaseCard } from './P2PWaitingReleaseCard';
 
+// Role utilities
+export { P2PRoleBadge, P2PParticipantWithRole } from './P2PRoleBadge';
+export { P2PStatusActions } from './P2PStatusActions';
+
 // Selectors
 export { P2PAmountSelector, FIXED_AMOUNTS } from './P2PAmountSelector';
 export { P2PTimeSelector, FIXED_TIMES } from './P2PTimeSelector';
