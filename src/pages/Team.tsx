@@ -13,7 +13,7 @@ import { TeamMember } from '@/components/team/TeamMemberCard';
 import { RankSwitcher } from '@/components/team/DevRankSwitcher';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { FTUXGuard } from '@/components/ftux';
+
 
 // Mock direct team members
 const directTeamMembers: TeamMember[] = [
@@ -185,12 +185,5 @@ function TeamContent() {
 }
 
 export default function TeamPage() {
-  const { t } = useTranslation();
-  const { language } = useLanguage();
-  
-  return (
-    <FTUXGuard pageTitle={language === 'ar' ? 'الفريق' : 'Team'}>
-      <TeamContent />
-    </FTUXGuard>
-  );
+  return <TeamContent />;
 }

@@ -33,7 +33,7 @@ import {
   P2PSystemMessage 
 } from '@/components/p2p';
 import { useBanner } from '@/contexts/BannerContext';
-import { FTUXGuard } from '@/components/ftux';
+
 import type { UserRank } from '@/contexts/UserContext';
 
 interface Conversation {
@@ -1076,11 +1076,5 @@ function ChatContent() {
 }
 
 export default function ChatPage() {
-  const { language } = useLanguage();
-  
-  return (
-    <FTUXGuard pageTitle={language === 'ar' ? 'المحادثات' : 'Chat'}>
-      <ChatContent />
-    </FTUXGuard>
-  );
+  return <ChatContent />;
 }
