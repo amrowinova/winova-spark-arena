@@ -7,7 +7,8 @@ import {
   XCircle, 
   AlertTriangle,
   ChevronRight,
-  Timer
+  Timer,
+  Trash2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -103,11 +104,15 @@ const filterToStatuses: Record<OrderStatusFilter, P2POrderListItem['status'][]> 
 interface P2POrdersListProps {
   orders: P2POrderListItem[];
   onOpenChat: (orderId: string) => void;
+  onDeleteOrder?: (orderId: string) => boolean | Promise<boolean>;
+  onCancelOrder?: (orderId: string, reason: string) => void;
+  currentUserId?: string;
 }
 
-export function P2POrdersList({ orders, onOpenChat }: P2POrdersListProps) {
+export function P2POrdersList({ orders, onOpenChat, onDeleteOrder, onCancelOrder, currentUserId }: P2POrdersListProps) {
   const { language } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<OrderStatusFilter>('active');
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
   const isRTL = language === 'ar';
 
   const filteredOrders = orders.filter(order => 
@@ -257,16 +262,38 @@ export function P2POrdersList({ orders, onOpenChat }: P2POrdersListProps) {
                             </div>
                           )}
 
-                          {/* Action Button */}
-                          <Button 
-                            variant="outline" 
-                            className="w-full gap-2"
-                            onClick={() => onOpenChat(order.id)}
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                            {isRTL ? 'فتح المحادثة' : 'Open Chat'}
-                            <ChevronRight className="h-4 w-4 ms-auto" />
-                          </Button>
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            {/* Delete button for OPEN orders (creator only) */}
+                            {order.status === 'created' && onDeleteOrder && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="gap-2"
+                                disabled={deletingOrderId === order.id}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setDeletingOrderId(order.id);
+                                  await onDeleteOrder(order.id);
+                                  setDeletingOrderId(null);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                {isRTL ? 'حذف' : 'Delete'}
+                              </Button>
+                            )}
+
+                            {/* Open Chat button */}
+                            <Button 
+                              variant="outline" 
+                              className="flex-1 gap-2"
+                              onClick={() => onOpenChat(order.id)}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                              {isRTL ? 'فتح المحادثة' : 'Open Chat'}
+                              <ChevronRight className="h-4 w-4 ms-auto" />
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     </motion.div>

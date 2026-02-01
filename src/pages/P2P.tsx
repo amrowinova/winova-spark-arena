@@ -96,6 +96,7 @@ function P2PContent() {
     rateOrder,
     hasRatedOrder,
     createOrder,
+    deleteOrder,
   } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   const isRTL = language === 'ar';
@@ -520,7 +521,9 @@ function P2PContent() {
             <>
               <P2POrderCard 
                 order={activeChatOrder} 
+                currentUserId={user?.id}
                 isActive={true}
+                onDeleteOrder={deleteOrder}
               />
               
               {/* Payment Details */}
@@ -823,6 +826,8 @@ function P2PContent() {
             <P2POrdersList
               orders={orderListItems}
               onOpenChat={handleOpenChat}
+              onDeleteOrder={deleteOrder}
+              currentUserId={user?.id}
             />
           </TabsContent>
         </Tabs>

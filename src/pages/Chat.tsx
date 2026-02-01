@@ -211,7 +211,7 @@ function ChatContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useUser();
-  const { chats: p2pChats, activeChat: activeP2PChat, activeOrder, setActiveChat: setActiveP2PChat, setActiveOrder, sendMessage: sendP2PMessage } = useP2P();
+  const { chats: p2pChats, activeChat: activeP2PChat, activeOrder, setActiveChat: setActiveP2PChat, setActiveOrder, sendMessage: sendP2PMessage, deleteOrder } = useP2P();
   const { messages: supportMessages, totalUnread: supportUnread, currentTicket } = useSupport();
   
   const [selectedTab, setSelectedTab] = useState('dm');
@@ -628,7 +628,7 @@ function ChatContent() {
           {/* Order Card & Payment Details (Collapsible) */}
           {showP2PDetails && activeOrder && (
             <div className="px-4 py-3 bg-muted/30 border-b border-border space-y-3">
-              <P2POrderCard order={activeOrder} isActive />
+              <P2POrderCard order={activeOrder} currentUserId={user.id} isActive onDeleteOrder={deleteOrder} />
               {activeOrder.status !== 'completed' && activeOrder.status !== 'cancelled' && (
                 <P2PPaymentCard paymentDetails={activeOrder.paymentDetails} />
               )}
