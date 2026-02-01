@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Search, 
   User,
-  Mail,
   Calendar,
   Wallet,
   Shield,
@@ -24,7 +22,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { UserRoleManager } from '@/components/admin/UserRoleManager';
 
 interface UserProfile {
   id: string;
@@ -35,7 +32,6 @@ interface UserProfile {
   country: string;
   rank: string;
   created_at: string;
-  // Extended info
   nova_balance?: number;
   aura_balance?: number;
   roles?: string[];
@@ -43,28 +39,11 @@ interface UserProfile {
 
 export default function SupportUsers() {
   const { language } = useLanguage();
-  const { user: currentUser } = useAuth();
   const isRTL = language === 'ar';
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // Check if current user is admin
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!currentUser) return;
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id)
-        .eq('role', 'admin')
-        .single();
-      setIsAdmin(!!data);
-    };
-    checkAdmin();
-  }, [currentUser]);
 
   useEffect(() => {
     fetchUsers();
@@ -90,14 +69,12 @@ export default function SupportUsers() {
   };
 
   const fetchUserDetails = async (userId: string) => {
-    // Fetch wallet
     const { data: wallet } = await supabase
       .from('wallets')
       .select('nova_balance, aura_balance')
       .eq('user_id', userId)
       .single();
 
-    // Fetch all roles for user
     const { data: rolesData } = await supabase
       .from('user_roles')
       .select('role')
@@ -208,7 +185,7 @@ export default function SupportUsers() {
 
       {/* User Detail Sheet */}
       <Sheet open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-        <SheetContent side="bottom" className="h-[70vh] rounded-t-2xl">
+        <SheetContent side="bottom" className="h-[60vh] rounded-t-2xl">
           {selectedUser && (
             <>
               <SheetHeader className="text-center pb-4">
@@ -263,25 +240,7 @@ export default function SupportUsers() {
                       })}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">{selectedUser.country}</span>
-                  </div>
                 </Card>
-
-                {/* Admin Role Management */}
-                {isAdmin && (
-                  <UserRoleManager
-                    userId={selectedUser.user_id}
-                    currentRoles={selectedUser.roles || ['user']}
-                    onRolesChange={() => {
-                      // Refresh user details after role change
-                      fetchUserDetails(selectedUser.user_id).then(details => {
-                        setSelectedUser(prev => prev ? { ...prev, ...details } : null);
-                      });
-                    }}
-                  />
-                )}
               </div>
             </>
           )}
