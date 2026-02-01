@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -5,23 +6,16 @@ import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getPlatformUserById, PLATFORM_USERS } from '@/lib/platformUsers';
 import { getCountryFlag } from '@/lib/countryFlags';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock data for all-time top Nova winners (Hall of Fame)
-// Sorted by total Nova won (highest first)
-const hallOfFameData = [
-  { id: '4', totalNovaWon: 2450, lastWinDate: '2026-01-25' },
-  { id: '2', totalNovaWon: 1850, lastWinDate: '2026-01-24' },
-  { id: '5', totalNovaWon: 1520, lastWinDate: '2026-01-25' },
-  { id: '11', totalNovaWon: 1340, lastWinDate: '2026-01-23' },
-  { id: '6', totalNovaWon: 1180, lastWinDate: '2026-01-25' },
-  { id: '8', totalNovaWon: 980, lastWinDate: '2026-01-23' },
-  { id: '1', totalNovaWon: 756, lastWinDate: '2026-01-22' },
-  { id: '3', totalNovaWon: 645, lastWinDate: '2026-01-24' },
-  { id: '9', totalNovaWon: 520, lastWinDate: '2026-01-24' },
-  { id: '7', totalNovaWon: 385, lastWinDate: '2026-01-20' },
-];
+interface HallOfFameEntry {
+  id: string;
+  name: string;
+  country: string;
+  totalNovaWon: number;
+  lastWinDate: string;
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -46,6 +40,62 @@ export default function HallOfFame() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const isRTL = language === 'ar';
+  const [winners, setWinners] = useState<HallOfFameEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchHallOfFame() {
+      try {
+        // Fetch all contest wins from ledger
+        const { data, error } = await supabase
+          .from('wallet_ledger')
+          .select(`
+            user_id,
+            amount,
+            created_at,
+            profiles!inner(name, country)
+          `)
+          .eq('entry_type', 'contest_win')
+          .gt('amount', 0);
+
+        if (error) throw error;
+
+        // Aggregate by user
+        const userWins: Record<string, HallOfFameEntry> = {};
+        
+        for (const entry of data || []) {
+          const userId = entry.user_id;
+          const profile = entry.profiles as any;
+          
+          if (!userWins[userId]) {
+            userWins[userId] = {
+              id: userId,
+              name: profile?.name || 'User',
+              country: profile?.country || '',
+              totalNovaWon: 0,
+              lastWinDate: entry.created_at,
+            };
+          }
+          userWins[userId].totalNovaWon += Number(entry.amount) || 0;
+          if (entry.created_at > userWins[userId].lastWinDate) {
+            userWins[userId].lastWinDate = entry.created_at;
+          }
+        }
+
+        const sorted = Object.values(userWins)
+          .sort((a, b) => b.totalNovaWon - a.totalNovaWon)
+          .slice(0, 20);
+
+        setWinners(sorted);
+      } catch (err) {
+        console.error('Error fetching hall of fame:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchHallOfFame();
+  }, []);
 
   const handleProfileClick = (userId: string) => {
     navigate(`/user/${userId}`);
@@ -60,6 +110,30 @@ export default function HallOfFame() {
     }
   };
 
+  // Empty state
+  if (!isLoading && winners.length === 0) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader title={isRTL ? 'متصدري الفائزون' : 'Top Winners'} />
+        
+        <main className="flex-1 px-4 py-3 pb-20 flex items-center justify-center">
+          <div className="text-center">
+            <Trophy className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+            <h2 className="text-lg font-bold mb-2">
+              {isRTL ? 'لا يوجد فائزين بعد' : 'No Winners Yet'}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {isRTL 
+                ? 'شارك في المسابقات لتكون أول الفائزين!'
+                : 'Join contests to be the first winner!'}
+            </p>
+          </div>
+        </main>
+
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -96,15 +170,10 @@ export default function HallOfFame() {
 
         {/* Winners List */}
         <motion.div variants={itemVariants} className="space-y-2">
-          {hallOfFameData.map((entry, index) => {
+          {winners.map((entry, index) => {
             const position = index + 1;
-            const user = getPlatformUserById(entry.id);
-            if (!user) return null;
-
             const isTop3 = position <= 3;
-            const userName = isRTL ? user.nameAr : user.name;
-            const countryName = isRTL ? user.countryAr : user.country;
-            const flag = getCountryFlag(user.country);
+            const flag = getCountryFlag(entry.country);
 
             return (
               <motion.div
@@ -132,7 +201,7 @@ export default function HallOfFame() {
                   className="w-11 h-11 rounded-full bg-muted flex items-center justify-center text-xl cursor-pointer hover:ring-2 hover:ring-nova/50 transition-all"
                   onClick={() => handleProfileClick(entry.id)}
                 >
-                  {user.avatar}
+                  👤
                 </div>
 
                 {/* User Info */}
@@ -142,12 +211,12 @@ export default function HallOfFame() {
                       className="font-semibold text-sm truncate cursor-pointer hover:text-nova transition-colors"
                       onClick={() => handleProfileClick(entry.id)}
                     >
-                      {userName}
+                      {entry.name}
                     </p>
-                    <span className="text-base">{flag}</span>
+                    {flag && <span className="text-base">{flag}</span>}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {isRTL ? 'آخر فوز:' : 'Last win:'} {entry.lastWinDate}
+                    {isRTL ? 'آخر فوز:' : 'Last win:'} {new Date(entry.lastWinDate).toLocaleDateString()}
                   </p>
                 </div>
 

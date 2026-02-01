@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Ban } from 'lucide-react';
+import { Info, Ban, Trophy } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useBanner } from '@/contexts/BannerContext';
-import { PLATFORM_USERS } from '@/lib/platformUsers';
+import { supabase } from '@/integrations/supabase/client';
 
 // Contest Components
 import {
@@ -32,58 +32,15 @@ import {
   VoteDialog,
 } from '@/components/contest';
 
-// Mock contest data
-const mockContest = {
-  id: 'C-1247',
-  participants: 156,
-  prizePool: 936,
-  stage: 'stage1' as 'stage1' | 'final',
-  stage1EndsAt: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours
-  finalEndsAt: new Date(Date.now() + 6 * 60 * 60 * 1000), // 6 hours
-  entryFee: 10,
-};
-
-// Generate participants using PLATFORM_USERS for stable IDs
-const generateParticipants = () => {
-  // First add all platform users with stable IDs
-  const platformParticipants = PLATFORM_USERS.map((user, i) => ({
-    id: user.id,
-    name: user.nameAr,
-    username: user.username,
-    votes: Math.max(1, 95 - i * 8 + Math.floor(Math.random() * 5)),
-    avatar: user.avatar,
-    rank: i + 1,
-    country: user.countryAr,
-  }));
-  
-  // Add more generic participants
-  const additionalNames = [
-    'نورا بكر', 'رنا محمد', 'كريم فؤاد', 'دينا حسام',
-    'طارق أمين', 'نادية رشيد', 'سامي جابر', 'لينا خالد', 'وائل سمير',
-  ];
-  const avatars = ['👨', '👩', '👨', '👩', '👨', '👩', '👨', '👩', '👨'];
-  
-  const additionalParticipants = [];
-  for (let i = 0; i < 69; i++) {
-    const votes = Math.max(1, 50 - i * 0.7 + Math.floor(Math.random() * 3));
-    additionalParticipants.push({
-      id: `${100 + i}`,
-      name: additionalNames[i % additionalNames.length],
-      username: `user_${100 + i}`,
-      votes: Math.round(votes),
-      avatar: avatars[i % avatars.length],
-      rank: platformParticipants.length + i + 1,
-      country: 'السعودية',
-    });
-  }
-  
-  // Combine and sort by votes
-  const allParticipants = [...platformParticipants, ...additionalParticipants]
-    .sort((a, b) => b.votes - a.votes)
-    .map((p, i) => ({ ...p, rank: i + 1 }));
-  
-  return allParticipants;
-};
+interface Participant {
+  id: string;
+  name: string;
+  username: string;
+  votes: number;
+  avatar: string;
+  rank: number;
+  country: string;
+}
 
 const formatBalance = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
@@ -96,49 +53,102 @@ export default function ContestsPage() {
   const { createTransaction } = useTransactions();
   const { success: showSuccess, error: showError } = useBanner();
 
-  const [contest, setContest] = useState(mockContest);
-  const [participants, setParticipants] = useState(generateParticipants);
-  const [userVotes, setUserVotes] = useState(24);
-  const [userRank, setUserRank] = useState(47);
-  const [hasJoined, setHasJoined] = useState(true);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [userVotes, setUserVotes] = useState(0);
+  const [userRank, setUserRank] = useState(0);
+  const [hasJoined, setHasJoined] = useState(false);
+  const [prizePool, setPrizePool] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Voting state
   const [usedVotesStage1, setUsedVotesStage1] = useState(0);
   const [usedVotesFinal, setUsedVotesFinal] = useState(0);
   const [freeVoteUsed, setFreeVoteUsed] = useState(false);
-  const [freeVoteActive, setFreeVoteActive] = useState(true); // Simulating free vote is active
+  const [freeVoteActive, setFreeVoteActive] = useState(true);
   
   // Dialog states
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
-  const [selectedParticipant, setSelectedParticipant] = useState<typeof participants[0] | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   
-
-  // Simulate stage transition (for demo - can toggle)
+  // Stage - default to stage1
   const [demoStage, setDemoStage] = useState<'stage1' | 'final'>('stage1');
-  
-  useEffect(() => {
-    setContest(prev => ({ ...prev, stage: demoStage }));
-  }, [demoStage]);
+  const isStage1 = demoStage === 'stage1';
+  const isFinal = demoStage === 'final';
 
-  const isStage1 = contest.stage === 'stage1';
-  const isFinal = contest.stage === 'final';
+  // Contest timing
+  const stage1EndsAt = new Date();
+  stage1EndsAt.setHours(18, 0, 0, 0);
+  if (stage1EndsAt < new Date()) stage1EndsAt.setDate(stage1EndsAt.getDate() + 1);
   
+  const finalEndsAt = new Date(stage1EndsAt.getTime() + 4 * 60 * 60 * 1000);
+  const entryFee = 10;
+
+  // Fetch real contest data
+  useEffect(() => {
+    async function fetchContestData() {
+      try {
+        // Fetch active contest
+        const { data: contestData, error: contestError } = await supabase
+          .from('contests')
+          .select('*')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (contestData) {
+          setPrizePool(contestData.prize_pool || 0);
+        }
+
+        // Fetch contest entries with profiles
+        const { data: entriesData, error: entriesError } = await supabase
+          .from('contest_entries')
+          .select(`
+            user_id,
+            votes_received,
+            rank,
+            profiles!inner(name, username, country)
+          `)
+          .eq('contest_id', contestData?.id || '')
+          .order('votes_received', { ascending: false });
+
+        if (!entriesError && entriesData) {
+          const formattedParticipants: Participant[] = entriesData.map((entry: any, index: number) => ({
+            id: entry.user_id,
+            name: entry.profiles?.name || 'User',
+            username: entry.profiles?.username || '',
+            votes: entry.votes_received || 0,
+            avatar: '👤',
+            rank: index + 1,
+            country: entry.profiles?.country || '',
+          }));
+          setParticipants(formattedParticipants);
+        }
+      } catch (err) {
+        console.error('Error fetching contest data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchContestData();
+  }, []);
+
   // In final stage, only top 50 are shown
   const displayParticipants = isFinal ? participants.slice(0, 50) : participants;
   
   // Check if user qualified for final
-  const userQualified = userRank <= 50;
+  const userQualified = userRank <= 50 && userRank > 0;
   
   // Votes needed for different thresholds
-  const top50Threshold = participants[49]?.votes || 45;
-  const top5Threshold = participants[4]?.votes || 85;
-  const rank1Threshold = participants[0]?.votes || 100;
+  const top50Threshold = participants[49]?.votes || 0;
+  const top5Threshold = participants[4]?.votes || 0;
+  const rank1Threshold = participants[0]?.votes || 0;
 
   const handleJoinContest = () => {
-    const entryFee = contest.entryFee;
     const auraEquivalent = entryFee * 2;
     
     if (user.auraBalance >= auraEquivalent) {
@@ -170,13 +180,12 @@ export default function ContestsPage() {
       sender: {
         id: user.id,
         name: user.name,
-        username: `${user.name.toLowerCase()}_user`,
+        username: user.username,
         country: user.country,
       },
       reason: language === 'ar' 
-        ? `دخول المسابقة اليومية #${contest.id}`
-        : `Daily Contest Entry #${contest.id}`,
-      contestId: contest.id,
+        ? 'دخول المسابقة اليومية'
+        : 'Daily Contest Entry',
     });
 
     setHasJoined(true);
@@ -186,7 +195,7 @@ export default function ContestsPage() {
     showSuccess(language === 'ar' ? '🎉 تم الانضمام للمسابقة!' : '🎉 Joined the contest!');
   };
 
-  const handleVote = (participant: typeof participants[0]) => {
+  const handleVote = (participant: Participant) => {
     setSelectedParticipant(participant);
     setVoteDialogOpen(true);
   };
@@ -195,8 +204,6 @@ export default function ContestsPage() {
     if (!selectedParticipant) return;
 
     if (!isFreeVote) {
-      // Calculate cost: each vote = 1 Aura = 0.5 Nova
-      // Deduct from Aura first, then Nova
       let remainingVotes = voteCount;
       
       if (user.auraBalance >= remainingVotes) {
@@ -205,12 +212,10 @@ export default function ContestsPage() {
         const auraToUse = user.auraBalance;
         spendAura(auraToUse);
         remainingVotes -= auraToUse;
-        // Each remaining vote costs 0.5 Nova
         const novaCost = remainingVotes / 2;
         spendNova(novaCost);
       }
 
-      // Update used votes for current stage
       if (isStage1) {
         setUsedVotesStage1(prev => prev + voteCount);
       } else {
@@ -227,13 +232,11 @@ export default function ContestsPage() {
 
     setParticipants(updatedParticipants);
 
-    // Find new rank of the voted participant
     const newParticipantData = updatedParticipants.find(p => p.id === selectedParticipant.id);
     const newRank = newParticipantData?.rank || selectedParticipant.rank;
 
     setVoteDialogOpen(false);
 
-    // Show success notification
     const votesText = isFreeVote ? 1 : voteCount;
     showSuccess(
       language === 'ar' 
@@ -247,7 +250,6 @@ export default function ContestsPage() {
 
     setFreeVoteUsed(true);
     
-    // Update participant votes
     const updatedParticipants = participants.map(p => 
       p.id === selectedParticipant.id 
         ? { ...p, votes: p.votes + 1 }
@@ -267,6 +269,32 @@ export default function ContestsPage() {
         : `🎁 Great! You used your free vote for ${selectedParticipant.name} and is now #${newRank}`
     );
   };
+
+  // Empty state
+  if (!isLoading && participants.length === 0) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
+        <main className="flex-1 px-4 py-4 pb-20 flex items-center justify-center">
+          <div className="text-center">
+            <Trophy className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+            <h2 className="text-lg font-bold mb-2">
+              {language === 'ar' ? 'لا توجد مسابقة نشطة' : 'No Active Contest'}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {language === 'ar' 
+                ? 'المسابقة اليومية ستبدأ قريباً!'
+                : 'The daily contest will start soon!'}
+            </p>
+            <Button onClick={() => setJoinDialogOpen(true)}>
+              {language === 'ar' ? 'كن أول المشاركين' : 'Be the First to Join'}
+            </Button>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -293,21 +321,21 @@ export default function ContestsPage() {
 
         {/* Stage Header - Conditional */}
         <motion.div
-          key={contest.stage}
+          key={demoStage}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           {isStage1 ? (
             <ContestStageHeader
               stage="stage1"
-              participants={contest.participants}
-              endsAt={contest.stage1EndsAt}
+              participants={participants.length}
+              endsAt={stage1EndsAt}
             />
           ) : (
             <FinalStageHeader
-              participants={50}
-              prizePool={contest.prizePool}
-              endsAt={contest.finalEndsAt}
+              participants={Math.min(50, participants.length)}
+              prizePool={prizePool}
+              endsAt={finalEndsAt}
               country={user.country}
             />
           )}
@@ -318,7 +346,7 @@ export default function ContestsPage() {
           userRank={userRank}
           userVotes={userVotes}
           stage={isStage1 ? 'qualifying' : 'final'}
-          prizePool={contest.prizePool}
+          prizePool={prizePool}
           votesNeededForTop50={top50Threshold}
           votesNeededForTop5={top5Threshold}
           votesNeededForRank1={rank1Threshold}
@@ -355,12 +383,12 @@ export default function ContestsPage() {
                 <p className="text-sm text-muted-foreground mb-1">
                   {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
                 </p>
-                <p className="text-xl font-bold text-primary">И {contest.entryFee}</p>
+                <p className="text-xl font-bold text-primary">И {entryFee}</p>
               </div>
               <Button 
                 className="w-full"
                 onClick={() => setJoinDialogOpen(true)}
-                disabled={(user.novaBalance + (user.auraBalance / 2)) < contest.entryFee}
+                disabled={(user.novaBalance + (user.auraBalance / 2)) < entryFee}
               >
                 {language === 'ar' ? 'انضم الآن' : 'Join Now'}
               </Button>
@@ -388,17 +416,15 @@ export default function ContestsPage() {
           <div className="space-y-2">
             <AnimatePresence>
               {displayParticipants.map((participant, index) => {
-                // Calculate remaining votes for current stage
                 const maxVotesPerStage = 100;
                 const usedVotes = isStage1 ? usedVotesStage1 : usedVotesFinal;
                 const remainingVotes = maxVotesPerStage - usedVotes;
                 const votesExhausted = remainingVotes <= 0;
                 
                 return (
-                  <>
+                  <div key={participant.id}>
                     {isStage1 ? (
                       <ContestContestantCard
-                        key={participant.id}
                         contestant={participant}
                         index={index}
                         onVote={handleVote}
@@ -407,7 +433,6 @@ export default function ContestsPage() {
                       />
                     ) : (
                       <FinalContestantCard
-                        key={participant.id}
                         contestant={participant}
                         index={index}
                         onVote={handleVote}
@@ -416,22 +441,22 @@ export default function ContestsPage() {
                       />
                     )}
                   
-                  {/* Fixed notice after 5th contestant */}
-                  {participant.rank === 5 && (
-                    <motion.div
-                      key="prize-notice"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg"
-                    >
-                      <p className="text-xs text-warning font-medium text-center">
-                        ⚠️ {language === 'ar' 
-                          ? 'الجوائز تعتمد على ترتيبك النهائي عند انتهاء وقت المسابقة'
-                          : 'Prizes depend on your final rank when the contest ends'}
-                      </p>
-                    </motion.div>
-                  )}
-                  </>
+                    {/* Fixed notice after 5th contestant */}
+                    {participant.rank === 5 && (
+                      <motion.div
+                        key="prize-notice"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg mt-2"
+                      >
+                        <p className="text-xs text-warning font-medium text-center">
+                          ⚠️ {language === 'ar' 
+                            ? 'الجوائز تعتمد على ترتيبك النهائي عند انتهاء وقت المسابقة'
+                            : 'Prizes depend on your final rank when the contest ends'}
+                        </p>
+                      </motion.div>
+                    )}
+                  </div>
                 );
               })}
             </AnimatePresence>
@@ -469,13 +494,13 @@ export default function ContestsPage() {
               <p className="text-xs text-muted-foreground mb-1">
                 {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
               </p>
-              <p className="text-xl font-bold text-primary">И {contest.entryFee}</p>
+              <p className="text-xl font-bold text-primary">И {entryFee}</p>
             </div>
             
             <Button 
               className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
               onClick={handleJoinContest}
-              disabled={(user.novaBalance + (user.auraBalance / 2)) < contest.entryFee}
+              disabled={(user.novaBalance + (user.auraBalance / 2)) < entryFee}
             >
               {language === 'ar' ? 'ادفع الآن' : 'Pay Now'}
             </Button>
@@ -490,27 +515,32 @@ export default function ContestsPage() {
       </Dialog>
 
       {/* Vote Dialog */}
-      <VoteDialog
-        open={voteDialogOpen}
-        onClose={() => setVoteDialogOpen(false)}
-        contestant={selectedParticipant}
-        stage={contest.stage}
-        auraBalance={user.auraBalance}
-        novaBalance={user.novaBalance}
-        usedVotesStage1={usedVotesStage1}
-        usedVotesFinal={usedVotesFinal}
-        freeVoteUsed={freeVoteUsed}
-        freeVoteActive={freeVoteActive && isStage1}
-        onVote={handleConfirmVote}
-        onUseFreeVote={handleUseFreeVote}
-      />
+      {selectedParticipant && (
+        <VoteDialog
+          open={voteDialogOpen}
+          onClose={() => setVoteDialogOpen(false)}
+          contestant={selectedParticipant}
+          stage={demoStage}
+          auraBalance={user.auraBalance}
+          novaBalance={user.novaBalance}
+          usedVotesStage1={usedVotesStage1}
+          usedVotesFinal={usedVotesFinal}
+          freeVoteUsed={freeVoteUsed}
+          freeVoteActive={freeVoteActive}
+          onVote={handleConfirmVote}
+          onUseFreeVote={handleUseFreeVote}
+        />
+      )}
 
       {/* Receipt Dialog */}
-      <ReceiptDialog
-        receipt={selectedReceipt}
-        open={receiptDialogOpen}
-        onClose={() => setReceiptDialogOpen(false)}
-      />
+      {selectedReceipt && (
+        <ReceiptDialog
+          receipt={selectedReceipt}
+          open={receiptDialogOpen}
+          onClose={() => setReceiptDialogOpen(false)}
+        />
+      )}
+
       <BottomNav />
     </div>
   );

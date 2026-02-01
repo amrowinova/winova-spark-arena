@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Calendar, Crown, Users, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -12,74 +12,27 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { ContestDetailsDialog, type ContestHistoryItem } from '@/components/contest';
-import { getPlatformUserById } from '@/lib/platformUsers';
 import { getCountryFlag } from '@/lib/countryFlags';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock data for latest finished contest - using PLATFORM_USERS IDs
-const latestContest = {
-  id: 'C-1246',
-  date: '2026-01-25',
-  prizePool: 850,
-  participants: 142,
-  userParticipated: true,
-  userRank: 12,
-  winners: [
-    { rank: 1, id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', votes: 156, prize: 425, percentage: 50 },
-    { rank: 2, id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', votes: 134, prize: 170, percentage: 20 },
-    { rank: 3, id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', votes: 121, prize: 127.5, percentage: 15 },
-    { rank: 4, id: '7', name: getPlatformUserById('7')?.nameAr || 'ليلى حسن', votes: 98, prize: 85, percentage: 10 },
-    { rank: 5, id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', votes: 87, prize: 42.5, percentage: 5 },
-  ],
-};
+interface ContestWinner {
+  rank: number;
+  id: string;
+  name: string;
+  votes: number;
+  prize: number;
+  country: string;
+}
 
-// Mock data for contest history - using PLATFORM_USERS IDs
-const contestHistory: ContestHistoryItem[] = [
-  {
-    id: 'C-1246',
-    date: '2026-01-25',
-    prizePool: 850,
-    participants: 142,
-    userRank: 12,
-    participated: true,
-    winners: [
-      { rank: 1, id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', votes: 156, prize: 425 },
-      { rank: 2, id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', votes: 134, prize: 170 },
-      { rank: 3, id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', votes: 121, prize: 127.5 },
-      { rank: 4, id: '7', name: getPlatformUserById('7')?.nameAr || 'ليلى حسن', votes: 98, prize: 85 },
-      { rank: 5, id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', votes: 87, prize: 42.5 },
-    ],
-  },
-  {
-    id: 'C-1245',
-    date: '2026-01-24',
-    prizePool: 720,
-    participants: 120,
-    userRank: null,
-    participated: false,
-    winners: [
-      { rank: 1, id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', votes: 145, prize: 360 },
-      { rank: 2, id: '9', name: getPlatformUserById('9')?.nameAr || 'محمد خالد', votes: 128, prize: 144 },
-      { rank: 3, id: '10', name: getPlatformUserById('10')?.nameAr || 'نور الدين', votes: 112, prize: 108 },
-      { rank: 4, id: '3', name: getPlatformUserById('3')?.nameAr || 'محمد كريم', votes: 95, prize: 72 },
-      { rank: 5, id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', votes: 82, prize: 36 },
-    ],
-  },
-  {
-    id: 'C-1244',
-    date: '2026-01-23',
-    prizePool: 680,
-    participants: 113,
-    userRank: 8,
-    participated: true,
-    winners: [
-      { rank: 1, id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', votes: 167, prize: 340 },
-      { rank: 2, id: '1', name: getPlatformUserById('1')?.nameAr || 'أحمد', votes: 142, prize: 136 },
-      { rank: 3, id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', votes: 125, prize: 102 },
-      { rank: 4, id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', votes: 108, prize: 68 },
-      { rank: 5, id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', votes: 91, prize: 34 },
-    ],
-  },
-];
+interface ContestRecord {
+  id: string;
+  date: string;
+  prizePool: number;
+  participants: number;
+  userRank: number | null;
+  participated: boolean;
+  winners: ContestWinner[];
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -109,17 +62,119 @@ export default function Winners() {
   const { getCurrencyInfo } = useNovaPricing();
   const pricing = getCurrencyInfo(user.country);
   
+  const [contestHistory, setContestHistory] = useState<ContestRecord[]>([]);
   const [selectedContest, setSelectedContest] = useState<ContestHistoryItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleViewDetails = (contest: ContestHistoryItem) => {
-    setSelectedContest(contest);
+  useEffect(() => {
+    async function fetchContestHistory() {
+      try {
+        // Fetch completed contests
+        const { data: contests, error } = await supabase
+          .from('contests')
+          .select('*')
+          .eq('status', 'completed')
+          .order('end_time', { ascending: false })
+          .limit(10);
+
+        if (error) throw error;
+
+        const contestRecords: ContestRecord[] = [];
+        
+        for (const contest of contests || []) {
+          // Fetch entries for this contest
+          const { data: entries } = await supabase
+            .from('contest_entries')
+            .select(`
+              user_id,
+              votes_received,
+              prize_won,
+              rank,
+              profiles!inner(name, country)
+            `)
+            .eq('contest_id', contest.id)
+            .order('rank', { ascending: true })
+            .limit(5);
+
+          const winners: ContestWinner[] = (entries || []).map((entry: any, index: number) => ({
+            rank: entry.rank || index + 1,
+            id: entry.user_id,
+            name: entry.profiles?.name || 'User',
+            votes: entry.votes_received || 0,
+            prize: entry.prize_won || 0,
+            country: entry.profiles?.country || '',
+          }));
+
+          contestRecords.push({
+            id: contest.id,
+            date: new Date(contest.end_time).toISOString().split('T')[0],
+            prizePool: contest.prize_pool,
+            participants: contest.current_participants,
+            userRank: null,
+            participated: false,
+            winners,
+          });
+        }
+
+        setContestHistory(contestRecords);
+      } catch (err) {
+        console.error('Error fetching contest history:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchContestHistory();
+  }, []);
+
+  const handleViewDetails = (contest: ContestRecord) => {
+    setSelectedContest({
+      id: contest.id,
+      date: contest.date,
+      prizePool: contest.prizePool,
+      participants: contest.participants,
+      userRank: contest.userRank,
+      participated: contest.participated,
+      winners: contest.winners.map(w => ({
+        rank: w.rank,
+        id: w.id,
+        name: w.name,
+        votes: w.votes,
+        prize: w.prize,
+      })),
+    });
     setDetailsOpen(true);
   };
 
   const handleProfileClick = (winnerId: string) => {
     navigate(`/user/${winnerId}`);
   };
+
+  const latestContest = contestHistory[0];
+
+  // Empty state
+  if (!isLoading && contestHistory.length === 0) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader title={language === 'ar' ? 'الفائزون' : 'Winners'} />
+        <main className="flex-1 px-4 py-3 pb-20 flex items-center justify-center">
+          <div className="text-center">
+            <Trophy className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+            <h2 className="text-lg font-bold mb-2">
+              {language === 'ar' ? 'لا توجد مسابقات منتهية' : 'No Completed Contests'}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {language === 'ar' 
+                ? 'سيظهر الفائزون هنا بعد انتهاء المسابقات'
+                : 'Winners will appear here after contests end'}
+            </p>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -153,119 +208,91 @@ export default function Winners() {
 
             {/* Tab 1: Latest Finished Contest */}
             <TabsContent value="latest" className="mt-4 space-y-4">
-              {/* Contest Info */}
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">{latestContest.date}</span>
-                    </div>
-                    {latestContest.userParticipated && (
-                      <Badge className="bg-success/10 text-success border-success/30">
-                        {language === 'ar' ? 'شاركت' : 'Participated'}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Trophy className="h-3.5 w-3.5 text-nova" />
-                      <span className="text-nova font-bold">И {latestContest.prizePool}</span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" />
-                      {latestContest.participants} {language === 'ar' ? 'مشارك' : 'participants'}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Top 5 Winners */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Crown className="h-4 w-4 text-yellow-500" />
-                    {language === 'ar' ? 'الفائزون الخمسة' : 'Top 5 Winners'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {latestContest.winners.map((winner, index) => {
-                    const platformUser = getPlatformUserById(winner.id);
-                    return (
-                      <motion.div
-                        key={winner.rank}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`flex items-center gap-3 p-3 rounded-lg ${
-                          index === 0 ? 'bg-yellow-500/10 border border-yellow-500/20' : 'bg-muted/30'
-                        }`}
-                      >
-                        {/* Rank Badge */}
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${positionColors[index]}`}>
-                          {index === 0 ? <Crown className="h-4 w-4" /> : winner.rank}
+              {latestContest && (
+                <>
+                  {/* Contest Info */}
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium text-sm">{latestContest.date}</span>
                         </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Trophy className="h-3.5 w-3.5 text-nova" />
+                          <span className="text-nova font-bold">И {latestContest.prizePool}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" />
+                          {latestContest.participants} {language === 'ar' ? 'مشارك' : 'participants'}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                        {/* Avatar - Clickable */}
-                        <div 
-                          className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                          onClick={() => handleProfileClick(winner.id)}
+                  {/* Top 5 Winners */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Crown className="h-4 w-4 text-yellow-500" />
+                        {language === 'ar' ? 'الفائزون الخمسة' : 'Top 5 Winners'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {latestContest.winners.map((winner, index) => (
+                        <motion.div
+                          key={winner.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className={`flex items-center gap-3 p-3 rounded-lg ${
+                            index === 0 ? 'bg-yellow-500/10 border border-yellow-500/20' : 'bg-muted/30'
+                          }`}
                         >
-                          {platformUser?.avatar || '👤'}
-                        </div>
-
-                        {/* Winner Info - Only name clickable */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p 
-                              className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
-                              onClick={() => handleProfileClick(winner.id)}
-                            >
-                              {winner.name}
-                            </p>
-                            {platformUser && getCountryFlag(platformUser.country) && (
-                              <span className="text-sm shrink-0">{getCountryFlag(platformUser.country)}</span>
-                            )}
+                          {/* Rank Badge */}
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${positionColors[index]}`}>
+                            {index === 0 ? <Crown className="h-4 w-4" /> : winner.rank}
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
-                          </p>
-                        </div>
 
-                        {/* Prize - Not clickable */}
-                        <div className="text-end">
-                          <p className="font-bold text-nova text-sm">
-                            И {winner.prize >= 1 ? Math.floor(winner.prize) : winner.prize.toFixed(1)}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {winner.percentage}%
-                          </p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
+                          {/* Avatar - Clickable */}
+                          <div 
+                            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                            onClick={() => handleProfileClick(winner.id)}
+                          >
+                            👤
+                          </div>
 
-              {/* User Participation Status */}
-              {latestContest.userParticipated && (
-                <Card className="border-success/20 bg-success/5">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
-                        <span className="text-lg">🎯</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">
-                          {language === 'ar' ? 'مشاركتك في هذه المسابقة' : 'Your participation'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {language === 'ar' ? 'مركزك النهائي:' : 'Final rank:'} #{latestContest.userRank}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                          {/* Winner Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p 
+                                className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
+                                onClick={() => handleProfileClick(winner.id)}
+                              >
+                                {winner.name}
+                              </p>
+                              {getCountryFlag(winner.country) && (
+                                <span className="text-sm shrink-0">{getCountryFlag(winner.country)}</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
+                            </p>
+                          </div>
+
+                          {/* Prize */}
+                          <div className="text-end">
+                            <p className="font-bold text-nova text-sm">
+                              И {winner.prize >= 1 ? Math.floor(winner.prize) : winner.prize.toFixed(1)}
+                            </p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </>
               )}
             </TabsContent>
 
@@ -292,15 +319,6 @@ export default function Winners() {
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="font-bold text-sm">{contest.date}</span>
                         </div>
-                        <Badge 
-                          variant={contest.participated ? "default" : "secondary"}
-                          className={contest.participated ? "bg-success/10 text-success border-success/30" : ""}
-                        >
-                          {contest.participated 
-                            ? (language === 'ar' ? 'شاركت' : 'Participated')
-                            : (language === 'ar' ? 'لم تشارك' : 'Did not participate')
-                          }
-                        </Badge>
                       </div>
                       
                       {/* Stats */}
@@ -313,11 +331,6 @@ export default function Winners() {
                           <Users className="h-3.5 w-3.5" />
                           {contest.participants}
                         </span>
-                        {contest.participated && contest.userRank && (
-                          <span className="flex items-center gap-1">
-                            🎯 #{contest.userRank}
-                          </span>
-                        )}
                       </div>
 
                       {/* Top 3 Preview */}

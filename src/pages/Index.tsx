@@ -10,11 +10,9 @@ import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
-import { getPlatformUserById } from '@/lib/platformUsers';
 
 // Home Components
 import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
-
 import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
@@ -44,21 +42,6 @@ const itemVariants = {
 
 // Format number - remove decimals if whole number
 const formatBalance = (value: number): string => {
-  return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
-};
-
-// Mock contest data
-const mockContest = {
-  id: 'C-1247',
-  participants: 156,
-  prizePool: 936, // 6 Nova × 156 participants
-  stage: 'stage1' as const,
-  entryFee: 10,
-};
-
-
-
-const formatBalanceOld = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
 };
 
@@ -97,7 +80,7 @@ export default function HomePage() {
   const pricing = getCurrencyInfo(user.country);
   const novaLocalValue = user.novaBalance * pricing.novaRate;
 
-  // User contest state
+  // User contest state - starts as not joined (real state)
   const [hasJoined, setHasJoined] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
 
@@ -106,9 +89,9 @@ export default function HomePage() {
   };
 
   const { success: showSuccess, error: showError } = useBanner();
+  const entryFee = 10;
 
   const confirmJoin = () => {
-    const entryFee = mockContest.entryFee;
     const auraEquivalent = entryFee * 2; // 1 Nova = 2 Aura
     
     // Auto-deduction logic: Try Aura first, then Nova, then mix
@@ -258,12 +241,12 @@ export default function HomePage() {
         {/* Daily Contest Card - Most prominent */}
         <motion.div variants={itemVariants}>
           <ContestJoinCard
-            prizePool={mockContest.prizePool}
-            participants={mockContest.participants}
-            stage={mockContest.stage}
+            prizePool={0}
+            participants={0}
+            stage="stage1"
             closesAt={closesAt}
             endsAt={endsAt}
-            entryFee={mockContest.entryFee}
+            entryFee={entryFee}
             hasJoined={hasJoined}
             onJoin={handleJoinContest}
           />
@@ -321,7 +304,7 @@ export default function HomePage() {
               className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
               onClick={confirmJoin}
               disabled={
-                (user.novaBalance + (user.auraBalance / 2)) < mockContest.entryFee
+                (user.novaBalance + (user.auraBalance / 2)) < entryFee
               }
             >
               {language === 'ar' ? 'ادفع الآن' : 'Pay Now'}

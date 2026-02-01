@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { getPlatformUserById } from '@/lib/platformUsers';
 import { getCountryFlag } from '@/lib/countryFlags';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LeaderEntry {
   id: string;
@@ -12,34 +13,88 @@ interface LeaderEntry {
   novaWon: number;
   winDate: Date;
   position: number;
+  country: string;
 }
 
 interface LuckyLeadersCardProps {
   limit?: number;
 }
 
-// Mock data for top Nova winners from lucky draws
-const topLuckyWinners: LeaderEntry[] = [
-  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', novaWon: 2450, winDate: new Date('2026-01-15'), position: 1 },
-  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', novaWon: 1850, winDate: new Date('2026-01-22'), position: 2 },
-  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', novaWon: 1520, winDate: new Date('2026-01-10'), position: 3 },
-  { id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', novaWon: 1340, winDate: new Date('2026-01-18'), position: 4 },
-  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', novaWon: 1180, winDate: new Date('2026-01-25'), position: 5 },
-];
-
 export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const isRTL = language === 'ar';
+  const [leaders, setLeaders] = useState<LeaderEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const displayedWinners = topLuckyWinners.slice(0, limit);
+  useEffect(() => {
+    async function fetchLuckyLeaders() {
+      try {
+        // Fetch spotlight/lucky winners from wallet_ledger (referral_bonus or team_earnings)
+        const { data, error } = await supabase
+          .from('wallet_ledger')
+          .select(`
+            user_id,
+            amount,
+            created_at,
+            profiles!inner(name, country)
+          `)
+          .in('entry_type', ['referral_bonus', 'contest_win'])
+          .gt('amount', 0)
+          .order('amount', { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+
+        // Aggregate by user and take top N
+        const userWins: Record<string, { name: string; country: string; total: number; lastDate: string }> = {};
+        
+        for (const entry of data || []) {
+          const userId = entry.user_id;
+          const profile = entry.profiles as any;
+          
+          if (!userWins[userId]) {
+            userWins[userId] = {
+              name: profile?.name || 'User',
+              country: profile?.country || '',
+              total: 0,
+              lastDate: entry.created_at,
+            };
+          }
+          userWins[userId].total += Number(entry.amount) || 0;
+          if (entry.created_at > userWins[userId].lastDate) {
+            userWins[userId].lastDate = entry.created_at;
+          }
+        }
+
+        const sorted = Object.entries(userWins)
+          .sort((a, b) => b[1].total - a[1].total)
+          .slice(0, limit)
+          .map(([id, data], index) => ({
+            id,
+            name: data.name,
+            novaWon: data.total,
+            winDate: new Date(data.lastDate),
+            position: index + 1,
+            country: getCountryFlag(data.country) || '',
+          }));
+
+        setLeaders(sorted);
+      } catch (err) {
+        console.error('Error fetching lucky leaders:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchLuckyLeaders();
+  }, [limit]);
 
   const handleProfileClick = (userId: string) => {
     navigate(`/user/${userId}`);
   };
 
   const formatDate = (date: Date) => {
-    // Use Gregorian calendar for Arabic (ar-EG-u-ca-gregory)
     return date.toLocaleDateString(isRTL ? 'ar-EG-u-ca-gregory' : 'en-US', {
       day: 'numeric',
       month: 'short',
@@ -72,6 +127,31 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
     }
   };
 
+  // Empty state
+  if (!isLoading && leaders.length === 0) {
+    return (
+      <Card className="overflow-hidden border border-border bg-card">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Crown className="h-4 w-4 text-nova" />
+            <span>{isRTL ? 'متصدّري المحظوظين' : 'Lucky Leaders'}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <div className="text-center py-6 text-muted-foreground">
+            <Crown className="h-10 w-10 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">
+              {isRTL ? 'لا يوجد محظوظين بعد' : 'No lucky winners yet'}
+            </p>
+            <p className="text-xs mt-1">
+              {isRTL ? 'كن أول المحظوظين!' : 'Be the first lucky winner!'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="overflow-hidden border border-border bg-card">
       <CardHeader className="pb-2 pt-4 px-4">
@@ -99,7 +179,7 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
         </p>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-2">
-        {displayedWinners.map((entry) => (
+        {leaders.map((entry) => (
           <div
             key={entry.id}
             className={`flex items-center gap-3 p-2.5 rounded-lg border ${
@@ -122,11 +202,7 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
                 >
                   {entry.name}
                 </p>
-                {(() => {
-                  const user = getPlatformUserById(entry.id);
-                  const flag = user ? getCountryFlag(user.country) : '';
-                  return flag ? <span className="text-sm shrink-0">{flag}</span> : null;
-                })()}
+                {entry.country && <span className="text-sm shrink-0">{entry.country}</span>}
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
