@@ -18,7 +18,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useBanner } from '@/contexts/BannerContext';
-import { FTUXGuard } from '@/components/ftux';
+
 
 import {
   p2pParticipantFromOfferUser,
@@ -842,11 +842,5 @@ function P2PContent() {
 }
 
 export default function P2PPage() {
-  const { language } = useLanguage();
-  
-  return (
-    <FTUXGuard pageTitle={language === 'ar' ? 'تداول P2P' : 'P2P Trading'}>
-      <P2PContent />
-    </FTUXGuard>
-  );
+  return <P2PContent />;
 }

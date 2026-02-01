@@ -15,7 +15,7 @@ import {
   HowToEarnPointsSheet,
   WeeklyPerformanceCard,
 } from '@/components/spotlight';
-import { FTUXGuard } from '@/components/ftux';
+
 
 // Mock spotlight data
 const spotlightData = {
@@ -192,11 +192,5 @@ function SpotlightContent() {
 }
 
 export default function SpotlightPage() {
-  const { language } = useLanguage();
-  
-  return (
-    <FTUXGuard pageTitle={language === 'ar' ? 'نقاط المحظوظين' : 'Lucky Points'}>
-      <SpotlightContent />
-    </FTUXGuard>
-  );
+  return <SpotlightContent />;
 }
