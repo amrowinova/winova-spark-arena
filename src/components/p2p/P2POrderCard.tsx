@@ -1,6 +1,7 @@
-import { Clock, Timer, AlertTriangle, CheckCircle2, XCircle, Shield, ArrowDownLeft, ArrowUpRight, User } from 'lucide-react';
+import { Clock, Timer, AlertTriangle, CheckCircle2, XCircle, Shield, ArrowDownLeft, ArrowUpRight, User, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { P2POrder, P2POrderStatus } from '@/contexts/P2PContext';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
@@ -11,6 +12,7 @@ interface P2POrderCardProps {
   currentUserId?: string;
   isActive?: boolean;
   onClick?: () => void;
+  onDeleteOrder?: (orderId: string) => void;
 }
 
 const statusConfig: Record<P2POrderStatus, { 
@@ -20,13 +22,13 @@ const statusConfig: Record<P2POrderStatus, {
   icon: React.ElementType;
 }> = {
   created: { 
-    en: 'Open', 
-    ar: 'مفتوح', 
-    color: 'bg-muted text-muted-foreground border-muted',
+    en: 'Open in Market', 
+    ar: 'مفتوح في السوق', 
+    color: 'bg-info/20 text-info border-info/30',
     icon: Clock,
   },
   waiting_payment: { 
-    en: 'Waiting Payment', 
+    en: 'Awaiting Payment', 
     ar: 'بانتظار الدفع', 
     color: 'bg-warning/20 text-warning border-warning/30',
     icon: Timer,
@@ -69,23 +71,27 @@ const statusConfig: Record<P2POrderStatus, {
   },
 };
 
-export function P2POrderCard({ order, currentUserId, isActive, onClick }: P2POrderCardProps) {
+export function P2POrderCard({ order, currentUserId, isActive, onClick, onDeleteOrder }: P2POrderCardProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
   const config = statusConfig[order.status];
   const StatusIcon = config.icon;
 
-  // Determine if order is matched (has both buyer and seller assigned)
+  // CRITICAL: Determine if order is MATCHED (has both buyer and seller assigned)
+  // An order is matched when it has moved beyond 'created' status
   const isMatched = order.status !== 'created';
-  const isExpired = new Date() > order.expiresAt && isMatched;
   
-  // CRITICAL: Timer should ONLY show for matched orders, NOT for open/created orders
-  const showTimer = isMatched && ['waiting_payment', 'paid'].includes(order.status) && !isExpired;
+  // Timer should ONLY show for matched orders in active payment states
+  // NOT for open/created orders - they have no timer
+  const showTimer = isMatched && ['waiting_payment', 'paid'].includes(order.status);
+
+  // Check if timer is expired (only relevant for matched orders)
+  const isExpired = isMatched && new Date() > order.expiresAt;
 
   // Determine user's role
   const isBuyer = currentUserId === order.buyer.id;
   const isSeller = currentUserId === order.seller.id;
-  const isCreator = isBuyer ? order.type === 'buy' : (isSeller && order.type === 'sell');
+  const isCreator = (order.type === 'buy' && isBuyer) || (order.type === 'sell' && isSeller);
   
   // Get counterparty info
   const counterparty = isBuyer ? order.seller : order.buyer;
@@ -96,6 +102,14 @@ export function P2POrderCard({ order, currentUserId, isActive, onClick }: P2POrd
     : { en: 'Sell', ar: 'بيع', icon: ArrowUpRight, color: 'text-nova' };
   
   const OrderTypeIcon = orderTypeDisplay.icon;
+
+  // Can delete if OPEN and is creator
+  const canDelete = order.status === 'created' && isCreator;
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDeleteOrder?.(order.id);
+  };
 
   return (
     <Card 
@@ -167,6 +181,21 @@ export function P2POrderCard({ order, currentUserId, isActive, onClick }: P2POrd
           </span>
         </div>
         
+        {/* Role Badges - Always show for clarity */}
+        {currentUserId && (
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Badge variant="secondary" className={cn(
+              "text-xs",
+              isBuyer ? "bg-success/20 text-success border-success/30" : "bg-nova/20 text-nova border-nova/30"
+            )}>
+              👤 {isBuyer 
+                ? (isRTL ? 'أنت: مشتري' : 'You: Buyer')
+                : (isRTL ? 'أنت: بائع' : 'You: Seller')
+              }
+            </Badge>
+          </div>
+        )}
+        
         {/* Counterparty Info (only for matched orders) */}
         {isMatched && counterparty.id && (
           <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg mb-3">
@@ -184,31 +213,39 @@ export function P2POrderCard({ order, currentUserId, isActive, onClick }: P2POrd
                 }
               </p>
             </div>
-            {/* Your role badge */}
-            <Badge variant="secondary" className="text-[10px]">
-              {isBuyer 
-                ? (isRTL ? 'أنت: مشتري' : 'You: Buyer')
-                : (isRTL ? 'أنت: بائع' : 'You: Seller')
-              }
-            </Badge>
           </div>
         )}
         
-        {/* Open order notice */}
+        {/* Open order notice - NO TIMER for open orders */}
         {order.status === 'created' && (
-          <div className="flex items-center gap-2 p-2 bg-info/10 rounded-lg border border-info/20 mb-3">
-            <Clock className="h-4 w-4 text-info shrink-0" />
-            <p className="text-xs text-info">
-              {isRTL 
-                ? 'طلب مفتوح في السوق – بانتظار طرف آخر'
-                : 'Open order in market – Waiting for counterparty'
-              }
-            </p>
+          <div className="space-y-2 mb-3">
+            <div className="flex items-center gap-2 p-2 bg-info/10 rounded-lg border border-info/20">
+              <Clock className="h-4 w-4 text-info shrink-0" />
+              <p className="text-xs text-info">
+                {isRTL 
+                  ? '📢 طلبك معروض في السوق – بانتظار طرف آخر'
+                  : '📢 Your order is in market – Waiting for counterparty'
+                }
+              </p>
+            </div>
+            
+            {/* Delete button for open orders */}
+            {canDelete && onDeleteOrder && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+                {isRTL ? 'حذف الطلب' : 'Delete Order'}
+              </Button>
+            )}
           </div>
         )}
 
-        {/* Timer - ONLY for matched orders */}
-        {showTimer && (
+        {/* Timer - ONLY for matched orders in active states */}
+        {showTimer && !isExpired && (
           <div className="flex items-center justify-center gap-2 text-sm py-2 px-3 bg-warning/10 rounded-lg border border-warning/20">
             <Timer className="h-4 w-4 text-warning" />
             <span className="text-muted-foreground text-xs">
@@ -218,12 +255,32 @@ export function P2POrderCard({ order, currentUserId, isActive, onClick }: P2POrd
           </div>
         )}
 
+        {/* Expired notice */}
+        {showTimer && isExpired && (
+          <div className="flex items-center justify-center gap-2 text-sm py-2 px-3 bg-destructive/10 rounded-lg border border-destructive/20">
+            <XCircle className="h-4 w-4 text-destructive" />
+            <span className="text-xs text-destructive">
+              {isRTL ? '⏰ انتهى الوقت' : '⏰ Time expired'}
+            </span>
+          </div>
+        )}
+
         {/* Dispute Banner */}
         {order.status === 'dispute' && (
           <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded-lg border border-destructive/30 mt-3">
             <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
             <p className="text-xs text-destructive">
               {order.disputeReason || (isRTL ? 'نزاع مفتوح' : 'Dispute open')}
+            </p>
+          </div>
+        )}
+
+        {/* Cancellation reason (if cancelled) */}
+        {order.status === 'cancelled' && order.disputeReason && (
+          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border border-muted mt-3">
+            <XCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              {isRTL ? 'سبب الإلغاء: ' : 'Reason: '}{order.disputeReason}
             </p>
           </div>
         )}

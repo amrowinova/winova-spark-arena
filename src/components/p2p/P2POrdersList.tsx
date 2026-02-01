@@ -44,8 +44,8 @@ const statusConfig: Record<P2POrderListItem['status'], {
   icon: React.ElementType;
 }> = {
   created: { 
-    en: 'In Progress', 
-    ar: 'جارٍ التنفيذ', 
+    en: 'Open in Market', 
+    ar: 'مفتوح في السوق', 
     color: 'bg-info/20 text-info',
     icon: Clock,
   },
@@ -232,8 +232,8 @@ export function P2POrdersList({ orders, onOpenChat }: P2POrdersListProps) {
                             </div>
                           </div>
 
-                          {/* Timer for active orders */}
-                          {isActive && new Date() < order.expiresAt && (
+                          {/* Timer for active MATCHED orders ONLY - not for 'created' */}
+                          {isActive && order.status !== 'created' && new Date() < order.expiresAt && (
                             <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-3">
                               <Timer className="h-4 w-4 text-warning" />
                               <span className="text-xs text-muted-foreground">
@@ -244,6 +244,16 @@ export function P2POrdersList({ orders, onOpenChat }: P2POrdersListProps) {
                                 size="sm" 
                                 showLabels={false} 
                               />
+                            </div>
+                          )}
+
+                          {/* Open in market notice - NO timer */}
+                          {order.status === 'created' && (
+                            <div className="flex items-center gap-2 p-2 bg-info/10 rounded-lg border border-info/20 mb-3">
+                              <Clock className="h-4 w-4 text-info" />
+                              <span className="text-xs text-info">
+                                {isRTL ? '📢 معروض في السوق – بانتظار طرف آخر' : '📢 In market – Waiting for counterparty'}
+                              </span>
                             </div>
                           )}
 

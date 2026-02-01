@@ -106,7 +106,7 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
     );
   }
   
-  // Creator can cancel OPEN orders
+  // Creator can DELETE OPEN orders (no penalty, no reason needed)
   if (order.status === 'created') {
     const isCreator = (order.type === 'buy' && roleInfo.isBuyer) || (order.type === 'sell' && roleInfo.isSeller);
     
@@ -124,29 +124,30 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {isRTL 
-                    ? 'بانتظار طرف آخر لقبول طلبك'
-                    : 'Waiting for another user to accept your order'
+                    ? '⏳ بانتظار طرف آخر لقبول طلبك – لا يوجد عداد وقت'
+                    : '⏳ Waiting for another user to accept – No timer active'
                   }
                 </p>
               </div>
             </div>
             
+            {/* Delete button for OPEN orders */}
             <Button
               variant="outline"
               size="sm"
               className="w-full mt-3 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
               onClick={() => {
                 const cancelled = cancelOrderWithReason(order.id, isRTL 
-                  ? 'تم الإلغاء من قبل المنشئ'
-                  : 'Cancelled by creator'
+                  ? 'تم حذف الطلب من قبل المنشئ'
+                  : 'Order deleted by creator'
                 );
                 if (cancelled) {
-                  showSuccess(isRTL ? 'تم إلغاء الطلب' : 'Order cancelled');
+                  showSuccess(isRTL ? '🗑️ تم حذف الطلب' : '🗑️ Order deleted');
                 }
               }}
             >
               <XCircle className="h-4 w-4" />
-              {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
+              {isRTL ? '🗑️ حذف الطلب' : '🗑️ Delete Order'}
             </Button>
           </Card>
         </div>

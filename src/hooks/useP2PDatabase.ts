@@ -537,11 +537,48 @@ export function useP2PDatabase() {
     }
   }, [user, fetchOrders, checkWalletFrozen, sendSystemMessage]);
 
-  // Cancel order
+  // Delete OPEN order (no penalty, no cancellation count)
+  const deleteOrder = useCallback(async (orderId: string) => {
+    if (!user) return false;
+
+    try {
+      // Only allow deleting OPEN orders (not matched yet)
+      const { error } = await supabase
+        .from('p2p_orders')
+        .update({
+          status: 'cancelled',
+          cancelled_by: user.id,
+          cancellation_reason: 'Order deleted by creator',
+        } as P2POrderUpdate)
+        .eq('id', orderId)
+        .eq('status', 'open')
+        .eq('creator_id', user.id); // Only creator can delete
+
+      if (error) throw error;
+      
+      // No system message for deleted orders (they never had a chat)
+      fetchOrders();
+      
+      return true;
+    } catch (err) {
+      console.error('Error deleting order:', err);
+      return false;
+    }
+  }, [user, fetchOrders]);
+
+  // Cancel order (counts against cancellation limit)
   const cancelOrder = useCallback(async (orderId: string, reason?: string) => {
     if (!user) return false;
 
-    // Check cancellation limit
+    // Get the order to check if it's open (use deleteOrder for open orders)
+    const order = ordersRef.current.find(o => o.id === orderId);
+    
+    // For open orders, use deleteOrder (no penalty)
+    if (order?.status === 'open') {
+      return await deleteOrder(orderId);
+    }
+
+    // Check cancellation limit for matched orders
     if (cancellationsCount >= 3) {
       console.error('Cancellation limit exceeded');
       return false;
@@ -558,7 +595,7 @@ export function useP2PDatabase() {
         .from('p2p_orders')
         .update(update)
         .eq('id', orderId)
-        .in('status', ['open', 'matched', 'awaiting_payment']);
+        .in('status', ['matched', 'awaiting_payment']);
 
       if (error) throw error;
       
@@ -575,7 +612,7 @@ export function useP2PDatabase() {
       console.error('Error cancelling order:', err);
       return false;
     }
-  }, [user, cancellationsCount, fetchOrders, fetchCancellationsCount, sendSystemMessage]);
+  }, [user, cancellationsCount, fetchOrders, fetchCancellationsCount, sendSystemMessage, deleteOrder]);
 
   // Open dispute
   const openDispute = useCallback(async (orderId: string, reason: string) => {
@@ -857,6 +894,7 @@ export function useP2PDatabase() {
     confirmPayment,
     releaseFunds,
     cancelOrder,
+    deleteOrder,
     openDispute,
     expireOrder,
     sendMessage,
