@@ -774,6 +774,68 @@ export type Database = {
           },
         ]
       }
+      wallet_ledger: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          counterparty_id: string | null
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_type"]
+          description: string | null
+          description_ar: string | null
+          entry_type: Database["public"]["Enums"]["ledger_entry_type"]
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          reference_type: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          counterparty_id?: string | null
+          created_at?: string
+          currency: Database["public"]["Enums"]["currency_type"]
+          description?: string | null
+          description_ar?: string | null
+          entry_type: Database["public"]["Enums"]["ledger_entry_type"]
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          counterparty_id?: string | null
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_type"]
+          description?: string | null
+          description_ar?: string | null
+          entry_type?: Database["public"]["Enums"]["ledger_entry_type"]
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_ledger_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallets: {
         Row: {
           aura_balance: number
@@ -859,6 +921,30 @@ export type Database = {
       }
     }
     Functions: {
+      admin_adjust_balance: {
+        Args: {
+          p_admin_id: string
+          p_amount: number
+          p_currency: Database["public"]["Enums"]["currency_type"]
+          p_is_credit: boolean
+          p_reason?: string
+          p_target_user_id: string
+        }
+        Returns: Json
+      }
+      execute_transfer: {
+        Args: {
+          p_amount: number
+          p_currency: Database["public"]["Enums"]["currency_type"]
+          p_description?: string
+          p_description_ar?: string
+          p_recipient_id: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_sender_id: string
+        }
+        Returns: Json
+      }
       generate_referral_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -874,6 +960,22 @@ export type Database = {
       app_role: "admin" | "moderator" | "user" | "support"
       currency_type: "nova" | "aura"
       engagement_status: "both" | "contest" | "vote" | "none"
+      ledger_entry_type:
+        | "transfer_out"
+        | "transfer_in"
+        | "p2p_buy"
+        | "p2p_sell"
+        | "p2p_escrow_lock"
+        | "p2p_escrow_release"
+        | "contest_entry"
+        | "contest_win"
+        | "vote_spend"
+        | "vote_receive"
+        | "referral_bonus"
+        | "team_earnings"
+        | "admin_credit"
+        | "admin_debit"
+        | "conversion"
       p2p_order_status:
         | "open"
         | "matched"
@@ -1025,6 +1127,23 @@ export const Constants = {
       app_role: ["admin", "moderator", "user", "support"],
       currency_type: ["nova", "aura"],
       engagement_status: ["both", "contest", "vote", "none"],
+      ledger_entry_type: [
+        "transfer_out",
+        "transfer_in",
+        "p2p_buy",
+        "p2p_sell",
+        "p2p_escrow_lock",
+        "p2p_escrow_release",
+        "contest_entry",
+        "contest_win",
+        "vote_spend",
+        "vote_receive",
+        "referral_bonus",
+        "team_earnings",
+        "admin_credit",
+        "admin_debit",
+        "conversion",
+      ],
       p2p_order_status: [
         "open",
         "matched",

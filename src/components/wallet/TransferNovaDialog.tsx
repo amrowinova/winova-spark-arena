@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Send, User, AlertCircle, MapPin, Check, Lock } from 'lucide-react';
+import { Send, User, AlertCircle, MapPin, Check, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,11 +19,13 @@ import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { useWallet } from '@/hooks/useWallet';
+import { useAuth } from '@/contexts/AuthContext';
+import { executeTransfer, lookupUserByUsername, searchUsersByUsername, RecipientLookupResult } from '@/lib/walletService';
 
 interface TransferNovaDialogProps {
   open: boolean;
   onClose: () => void;
-  recipientId?: string;
+  recipientId?: string;        // This should be user_id for transfers
   recipientName?: string;
   recipientUsername?: string;
   recipientCountry?: string;
@@ -34,32 +36,6 @@ interface TransferNovaDialogProps {
 // Format number - remove .000 if whole number
 const formatBalance = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
-};
-
-// Mock user lookup (in production, this would be an API call)
-const mockLookupUser = (username: string): Promise<{
-  id: string;
-  name: string;
-  username: string;
-  country: string;
-  avatar?: string;
-} | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Mock user data
-      if (username.toLowerCase().includes('test') || username.length >= 3) {
-        resolve({
-          id: 'user-' + username,
-          name: username.charAt(0).toUpperCase() + username.slice(1),
-          username: username.toLowerCase(),
-          country: 'SA',
-          avatar: undefined,
-        });
-      } else {
-        resolve(null);
-      }
-    }, 500);
-  });
 };
 
 export function TransferNovaDialog({
@@ -73,10 +49,11 @@ export function TransferNovaDialog({
   onTransferComplete,
 }: TransferNovaDialogProps) {
   const { language } = useLanguage();
-  const { user, spendNova } = useUser();
+  const { user: authUser } = useAuth();
+  const { user, refetchUserData } = useUser();
   const { createTransaction, calculateLocalAmount } = useTransactions();
   const { success: showSuccess, error: showError } = useBanner();
-  const { wallet } = useWallet();
+  const { wallet, refetch: refetchWallet } = useWallet();
 
   // Check if wallet is frozen
   const isWalletFrozen = wallet?.is_frozen ?? false;
@@ -88,21 +65,19 @@ export function TransferNovaDialog({
   const [generatedReceipt, setGeneratedReceipt] = useState<Receipt | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [searchResults, setSearchResults] = useState<RecipientLookupResult[]>([]);
   
-  // Confirmed recipient state
-  const [confirmedRecipient, setConfirmedRecipient] = useState<{
-    id: string;
-    name: string;
-    username: string;
-    country: string;
-    avatar?: string;
-  } | null>(recipientId ? {
-    id: recipientId,
-    name: recipientName || '',
-    username: recipientUsername || '',
-    country: recipientCountry || 'SA',
-    avatar: recipientAvatar,
-  } : null);
+  // Confirmed recipient state - MUST have userId for transfer
+  const [confirmedRecipient, setConfirmedRecipient] = useState<RecipientLookupResult | null>(
+    recipientId ? {
+      id: '', // Will be resolved
+      userId: recipientId,
+      name: recipientName || '',
+      username: recipientUsername || '',
+      country: recipientCountry || 'SA',
+      avatarUrl: recipientAvatar,
+    } : null
+  );
 
   const novaAmount = parseFloat(amount) || 0;
   const localInfo = calculateLocalAmount(novaAmount, user.country, 'nova');
@@ -114,49 +89,104 @@ export function TransferNovaDialog({
     if (recipientUsername) return; // Skip if pre-filled
     
     const timer = setTimeout(async () => {
-      if (username.length >= 3) {
+      if (username.length >= 2) {
         setIsLookingUp(true);
-        const foundUser = await mockLookupUser(username);
-        setConfirmedRecipient(foundUser);
+        
+        // Search for users matching the query
+        const results = await searchUsersByUsername(username, authUser?.id, 5);
+        setSearchResults(results);
+        
+        // If exact match found, confirm it
+        const exactMatch = results.find(r => r.username.toLowerCase() === username.toLowerCase());
+        if (exactMatch) {
+          setConfirmedRecipient(exactMatch);
+        } else {
+          setConfirmedRecipient(null);
+        }
+        
         setIsLookingUp(false);
       } else {
+        setSearchResults([]);
         setConfirmedRecipient(null);
       }
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [username, recipientUsername]);
+  }, [username, recipientUsername, authUser?.id]);
+
+  // Resolve pre-filled recipient username to get user_id
+  useEffect(() => {
+    if (recipientUsername && !confirmedRecipient?.userId) {
+      lookupUserByUsername(recipientUsername).then((result) => {
+        if (result) {
+          setConfirmedRecipient(result);
+        }
+      });
+    }
+  }, [recipientUsername]);
+
+  const handleSelectRecipient = (recipient: RecipientLookupResult) => {
+    setConfirmedRecipient(recipient);
+    setUsername(recipient.username);
+    setSearchResults([]);
+  };
 
   const handleTransfer = async () => {
-    if (!canTransfer || !confirmedRecipient || isWalletFrozen) return;
+    if (!canTransfer || !confirmedRecipient || isWalletFrozen || !authUser) return;
+
+    // Validate we have the recipient's user_id
+    if (!confirmedRecipient.userId) {
+      showError(language === 'ar' ? 'لم يتم التعرف على المستلم' : 'Recipient not identified');
+      return;
+    }
 
     setIsLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Execute atomic transfer via database function
+    const result = await executeTransfer(
+      authUser.id,
+      confirmedRecipient.userId,
+      novaAmount,
+      'nova',
+      'dm_transfer',
+      undefined,
+      note || (language === 'ar' ? 'تحويل Nova' : 'Nova Transfer'),
+      note || 'تحويل Nova'
+    );
 
-    // Deduct from balance
-    const success = spendNova(novaAmount);
-    if (!success) {
-      showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+    if (!result.success) {
+      const errorMessages: Record<string, { en: string; ar: string }> = {
+        'Insufficient balance': { en: 'Insufficient balance', ar: 'رصيد غير كافي' },
+        'Sender wallet is frozen': { en: 'Your wallet is frozen', ar: 'محفظتك مجمّدة' },
+        'Recipient wallet is frozen': { en: 'Recipient wallet is frozen', ar: 'محفظة المستلم مجمّدة' },
+        'Sender wallet not found': { en: 'Wallet not found', ar: 'المحفظة غير موجودة' },
+        'Recipient wallet not found': { en: 'Recipient wallet not found', ar: 'محفظة المستلم غير موجودة' },
+      };
+      
+      const msg = errorMessages[result.error || ''] || { en: result.error || 'Transfer failed', ar: 'فشل التحويل' };
+      showError(language === 'ar' ? msg.ar : msg.en);
       setIsLoading(false);
       return;
     }
 
-    // Create transaction and receipt
+    // Refetch wallet to get updated balance
+    await refetchWallet();
+    await refetchUserData();
+
+    // Create receipt for UI display
     const receipt = createTransaction({
       type: 'transfer_nova',
       status: 'completed',
       amount: novaAmount,
       currency: 'nova',
       sender: {
-        id: user.id,
+        id: authUser.id,
         name: user.name,
-        username: `${user.name.toLowerCase()}_user`,
+        username: user.username,
         country: user.country,
       },
       receiver: {
-        id: confirmedRecipient.id,
+        id: confirmedRecipient.userId,
         name: confirmedRecipient.name,
         username: confirmedRecipient.username,
         country: confirmedRecipient.country,
@@ -249,8 +279,8 @@ export function TransferNovaDialog({
               <div className="p-4 bg-primary/5 border border-primary/30 rounded-xl">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12 border-2 border-primary/20">
-                    {confirmedRecipient.avatar ? (
-                      <AvatarImage src={confirmedRecipient.avatar} alt={confirmedRecipient.name} />
+                    {confirmedRecipient.avatarUrl ? (
+                      <AvatarImage src={confirmedRecipient.avatarUrl} alt={confirmedRecipient.name} />
                     ) : null}
                     <AvatarFallback className="bg-primary/10 text-primary font-bold">
                       {confirmedRecipient.name.charAt(0).toUpperCase()}
