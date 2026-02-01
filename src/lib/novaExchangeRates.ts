@@ -1,11 +1,17 @@
 /**
  * Nova Exchange Rates System
  * 
- * Fixed pricing: 1 Nova = 10 EGP (base rate)
- * All other currencies are calculated based on approximate real exchange rates to EGP
+ * FIXED ADMINISTRATIVE RATES (not live exchange rates)
+ * Nova is an internal fixed currency.
  * 
+ * Base rates:
+ * 1 Nova = 10 EGP
+ * 1 Nova = 0.20 USD
+ * 1 Nova = 0.18 EUR
+ * 1 Nova = 0.75 SAR
+ * 
+ * All rates are fixed and can ONLY be modified by Admin.
  * Nova can ONLY be added/deducted by Admins through the Admin Dashboard.
- * Users cannot directly modify their Nova balance.
  */
 
 export interface CurrencyConfig {
@@ -18,32 +24,51 @@ export interface CurrencyConfig {
   decimals: number;
 }
 
-// Base rate: 1 Nova = 10 EGP
-const BASE_NOVA_EGP = 10;
+/**
+ * FIXED ADMINISTRATIVE RATES
+ * These rates are set manually by admin and do not reflect live exchange rates.
+ * 
+ * Reference rates:
+ * 1 Nova = 10 EGP
+ * 1 Nova = 0.20 USD
+ * 1 Nova = 0.18 EUR
+ * 1 Nova = 0.75 SAR
+ */
 
-// Approximate exchange rates to EGP (for display purposes only)
-// These represent: 1 unit of foreign currency = X EGP
-const currencyToEGP: Record<string, number> = {
-  EGP: 1,
-  SAR: 13.3,   // 1 SAR ≈ 13.3 EGP
-  AED: 13.6,   // 1 AED ≈ 13.6 EGP
-  QAR: 13.7,   // 1 QAR ≈ 13.7 EGP
-  KWD: 163,    // 1 KWD ≈ 163 EGP
-  BHD: 132,    // 1 BHD ≈ 132 EGP
-  OMR: 130,    // 1 OMR ≈ 130 EGP
-  JOD: 70,     // 1 JOD ≈ 70 EGP
-  ILS: 13.5,   // 1 ILS ≈ 13.5 EGP
-  LBP: 0.00056, // 1 LBP ≈ 0.00056 EGP (very devalued)
-  SYP: 0.002,  // 1 SYP ≈ 0.002 EGP
-  YER: 0.02,   // 1 YER ≈ 0.02 EGP
-  MAD: 5,      // 1 MAD ≈ 5 EGP
-  TND: 16,     // 1 TND ≈ 16 EGP
-  DZD: 0.37,   // 1 DZD ≈ 0.37 EGP
-  LYD: 10.3,   // 1 LYD ≈ 10.3 EGP
-  SDG: 0.083,  // 1 SDG ≈ 0.083 EGP
-  TRY: 1.45,   // 1 TRY ≈ 1.45 EGP
-  IQD: 0.038,  // 1 IQD ≈ 0.038 EGP
-  USD: 50,     // 1 USD ≈ 50 EGP (fallback)
+// Full currency configurations with FIXED RATES
+export const currencyConfigs: Record<string, CurrencyConfig> = {
+  // Base currencies (explicitly defined)
+  EGP: { code: 'EGP', symbol: 'EGP', symbolAr: 'ج.م', name: 'Egyptian Pound', nameAr: 'جنيه مصري', novaRate: 10, decimals: 2 },
+  USD: { code: 'USD', symbol: 'USD', symbolAr: '$', name: 'US Dollar', nameAr: 'دولار أمريكي', novaRate: 0.20, decimals: 2 },
+  EUR: { code: 'EUR', symbol: 'EUR', symbolAr: '€', name: 'Euro', nameAr: 'يورو', novaRate: 0.18, decimals: 2 },
+  SAR: { code: 'SAR', symbol: 'SAR', symbolAr: 'ر.س', name: 'Saudi Riyal', nameAr: 'ريال سعودي', novaRate: 0.75, decimals: 2 },
+  
+  // Gulf countries (based on SAR peg ~0.75)
+  AED: { code: 'AED', symbol: 'AED', symbolAr: 'د.إ', name: 'UAE Dirham', nameAr: 'درهم إماراتي', novaRate: 0.73, decimals: 2 },
+  QAR: { code: 'QAR', symbol: 'QAR', symbolAr: 'ر.ق', name: 'Qatari Riyal', nameAr: 'ريال قطري', novaRate: 0.73, decimals: 2 },
+  KWD: { code: 'KWD', symbol: 'KWD', symbolAr: 'د.ك', name: 'Kuwaiti Dinar', nameAr: 'دينار كويتي', novaRate: 0.06, decimals: 3 },
+  BHD: { code: 'BHD', symbol: 'BHD', symbolAr: 'د.ب', name: 'Bahraini Dinar', nameAr: 'دينار بحريني', novaRate: 0.075, decimals: 3 },
+  OMR: { code: 'OMR', symbol: 'OMR', symbolAr: 'ر.ع', name: 'Omani Rial', nameAr: 'ريال عماني', novaRate: 0.077, decimals: 3 },
+  
+  // Levant
+  JOD: { code: 'JOD', symbol: 'JOD', symbolAr: 'د.أ', name: 'Jordanian Dinar', nameAr: 'دينار أردني', novaRate: 0.14, decimals: 3 },
+  ILS: { code: 'ILS', symbol: 'ILS', symbolAr: '₪', name: 'Israeli Shekel', nameAr: 'شيكل', novaRate: 0.75, decimals: 2 },
+  LBP: { code: 'LBP', symbol: 'LBP', symbolAr: 'ل.ل', name: 'Lebanese Pound', nameAr: 'ليرة لبنانية', novaRate: 17900, decimals: 0 },
+  SYP: { code: 'SYP', symbol: 'SYP', symbolAr: 'ل.س', name: 'Syrian Pound', nameAr: 'ليرة سورية', novaRate: 2600, decimals: 0 },
+  
+  // Other Arab countries
+  YER: { code: 'YER', symbol: 'YER', symbolAr: 'ر.ي', name: 'Yemeni Rial', nameAr: 'ريال يمني', novaRate: 50, decimals: 0 },
+  IQD: { code: 'IQD', symbol: 'IQD', symbolAr: 'د.ع', name: 'Iraqi Dinar', nameAr: 'دينار عراقي', novaRate: 260, decimals: 0 },
+  SDG: { code: 'SDG', symbol: 'SDG', symbolAr: 'ج.س', name: 'Sudanese Pound', nameAr: 'جنيه سوداني', novaRate: 120, decimals: 2 },
+  
+  // North Africa
+  MAD: { code: 'MAD', symbol: 'MAD', symbolAr: 'د.م', name: 'Moroccan Dirham', nameAr: 'درهم مغربي', novaRate: 2, decimals: 2 },
+  TND: { code: 'TND', symbol: 'TND', symbolAr: 'د.ت', name: 'Tunisian Dinar', nameAr: 'دينار تونسي', novaRate: 0.62, decimals: 3 },
+  DZD: { code: 'DZD', symbol: 'DZD', symbolAr: 'د.ج', name: 'Algerian Dinar', nameAr: 'دينار جزائري', novaRate: 27, decimals: 2 },
+  LYD: { code: 'LYD', symbol: 'LYD', symbolAr: 'د.ل', name: 'Libyan Dinar', nameAr: 'دينار ليبي', novaRate: 0.97, decimals: 3 },
+  
+  // Turkey
+  TRY: { code: 'TRY', symbol: 'TRY', symbolAr: '₺', name: 'Turkish Lira', nameAr: 'ليرة تركية', novaRate: 6.9, decimals: 2 },
 };
 
 // Country to Currency mapping
@@ -86,29 +111,6 @@ const countryToCurrency: Record<string, string> = {
   'تركيا': 'TRY',
   'Iraq': 'IQD',
   'العراق': 'IQD',
-};
-
-// Full currency configurations
-export const currencyConfigs: Record<string, CurrencyConfig> = {
-  EGP: { code: 'EGP', symbol: 'EGP', symbolAr: 'ج.م', name: 'Egyptian Pound', nameAr: 'جنيه مصري', novaRate: 10, decimals: 2 },
-  SAR: { code: 'SAR', symbol: 'SAR', symbolAr: 'ر.س', name: 'Saudi Riyal', nameAr: 'ريال سعودي', novaRate: BASE_NOVA_EGP / currencyToEGP.SAR, decimals: 2 },
-  AED: { code: 'AED', symbol: 'AED', symbolAr: 'د.إ', name: 'UAE Dirham', nameAr: 'درهم إماراتي', novaRate: BASE_NOVA_EGP / currencyToEGP.AED, decimals: 2 },
-  QAR: { code: 'QAR', symbol: 'QAR', symbolAr: 'ر.ق', name: 'Qatari Riyal', nameAr: 'ريال قطري', novaRate: BASE_NOVA_EGP / currencyToEGP.QAR, decimals: 2 },
-  KWD: { code: 'KWD', symbol: 'KWD', symbolAr: 'د.ك', name: 'Kuwaiti Dinar', nameAr: 'دينار كويتي', novaRate: BASE_NOVA_EGP / currencyToEGP.KWD, decimals: 3 },
-  BHD: { code: 'BHD', symbol: 'BHD', symbolAr: 'د.ب', name: 'Bahraini Dinar', nameAr: 'دينار بحريني', novaRate: BASE_NOVA_EGP / currencyToEGP.BHD, decimals: 3 },
-  OMR: { code: 'OMR', symbol: 'OMR', symbolAr: 'ر.ع', name: 'Omani Rial', nameAr: 'ريال عماني', novaRate: BASE_NOVA_EGP / currencyToEGP.OMR, decimals: 3 },
-  JOD: { code: 'JOD', symbol: 'JOD', symbolAr: 'د.أ', name: 'Jordanian Dinar', nameAr: 'دينار أردني', novaRate: BASE_NOVA_EGP / currencyToEGP.JOD, decimals: 3 },
-  ILS: { code: 'ILS', symbol: 'ILS', symbolAr: '₪', name: 'Israeli Shekel', nameAr: 'شيكل', novaRate: BASE_NOVA_EGP / currencyToEGP.ILS, decimals: 2 },
-  LBP: { code: 'LBP', symbol: 'LBP', symbolAr: 'ل.ل', name: 'Lebanese Pound', nameAr: 'ليرة لبنانية', novaRate: BASE_NOVA_EGP / currencyToEGP.LBP, decimals: 0 },
-  SYP: { code: 'SYP', symbol: 'SYP', symbolAr: 'ل.س', name: 'Syrian Pound', nameAr: 'ليرة سورية', novaRate: BASE_NOVA_EGP / currencyToEGP.SYP, decimals: 0 },
-  YER: { code: 'YER', symbol: 'YER', symbolAr: 'ر.ي', name: 'Yemeni Rial', nameAr: 'ريال يمني', novaRate: BASE_NOVA_EGP / currencyToEGP.YER, decimals: 0 },
-  MAD: { code: 'MAD', symbol: 'MAD', symbolAr: 'د.م', name: 'Moroccan Dirham', nameAr: 'درهم مغربي', novaRate: BASE_NOVA_EGP / currencyToEGP.MAD, decimals: 2 },
-  TND: { code: 'TND', symbol: 'TND', symbolAr: 'د.ت', name: 'Tunisian Dinar', nameAr: 'دينار تونسي', novaRate: BASE_NOVA_EGP / currencyToEGP.TND, decimals: 3 },
-  DZD: { code: 'DZD', symbol: 'DZD', symbolAr: 'د.ج', name: 'Algerian Dinar', nameAr: 'دينار جزائري', novaRate: BASE_NOVA_EGP / currencyToEGP.DZD, decimals: 2 },
-  LYD: { code: 'LYD', symbol: 'LYD', symbolAr: 'د.ل', name: 'Libyan Dinar', nameAr: 'دينار ليبي', novaRate: BASE_NOVA_EGP / currencyToEGP.LYD, decimals: 3 },
-  SDG: { code: 'SDG', symbol: 'SDG', symbolAr: 'ج.س', name: 'Sudanese Pound', nameAr: 'جنيه سوداني', novaRate: BASE_NOVA_EGP / currencyToEGP.SDG, decimals: 2 },
-  TRY: { code: 'TRY', symbol: 'TRY', symbolAr: '₺', name: 'Turkish Lira', nameAr: 'ليرة تركية', novaRate: BASE_NOVA_EGP / currencyToEGP.TRY, decimals: 2 },
-  IQD: { code: 'IQD', symbol: 'IQD', symbolAr: 'د.ع', name: 'Iraqi Dinar', nameAr: 'دينار عراقي', novaRate: BASE_NOVA_EGP / currencyToEGP.IQD, decimals: 0 },
 };
 
 /**
@@ -171,7 +173,7 @@ export function formatNovaWithLocal(
   return {
     nova: `${novaFormatter.format(novaAmount)} И`,
     local: `${formatter.format(localAmount)} ${isRTL ? config.symbolAr : config.symbol}`,
-    rate: `1 И = ${rateFormatter.format(config.novaRate)} ${isRTL ? config.symbolAr : config.symbol}`,
+    rate: `И 1 = ${rateFormatter.format(config.novaRate)} ${isRTL ? config.symbolAr : config.symbol}`,
   };
 }
 
@@ -185,4 +187,11 @@ export function getExchangeRateDisplay(country: string, isRTL: boolean = false):
     maximumFractionDigits: 4,
   });
   return `И 1 = ${rateFormatter.format(config.novaRate)} ${isRTL ? config.symbolAr : config.symbol}`;
+}
+
+/**
+ * Get all available currencies for admin settings
+ */
+export function getAllCurrencies(): CurrencyConfig[] {
+  return Object.values(currencyConfigs);
 }
