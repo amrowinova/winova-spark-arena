@@ -39,7 +39,6 @@ import {
   P2PSellDialog,
   P2POrderCard,
   P2PPaymentCard,
-  P2PActionButtons,
   P2PSystemMessage,
   P2PCompactOrderCard,
   P2POrderCompletedScreen,
@@ -54,6 +53,9 @@ import {
 } from '@/components/p2p';
 
 import { P2POrder, P2POrderStatus, P2PChat, P2PMessage, useP2P } from '@/contexts/P2PContext';
+import { P2PRoleBadge, P2PParticipantWithRole } from '@/components/p2p/P2PRoleBadge';
+import { P2PStatusActions } from '@/components/p2p/P2PStatusActions';
+import { getP2PRoleInfoFromOrder } from '@/lib/p2pRoleUtils';
 
 // Convert P2POrder to P2POrderListItem
 const orderToListItem = (order: P2POrder, currentUserId: string): P2POrderListItem => {
@@ -460,16 +462,18 @@ function P2PContent() {
 
   // P2P Chat View
   if (activeChatView && activeChatOrder) {
-    const isBuyer = activeChatOrder.buyer.id === user.id;
-    const counterparty = isBuyer ? activeChatOrder.seller : activeChatOrder.buyer;
+    // Get role info using unified utility
+    const roleInfo = getP2PRoleInfoFromOrder(activeChatOrder, user.id);
+    const counterparty = roleInfo.isBuyer ? activeChatOrder.seller : activeChatOrder.buyer;
+    const counterpartyRole = roleInfo.isBuyer ? 'seller' : 'buyer';
+    
     const isCompleted = activeChatOrder.status === 'completed';
     const isCancelled = activeChatOrder.status === 'cancelled';
-    const isPaidWaiting = activeChatOrder.status === 'paid' && isBuyer; // Buyer waiting for seller to release
     const isReleased = activeChatOrder.status === 'released';
 
     return (
       <div className="flex flex-col h-screen bg-background">
-        {/* Header */}
+        {/* Header with Role Badges */}
         <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3 shrink-0">
           <Button 
             variant="ghost" 
@@ -486,16 +490,22 @@ function P2PContent() {
               {counterparty.avatar}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">
-                {isRTL ? counterparty.nameAr : counterparty.name}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium truncate">
+                  {isRTL ? counterparty.nameAr : counterparty.name}
+                </p>
+                {/* Counterparty role badge */}
+                <P2PRoleBadge role={counterpartyRole} size="sm" />
+              </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Star className="h-3 w-3 text-warning fill-warning" />
                 <span>{(counterparty.rating * 20).toFixed(0)}%</span>
                 <span>•</span>
-                <span>#{activeChatOrder.id}</span>
+                <span>#{activeChatOrder.id.slice(0, 8)}</span>
               </div>
             </div>
+            {/* My role badge */}
+            <P2PRoleBadge role={roleInfo.myRole} isYou size="sm" />
           </div>
         </div>
 
@@ -519,9 +529,6 @@ function P2PContent() {
                   paymentDetails={activeChatOrder.paymentDetails}
                 />
               )}
-              
-              {/* Waiting for Release Status Card */}
-              {isPaidWaiting && <P2PWaitingReleaseCard />}
             </>
           )}
         </div>
@@ -565,12 +572,11 @@ function P2PContent() {
           </div>
         </ScrollArea>
 
-        {/* Action Buttons based on status/role - Hide when paid/waiting or released */}
-        {!isCompleted && !isCancelled && !isPaidWaiting && !isReleased && (
-          <P2PActionButtons 
+        {/* Action Buttons based on status/role - Using unified component */}
+        {!isCompleted && !isCancelled && !isReleased && (
+          <P2PStatusActions 
             order={activeChatOrder}
             currentUserId={user.id}
-            isSupport={false}
             onOrderCompleted={handleOrderCompleted}
           />
         )}
