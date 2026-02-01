@@ -614,6 +614,40 @@ export function useP2PDatabase() {
     }
   }, [user, cancellationsCount, fetchOrders, fetchCancellationsCount, sendSystemMessage, deleteOrder]);
 
+  // Relist order (cancel awaiting_payment and return to market)
+  const relistOrder = useCallback(async (orderId: string, reason: string) => {
+    if (!user) return false;
+
+    try {
+      // Reset order to open (return to market)
+      const { error } = await supabase
+        .from('p2p_orders')
+        .update({
+          status: 'open',
+          executor_id: null,
+          matched_at: null,
+          cancellation_reason: reason,
+        } as P2POrderUpdate)
+        .eq('id', orderId)
+        .eq('status', 'awaiting_payment');
+
+      if (error) throw error;
+
+      // Add system message with cancellation reason
+      const msg = generateSystemMessage('order_cancelled', { reason });
+      await sendSystemMessage(orderId, 'order_cancelled', msg.content, msg.contentAr);
+
+      // Increment cancellation count
+      fetchCancellationsCount();
+      fetchOrders();
+
+      return true;
+    } catch (err) {
+      console.error('Error relisting order:', err);
+      return false;
+    }
+  }, [user, fetchOrders, fetchCancellationsCount, sendSystemMessage]);
+
   // Open dispute
   const openDispute = useCallback(async (orderId: string, reason: string) => {
     if (!user) return false;
@@ -895,6 +929,7 @@ export function useP2PDatabase() {
     releaseFunds,
     cancelOrder,
     deleteOrder,
+    relistOrder,
     openDispute,
     expireOrder,
     sendMessage,
