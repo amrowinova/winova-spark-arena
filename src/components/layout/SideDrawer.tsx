@@ -39,7 +39,7 @@ const mainItems = [
 const secondaryItems = [
   { icon: Settings, path: '/settings', labelEn: 'Settings', labelAr: 'الإعدادات', emoji: '⚙️' },
   { icon: HelpCircle, path: '/help', labelEn: 'Help', labelAr: 'المساعدة', emoji: '❓' },
-  { icon: FileText, path: '/policies', labelEn: 'Policies', labelAr: 'السياسات', emoji: '📄' },
+  { icon: FileText, path: '/terms', labelEn: 'Policies', labelAr: 'السياسات', emoji: '📄' },
 ];
 
 const logoutItem = { icon: LogOut, path: '/logout', labelEn: 'Logout', labelAr: 'تسجيل الخروج', emoji: '🚪' };
