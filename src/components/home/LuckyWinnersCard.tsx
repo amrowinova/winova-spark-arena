@@ -3,7 +3,7 @@ import { Sparkles, Star, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getPricing } from '@/contexts/TransactionContext';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCountryFlag } from '@/lib/countryFlags';
 import { getPlatformUserById } from '@/lib/platformUsers';
@@ -23,7 +23,8 @@ interface LuckyWinnersCardProps {
 export function LuckyWinnersCard({ winners, country }: LuckyWinnersCardProps) {
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const pricing = getPricing(country);
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(country);
 
   const handleProfileClick = (userId: string) => {
     navigate(`/user/${userId}`);

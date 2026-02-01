@@ -2,7 +2,7 @@ import { Trophy } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getPricing } from '@/contexts/TransactionContext';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 
 interface PrizeDistributionCardProps {
   prizePool: number;
@@ -19,7 +19,8 @@ const prizeDistribution = [
 
 export function PrizeDistributionCard({ prizePool, country }: PrizeDistributionCardProps) {
   const { language } = useLanguage();
-  const pricing = getPricing(country);
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(country);
   
   return (
     <Card>

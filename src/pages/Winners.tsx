@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
-import { getPricing } from '@/contexts/TransactionContext';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { ContestDetailsDialog, type ContestHistoryItem } from '@/components/contest';
 import { getPlatformUserById } from '@/lib/platformUsers';
 import { getCountryFlag } from '@/lib/countryFlags';
@@ -106,7 +106,8 @@ export default function Winners() {
   const { language } = useLanguage();
   const { user } = useUser();
   const navigate = useNavigate();
-  const pricing = getPricing(user.country);
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(user.country);
   
   const [selectedContest, setSelectedContest] = useState<ContestHistoryItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);

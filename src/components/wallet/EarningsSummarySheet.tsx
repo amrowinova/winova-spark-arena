@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTransactions, type Receipt, RANK_COMMISSION_RATES } from '@/contexts/TransactionContext';
 import { useUser } from '@/contexts/UserContext';
-import { getWalletCountryPricing } from './WalletCountrySelector';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 
 // Format number - remove decimals if whole number
 const formatAmount = (value: number): string => {
@@ -31,7 +31,8 @@ export function EarningsSummarySheet({ children }: EarningsSummarySheetProps) {
   const { user } = useUser();
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'total'>('today');
   
-  const pricing = getWalletCountryPricing(user.walletCountry);
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(user.walletCountry);
 
   // Filter team earnings receipts
   const teamEarningsReceipts = useMemo(() => {
