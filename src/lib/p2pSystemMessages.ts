@@ -138,8 +138,8 @@ export const P2P_SYSTEM_MESSAGES: Record<P2PSystemMessageType, P2PSystemMessageT
   order_expired: {
     type: 'order_expired',
     getContent: () => ({
-      en: '⏰ Time expired - Order returned to marketplace',
-      ar: '⏰ انتهى الوقت - تم إعادة الطلب للسوق',
+      en: '⏰ Time expired – Order has been returned to the marketplace\n🔄 The transaction was not completed in time',
+      ar: '⏰ انتهى الوقت – تم إعادة الطلب إلى السوق\n🔄 لم تكتمل الصفقة في الوقت المحدد',
     }),
     icon: '⏰',
   },

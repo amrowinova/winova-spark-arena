@@ -22,9 +22,10 @@ interface CancelReason {
 
 const CANCEL_REASONS: CancelReason[] = [
   { id: 'could_not_transfer', labelEn: "Couldn't complete transfer", labelAr: 'لم أتمكن من التحويل' },
+  { id: 'no_response', labelEn: 'Other party not responding', labelAr: 'الطرف الآخر لا يرد' },
   { id: 'bank_issue', labelEn: 'Bank / Account issue', labelAr: 'مشكلة في البنك / الحساب' },
+  { id: 'order_mistake', labelEn: 'Mistake in order details', labelAr: 'خطأ في تفاصيل الطلب' },
   { id: 'changed_mind', labelEn: 'Changed my mind', labelAr: 'غيّرت رأيي' },
-  { id: 'price_not_suitable', labelEn: 'Price no longer suitable', labelAr: 'السعر لم يعد مناسبًا' },
   { id: 'other', labelEn: 'Other reason', labelAr: 'سبب آخر' },
 ];
 
