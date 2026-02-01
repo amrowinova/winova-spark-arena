@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { useIsNewUser } from '@/hooks/useIsNewUser';
 import { FTUXScreen } from './FTUXScreen';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface FTUXGuardProps {
   children: ReactNode;
@@ -19,7 +20,19 @@ interface FTUXGuardProps {
  * The app unlocks automatically after first contest participation or receiving Nova/Aura.
  */
 export function FTUXGuard({ children, pageTitle, skipFTUX = false }: FTUXGuardProps) {
-  const isNewUser = useIsNewUser();
+  const { isNewUser, isLoading } = useIsNewUser();
+  
+  // Show loading state while fetching user data
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background p-4 space-y-4">
+        <Skeleton className="h-12 w-3/4" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    );
+  }
   
   // If skipFTUX is true or user is not new, show the actual content
   if (skipFTUX || !isNewUser) {
