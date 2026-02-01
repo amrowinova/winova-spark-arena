@@ -13,6 +13,7 @@ import { TeamMember } from '@/components/team/TeamMemberCard';
 import { RankSwitcher } from '@/components/team/DevRankSwitcher';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { FTUXGuard } from '@/components/ftux';
 
 // Mock direct team members
 const directTeamMembers: TeamMember[] = [
@@ -73,7 +74,7 @@ const getMemberTeam = (memberId: string): TeamMember[] => {
 
 type ViewLevel = 'overview' | 'direct' | 'indirect';
 
-export default function TeamPage() {
+function TeamContent() {
   const { t } = useTranslation();
   const { user } = useUser();
   const { language } = useLanguage();
@@ -180,5 +181,16 @@ export default function TeamPage() {
       </main>
       <BottomNav />
     </div>
+  );
+}
+
+export default function TeamPage() {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
+  
+  return (
+    <FTUXGuard pageTitle={language === 'ar' ? 'الفريق' : 'Team'}>
+      <TeamContent />
+    </FTUXGuard>
   );
 }

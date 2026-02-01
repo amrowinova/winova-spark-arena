@@ -24,6 +24,7 @@ import {
 } from '@/components/profile';
 import type { UserWin, ContestWin, LuckyWin } from '@/components/profile/UserWinsSection';
 import { ProfileStatsSection } from '@/components/profile/ProfileStatsSection';
+import { FTUXGuard } from '@/components/ftux';
 
 // Mock stats data
 const mockStats = {
@@ -182,7 +183,7 @@ const mockP2PRatings = [
   },
 ];
 
-export default function Profile() {
+function ProfileContent() {
   const { t, i18n } = useTranslation();
   const { user } = useUser();
   const navigate = useNavigate();
@@ -380,5 +381,16 @@ export default function Profile() {
         />
       </div>
     </AppLayout>
+  );
+}
+
+export default function Profile() {
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
+  
+  return (
+    <FTUXGuard pageTitle={isRTL ? 'الملف الشخصي' : 'Profile'}>
+      <ProfileContent />
+    </FTUXGuard>
   );
 }

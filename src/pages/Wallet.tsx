@@ -21,6 +21,7 @@ import { WalletCountrySelector } from '@/components/wallet/WalletCountrySelector
 import { EarningsSummarySheet } from '@/components/wallet/EarningsSummarySheet';
 import { LockedEarningsCard, getNextReleaseDate } from '@/components/wallet/LockedEarningsCard';
 import { UnifiedTransactionCard } from '@/components/wallet/UnifiedTransactionCard';
+import { FTUXGuard } from '@/components/ftux';
 import type { Receipt } from '@/contexts/TransactionContext';
 
 // Format number - remove decimals if whole number (matches Home)
@@ -28,7 +29,7 @@ const formatBalance = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
 };
 
-export default function WalletPage() {
+function WalletContent() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { user } = useUser();
@@ -368,5 +369,16 @@ export default function WalletPage() {
       </main>
       <BottomNav />
     </div>
+  );
+}
+
+export default function WalletPage() {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
+  
+  return (
+    <FTUXGuard pageTitle={language === 'ar' ? 'المحفظة' : 'Wallet'}>
+      <WalletContent />
+    </FTUXGuard>
   );
 }

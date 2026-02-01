@@ -18,6 +18,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useBanner } from '@/contexts/BannerContext';
+import { FTUXGuard } from '@/components/ftux';
 
 import {
   p2pParticipantFromOfferUser,
@@ -192,7 +193,7 @@ const orderToListItem = (order: P2POrder, currentUserId: string): P2POrderListIt
   };
 };
 
-export default function P2PPage() {
+function P2PContent() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { user } = useUser();
@@ -837,5 +838,15 @@ export default function P2PPage() {
       
       <BottomNav />
     </div>
+  );
+}
+
+export default function P2PPage() {
+  const { language } = useLanguage();
+  
+  return (
+    <FTUXGuard pageTitle={language === 'ar' ? 'تداول P2P' : 'P2P Trading'}>
+      <P2PContent />
+    </FTUXGuard>
   );
 }

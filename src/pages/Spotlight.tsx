@@ -15,6 +15,7 @@ import {
   HowToEarnPointsSheet,
   WeeklyPerformanceCard,
 } from '@/components/spotlight';
+import { FTUXGuard } from '@/components/ftux';
 
 // Mock spotlight data
 const spotlightData = {
@@ -92,7 +93,7 @@ const spotlightData = {
 
 };
 
-export default function SpotlightPage() {
+function SpotlightContent() {
   const { user } = useUser();
   const { language } = useLanguage();
   const isRTL = language === 'ar';
@@ -187,5 +188,15 @@ export default function SpotlightPage() {
         onOpenChange={setShowEarnPointsSheet}
       />
     </div>
+  );
+}
+
+export default function SpotlightPage() {
+  const { language } = useLanguage();
+  
+  return (
+    <FTUXGuard pageTitle={language === 'ar' ? 'نقاط المحظوظين' : 'Lucky Points'}>
+      <SpotlightContent />
+    </FTUXGuard>
   );
 }

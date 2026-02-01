@@ -33,6 +33,7 @@ import {
   P2PSystemMessage 
 } from '@/components/p2p';
 import { useBanner } from '@/contexts/BannerContext';
+import { FTUXGuard } from '@/components/ftux';
 import type { UserRank } from '@/contexts/UserContext';
 
 interface Conversation {
@@ -204,7 +205,7 @@ const mockPlatformUsers: UserResult[] = [
   { id: 'u5', name: 'Yusuf Ibrahim', nameAr: 'يوسف ابراهيم', username: 'yusuf_i', isOnline: true },
 ];
 
-export default function ChatPage() {
+function ChatContent() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -1071,5 +1072,15 @@ export default function ChatPage() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+export default function ChatPage() {
+  const { language } = useLanguage();
+  
+  return (
+    <FTUXGuard pageTitle={language === 'ar' ? 'المحادثات' : 'Chat'}>
+      <ChatContent />
+    </FTUXGuard>
   );
 }
