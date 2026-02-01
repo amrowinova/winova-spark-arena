@@ -147,6 +147,32 @@ const NOVA_PRICE_KEYS: Array<keyof NovaPrices> = [
   'pkr',
 ];
 
+// Default fallback prices (used while loading from DB)
+const DEFAULT_PRICES: NovaPrices = {
+  egp: 10,
+  usd: 0.20,
+  eur: 0.18,
+  sar: 0.75,
+  aed: 0.73,
+  kwd: 0.06,
+  qar: 0.73,
+  bhd: 0.08,
+  omr: 0.08,
+  jod: 0.14,
+  ils: 0.74,
+  lbp: 17900,
+  syp: 2600,
+  yer: 50,
+  mad: 2.0,
+  tnd: 0.62,
+  dzd: 27,
+  lyd: 0.97,
+  sdg: 120,
+  try: 6.5,
+  iqd: 262,
+  pkr: 56,
+};
+
 function assertNovaPrices(value: unknown): NovaPrices {
   if (!value || typeof value !== 'object') {
     throw new Error('Invalid nova_prices: expected an object');
@@ -199,9 +225,11 @@ export function useNovaPricing() {
     refetchOnWindowFocus: false,
   });
 
-  const requirePrices = (): NovaPrices => {
-    if (!prices) throw new Error('Nova prices are not loaded yet');
-    return prices;
+  // Use fetched prices or fall back to defaults while loading
+  const effectivePrices = prices ?? DEFAULT_PRICES;
+
+  const getPrices = (): NovaPrices => {
+    return effectivePrices;
   };
 
   /**
@@ -215,11 +243,12 @@ export function useNovaPricing() {
    * Get Nova rate for a currency code
    */
   const getNovaRate = (currencyCode: string): number => {
-    const p = requirePrices();
+    const p = getPrices();
     const key = currencyCode.toLowerCase() as keyof NovaPrices;
     const value = p[key];
     if (typeof value !== 'number' || !Number.isFinite(value)) {
-      throw new Error(`Missing nova rate for currency: ${currencyCode}`);
+      // Return default EGP rate as fallback
+      return DEFAULT_PRICES.egp;
     }
     return value;
   };
@@ -228,7 +257,6 @@ export function useNovaPricing() {
    * Get full currency info from country name
    */
   const getCurrencyInfo = (country: string): CurrencyInfo => {
-    requirePrices();
     const currencyCode = getCurrencyCode(country);
     const meta = CURRENCY_META[currencyCode] || CURRENCY_META.EGP;
     const novaRate = getNovaRate(currencyCode);
@@ -244,7 +272,6 @@ export function useNovaPricing() {
    * Convert Nova to local currency
    */
   const novaToLocal = (novaAmount: number, country: string): number => {
-    requirePrices();
     const info = getCurrencyInfo(country);
     return novaAmount * info.novaRate;
   };
@@ -253,7 +280,6 @@ export function useNovaPricing() {
    * Convert local currency to Nova
    */
   const localToNova = (localAmount: number, country: string): number => {
-    requirePrices();
     const info = getCurrencyInfo(country);
     return localAmount / info.novaRate;
   };
@@ -266,7 +292,6 @@ export function useNovaPricing() {
     country: string,
     isRTL: boolean = false
   ): { nova: string; local: string; rate: string } => {
-    requirePrices();
     const info = getCurrencyInfo(country);
     const localAmount = novaAmount * info.novaRate;
 
@@ -296,7 +321,6 @@ export function useNovaPricing() {
    * Get exchange rate display string
    */
   const getExchangeRateDisplay = (country: string, isRTL: boolean = false): string => {
-    requirePrices();
     const info = getCurrencyInfo(country);
     const rateFormatter = new Intl.NumberFormat(isRTL ? 'ar-SA' : 'en-US', {
       minimumFractionDigits: 2,
@@ -309,11 +333,11 @@ export function useNovaPricing() {
    * Get all prices (for admin dashboard)
    */
   const getAllPrices = (): NovaPrices => {
-    return requirePrices();
+    return getPrices();
   };
 
   return {
-    prices: (prices ?? ({} as NovaPrices)),
+    prices: effectivePrices,
     isLoading,
     error,
     getCurrencyCode,
