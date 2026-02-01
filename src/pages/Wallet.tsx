@@ -213,18 +213,25 @@ export default function WalletPage() {
           <Button 
             onClick={() => setTransferDialogOpen(true)}
             variant="outline"
-            className="flex-col h-auto py-4 border-nova/30 hover:bg-nova/5 hover:border-nova/50"
+            className="flex-col h-auto py-4 border-nova/30 hover:bg-nova/5 hover:border-nova/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isWalletFrozen}
           >
             <Send className="h-5 w-5 mb-1 text-nova" />
             <span className="text-xs text-foreground">
               {language === 'ar' ? 'تحويل Nova' : 'Transfer Nova'}
             </span>
+            {isWalletFrozen && (
+              <span className="text-[10px] text-destructive mt-1">
+                {language === 'ar' ? 'مجمّد' : 'Frozen'}
+              </span>
+            )}
           </Button>
           
           <Button 
             onClick={() => setConvertDialogOpen(true)}
             variant="outline"
-            className="flex-col h-auto py-4 border-aura/30 hover:bg-aura/5 hover:border-aura/50"
+            className="flex-col h-auto py-4 border-aura/30 hover:bg-aura/5 hover:border-aura/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isWalletFrozen}
           >
             <RefreshCw className="h-5 w-5 mb-1.5 text-aura" />
             <span className="text-xs text-foreground text-center leading-tight">
@@ -233,6 +240,11 @@ export default function WalletPage() {
             <span className="text-[10px] text-muted-foreground mt-1">
               {language === 'ar' ? 'كل 1 Nova = 2 Aura' : '1 Nova = 2 Aura'}
             </span>
+            {isWalletFrozen && (
+              <span className="text-[10px] text-destructive mt-1">
+                {language === 'ar' ? 'مجمّد' : 'Frozen'}
+              </span>
+            )}
           </Button>
         </motion.div>
 

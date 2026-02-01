@@ -12,10 +12,12 @@ import {
   Wallet,
   User,
   Lock,
-  Settings
+  Settings,
+  Snowflake
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AddNovaDialog } from '@/components/admin/AddNovaDialog';
+import { WalletFreezeDialog } from '@/components/admin/WalletFreezeDialog';
 import { formatNovaWithLocal } from '@/lib/novaExchangeRates';
 
 interface WalletWithProfile {
@@ -24,6 +26,7 @@ interface WalletWithProfile {
   nova_balance: number;
   aura_balance: number;
   locked_nova_balance: number;
+  is_frozen: boolean;
   user_name: string;
   user_avatar: string | null;
   username: string;
@@ -39,6 +42,7 @@ export default function AdminWallets() {
   const [sortBy, setSortBy] = useState<'nova' | 'aura'>('nova');
   const [selectedWallet, setSelectedWallet] = useState<WalletWithProfile | null>(null);
   const [isNovaDialogOpen, setIsNovaDialogOpen] = useState(false);
+  const [isFreezeDialogOpen, setIsFreezeDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchWallets();
@@ -74,6 +78,7 @@ export default function AdminWallets() {
           nova_balance: wallet.nova_balance,
           aura_balance: wallet.aura_balance,
           locked_nova_balance: wallet.locked_nova_balance,
+          is_frozen: wallet.is_frozen,
           user_name: profile?.name || 'Unknown',
           user_avatar: profile?.avatar_url,
           username: profile?.username || 'unknown',
@@ -91,6 +96,11 @@ export default function AdminWallets() {
     setIsNovaDialogOpen(true);
   };
 
+  const handleFreezeWallet = (wallet: WalletWithProfile) => {
+    setSelectedWallet(wallet);
+    setIsFreezeDialogOpen(true);
+  };
+
   const filteredWallets = wallets
     .filter(w =>
       w.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -104,6 +114,7 @@ export default function AdminWallets() {
   const totalNova = wallets.reduce((sum, w) => sum + w.nova_balance, 0);
   const totalAura = wallets.reduce((sum, w) => sum + w.aura_balance, 0);
   const totalLocked = wallets.reduce((sum, w) => sum + w.locked_nova_balance, 0);
+  const frozenCount = wallets.filter(w => w.is_frozen).length;
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat(isRTL ? 'ar-SA' : 'en-US', {
@@ -142,7 +153,7 @@ export default function AdminWallets() {
         </Card>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Card className="p-3 text-center bg-amber-500/5 border-amber-500/20">
             <p className="text-lg font-bold text-amber-600">{formatNumber(totalNova)}</p>
             <p className="text-[10px] text-muted-foreground">Total Nova</p>
@@ -151,9 +162,13 @@ export default function AdminWallets() {
             <p className="text-lg font-bold text-purple-600">{formatNumber(totalAura)}</p>
             <p className="text-[10px] text-muted-foreground">Total Aura</p>
           </Card>
-          <Card className="p-3 text-center bg-destructive/5 border-destructive/20">
-            <p className="text-lg font-bold text-destructive">{formatNumber(totalLocked)}</p>
+          <Card className="p-3 text-center bg-warning/5 border-warning/20">
+            <p className="text-lg font-bold text-warning">{formatNumber(totalLocked)}</p>
             <p className="text-[10px] text-muted-foreground">Locked</p>
+          </Card>
+          <Card className="p-3 text-center bg-destructive/5 border-destructive/20">
+            <p className="text-lg font-bold text-destructive">{frozenCount}</p>
+            <p className="text-[10px] text-muted-foreground">Frozen</p>
           </Card>
         </div>
 
@@ -218,22 +233,37 @@ export default function AdminWallets() {
               const localDisplay = formatNovaWithLocal(wallet.nova_balance, wallet.country, isRTL);
               
               return (
-                <Card key={wallet.id} className="p-3">
+                <Card 
+                  key={wallet.id} 
+                  className={`p-3 ${wallet.is_frozen ? 'border-destructive/50 bg-destructive/5' : ''}`}
+                >
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={wallet.user_avatar || undefined} />
                         <AvatarFallback><User className="w-5 h-5" /></AvatarFallback>
                       </Avatar>
-                      {index < 3 && (
+                      {index < 3 && !wallet.is_frozen && (
                         <span className="absolute -top-1 -end-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">
                           {index + 1}
+                        </span>
+                      )}
+                      {wallet.is_frozen && (
+                        <span className="absolute -top-1 -end-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+                          <Snowflake className="w-3 h-3" />
                         </span>
                       )}
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{wallet.user_name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{wallet.user_name}</p>
+                        {wallet.is_frozen && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                            {isRTL ? 'مجمّد' : 'Frozen'}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">@{wallet.username}</p>
                     </div>
                     
@@ -254,22 +284,32 @@ export default function AdminWallets() {
                         <span className="text-[10px] text-muted-foreground">✦</span>
                       </div>
                       {wallet.locked_nova_balance > 0 && (
-                        <div className="flex items-center gap-1 justify-end text-destructive">
+                        <div className="flex items-center gap-1 justify-end text-warning">
                           <Lock className="w-3 h-3" />
                           <span className="text-[10px]">{formatNumber(wallet.locked_nova_balance)}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Manage Nova Button */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleManageNova(wallet)}
-                    >
-                      <Settings className="w-4 h-4" />
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 w-7 p-0"
+                        onClick={() => handleManageNova(wallet)}
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={wallet.is_frozen ? 'destructive' : 'outline'}
+                        className="h-7 w-7 p-0"
+                        onClick={() => handleFreezeWallet(wallet)}
+                      >
+                        <Snowflake className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               );
@@ -284,6 +324,15 @@ export default function AdminWallets() {
         onOpenChange={setIsNovaDialogOpen}
         user={selectedWallet}
         onSuccess={fetchWallets}
+      />
+
+      {/* Freeze Dialog - Admin can freeze and unfreeze */}
+      <WalletFreezeDialog
+        open={isFreezeDialogOpen}
+        onOpenChange={setIsFreezeDialogOpen}
+        user={selectedWallet}
+        onSuccess={fetchWallets}
+        canUnfreeze={true}
       />
     </div>
   );

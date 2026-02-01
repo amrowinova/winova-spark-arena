@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { RefreshCw, ArrowRight, AlertCircle } from 'lucide-react';
+import { RefreshCw, ArrowRight, AlertCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useTransactions } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBanner } from '@/contexts/BannerContext';
+import { useWallet } from '@/hooks/useWallet';
 
 interface ConvertNovaAuraDialogProps {
   open: boolean;
@@ -30,6 +32,10 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
   const { user, spendNova, addAura } = useUser();
   const { createTransaction } = useTransactions();
   const { success: showSuccess, error: showError } = useBanner();
+  const { wallet } = useWallet();
+
+  // Check if wallet is frozen
+  const isWalletFrozen = wallet?.is_frozen ?? false;
 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,9 +43,10 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
   const novaAmount = parseFloat(amount) || 0;
   const auraAmount = novaAmount * 2; // 1 Nova = 2 Aura
   const hasEnoughBalance = novaAmount <= user.novaBalance && novaAmount > 0;
+  const canConvert = hasEnoughBalance && !isWalletFrozen;
 
   const handleConvert = async () => {
-    if (!hasEnoughBalance || novaAmount <= 0) return;
+    if (!canConvert || novaAmount <= 0 || isWalletFrozen) return;
 
     setIsLoading(true);
 
@@ -103,6 +110,18 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Frozen Wallet Warning */}
+            {isWalletFrozen && (
+              <Alert variant="destructive">
+                <Lock className="h-4 w-4" />
+                <AlertDescription>
+                  {language === 'ar' 
+                    ? 'رصيدك مجمّد. لا يمكنك تحويل Nova حالياً.'
+                    : 'Your wallet is frozen. You cannot convert Nova.'}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Current Balances - Side by side */}
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-nova/5 rounded-lg border border-nova/20">
@@ -176,7 +195,7 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
 
             <Button
               className="w-full h-12 bg-aura hover:bg-aura/90 text-aura-foreground font-bold"
-              disabled={!hasEnoughBalance || novaAmount <= 0 || isLoading}
+              disabled={!canConvert || novaAmount <= 0 || isLoading}
               onClick={handleConvert}
             >
               {isLoading 

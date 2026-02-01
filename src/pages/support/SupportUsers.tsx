@@ -4,6 +4,7 @@ import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Search, 
@@ -11,7 +12,9 @@ import {
   Calendar,
   Wallet,
   Shield,
-  ChevronRight
+  ChevronRight,
+  Snowflake,
+  Lock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -22,6 +25,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { WalletFreezeDialog } from '@/components/admin/WalletFreezeDialog';
 
 interface UserProfile {
   id: string;
@@ -34,6 +38,8 @@ interface UserProfile {
   created_at: string;
   nova_balance?: number;
   aura_balance?: number;
+  is_frozen?: boolean;
+  wallet_id?: string;
   roles?: string[];
 }
 
@@ -44,6 +50,8 @@ export default function SupportUsers() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [freezeDialogOpen, setFreezeDialogOpen] = useState(false);
+  const [userToFreeze, setUserToFreeze] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -71,7 +79,7 @@ export default function SupportUsers() {
   const fetchUserDetails = async (userId: string) => {
     const { data: wallet } = await supabase
       .from('wallets')
-      .select('nova_balance, aura_balance')
+      .select('id, nova_balance, aura_balance, is_frozen')
       .eq('user_id', userId)
       .single();
 
@@ -81,8 +89,10 @@ export default function SupportUsers() {
       .eq('user_id', userId);
 
     return {
+      wallet_id: wallet?.id,
       nova_balance: wallet?.nova_balance || 0,
       aura_balance: wallet?.aura_balance || 0,
+      is_frozen: wallet?.is_frozen || false,
       roles: rolesData?.map(r => r.role) || ['user'],
     };
   };
@@ -90,6 +100,20 @@ export default function SupportUsers() {
   const handleSelectUser = async (user: UserProfile) => {
     const details = await fetchUserDetails(user.user_id);
     setSelectedUser({ ...user, ...details });
+  };
+
+  const handleOpenFreezeDialog = (user: UserProfile) => {
+    setUserToFreeze(user);
+    setFreezeDialogOpen(true);
+  };
+
+  const handleFreezeSuccess = async () => {
+    // Refresh user details
+    if (selectedUser) {
+      const details = await fetchUserDetails(selectedUser.user_id);
+      setSelectedUser({ ...selectedUser, ...details });
+    }
+    fetchUsers();
   };
 
   const filteredUsers = users.filter(u =>
@@ -185,7 +209,7 @@ export default function SupportUsers() {
 
       {/* User Detail Sheet */}
       <Sheet open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-        <SheetContent side="bottom" className="h-[60vh] rounded-t-2xl">
+        <SheetContent side="bottom" className="h-[70vh] rounded-t-2xl">
           {selectedUser && (
             <>
               <SheetHeader className="text-center pb-4">
@@ -197,8 +221,14 @@ export default function SupportUsers() {
                 <p className="text-sm text-muted-foreground">@{selectedUser.username}</p>
                 <div className="flex justify-center gap-2 mt-2 flex-wrap">
                   {getRankBadge(selectedUser.rank)}
+                  {selectedUser.is_frozen && (
+                    <Badge variant="destructive">
+                      <Snowflake className="w-3 h-3 me-1" />
+                      {isRTL ? 'مجمّد' : 'Frozen'}
+                    </Badge>
+                  )}
                   {selectedUser.roles?.filter(r => r !== 'user').map(role => (
-                    <Badge key={role} variant="destructive">
+                    <Badge key={role} variant="secondary">
                       <Shield className="w-3 h-3 me-1" />
                       {role}
                     </Badge>
@@ -212,6 +242,12 @@ export default function SupportUsers() {
                   <div className="flex items-center gap-3 mb-3">
                     <Wallet className="w-5 h-5 text-primary" />
                     <h3 className="font-semibold">{isRTL ? 'المحفظة' : 'Wallet'}</h3>
+                    {selectedUser.is_frozen && (
+                      <Badge variant="destructive" className="ms-auto">
+                        <Lock className="w-3 h-3 me-1" />
+                        {isRTL ? 'مجمّد' : 'Frozen'}
+                      </Badge>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-3 bg-muted rounded-lg">
@@ -241,11 +277,57 @@ export default function SupportUsers() {
                     </span>
                   </div>
                 </Card>
+
+                {/* Freeze Button - Support can only freeze, not unfreeze */}
+                {!selectedUser.is_frozen && (
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => handleOpenFreezeDialog(selectedUser)}
+                  >
+                    <Snowflake className="w-4 h-4 me-2" />
+                    {isRTL ? 'تجميد المحفظة' : 'Freeze Wallet'}
+                  </Button>
+                )}
+
+                {selectedUser.is_frozen && (
+                  <Card className="p-4 bg-destructive/10 border-destructive/30">
+                    <div className="flex items-center gap-3">
+                      <Snowflake className="w-5 h-5 text-destructive" />
+                      <div>
+                        <p className="font-medium text-destructive">
+                          {isRTL ? 'المحفظة مجمّدة' : 'Wallet is Frozen'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {isRTL 
+                            ? 'فقط المشرف يستطيع فك التجميد'
+                            : 'Only Admin can unfreeze'}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Freeze Dialog - Support can only freeze, not unfreeze */}
+      <WalletFreezeDialog
+        open={freezeDialogOpen}
+        onOpenChange={setFreezeDialogOpen}
+        user={userToFreeze ? {
+          id: userToFreeze.wallet_id || '',
+          user_id: userToFreeze.user_id,
+          user_name: userToFreeze.name,
+          user_avatar: userToFreeze.avatar_url,
+          username: userToFreeze.username,
+          is_frozen: userToFreeze.is_frozen,
+        } : null}
+        onSuccess={handleFreezeSuccess}
+        canUnfreeze={false}
+      />
     </div>
   );
 }

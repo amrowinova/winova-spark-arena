@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Send, User, AlertCircle, MapPin, Check } from 'lucide-react';
+import { Send, User, AlertCircle, MapPin, Check, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBanner } from '@/contexts/BannerContext';
+import { useWallet } from '@/hooks/useWallet';
 
 interface TransferNovaDialogProps {
   open: boolean;
@@ -74,6 +76,10 @@ export function TransferNovaDialog({
   const { user, spendNova } = useUser();
   const { createTransaction, calculateLocalAmount } = useTransactions();
   const { success: showSuccess, error: showError } = useBanner();
+  const { wallet } = useWallet();
+
+  // Check if wallet is frozen
+  const isWalletFrozen = wallet?.is_frozen ?? false;
 
   const [amount, setAmount] = useState('');
   const [username, setUsername] = useState(recipientUsername || '');
@@ -101,7 +107,7 @@ export function TransferNovaDialog({
   const novaAmount = parseFloat(amount) || 0;
   const localInfo = calculateLocalAmount(novaAmount, user.country, 'nova');
   const hasEnoughBalance = novaAmount <= user.novaBalance && novaAmount > 0;
-  const canTransfer = hasEnoughBalance && novaAmount > 0 && confirmedRecipient !== null;
+  const canTransfer = hasEnoughBalance && novaAmount > 0 && confirmedRecipient !== null && !isWalletFrozen;
 
   // Lookup user when username changes
   useEffect(() => {
@@ -122,7 +128,7 @@ export function TransferNovaDialog({
   }, [username, recipientUsername]);
 
   const handleTransfer = async () => {
-    if (!canTransfer || !confirmedRecipient) return;
+    if (!canTransfer || !confirmedRecipient || isWalletFrozen) return;
 
     setIsLoading(true);
 
@@ -195,6 +201,18 @@ export function TransferNovaDialog({
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Frozen Wallet Warning */}
+            {isWalletFrozen && (
+              <Alert variant="destructive">
+                <Lock className="h-4 w-4" />
+                <AlertDescription>
+                  {language === 'ar' 
+                    ? 'رصيدك مجمّد. لا يمكنك تحويل Nova حالياً.'
+                    : 'Your wallet is frozen. You cannot transfer Nova.'}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Current Balance */}
             <div className="p-3 bg-nova/5 border border-nova/20 rounded-lg">
               <p className="text-xs text-muted-foreground mb-1">
