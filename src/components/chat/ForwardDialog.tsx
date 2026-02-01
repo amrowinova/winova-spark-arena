@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, Check, Users, Send } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,13 +11,13 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useDirectMessages } from '@/hooks/useDirectMessages';
 
 interface Contact {
   id: string;
   name: string;
   username?: string;
-  avatar: string;
-  isTeam?: boolean;
+  avatar: string | null;
 }
 
 interface ForwardDialogProps {
@@ -27,21 +27,21 @@ interface ForwardDialogProps {
   messagePreview: string;
 }
 
-// Mock contacts
-const mockContacts: Contact[] = [
-  { id: '1', name: 'سارة أحمد', username: 'sara_ahmed', avatar: '👩' },
-  { id: '2', name: 'محمد خالد', username: 'mkhalid', avatar: '👨' },
-  { id: '3', name: 'ليلى محمد', username: 'layla_m', avatar: '👩‍🦱' },
-  { id: '4', name: 'عمر البدر', username: 'omar_b', avatar: '🧔' },
-  { id: 'team', name: 'فريقي المباشر', avatar: '👥', isTeam: true },
-];
-
 export function ForwardDialog({ open, onClose, onForward, messagePreview }: ForwardDialogProps) {
   const { language } = useLanguage();
+  const { conversations, isLoading } = useDirectMessages();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const filteredContacts = mockContacts.filter(contact =>
+  // Convert conversations to contacts
+  const contacts: Contact[] = conversations.map(conv => ({
+    id: conv.participantId,
+    name: conv.participantName,
+    username: conv.participantUsername,
+    avatar: conv.participantAvatar,
+  }));
+
+  const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contact.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -86,35 +86,41 @@ export function ForwardDialog({ open, onClose, onForward, messagePreview }: Forw
         {/* Contacts list */}
         <ScrollArea className="h-[300px]">
           <div className="space-y-1">
-            {filteredContacts.map((contact) => (
-              <div
-                key={contact.id}
-                onClick={() => toggleContact(contact.id)}
-                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                  selectedIds.includes(contact.id) ? 'bg-primary/10' : 'hover:bg-muted'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-                  contact.isTeam ? 'bg-primary/20' : 'bg-muted'
-                }`}>
-                  {contact.avatar}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+            {filteredContacts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">
+                  {language === 'ar' ? 'لا توجد محادثات' : 'No conversations yet'}
+                </p>
+                <p className="text-xs mt-1">
+                  {language === 'ar' 
+                    ? 'ابدأ محادثة مع أحد المستخدمين أولاً'
+                    : 'Start a conversation with a user first'}
+                </p>
+              </div>
+            ) : (
+              filteredContacts.map((contact) => (
+                <div
+                  key={contact.id}
+                  onClick={() => toggleContact(contact.id)}
+                  className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                    selectedIds.includes(contact.id) ? 'bg-primary/10' : 'hover:bg-muted'
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-muted">
+                    {contact.avatar || '👤'}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{contact.name}</p>
-                    {contact.isTeam && (
-                      <Users className="h-3 w-3 text-primary" />
+                    {contact.username && (
+                      <p className="text-xs text-muted-foreground">@{contact.username}</p>
                     )}
                   </div>
-                  {contact.username && (
-                    <p className="text-xs text-muted-foreground">@{contact.username}</p>
-                  )}
-                </div>
 
-                <Checkbox checked={selectedIds.includes(contact.id)} />
-              </div>
-            ))}
+                  <Checkbox checked={selectedIds.includes(contact.id)} />
+                </div>
+              ))
+            )}
           </div>
         </ScrollArea>
 

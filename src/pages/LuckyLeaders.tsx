@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -5,42 +6,89 @@ import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import { getPlatformUserById } from '@/lib/platformUsers';
 import { getCountryFlag } from '@/lib/countryFlags';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LuckyLeaderEntry {
   id: string;
   name: string;
+  country: string;
   novaWon: number;
   winDate: Date;
   position: number;
 }
 
-// Mock data for Lucky Leaders - sorted by highest Nova won
-const luckyLeadersData: LuckyLeaderEntry[] = [
-  { id: '4', name: getPlatformUserById('4')?.nameAr || 'خالد محمد', novaWon: 2450, winDate: new Date('2026-01-15'), position: 1 },
-  { id: '2', name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', novaWon: 1850, winDate: new Date('2026-01-22'), position: 2 },
-  { id: '5', name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', novaWon: 1520, winDate: new Date('2026-01-10'), position: 3 },
-  { id: '11', name: getPlatformUserById('11')?.nameAr || 'أحمد حسن', novaWon: 1340, winDate: new Date('2026-01-18'), position: 4 },
-  { id: '6', name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', novaWon: 1180, winDate: new Date('2026-01-25'), position: 5 },
-  { id: '7', name: getPlatformUserById('7')?.nameAr || 'ليلى حسن', novaWon: 980, winDate: new Date('2026-01-08'), position: 6 },
-  { id: '8', name: getPlatformUserById('8')?.nameAr || 'أحمد كريم', novaWon: 850, winDate: new Date('2026-01-20'), position: 7 },
-  { id: '9', name: getPlatformUserById('9')?.nameAr || 'نورة علي', novaWon: 720, winDate: new Date('2026-01-12'), position: 8 },
-  { id: '10', name: getPlatformUserById('10')?.nameAr || 'محمد سالم', novaWon: 650, winDate: new Date('2026-01-05'), position: 9 },
-  { id: '3', name: getPlatformUserById('3')?.nameAr || 'منى الخالد', novaWon: 520, winDate: new Date('2026-01-27'), position: 10 },
-];
-
 export default function LuckyLeadersPage() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const isRTL = language === 'ar';
+  const [leaders, setLeaders] = useState<LuckyLeaderEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLuckyLeaders() {
+      try {
+        const { data, error } = await supabase
+          .from('wallet_ledger')
+          .select(`
+            user_id,
+            amount,
+            created_at,
+            profiles!inner(name, country)
+          `)
+          .in('entry_type', ['referral_bonus', 'contest_win'])
+          .gt('amount', 0);
+
+        if (error) throw error;
+
+        const userWins: Record<string, { name: string; country: string; total: number; lastDate: string }> = {};
+        
+        for (const entry of data || []) {
+          const userId = entry.user_id;
+          const profile = entry.profiles as any;
+          
+          if (!userWins[userId]) {
+            userWins[userId] = {
+              name: profile?.name || 'User',
+              country: profile?.country || '',
+              total: 0,
+              lastDate: entry.created_at,
+            };
+          }
+          userWins[userId].total += Number(entry.amount) || 0;
+          if (entry.created_at > userWins[userId].lastDate) {
+            userWins[userId].lastDate = entry.created_at;
+          }
+        }
+
+        const sorted = Object.entries(userWins)
+          .sort((a, b) => b[1].total - a[1].total)
+          .slice(0, 20)
+          .map(([id, data], index) => ({
+            id,
+            name: data.name,
+            country: data.country,
+            novaWon: data.total,
+            winDate: new Date(data.lastDate),
+            position: index + 1,
+          }));
+
+        setLeaders(sorted);
+      } catch (err) {
+        console.error('Error fetching lucky leaders:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchLuckyLeaders();
+  }, []);
 
   const handleProfileClick = (userId: string) => {
     navigate(`/user/${userId}`);
   };
 
   const formatDate = (date: Date) => {
-    // Use Gregorian calendar for Arabic (ar-EG-u-ca-gregory)
     return date.toLocaleDateString(isRTL ? 'ar-EG-u-ca-gregory' : 'en-US', {
       day: 'numeric',
       month: 'short',
@@ -74,6 +122,31 @@ export default function LuckyLeadersPage() {
     }
   };
 
+  // Empty state
+  if (!isLoading && leaders.length === 0) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader title={isRTL ? 'متصدّري المحظوظين' : 'Lucky Leaders'} />
+        
+        <main className="flex-1 px-4 py-4 pb-20 flex items-center justify-center">
+          <div className="text-center">
+            <Crown className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+            <h2 className="text-lg font-bold mb-2">
+              {isRTL ? 'لا يوجد محظوظين بعد' : 'No Lucky Winners Yet'}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {isRTL 
+                ? 'كن أول المحظوظين!'
+                : 'Be the first lucky winner!'}
+            </p>
+          </div>
+        </main>
+        
+        <BottomNav />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={isRTL ? 'متصدّري المحظوظين' : 'Lucky Leaders'} />
@@ -98,9 +171,9 @@ export default function LuckyLeadersPage() {
         {/* Leaders List */}
         <Card className="border border-border bg-card">
           <CardContent className="p-3 space-y-2">
-            {luckyLeadersData.map((entry, index) => (
+            {leaders.map((entry, index) => (
               <motion.div
-                key={`${entry.id}-${entry.position}`}
+                key={entry.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
@@ -124,11 +197,9 @@ export default function LuckyLeadersPage() {
                     >
                       {entry.name}
                     </p>
-                    {(() => {
-                      const user = getPlatformUserById(entry.id);
-                      const flag = user ? getCountryFlag(user.country) : '';
-                      return flag ? <span className="text-sm shrink-0">{flag}</span> : null;
-                    })()}
+                    {getCountryFlag(entry.country) && (
+                      <span className="text-sm shrink-0">{getCountryFlag(entry.country)}</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
