@@ -269,7 +269,7 @@ export function P2POrdersList({ orders, onOpenChat, onDeleteOrder, onCancelOrder
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                className="gap-2"
+                                className="gap-2 flex-1"
                                 disabled={deletingOrderId === order.id}
                                 onClick={async (e) => {
                                   e.stopPropagation();
@@ -283,16 +283,18 @@ export function P2POrdersList({ orders, onOpenChat, onDeleteOrder, onCancelOrder
                               </Button>
                             )}
 
-                            {/* Open Chat button */}
-                            <Button 
-                              variant="outline" 
-                              className="flex-1 gap-2"
-                              onClick={() => onOpenChat(order.id)}
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                              {isRTL ? 'فتح المحادثة' : 'Open Chat'}
-                              <ChevronRight className="h-4 w-4 ms-auto" />
-                            </Button>
+                            {/* Open Chat button - ONLY for matched orders (not 'created') */}
+                            {order.status !== 'created' && (
+                              <Button 
+                                variant="outline" 
+                                className="flex-1 gap-2"
+                                onClick={() => onOpenChat(order.id)}
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                                {isRTL ? 'فتح المحادثة' : 'Open Chat'}
+                                <ChevronRight className="h-4 w-4 ms-auto" />
+                              </Button>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
