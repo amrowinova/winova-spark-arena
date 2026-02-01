@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AuthLanding } from './AuthLanding';
 import { LoginScreen } from './LoginScreen';
@@ -6,6 +7,10 @@ import { SignUpScreen } from './SignUpScreen';
 import { OTPVerificationScreen } from './OTPVerificationScreen';
 import { ProfileCompletionScreen } from './ProfileCompletionScreen';
 import { ForgotPasswordScreen } from './ForgotPasswordScreen';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import {
   Sheet,
   SheetContent,
@@ -23,18 +28,87 @@ export interface AuthFlowProps {
 export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: AuthFlowProps) {
   const [currentScreen, setCurrentScreen] = useState<AuthScreen>(initialScreen || 'landing');
   const [email, setEmail] = useState('');
+  const { language } = useLanguage();
+  const { user } = useAuth();
+  const isRTL = language === 'ar';
+
+  // Reset screen when modal opens
+  useEffect(() => {
+    if (open) {
+      setCurrentScreen(initialScreen || 'landing');
+      setEmail('');
+    }
+  }, [open, initialScreen]);
+
+  // Watch for auth state changes to auto-close and redirect
+  useEffect(() => {
+    if (user && open) {
+      // User is authenticated, close modal and show welcome message
+      handleAuthComplete();
+    }
+  }, [user, open]);
 
   const handleClose = () => {
     onOpenChange(false);
-    // Reset to initial screen when closed
-    setTimeout(() => {
-      setCurrentScreen(initialScreen || 'landing');
-      setEmail('');
-    }, 300);
   };
 
-  const handleSuccess = () => {
-    handleClose();
+  const handleAuthComplete = async () => {
+    // Close the modal first
+    onOpenChange(false);
+    
+    // Get user profile to get the name
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', session.session.user.id)
+          .single();
+        
+        const userName = profile?.name || session.session.user.user_metadata?.name || 'User';
+        
+        // Show welcome notification
+        toast({
+          title: isRTL ? 'مرحباً بعودتك! 👋' : 'Welcome back! 👋',
+          description: isRTL 
+            ? `أهلاً ${userName}` 
+            : `Hello ${userName}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile for welcome message:', error);
+    }
+    
+    // Trigger callback and navigate
+    onAuthSuccess?.();
+  };
+
+  // Login success handler (for password login)
+  const handleLoginSuccess = async () => {
+    // The useEffect above will catch the auth state change and handle it
+    // This is just a backup in case the auth state doesn't update immediately
+    setTimeout(() => {
+      if (!user) {
+        handleAuthComplete();
+      }
+    }, 500);
+  };
+
+  // Signup success handler (for password signup with name)
+  const handleSignupSuccess = async (name: string) => {
+    // Close the modal
+    onOpenChange(false);
+    
+    // Show success notification with the name
+    toast({
+      title: isRTL ? 'تم إنشاء الحساب بنجاح! 🎉' : 'Account created successfully! 🎉',
+      description: isRTL 
+        ? `مرحباً ${name}` 
+        : `Welcome ${name}`,
+    });
+    
+    // Trigger callback
     onAuthSuccess?.();
   };
 
@@ -45,8 +119,8 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   };
 
   const handleLoginVerify = () => {
-    // Login successful
-    handleSuccess();
+    // Login successful via OTP
+    handleAuthComplete();
   };
 
   // Signup flow: email → OTP → profile completion → success
@@ -62,11 +136,10 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
 
   const handleProfileComplete = () => {
     // Signup successful
-    handleSuccess();
+    handleAuthComplete();
   };
 
   const handleResendOTP = () => {
-    // Mock resend - in production this would call API
     console.log('Resending OTP to:', email);
   };
 
@@ -107,6 +180,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
                 onSignUp={() => setCurrentScreen('signup')}
                 onSendOTP={handleLoginSendOTP}
                 onForgotPassword={() => setCurrentScreen('forgot-password')}
+                onLoginSuccess={handleLoginSuccess}
               />
             </motion.div>
           )}
@@ -157,6 +231,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
                 onBack={() => setCurrentScreen('landing')}
                 onLogin={() => setCurrentScreen('login')}
                 onSendOTP={handleSignupSendOTP}
+                onSignupSuccess={handleSignupSuccess}
               />
             </motion.div>
           )}

@@ -12,11 +12,12 @@ interface LoginScreenProps {
   onSignUp: () => void;
   onSendOTP: (email: string) => void;
   onForgotPassword: () => void;
+  onLoginSuccess?: (name: string) => void;
 }
 
 type LoginMethod = 'otp' | 'password';
 
-export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword }: LoginScreenProps) {
+export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword, onLoginSuccess }: LoginScreenProps) {
   const { language } = useLanguage();
   const { signIn, signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
   const isRTL = language === 'ar';
@@ -59,7 +60,9 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword }: L
         setError(isRTL ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Invalid email or password');
         return;
       }
-      // Success - auth state change will handle navigation
+      
+      // Success! Trigger the success callback (we'll get the name from the session)
+      onLoginSuccess?.('');
     } else {
       const { error: authError } = await signInWithOtp(email);
       setIsLoading(false);
