@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Search, 
   User,
@@ -38,6 +39,7 @@ export default function AdminRoles() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
+  const [isSheetLoading, setIsSheetLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -76,8 +78,13 @@ export default function AdminRoles() {
     setIsLoading(false);
   };
 
-  const handleSelectUser = (user: UserWithRoles) => {
+  const handleSelectUser = async (user: UserWithRoles) => {
     setSelectedUser(user);
+    setIsSheetLoading(true);
+    
+    // Simulate brief loading for smooth UX
+    await new Promise(resolve => setTimeout(resolve, 300));
+    setIsSheetLoading(false);
   };
 
   const handleRolesChange = async () => {
@@ -231,20 +238,52 @@ export default function AdminRoles() {
           {selectedUser && (
             <>
               <SheetHeader className="text-center pb-4">
-                <Avatar className="w-16 h-16 mx-auto mb-2">
-                  <AvatarImage src={selectedUser.avatar_url || undefined} />
-                  <AvatarFallback><User className="w-8 h-8" /></AvatarFallback>
-                </Avatar>
-                <SheetTitle>{selectedUser.name}</SheetTitle>
-                <p className="text-sm text-muted-foreground">@{selectedUser.username}</p>
+                {isSheetLoading ? (
+                  <>
+                    <Skeleton className="w-16 h-16 rounded-full mx-auto mb-2" />
+                    <Skeleton className="h-5 w-32 mx-auto mb-1" />
+                    <Skeleton className="h-4 w-24 mx-auto" />
+                  </>
+                ) : (
+                  <>
+                    <Avatar className="w-16 h-16 mx-auto mb-2">
+                      <AvatarImage src={selectedUser.avatar_url || undefined} />
+                      <AvatarFallback><User className="w-8 h-8" /></AvatarFallback>
+                    </Avatar>
+                    <SheetTitle>{selectedUser.name}</SheetTitle>
+                    <p className="text-sm text-muted-foreground">@{selectedUser.username}</p>
+                  </>
+                )}
               </SheetHeader>
 
               <div className="mt-4">
-                <UserRoleManager
-                  userId={selectedUser.user_id}
-                  currentRoles={selectedUser.roles}
-                  onRolesChange={handleRolesChange}
-                />
+                {isSheetLoading ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <div className="space-y-2">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="w-8 h-8 rounded-full" />
+                              <div className="space-y-1">
+                                <Skeleton className="h-4 w-20" />
+                                <Skeleton className="h-3 w-32" />
+                              </div>
+                            </div>
+                            <Skeleton className="h-6 w-10 rounded-full" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <UserRoleManager
+                    userId={selectedUser.user_id}
+                    currentRoles={selectedUser.roles}
+                    onRolesChange={handleRolesChange}
+                  />
+                )}
               </div>
             </>
           )}
