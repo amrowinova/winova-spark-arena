@@ -183,9 +183,20 @@ function P2PContent() {
       const success = await db.executeOrder(order.id);
       if (success) {
         showSuccess(isRTL ? 'تم تأكيد الطلب! جاري فتح المحادثة...' : 'Order matched! Opening chat...');
-        // Refetch marketplace and switch to orders tab
+        
+        // Refetch orders to get the updated order
+        await db.fetchOrders();
+        
+        // Refetch marketplace
         refetchMarketplace();
+        
+        // Switch to orders tab
         setSelectedTab('orders');
+        
+        // Find and open the chat for this order after a short delay
+        setTimeout(() => {
+          handleOpenChat(order.id);
+        }, 500);
       } else {
         showError(isRTL ? 'حدث خطأ أثناء تنفيذ الطلب' : 'Error executing order');
       }
@@ -337,13 +348,71 @@ function P2PContent() {
   };
 
   const handleOpenChat = (orderId: string) => {
-    // Find the chat containing this order
+    // First try to find from P2PContext chats
     const chat = chats.find(c => c.orders.some(o => o.id === orderId));
     const order = chat?.orders.find(o => o.id === orderId);
     
     if (chat && order) {
       setActiveChatView(chat);
       setActiveChatOrder(order);
+      // Fetch messages for this order
+      db.fetchMessagesForOrder(orderId);
+      return;
+    }
+    
+    // If not found in context, try to find from db.orders directly
+    // This handles the case right after execute when context hasn't updated yet
+    const dbOrder = db.orders.find(o => o.id === orderId);
+    if (dbOrder) {
+      const participants = db.getParticipants(dbOrder);
+      
+      // Create a temporary chat view
+      const tempBuyer: typeof participants.buyer = participants.buyer;
+      const tempSeller: typeof participants.seller = participants.seller;
+      
+      const currency = { code: 'SAR', symbol: 'ر.س' }; // Default
+      
+      const tempOrder: P2POrder = {
+        id: dbOrder.id,
+        type: dbOrder.order_type,
+        amount: Number(dbOrder.nova_amount),
+        price: Number(dbOrder.exchange_rate),
+        total: Number(dbOrder.local_amount),
+        currency: currency.code,
+        currencySymbol: currency.symbol,
+        seller: tempSeller,
+        buyer: tempBuyer,
+        status: dbOrder.ui_status as P2POrderStatus,
+        createdAt: new Date(dbOrder.created_at),
+        expiresAt: dbOrder.matched_at 
+          ? new Date(new Date(dbOrder.matched_at).getTime() + dbOrder.time_limit_minutes * 60 * 1000)
+          : new Date(Date.now() + 60 * 60 * 1000),
+        paymentDetails: {
+          bankName: 'Bank Transfer',
+          accountNumber: '****',
+          accountHolder: tempSeller.name,
+          isLocked: true,
+        },
+        disputeReason: dbOrder.cancellation_reason || undefined,
+        supportJoined: dbOrder.status === 'disputed',
+      };
+      
+      const tempChat: P2PChat = {
+        id: `p2p-${orderId}`,
+        participantIds: [tempBuyer.id, tempSeller.id],
+        buyer: tempBuyer,
+        seller: tempSeller,
+        orders: [tempOrder],
+        messages: [],
+        createdAt: new Date(dbOrder.created_at),
+        lastMessageTime: new Date(dbOrder.updated_at),
+        unreadCount: 0,
+        supportPresent: false,
+      };
+      
+      setActiveChatView(tempChat);
+      setActiveChatOrder(tempOrder);
+      db.fetchMessagesForOrder(orderId);
     }
   };
 
