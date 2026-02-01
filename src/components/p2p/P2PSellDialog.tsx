@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Star, Timer, AlertTriangle, Wallet, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Star, Timer, AlertTriangle, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,7 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import { P2PAmountSelector } from './P2PAmountSelector';
 import { P2POffer } from './P2POfferCard';
+import { P2PPaymentMethodSelector } from './P2PPaymentMethodSelector';
 import { 
   SavedPaymentMethod, 
   useSavedPaymentMethods, 
@@ -84,6 +85,19 @@ export function P2PSellDialog({
       refreshMethods();
     }
   }, [offer, paymentMethods]);
+
+  // Auto-select default payment method when dialog opens
+  useEffect(() => {
+    if (open && localMethods.length > 0 && !selectedPaymentMethodId) {
+      const defaultMethod = localMethods.find(m => m.isDefault);
+      if (defaultMethod) {
+        setSelectedPaymentMethodId(defaultMethod.id);
+      } else {
+        // If no default, select first one
+        setSelectedPaymentMethodId(localMethods[0].id);
+      }
+    }
+  }, [open, localMethods, selectedPaymentMethodId]);
   
   const refreshMethods = () => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -101,6 +115,19 @@ export function P2PSellDialog({
       } catch (e) {
         console.error('Failed to parse saved payment methods:', e);
       }
+    }
+  };
+
+  const handleSetDefault = (id: string) => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const allMethods = JSON.parse(stored);
+      const updated = allMethods.map((m: any) => ({
+        ...m,
+        isDefault: m.countryCode === offer?.country.code ? m.id === id : m.isDefault
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      refreshMethods();
     }
   };
 
@@ -316,276 +343,177 @@ export function P2PSellDialog({
               </div>
             </div>
 
-            {/* Select Your Bank Account */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">
-                  {isRTL ? 'اختر حسابك لاستلام المبلغ' : 'Select your account to receive payment'}
-                  <span className="text-destructive ms-1">*</span>
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs gap-1"
-                  onClick={() => setIsAddingAccount(true)}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  {isRTL ? 'إضافة' : 'Add'}
-                </Button>
-              </div>
-              
-              {localMethods.length === 0 && !isAddingAccount ? (
-                <Card className="p-4 bg-warning/10 border-warning/30">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <p className="text-sm font-medium text-warning">
-                          {isRTL ? 'لا توجد حسابات بنكية' : 'No bank accounts'}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {isRTL 
-                            ? 'أضف حساب بنكي لاستلام المدفوعات'
-                            : 'Add a bank account to receive payments'
-                          }
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full border-warning/50 text-warning hover:bg-warning/10 hover:text-warning"
-                        onClick={() => setIsAddingAccount(true)}
-                      >
-                        <Plus className="h-4 w-4 me-2" />
-                        {isRTL ? 'إضافة حساب بنكي' : 'Add Bank Account'}
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ) : (
-                <div className="space-y-2">
-                  {localMethods.map((method) => {
-                    const typeConfig = getTypeConfig(method.type);
-                    const isSelected = selectedPaymentMethodId === method.id;
-                    return (
-                      <Card 
-                        key={method.id}
-                        className={cn(
-                          "p-3 cursor-pointer transition-all",
-                          isSelected 
-                            ? "border-primary bg-primary/5" 
-                            : "hover:bg-muted/50"
-                        )}
-                        onClick={() => setSelectedPaymentMethodId(method.id)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                            isSelected ? "border-primary" : "border-muted-foreground/50"
-                          )}>
-                            {isSelected && <div className="w-2 h-2 rounded-full bg-primary" />}
-                          </div>
-                          <div className="text-xl">{typeConfig?.icon || '🏦'}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm">
-                              {isRTL ? method.providerNameAr : method.providerName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {method.fullName} • {method.accountNumber || method.phoneNumber}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditForm(method);
-                              }}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteConfirmId(method.id);
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
+            {/* Select Your Bank Account - New Improved Selector */}
+            <P2PPaymentMethodSelector
+              methods={localMethods}
+              selectedMethodId={selectedPaymentMethodId}
+              onSelect={setSelectedPaymentMethodId}
+              onAddNew={() => setIsAddingAccount(true)}
+              onEdit={(method) => openEditForm(method)}
+              onDelete={(id) => handleDeleteAccount(id)}
+              onSetDefault={handleSetDefault}
+            />
 
-              {/* Inline Add Account Form */}
-              {isAddingAccount && (
-                <Card className="p-4 border-primary/50 bg-primary/5">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-sm">
-                        {isRTL ? 'إضافة حساب جديد' : 'Add New Account'}
-                      </p>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 text-xs"
-                        onClick={() => { resetForm(); setIsAddingAccount(false); }}
-                      >
-                        {isRTL ? 'إلغاء' : 'Cancel'}
-                      </Button>
-                    </div>
-                    
-                    {/* Payment Type */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {PAYMENT_METHOD_TYPES.map((type) => (
-                        <Button
-                          key={type.id}
-                          type="button"
-                          variant={selectedType === type.id ? 'default' : 'outline'}
-                          className="h-auto py-2 flex-col gap-1"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedType(type.id);
-                            setSelectedProviderId('');
-                          }}
-                        >
-                          <span className="text-lg">{type.icon}</span>
-                          <span className="text-[10px]">
-                            {isRTL ? type.labelAr : type.labelEn}
-                          </span>
-                        </Button>
-                      ))}
-                    </div>
-
-                    {/* Provider */}
-                    {selectedType && (
-                      <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder={isRTL ? 'اختر...' : 'Select...'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredProviders.map((provider) => (
-                            <SelectItem key={provider.id} value={provider.id}>
-                              <span className="flex items-center gap-2">
-                                <span>{provider.icon}</span>
-                                <span>{isRTL ? provider.nameAr : provider.name}</span>
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-
-                    {/* Dynamic Fields */}
-                    {selectedProvider && (
-                      <>
-                        <Input
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          placeholder={isRTL ? 'الاسم الكامل' : 'Full Name'}
-                          className="h-9"
-                        />
-                        {isBank && (
-                          <Input
-                            value={accountNumber}
-                            onChange={(e) => setAccountNumber(e.target.value)}
-                            placeholder={isRTL ? 'رقم الحساب' : 'Account Number'}
-                            className="h-9"
-                          />
-                        )}
-                        {isWallet && (
-                          <Input
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder={isRTL ? 'رقم الهاتف' : 'Phone Number'}
-                            className="h-9"
-                            dir="ltr"
-                          />
-                        )}
-                        <Button 
-                          size="sm" 
-                          className="w-full"
-                          onClick={handleAddAccount}
-                          disabled={!canSubmitAdd}
-                        >
-                          {isRTL ? 'حفظ الحساب' : 'Save Account'}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </Card>
-              )}
-
-              {/* Inline Edit Account Form */}
-              {editingAccountId && editingMethod && (
-                <Card className="p-4 border-primary/50 bg-primary/5">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-sm flex items-center gap-2">
-                        <Pencil className="h-4 w-4" />
-                        {isRTL ? 'تعديل الحساب' : 'Edit Account'}
-                      </p>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 text-xs"
-                        onClick={() => { resetForm(); setEditingAccountId(null); }}
-                      >
-                        {isRTL ? 'إلغاء' : 'Cancel'}
-                      </Button>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{getTypeConfig(editingMethod.type)?.icon}</span>
-                      <span>{isRTL ? editingMethod.providerNameAr : editingMethod.providerName}</span>
-                    </div>
-                    
-                    <Input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder={isRTL ? 'الاسم الكامل' : 'Full Name'}
-                      className="h-9"
-                    />
-                    
-                    {editingMethod.type === 'bank' && (
-                      <Input
-                        value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value)}
-                        placeholder={isRTL ? 'رقم الحساب' : 'Account Number'}
-                        className="h-9"
-                      />
-                    )}
-                    
-                    {(editingMethod.type === 'wallet' || editingMethod.type === 'instant') && (
-                      <Input
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder={isRTL ? 'رقم الهاتف' : 'Phone Number'}
-                        className="h-9"
-                        dir="ltr"
-                      />
-                    )}
-                    
+            {/* Inline Add Account Form */}
+            {isAddingAccount && (
+              <Card className="p-4 border-primary/50 bg-primary/5">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm">
+                      {isRTL ? 'إضافة حساب جديد' : 'Add New Account'}
+                    </p>
                     <Button 
+                      variant="ghost" 
                       size="sm" 
-                      className="w-full"
-                      onClick={handleEditAccount}
-                      disabled={!canSubmitEdit}
+                      className="h-6 text-xs"
+                      onClick={() => { resetForm(); setIsAddingAccount(false); }}
                     >
-                      {isRTL ? 'حفظ التغييرات' : 'Save Changes'}
+                      {isRTL ? 'إلغاء' : 'Cancel'}
                     </Button>
                   </div>
-                </Card>
-              )}
-            </div>
+                  
+                  {/* Payment Type */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {PAYMENT_METHOD_TYPES.map((type) => (
+                      <Button
+                        key={type.id}
+                        type="button"
+                        variant={selectedType === type.id ? 'default' : 'outline'}
+                        className="h-auto py-2 flex-col gap-1"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedType(type.id);
+                          setSelectedProviderId('');
+                        }}
+                      >
+                        <span className="text-lg">{type.icon}</span>
+                        <span className="text-[10px]">
+                          {isRTL ? type.labelAr : type.labelEn}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Provider */}
+                  {selectedType && (
+                    <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder={isRTL ? 'اختر...' : 'Select...'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredProviders.map((provider) => (
+                          <SelectItem key={provider.id} value={provider.id}>
+                            <span className="flex items-center gap-2">
+                              <span>{provider.icon}</span>
+                              <span>{isRTL ? provider.nameAr : provider.name}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {/* Dynamic Fields */}
+                  {selectedProvider && (
+                    <>
+                      <Input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder={isRTL ? 'الاسم الكامل' : 'Full Name'}
+                        className="h-9"
+                      />
+                      {isBank && (
+                        <Input
+                          value={accountNumber}
+                          onChange={(e) => setAccountNumber(e.target.value)}
+                          placeholder={isRTL ? 'رقم الحساب' : 'Account Number'}
+                          className="h-9"
+                        />
+                      )}
+                      {isWallet && (
+                        <Input
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          placeholder={isRTL ? 'رقم الهاتف' : 'Phone Number'}
+                          className="h-9"
+                          dir="ltr"
+                        />
+                      )}
+                      <Button 
+                        size="sm" 
+                        className="w-full"
+                        onClick={handleAddAccount}
+                        disabled={!canSubmitAdd}
+                      >
+                        {isRTL ? 'حفظ الحساب' : 'Save Account'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Inline Edit Account Form */}
+            {editingAccountId && editingMethod && (
+              <Card className="p-4 border-primary/50 bg-primary/5">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm flex items-center gap-2">
+                      <Pencil className="h-4 w-4" />
+                      {isRTL ? 'تعديل الحساب' : 'Edit Account'}
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 text-xs"
+                      onClick={() => { resetForm(); setEditingAccountId(null); }}
+                    >
+                      {isRTL ? 'إلغاء' : 'Cancel'}
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>{getTypeConfig(editingMethod.type)?.icon}</span>
+                    <span>{isRTL ? editingMethod.providerNameAr : editingMethod.providerName}</span>
+                  </div>
+                  
+                  <Input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder={isRTL ? 'الاسم الكامل' : 'Full Name'}
+                    className="h-9"
+                  />
+                  
+                  {editingMethod.type === 'bank' && (
+                    <Input
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      placeholder={isRTL ? 'رقم الحساب' : 'Account Number'}
+                      className="h-9"
+                    />
+                  )}
+                  
+                  {(editingMethod.type === 'wallet' || editingMethod.type === 'instant') && (
+                    <Input
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder={isRTL ? 'رقم الهاتف' : 'Phone Number'}
+                      className="h-9"
+                      dir="ltr"
+                    />
+                  )}
+                  
+                  <Button 
+                    size="sm" 
+                    className="w-full"
+                    onClick={handleEditAccount}
+                    disabled={!canSubmitEdit}
+                  >
+                    {isRTL ? 'حفظ التغييرات' : 'Save Changes'}
+                  </Button>
+                </div>
+              </Card>
+            )}
 
             {/* Amount Selector */}
             <P2PAmountSelector
