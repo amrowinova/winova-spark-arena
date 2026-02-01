@@ -146,6 +146,35 @@ function P2PContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChatView?.messages]);
 
+  // Sync activeChatView messages directly from db.messages when they update
+  useEffect(() => {
+    if (activeChatOrder && activeChatView) {
+      const orderMessages = db.messages[activeChatOrder.id] || [];
+      if (orderMessages.length > 0 && orderMessages.length !== activeChatView.messages.length) {
+        // Convert DB messages to UI messages
+        const uiMessages: P2PMessage[] = orderMessages.map(m => ({
+          id: m.id,
+          senderId: m.sender_id,
+          senderName: m.is_system_message ? 'System' : 'User',
+          content: m.content,
+          time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isMine: m.sender_id === user?.id,
+          isSystem: m.is_system_message,
+          systemMessage: m.is_system_message ? {
+            id: m.id,
+            type: m.message_type as any,
+            content: m.content,
+            contentAr: m.content_ar || m.content,
+            time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            orderId: m.order_id,
+          } : undefined,
+        }));
+        
+        setActiveChatView(prev => prev ? { ...prev, messages: uiMessages } : null);
+      }
+    }
+  }, [db.messages, activeChatOrder?.id, activeChatView?.messages.length, user?.id]);
+
   // Sync activeChatView and activeChatOrder with chats state
   useEffect(() => {
     if (activeChatView) {
