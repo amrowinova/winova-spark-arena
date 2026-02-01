@@ -265,6 +265,7 @@ export type Database = {
           executor_id: string | null
           id: string
           local_amount: number
+          matched_at: string | null
           nova_amount: number
           order_type: Database["public"]["Enums"]["p2p_order_type"]
           payment_method_id: string | null
@@ -283,6 +284,7 @@ export type Database = {
           executor_id?: string | null
           id?: string
           local_amount: number
+          matched_at?: string | null
           nova_amount: number
           order_type: Database["public"]["Enums"]["p2p_order_type"]
           payment_method_id?: string | null
@@ -301,6 +303,7 @@ export type Database = {
           executor_id?: string | null
           id?: string
           local_amount?: number
+          matched_at?: string | null
           nova_amount?: number
           order_type?: Database["public"]["Enums"]["p2p_order_type"]
           payment_method_id?: string | null

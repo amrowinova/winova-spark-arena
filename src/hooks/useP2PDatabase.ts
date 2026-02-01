@@ -5,6 +5,27 @@ import { Database } from '@/integrations/supabase/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { dbStatusToUI, uiStatusToDB, isActiveStatus, DBP2POrderStatus, UIP2POrderStatus } from '@/lib/p2pStatusMapper';
 
+// Extended order row with matched_at
+interface P2POrderRowExtended {
+  id: string;
+  creator_id: string;
+  executor_id: string | null;
+  order_type: Database['public']['Enums']['p2p_order_type'];
+  nova_amount: number;
+  local_amount: number;
+  exchange_rate: number;
+  country: string;
+  status: Database['public']['Enums']['p2p_order_status'];
+  time_limit_minutes: number;
+  payment_method_id: string | null;
+  cancellation_reason: string | null;
+  cancelled_by: string | null;
+  completed_at: string | null;
+  matched_at: string | null; // NEW: When order was matched
+  created_at: string;
+  updated_at: string;
+}
+
 type P2POrderRow = Database['public']['Tables']['p2p_orders']['Row'];
 type P2POrderInsert = Database['public']['Tables']['p2p_orders']['Insert'];
 type P2POrderUpdate = Database['public']['Tables']['p2p_orders']['Update'];
@@ -14,9 +35,25 @@ type P2POrderType = Database['public']['Enums']['p2p_order_type'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 // Order with joined profile data and UI-compatible status
-export interface P2POrderWithProfiles extends Omit<P2POrderRow, 'status'> {
+export interface P2POrderWithProfiles {
+  id: string;
+  creator_id: string;
+  executor_id: string | null;
+  order_type: Database['public']['Enums']['p2p_order_type'];
+  nova_amount: number;
+  local_amount: number;
+  exchange_rate: number;
+  country: string;
   status: DBP2POrderStatus;
   ui_status: UIP2POrderStatus;
+  time_limit_minutes: number;
+  payment_method_id: string | null;
+  cancellation_reason: string | null;
+  cancelled_by: string | null;
+  completed_at: string | null;
+  matched_at: string | null; // When order was matched (timer starts here)
+  created_at: string;
+  updated_at: string;
   creator_profile?: ProfileRow | null;
   executor_profile?: ProfileRow | null;
 }
@@ -134,13 +171,32 @@ export function useP2PDatabase() {
       });
 
       // Combine orders with profiles and UI status
-      const ordersWithProfiles: P2POrderWithProfiles[] = ordersData.map(order => ({
-        ...order,
-        ui_status: dbStatusToUI(order.status),
-        creator_profile: profilesMap.get(order.creator_id) || null,
-        executor_profile: order.executor_id ? profilesMap.get(order.executor_id) || null : null,
-      }));
-
+      // Cast to extended type to access matched_at (column added but types not regenerated)
+      const ordersWithProfiles: P2POrderWithProfiles[] = ordersData.map(order => {
+        const extOrder = order as P2POrderRowExtended;
+        return {
+          id: order.id,
+          creator_id: order.creator_id,
+          executor_id: order.executor_id,
+          order_type: order.order_type,
+          nova_amount: order.nova_amount,
+          local_amount: order.local_amount,
+          exchange_rate: order.exchange_rate,
+          country: order.country,
+          status: order.status,
+          ui_status: dbStatusToUI(order.status),
+          time_limit_minutes: order.time_limit_minutes,
+          payment_method_id: order.payment_method_id,
+          cancellation_reason: order.cancellation_reason,
+          cancelled_by: order.cancelled_by,
+          completed_at: order.completed_at,
+          matched_at: extOrder.matched_at || null,
+          created_at: order.created_at,
+          updated_at: order.updated_at,
+          creator_profile: profilesMap.get(order.creator_id) || null,
+          executor_profile: order.executor_id ? profilesMap.get(order.executor_id) || null : null,
+        };
+      });
       setOrders(ordersWithProfiles);
     } catch (err) {
       setError(err as Error);

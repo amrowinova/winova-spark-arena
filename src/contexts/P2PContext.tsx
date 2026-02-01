@@ -211,6 +211,18 @@ function toUIOrder(
 ): P2POrder {
   const currency = COUNTRY_CURRENCIES[dbOrder.country] || COUNTRY_CURRENCIES['Saudi Arabia'];
   
+  // Timer starts from matched_at (when order was accepted), not created_at
+  // For open orders (not yet matched), use a far future date
+  const timerStartTime = dbOrder.matched_at 
+    ? new Date(dbOrder.matched_at) 
+    : new Date(dbOrder.created_at);
+  
+  // Only calculate expiry if order is matched (not open)
+  const isMatched = dbOrder.executor_id !== null;
+  const expiresAt = isMatched 
+    ? new Date(timerStartTime.getTime() + dbOrder.time_limit_minutes * 60 * 1000)
+    : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // Far future for open orders
+  
   return {
     id: dbOrder.id,
     type: dbOrder.order_type,
@@ -223,7 +235,7 @@ function toUIOrder(
     buyer,
     status: dbOrder.ui_status,
     createdAt: new Date(dbOrder.created_at),
-    expiresAt: new Date(new Date(dbOrder.created_at).getTime() + dbOrder.time_limit_minutes * 60 * 1000),
+    expiresAt,
     paymentDetails,
     disputeReason: dbOrder.cancellation_reason || undefined,
     supportJoined: dbOrder.status === 'disputed',
