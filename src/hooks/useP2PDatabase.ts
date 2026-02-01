@@ -321,16 +321,30 @@ export function useP2PDatabase() {
     }
 
     try {
-      const { error } = await supabase
+      // Use .select() to get the updated row and verify it was actually updated
+      const { data, error } = await supabase
         .from('p2p_orders')
         .update({
           executor_id: user.id,
           status: 'awaiting_payment',
         } as P2POrderUpdate)
         .eq('id', orderId)
-        .eq('status', 'open');
+        .eq('status', 'open')
+        .select()
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error executing order:', error);
+        throw error;
+      }
+      
+      // CRITICAL: Verify a row was actually updated
+      if (!data) {
+        console.error('No rows updated - order may already be taken or does not exist');
+        return false;
+      }
+      
+      console.log('Order executed successfully:', data);
       
       // Add system message
       await sendMessage(
@@ -342,7 +356,7 @@ export function useP2PDatabase() {
       );
       
       // Refresh orders
-      fetchOrders();
+      await fetchOrders();
       
       return true;
     } catch (err) {

@@ -198,7 +198,7 @@ function P2PContent() {
           handleOpenChat(order.id);
         }, 500);
       } else {
-        showError(isRTL ? 'حدث خطأ أثناء تنفيذ الطلب' : 'Error executing order');
+        showError(isRTL ? 'الطلب غير متاح أو تم تنفيذه من قبل شخص آخر' : 'Order unavailable or already taken by someone else');
       }
     } catch (err) {
       console.error('Error executing order:', err);
