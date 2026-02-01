@@ -623,3 +623,9 @@ export function useP2P() {
   }
   return context;
 }
+
+// Safe version that returns defaults when context is unavailable
+export function useP2PSafe() {
+  const context = useContext(P2PContext);
+  return context ?? { chats: [] as P2PChat[], activeChat: null, activeOrder: null, isLoading: false };
+}
