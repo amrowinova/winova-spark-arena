@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          new_value: Json | null
+          old_value: Json | null
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_by?: string
+        }
+        Relationships: []
+      }
       contest_entries: {
         Row: {
           contest_id: string
@@ -590,11 +656,56 @@ export type Database = {
           },
         ]
       }
+      wallet_freeze_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          performed_by: string
+          performed_by_role: string
+          reason: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          performed_by: string
+          performed_by_role: string
+          reason?: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          performed_by?: string
+          performed_by_role?: string
+          reason?: string | null
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_freeze_logs_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallets: {
         Row: {
           aura_balance: number
           created_at: string
+          frozen_at: string | null
+          frozen_by: string | null
+          frozen_reason: string | null
           id: string
+          is_frozen: boolean
           locked_nova_balance: number
           nova_balance: number
           updated_at: string
@@ -603,7 +714,11 @@ export type Database = {
         Insert: {
           aura_balance?: number
           created_at?: string
+          frozen_at?: string | null
+          frozen_by?: string | null
+          frozen_reason?: string | null
           id?: string
+          is_frozen?: boolean
           locked_nova_balance?: number
           nova_balance?: number
           updated_at?: string
@@ -612,7 +727,11 @@ export type Database = {
         Update: {
           aura_balance?: number
           created_at?: string
+          frozen_at?: string | null
+          frozen_by?: string | null
+          frozen_reason?: string | null
           id?: string
+          is_frozen?: boolean
           locked_nova_balance?: number
           nova_balance?: number
           updated_at?: string
@@ -672,6 +791,7 @@ export type Database = {
         Returns: boolean
       }
       is_support_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_wallet_frozen: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "support"
