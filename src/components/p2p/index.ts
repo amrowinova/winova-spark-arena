@@ -19,6 +19,7 @@ export type { CountryConfig, PaymentMethod } from './P2PCountrySelector';
 // Cards
 export { P2POfferCard } from './P2POfferCard';
 export type { P2POffer } from './P2POfferCard';
+export { P2PMarketplaceCard } from './P2PMarketplaceCard';
 
 // Lists
 export { P2POrdersList } from './P2POrdersList';
