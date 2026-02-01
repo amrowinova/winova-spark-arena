@@ -371,16 +371,10 @@ export function useP2PDatabase() {
 
       if (error) throw error;
       
-      // Add initial system message with proper template
-      if (data) {
-        const msg = generateSystemMessage('order_created', {
-          orderType: orderData.orderType,
-          novaAmount: orderData.novaAmount,
-          localAmount: orderData.localAmount,
-          currencySymbol: orderData.country === 'Saudi Arabia' ? 'ر.س' : '$',
-        });
-        await sendSystemMessage(data.id, 'order_created', msg.content, msg.contentAr);
-      }
+      // NOTE: NO system message here - chat is only created when order is ACCEPTED (matched)
+      // This matches Binance/OKX/Bybit P2P behavior where:
+      // - Open orders are just listings in the marketplace
+      // - Chat/timer only starts when another user accepts the order
       
       // Refresh orders to get profile data
       fetchOrders();
@@ -442,17 +436,23 @@ export function useP2PDatabase() {
         .eq('user_id', user.id)
         .single();
 
-      // Determine buyer name based on order type
+      // Determine buyer and seller names based on order type
       const buyerName = data.order_type === 'buy' 
         ? creatorProfile?.name || 'Buyer'
         : executorProfile?.name || 'Buyer';
+      
+      const sellerName = data.order_type === 'sell' 
+        ? creatorProfile?.name || 'Seller'
+        : executorProfile?.name || 'Seller';
 
-      // Add system message with proper template
+      // Add system message with proper template (includes both buyer and seller names)
       const msg = generateSystemMessage('order_matched', {
         buyerName,
+        sellerName,
         novaAmount: Number(data.nova_amount),
         localAmount: Number(data.local_amount),
         currencySymbol: data.country === 'Saudi Arabia' ? 'ر.س' : '$',
+        timeLimit: data.time_limit_minutes,
       });
       await sendSystemMessage(orderId, 'order_matched', msg.content, msg.contentAr);
       

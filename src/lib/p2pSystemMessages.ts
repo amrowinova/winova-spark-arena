@@ -32,6 +32,7 @@ export interface P2PMessageParams {
   sellerName?: string;
   reason?: string;
   orderId?: string;
+  timeLimit?: number; // in minutes
 }
 
 // Message templates for each step
@@ -47,9 +48,9 @@ export const P2P_SYSTEM_MESSAGES: Record<P2PSystemMessageType, P2PSystemMessageT
 
   order_matched: {
     type: 'order_matched',
-    getContent: ({ buyerName, localAmount, currencySymbol, novaAmount }) => ({
-      en: `🤝 Order Accepted\n\nBuyer: ${buyerName}\nWill transfer: ${currencySymbol} ${localAmount?.toFixed(2)}\nFor: ${novaAmount?.toFixed(0)} Nova\n\n⏳ Timer has started`,
-      ar: `🤝 تم قبول الطلب\n\nالمشتري: ${buyerName}\nسيقوم بتحويل: ${localAmount?.toFixed(2)} ${currencySymbol}\nمقابل: ${novaAmount?.toFixed(0)} Nova\n\n⏳ بدأ العداد`,
+    getContent: ({ buyerName, sellerName, localAmount, currencySymbol, novaAmount, timeLimit }) => ({
+      en: `🤝 Order Matched!\n\n👤 Buyer: ${buyerName}\n👤 Seller: ${sellerName}\n\n💰 Amount: ${currencySymbol} ${localAmount?.toFixed(2)}\n✨ Nova: ${novaAmount?.toFixed(0)}\n⏱️ Time Limit: ${timeLimit || 15} minutes\n\n⏳ Timer has started\n\n📋 Buyer: Copy bank details and make the transfer\n⏳ Seller: Wait for buyer's payment confirmation`,
+      ar: `🤝 تم ربط الطلب!\n\n👤 المشتري: ${buyerName}\n👤 البائع: ${sellerName}\n\n💰 المبلغ: ${localAmount?.toFixed(2)} ${currencySymbol}\n✨ Nova: ${novaAmount?.toFixed(0)}\n⏱️ المهلة: ${timeLimit || 15} دقيقة\n\n⏳ بدأ العداد\n\n📋 المشتري: انسخ بيانات البنك وقم بالتحويل\n⏳ البائع: انتظر تأكيد الدفع من المشتري`,
     }),
     icon: '🤝',
   },
