@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logNovaChange } from '@/lib/auditLogger';
 import {
   Dialog,
   DialogContent,
@@ -103,6 +104,19 @@ export function AddNovaDialog({ open, onOpenChange, user, onSuccess }: AddNovaDi
         .insert(transactionData);
 
       if (transactionError) throw transactionError;
+
+      // 3. Create audit log
+      await logNovaChange({
+        action: operation === 'add' ? 'nova_add' : 'nova_deduct',
+        walletId: user.id,
+        performedBy: adminUser.id,
+        targetUserId: user.user_id,
+        targetUsername: user.username,
+        oldBalance: user.nova_balance,
+        newBalance: newBalance,
+        amount: numericAmount,
+        reason: reason || (operation === 'add' ? 'Admin deposit' : 'Admin withdrawal'),
+      });
 
       toast.success(
         isRTL 

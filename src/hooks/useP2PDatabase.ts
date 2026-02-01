@@ -63,6 +63,7 @@ export function useP2PDatabase() {
   const [messages, setMessages] = useState<Record<string, P2PMessageRow[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isWalletFrozen, setIsWalletFrozen] = useState(false);
   
   // Track cancellations in last 24 hours
   const [cancellationsCount, setCancellationsCount] = useState(0);
@@ -70,6 +71,27 @@ export function useP2PDatabase() {
   // Ref to track orders for realtime subscription
   const ordersRef = useRef<P2POrderWithProfiles[]>([]);
   ordersRef.current = orders;
+
+  // Check if user's wallet is frozen
+  const checkWalletFrozen = useCallback(async () => {
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('is_frozen')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      const frozen = data?.is_frozen ?? false;
+      setIsWalletFrozen(frozen);
+      return frozen;
+    } catch (err) {
+      console.error('Error checking wallet frozen status:', err);
+      return false;
+    }
+  }, [user]);
 
   // Fetch user's orders with profiles
   const fetchOrders = useCallback(async () => {
@@ -184,6 +206,13 @@ export function useP2PDatabase() {
   }) => {
     if (!user) return null;
 
+    // Check if wallet is frozen
+    const frozen = await checkWalletFrozen();
+    if (frozen) {
+      console.error('Cannot create order: wallet is frozen');
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from('p2p_orders')
@@ -222,11 +251,18 @@ export function useP2PDatabase() {
       console.error('Error creating P2P order:', err);
       return null;
     }
-  }, [user, fetchOrders]);
+  }, [user, fetchOrders, checkWalletFrozen]);
 
   // Execute/match an order (buyer/seller accepts)
   const executeOrder = useCallback(async (orderId: string) => {
     if (!user) return false;
+
+    // Check if wallet is frozen
+    const frozen = await checkWalletFrozen();
+    if (frozen) {
+      console.error('Cannot execute order: wallet is frozen');
+      return false;
+    }
 
     try {
       const { error } = await supabase
@@ -257,11 +293,18 @@ export function useP2PDatabase() {
       console.error('Error executing P2P order:', err);
       return false;
     }
-  }, [user, fetchOrders]);
+  }, [user, fetchOrders, checkWalletFrozen]);
 
   // Confirm payment (buyer marks as paid)
   const confirmPayment = useCallback(async (orderId: string) => {
     if (!user) return false;
+
+    // Check if wallet is frozen
+    const frozen = await checkWalletFrozen();
+    if (frozen) {
+      console.error('Cannot confirm payment: wallet is frozen');
+      return false;
+    }
 
     try {
       const { error } = await supabase
@@ -287,11 +330,18 @@ export function useP2PDatabase() {
       console.error('Error confirming payment:', err);
       return false;
     }
-  }, [user, fetchOrders]);
+  }, [user, fetchOrders, checkWalletFrozen]);
 
   // Release funds (seller confirms receipt)
   const releaseFunds = useCallback(async (orderId: string) => {
     if (!user) return false;
+
+    // Check if wallet is frozen
+    const frozen = await checkWalletFrozen();
+    if (frozen) {
+      console.error('Cannot release funds: wallet is frozen');
+      return false;
+    }
 
     try {
       const order = ordersRef.current.find(o => o.id === orderId);
@@ -322,7 +372,7 @@ export function useP2PDatabase() {
       console.error('Error releasing funds:', err);
       return false;
     }
-  }, [user, fetchOrders]);
+  }, [user, fetchOrders, checkWalletFrozen]);
 
   // Cancel order
   const cancelOrder = useCallback(async (orderId: string, reason?: string) => {
@@ -531,14 +581,15 @@ export function useP2PDatabase() {
   useEffect(() => {
     if (user) {
       setIsLoading(true);
-      Promise.all([fetchOrders(), fetchCancellationsCount()])
+      Promise.all([fetchOrders(), fetchCancellationsCount(), checkWalletFrozen()])
         .finally(() => setIsLoading(false));
     } else {
       setOrders([]);
       setMessages({});
       setIsLoading(false);
+      setIsWalletFrozen(false);
     }
-  }, [user, fetchOrders, fetchCancellationsCount]);
+  }, [user, fetchOrders, fetchCancellationsCount, checkWalletFrozen]);
 
   // Realtime subscriptions
   useEffect(() => {
@@ -610,6 +661,7 @@ export function useP2PDatabase() {
     isLoading,
     error,
     cancellationsCount,
+    isWalletFrozen,
     // Actions
     fetchOrders,
     fetchMessagesForOrder,
@@ -622,6 +674,7 @@ export function useP2PDatabase() {
     sendMessage,
     fetchOpenOrders,
     checkHasActiveOrder,
+    checkWalletFrozen,
     // Helpers
     getParticipants,
     profileToParticipant,
