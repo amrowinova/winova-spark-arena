@@ -13,7 +13,7 @@ export { P2PWaitingReleaseCard } from './P2PWaitingReleaseCard';
 // Selectors
 export { P2PAmountSelector, FIXED_AMOUNTS } from './P2PAmountSelector';
 export { P2PTimeSelector, FIXED_TIMES } from './P2PTimeSelector';
-export { P2PCountrySelector, COUNTRIES, getDefaultCountry } from './P2PCountrySelector';
+export { P2PCountrySelector, COUNTRIES, getDefaultCountry, useP2PCountries, useDefaultCountry } from './P2PCountrySelector';
 export type { CountryConfig, PaymentMethod } from './P2PCountrySelector';
 
 // Cards

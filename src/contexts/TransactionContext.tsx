@@ -73,42 +73,31 @@ export interface Receipt extends Transaction {
   receiptNumber: string;
 }
 
-// Country pricing (admin-managed, single fixed price per country)
-// All 19 supported countries - Aura is always = Nova / 2
-export const countryPricing: Record<string, { currency: string; symbol: string; novaRate: number }> = {
-  'Saudi Arabia': { currency: 'SAR', symbol: 'ر.س', novaRate: 3.75 },
-  'UAE': { currency: 'AED', symbol: 'د.إ', novaRate: 3.67 },
-  'Kuwait': { currency: 'KWD', symbol: 'د.ك', novaRate: 0.31 },
-  'Qatar': { currency: 'QAR', symbol: 'ر.ق', novaRate: 3.64 },
-  'Bahrain': { currency: 'BHD', symbol: 'د.ب', novaRate: 0.38 },
-  'Oman': { currency: 'OMR', symbol: 'ر.ع', novaRate: 0.38 },
-  'Egypt': { currency: 'EGP', symbol: 'ج.م', novaRate: 30.90 },
-  'Jordan': { currency: 'JOD', symbol: 'د.أ', novaRate: 0.71 },
-  'Palestine': { currency: 'ILS', symbol: '₪', novaRate: 3.65 },
-  'Lebanon': { currency: 'LBP', symbol: 'ل.ل', novaRate: 89500 },
-  'Syria': { currency: 'SYP', symbol: 'ل.س', novaRate: 13000 },
-  'Yemen': { currency: 'YER', symbol: 'ر.ي', novaRate: 250 },
-  'Morocco': { currency: 'MAD', symbol: 'د.م', novaRate: 10.05 },
-  'Tunisia': { currency: 'TND', symbol: 'د.ت', novaRate: 3.12 },
-  'Algeria': { currency: 'DZD', symbol: 'د.ج', novaRate: 134.50 },
-  'Libya': { currency: 'LYD', symbol: 'د.ل', novaRate: 4.85 },
-  'Sudan': { currency: 'SDG', symbol: 'ج.س', novaRate: 601 },
-  'Turkey': { currency: 'TRY', symbol: '₺', novaRate: 32.15 },
-  'Iraq': { currency: 'IQD', symbol: 'د.ع', novaRate: 1310 },
-};
+/**
+ * @deprecated Use useNovaPricing hook instead
+ * All prices should come from app_settings via the hook.
+ * This is kept for backward compatibility only.
+ */
+export const countryPricing: Record<string, { currency: string; symbol: string; novaRate: number }> = {};
 
-// Helper to get Aura rate (always Nova / 2)
+/**
+ * @deprecated Use useNovaPricing().getCurrencyInfo() instead
+ */
 export const getAuraRate = (country: string) => {
-  const pricing = countryPricing[country] || countryPricing['Saudi Arabia'];
-  return pricing.novaRate / 2;
+  console.warn('getAuraRate is deprecated. Use useNovaPricing hook instead.');
+  return 5; // Default fallback
 };
 
-// Helper to get pricing for a country
+/**
+ * @deprecated Use useNovaPricing().getCurrencyInfo() instead
+ */
 export const getPricing = (country: string) => {
-  const pricing = countryPricing[country] || countryPricing['Saudi Arabia'];
+  console.warn('getPricing is deprecated. Use useNovaPricing hook instead.');
   return {
-    ...pricing,
-    auraRate: pricing.novaRate / 2,
+    currency: 'EGP',
+    symbol: 'ج.م',
+    novaRate: 10,
+    auraRate: 5,
   };
 };
 

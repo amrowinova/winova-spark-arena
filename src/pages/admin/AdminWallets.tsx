@@ -18,7 +18,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { AddNovaDialog } from '@/components/admin/AddNovaDialog';
 import { WalletFreezeDialog } from '@/components/admin/WalletFreezeDialog';
-import { formatNovaWithLocal } from '@/lib/novaExchangeRates';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 
 interface WalletWithProfile {
   id: string;
@@ -36,6 +36,8 @@ interface WalletWithProfile {
 export default function AdminWallets() {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
+  const { formatWithLocal } = useNovaPricing();
+  
   const [wallets, setWallets] = useState<WalletWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -230,7 +232,7 @@ export default function AdminWallets() {
         ) : (
           <div className="space-y-2">
             {filteredWallets.map((wallet, index) => {
-              const localDisplay = formatNovaWithLocal(wallet.nova_balance, wallet.country, isRTL);
+              const localDisplay = formatWithLocal(wallet.nova_balance, wallet.country, isRTL);
               
               return (
                 <Card 
