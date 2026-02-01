@@ -1,19 +1,24 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, ArrowRight, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, ArrowRight, Mail, Lock, Eye, EyeOff, User, MapPin, Users } from 'lucide-react';
+import { locationData } from '@/lib/locationData';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface SignUpScreenProps {
   onBack: () => void;
   onLogin: () => void;
   onSendOTP: (email: string) => void;
+  onSignupSuccess?: (name: string) => void;
 }
 
-export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) {
+export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: SignUpScreenProps) {
   const { language } = useLanguage();
   const { signUp, signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
   const isRTL = language === 'ar';
@@ -25,6 +30,69 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
   const [usePassword, setUsePassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Location fields
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  
+  // Referral code
+  const [referralCode, setReferralCode] = useState('');
+  const [referralVerified, setReferralVerified] = useState<{ name: string; avatar: string | null } | null>(null);
+  const [verifyingReferral, setVerifyingReferral] = useState(false);
+
+  // Get cities based on selected country
+  const cities = useMemo(() => {
+    const country = locationData.find(c => c.code === selectedCountry);
+    return country?.cities || [];
+  }, [selectedCountry]);
+
+  // Get districts based on selected city
+  const districts = useMemo(() => {
+    const country = locationData.find(c => c.code === selectedCountry);
+    const city = country?.cities.find(c => c.code === selectedCity);
+    return city?.districts || [];
+  }, [selectedCountry, selectedCity]);
+
+  // Handle country change - reset city and district
+  const handleCountryChange = (value: string) => {
+    setSelectedCountry(value);
+    setSelectedCity('');
+    setSelectedDistrict('');
+  };
+
+  // Handle city change - reset district
+  const handleCityChange = (value: string) => {
+    setSelectedCity(value);
+    setSelectedDistrict('');
+  };
+
+  // Verify referral code
+  const verifyReferralCode = async (code: string) => {
+    if (!code || code.length < 6) {
+      setReferralVerified(null);
+      return;
+    }
+    
+    setVerifyingReferral(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('name, avatar_url')
+        .eq('referral_code', code.toUpperCase())
+        .single();
+      
+      if (data && !error) {
+        setReferralVerified({ name: data.name, avatar: data.avatar_url });
+      } else {
+        setReferralVerified(null);
+      }
+    } catch {
+      setReferralVerified(null);
+    } finally {
+      setVerifyingReferral(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +122,38 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
         setIsLoading(false);
         return;
       }
+      if (!selectedCountry) {
+        setError(isRTL ? 'يرجى اختيار الدولة' : 'Please select your country');
+        setIsLoading(false);
+        return;
+      }
+      if (!selectedCity) {
+        setError(isRTL ? 'يرجى اختيار المدينة' : 'Please select your city');
+        setIsLoading(false);
+        return;
+      }
+      if (!selectedDistrict) {
+        setError(isRTL ? 'يرجى اختيار الحي' : 'Please select your district');
+        setIsLoading(false);
+        return;
+      }
       
-      const { error: authError } = await signUp(email, password, { name });
-      setIsLoading(false);
+      // Get country/city names for storage
+      const countryData = locationData.find(c => c.code === selectedCountry);
+      const cityData = countryData?.cities.find(c => c.code === selectedCity);
+      const districtData = cityData?.districts.find(d => d.code === selectedDistrict);
+      
+      const { error: authError } = await signUp(email, password, { 
+        name,
+        country: countryData?.name || selectedCountry,
+        city: cityData?.name || selectedCity,
+        district: districtData?.name || selectedDistrict,
+        district_code: selectedDistrict,
+        referral_code: referralCode.toUpperCase() || null,
+      });
       
       if (authError) {
+        setIsLoading(false);
         if (authError.message?.includes('already registered')) {
           setError(isRTL ? 'هذا البريد مسجل مسبقاً' : 'This email is already registered');
         } else {
@@ -66,7 +161,10 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
         }
         return;
       }
-      // Success - auto-confirm will log the user in
+      
+      // Success! Trigger the success callback
+      setIsLoading(false);
+      onSignupSuccess?.(name);
     } else {
       const { error: authError } = await signInWithOtp(email);
       setIsLoading(false);
@@ -255,10 +353,125 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
             </motion.div>
           )}
 
+          {/* Location Fields - Only for password signup */}
+          {usePassword && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-4"
+            >
+              {/* Country */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  {isRTL ? 'الدولة' : 'Country'}
+                </Label>
+                <Select value={selectedCountry} onValueChange={handleCountryChange}>
+                  <SelectTrigger className="h-12">
+                    <MapPin className="w-4 h-4 me-2 text-muted-foreground" />
+                    <SelectValue placeholder={isRTL ? 'اختر الدولة' : 'Select country'} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {locationData.map((country) => (
+                      <SelectItem key={country.code} value={country.code}>
+                        <span className="flex items-center gap-2">
+                          <span>{country.flag}</span>
+                          <span>{isRTL ? country.nameAr : country.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* City */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  {isRTL ? 'المدينة' : 'City'}
+                </Label>
+                <Select value={selectedCity} onValueChange={handleCityChange} disabled={!selectedCountry}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={isRTL ? 'اختر المدينة' : 'Select city'} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {cities.map((city) => (
+                      <SelectItem key={city.code} value={city.code}>
+                        {isRTL ? city.nameAr : city.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* District */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  {isRTL ? 'الحي' : 'District'}
+                </Label>
+                <Select value={selectedDistrict} onValueChange={setSelectedDistrict} disabled={!selectedCity}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={isRTL ? 'اختر الحي' : 'Select district'} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {districts.map((district) => (
+                      <SelectItem key={district.code} value={district.code}>
+                        {isRTL ? district.nameAr : district.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Referral Code */}
+              <div className="space-y-2">
+                <Label htmlFor="referral" className="text-sm font-medium">
+                  {isRTL ? 'كود الإحالة (اختياري)' : 'Referral Code (optional)'}
+                </Label>
+                <div className="relative">
+                  <Users className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="referral"
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => {
+                      setReferralCode(e.target.value);
+                      verifyReferralCode(e.target.value);
+                    }}
+                    placeholder={isRTL ? 'مثال: WINOVA-ABC123' : 'e.g., WINOVA-ABC123'}
+                    className="ps-10 h-12"
+                    dir="ltr"
+                  />
+                </div>
+                {verifyingReferral && (
+                  <p className="text-xs text-muted-foreground">
+                    {isRTL ? 'جارٍ التحقق...' : 'Verifying...'}
+                  </p>
+                )}
+                {referralVerified && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20"
+                  >
+                    {referralVerified.avatar ? (
+                      <img src={referralVerified.avatar} alt="" className="w-6 h-6 rounded-full" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                        <User className="w-3 h-3 text-primary" />
+                      </div>
+                    )}
+                    <span className="text-sm text-foreground">
+                      {isRTL ? `ستنضم لفريق ${referralVerified.name}` : `You'll join ${referralVerified.name}'s team`}
+                    </span>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
           {/* Info Note */}
           <p className="text-xs text-muted-foreground text-center pt-2">
             {usePassword 
-              ? (isRTL ? 'أنشئ حسابك بالاسم والبريد وكلمة المرور' : 'Create your account with name, email and password')
+              ? (isRTL ? 'أكمل بياناتك لإنشاء حسابك' : 'Complete your details to create your account')
               : (isRTL ? 'سنرسل لك رمز تحقق مكون من 6 أرقام للتحقق من بريدك' : "We'll send you a 6-digit code to verify your email")}
           </p>
 
@@ -288,7 +501,7 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP }: SignUpScreenProps) 
         </form>
 
         {/* Login Link */}
-        <p className="text-center text-sm text-muted-foreground pt-8">
+        <p className="text-center text-sm text-muted-foreground pt-8 pb-6">
           {isRTL ? 'لديك حساب بالفعل؟ ' : 'Already have an account? '}
           <button
             type="button"
