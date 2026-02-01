@@ -115,18 +115,25 @@ export async function lookupUserByUsername(
 }
 
 /**
- * Search users by partial username (for autocomplete)
+ * Search users by partial username OR name (for autocomplete)
+ * CRITICAL: Only returns real users from the database
  */
 export async function searchUsersByUsername(
   query: string,
   excludeUserId?: string,
-  limit: number = 5
+  limit: number = 10
 ): Promise<RecipientLookupResult[]> {
+  if (!query || query.length < 2) {
+    return [];
+  }
+
   try {
+    const searchTerm = query.toLowerCase().trim();
+    
     let queryBuilder = supabase
       .from('profiles')
       .select('id, user_id, name, username, country, avatar_url')
-      .ilike('username', `%${query.toLowerCase()}%`)
+      .or(`username.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
       .limit(limit);
 
     if (excludeUserId) {
@@ -140,6 +147,7 @@ export async function searchUsersByUsername(
       return [];
     }
 
+    // Only return users that actually exist in the database
     return (data || []).map((p) => ({
       id: p.id,
       userId: p.user_id,
