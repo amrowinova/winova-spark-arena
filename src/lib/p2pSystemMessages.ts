@@ -48,26 +48,26 @@ export const P2P_SYSTEM_MESSAGES: Record<P2PSystemMessageType, P2PSystemMessageT
   order_matched: {
     type: 'order_matched',
     getContent: ({ buyerName, localAmount, currencySymbol, novaAmount }) => ({
-      en: `🤝 Order Accepted\n${buyerName} will transfer ${currencySymbol} ${localAmount?.toFixed(2)} for ${novaAmount?.toFixed(0)} Nova`,
-      ar: `🤝 تم قبول الطلب\nسيقوم ${buyerName} بتحويل ${localAmount?.toFixed(2)} ${currencySymbol} مقابل ${novaAmount?.toFixed(0)} Nova`,
+      en: `🤝 Order Accepted\n\nBuyer: ${buyerName}\nWill transfer: ${currencySymbol} ${localAmount?.toFixed(2)}\nFor: ${novaAmount?.toFixed(0)} Nova\n\n⏳ Timer has started`,
+      ar: `🤝 تم قبول الطلب\n\nالمشتري: ${buyerName}\nسيقوم بتحويل: ${localAmount?.toFixed(2)} ${currencySymbol}\nمقابل: ${novaAmount?.toFixed(0)} Nova\n\n⏳ بدأ العداد`,
     }),
     icon: '🤝',
   },
 
   buyer_copied_bank: {
     type: 'buyer_copied_bank',
-    getContent: () => ({
-      en: '📋 Buyer copied bank transfer details',
-      ar: '📋 قام المشتري بنسخ معلومات التحويل البنكي',
+    getContent: ({ buyerName }) => ({
+      en: `📋 ${buyerName || 'Buyer'} copied bank transfer details\n\n⏳ Awaiting transfer from buyer`,
+      ar: `📋 قام ${buyerName || 'المشتري'} بنسخ معلومات التحويل البنكي\n\n⏳ بانتظار التحويل من المشتري`,
     }),
     icon: '📋',
   },
 
   buyer_paid: {
     type: 'buyer_paid',
-    getContent: ({ localAmount, currencySymbol }) => ({
-      en: `💸 Buyer confirmed transfer\nPlease verify receipt of ${currencySymbol} ${localAmount?.toFixed(2)}`,
-      ar: `💸 قام المشتري بتأكيد التحويل\nالرجاء التأكد من وصول ${localAmount?.toFixed(2)} ${currencySymbol}`,
+    getContent: ({ buyerName, localAmount, currencySymbol, novaAmount }) => ({
+      en: `💸 ${buyerName || 'Buyer'} confirmed transfer\n\nAmount: ${currencySymbol} ${localAmount?.toFixed(2)}\nFor: ${novaAmount?.toFixed(0)} Nova\n\n⚠️ Seller: Please verify receipt before releasing`,
+      ar: `💸 قام ${buyerName || 'المشتري'} بتأكيد التحويل\n\nالمبلغ: ${localAmount?.toFixed(2)} ${currencySymbol}\nمقابل: ${novaAmount?.toFixed(0)} Nova\n\n⚠️ البائع: تأكد من الاستلام قبل التحرير`,
     }),
     icon: '💸',
   },
@@ -75,8 +75,8 @@ export const P2P_SYSTEM_MESSAGES: Record<P2PSystemMessageType, P2PSystemMessageT
   seller_verify_prompt: {
     type: 'seller_verify_prompt',
     getContent: ({ localAmount, currencySymbol, buyerName }) => ({
-      en: `⚠️ Verify Payment\nConfirm that ${currencySymbol} ${localAmount?.toFixed(2)} arrived from ${buyerName}\n\n✅ Received → Release Nova\n⏳ Not Received → Extend Time / Dispute`,
-      ar: `⚠️ تأكد من الدفع\nتأكد أن المبلغ ${localAmount?.toFixed(2)} ${currencySymbol} وصلك من ${buyerName}\n\n✅ وصلني → تحرير Nova\n⏳ لم يصلني → تمديد الوقت / نزاع`,
+      en: `⚠️ Payment Verification Required\n\nDid you receive ${currencySymbol} ${localAmount?.toFixed(2)}\nfrom ${buyerName || 'the buyer'}?\n\n✅ Received → Release Nova\n❌ Not Received → Extend Time / Open Dispute\n\n🔒 Security: Transfer must be from buyer's own account`,
+      ar: `⚠️ تأكيد الاستلام مطلوب\n\nهل وصلك مبلغ ${localAmount?.toFixed(2)} ${currencySymbol}\nمن ${buyerName || 'المشتري'}؟\n\n✅ وصلني → تحرير Nova\n❌ لم يصلني → تمديد الوقت / فتح نزاع\n\n🔒 أمان: يجب أن يكون التحويل من حساب المشتري نفسه`,
     }),
     icon: '⚠️',
   },

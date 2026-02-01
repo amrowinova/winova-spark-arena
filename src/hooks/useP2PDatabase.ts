@@ -316,7 +316,13 @@ export function useP2PDatabase() {
 
   // Notify buyer copied bank info
   const notifyBuyerCopiedBank = useCallback(async (orderId: string) => {
-    const msg = generateSystemMessage('buyer_copied_bank', {});
+    // Get buyer name from order
+    const order = ordersRef.current.find(o => o.id === orderId);
+    const buyerName = order?.order_type === 'buy' 
+      ? order.creator_profile?.name || 'Buyer'
+      : order?.executor_profile?.name || 'Buyer';
+    
+    const msg = generateSystemMessage('buyer_copied_bank', { buyerName });
     return await sendSystemMessage(orderId, 'buyer_copied_bank', msg.content, msg.contentAr);
   }, [sendSystemMessage]);
 
@@ -475,6 +481,11 @@ export function useP2PDatabase() {
       // Get order details first
       const order = ordersRef.current.find(o => o.id === orderId);
       
+      // Get buyer name based on order type
+      const buyerName = order?.order_type === 'buy' 
+        ? order.creator_profile?.name || 'Buyer'
+        : order?.executor_profile?.name || 'Buyer';
+      
       const { error } = await supabase
         .from('p2p_orders')
         .update({ status: 'payment_sent' } as P2POrderUpdate)
@@ -483,9 +494,11 @@ export function useP2PDatabase() {
 
       if (error) throw error;
       
-      // Add system message with proper template
+      // Add system message with buyer name
       const msg = generateSystemMessage('buyer_paid', {
+        buyerName,
         localAmount: order ? Number(order.local_amount) : 0,
+        novaAmount: order ? Number(order.nova_amount) : 0,
         currencySymbol: order?.country === 'Saudi Arabia' ? 'ر.س' : '$',
       });
       await sendSystemMessage(orderId, 'buyer_paid', msg.content, msg.contentAr);
