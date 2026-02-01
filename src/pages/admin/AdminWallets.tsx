@@ -12,16 +12,11 @@ import {
   Wallet,
   User,
   Lock,
-  Plus,
   Settings
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AddNovaDialog } from '@/components/admin/AddNovaDialog';
-import { 
-  formatNovaWithLocal, 
-  getExchangeRateDisplay,
-  getCurrencyConfigFromCountry 
-} from '@/lib/novaExchangeRates';
+import { formatNovaWithLocal } from '@/lib/novaExchangeRates';
 
 interface WalletWithProfile {
   id: string;
@@ -221,7 +216,6 @@ export default function AdminWallets() {
           <div className="space-y-2">
             {filteredWallets.map((wallet, index) => {
               const localDisplay = formatNovaWithLocal(wallet.nova_balance, wallet.country, isRTL);
-              const currencyConfig = getCurrencyConfigFromCountry(wallet.country);
               
               return (
                 <Card key={wallet.id} className="p-3">
