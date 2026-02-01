@@ -227,7 +227,7 @@ export default function AdminRoles() {
 
       {/* User Role Management Sheet */}
       <Sheet open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-        <SheetContent side="bottom" className="h-[60vh] rounded-t-2xl">
+        <SheetContent side="bottom" className="h-[60vh] rounded-t-2xl overflow-y-auto">
           {selectedUser && (
             <>
               <SheetHeader className="text-center pb-4">
