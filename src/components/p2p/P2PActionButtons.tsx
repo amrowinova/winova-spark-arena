@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { 
-  CheckCircle, 
+  Trash2,
   XCircle, 
   AlertTriangle, 
   Unlock, 
   MessageSquareWarning,
   Shield,
-  FileQuestion
+  FileQuestion,
+  CheckCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -26,6 +27,7 @@ import { useBanner } from '@/contexts/BannerContext';
 import { P2PConfirmPaymentDialog } from './P2PConfirmPaymentDialog';
 import { P2PPaymentSteps } from './P2PPaymentSteps';
 import { P2PSellerSteps } from './P2PSellerSteps';
+import { P2PCancelOrderDialog } from './P2PCancelOrderDialog';
 
 interface P2PActionButtonsProps {
   order: P2POrder;
@@ -34,7 +36,7 @@ interface P2PActionButtonsProps {
   onOrderCompleted?: () => void;
 }
 
-type ActionType = 'confirm_payment' | 'cancel' | 'dispute' | 'release' | 'no_payment' | 'request_proof' | 'resolve_buyer' | 'resolve_seller';
+type ActionType = 'confirm_payment' | 'cancel' | 'dispute' | 'release' | 'no_payment' | 'request_proof' | 'resolve_buyer' | 'resolve_seller' | 'delete';
 
 const actionConfig: Record<ActionType, {
   en: string;
@@ -53,6 +55,12 @@ const actionConfig: Record<ActionType, {
     ar: 'إلغاء الطلب',
     icon: XCircle,
     variant: 'outline',
+  },
+  delete: {
+    en: 'Delete Order',
+    ar: 'حذف الطلب',
+    icon: Trash2,
+    variant: 'destructive',
   },
   dispute: {
     en: 'Open Dispute',
@@ -98,6 +106,8 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
     confirmPayment, 
     cancelOrder,
     cancelOrderWithReason,
+    deleteOrder,
+    relistOrder,
     openDispute, 
     releaseFunds, 
     reportNoPayment, 
@@ -113,10 +123,15 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
   const [confirmDialog, setConfirmDialog] = useState<ActionType | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const isBuyer = order.buyer.id === currentUserId;
   const isSeller = order.seller.id === currentUserId;
+  const isCreator = order.type === 'buy' ? isBuyer : isSeller;
   const isRTL = language === 'ar';
+
+  // Determine if order is in terminal state (no actions allowed)
+  const isTerminalState = order.status === 'completed' || order.status === 'cancelled' || order.status === 'released';
 
   // Check if we should show the payment steps flow (for buyer in waiting_payment status)
   const showPaymentSteps = isBuyer && order.status === 'waiting_payment';
@@ -124,32 +139,64 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
   // Check if we should show seller steps (for seller in waiting_payment or paid status)
   const showSellerSteps = isSeller && (order.status === 'waiting_payment' || order.status === 'paid' || order.status === 'dispute');
 
-  const handleAction = (action: ActionType) => {
-    switch (action) {
-      case 'confirm_payment':
-        // Show the specialized payment confirmation dialog
-        setShowPaymentConfirm(true);
-        break;
-      case 'cancel':
-        // Check cancellation limit
-        const cancellations = getCancellationsIn24h();
-        if (cancellations >= 2) {
-          // Warn user this is their last cancellation
-          showError(isRTL 
-            ? 'تحذير: هذا إلغاءك الأخير. الإلغاء مرة أخرى سيحظرك 24 ساعة.'
-            : 'Warning: This is your last cancellation. One more will block you for 24 hours.'
-          );
-        }
-        
-        const cancelled = cancelOrder(order.id);
-        if (cancelled) {
-          showSuccess(isRTL ? 'تم إلغاء الطلب' : 'Order cancelled');
-        } else {
+  // Handle delete order (for open orders only)
+  const handleDeleteOrder = async () => {
+    const deleted = await deleteOrder(order.id);
+    if (deleted) {
+      showSuccess(isRTL ? 'تم حذف الطلب' : 'Order deleted');
+    } else {
+      showError(isRTL ? 'فشل في حذف الطلب' : 'Failed to delete order');
+    }
+    setConfirmDialog(null);
+  };
+
+  // Handle cancel order with reason (for awaiting_payment)
+  const handleCancelWithReason = async (reason: string) => {
+    setShowCancelDialog(false);
+    
+    // For awaiting_payment: relist order (return to market)
+    if (order.status === 'waiting_payment') {
+      const relisted = await relistOrder(order.id, reason);
+      if (relisted) {
+        showSuccess(isRTL ? 'تم إلغاء الطلب وإعادته للسوق' : 'Order cancelled and returned to market');
+      } else {
+        if (isBlockedFromOrders()) {
           showError(isRTL 
             ? 'لا يمكنك الإلغاء. تم تجاوز حد الإلغاءات (3 خلال 24 ساعة).'
             : 'Cannot cancel. You have exceeded the cancellation limit (3 per 24 hours).'
           );
+        } else {
+          showError(isRTL ? 'فشل في إلغاء الطلب' : 'Failed to cancel order');
         }
+      }
+      return;
+    }
+
+    // For paid status: open dispute instead
+    if (order.status === 'paid') {
+      const reason_dispute = isRTL 
+        ? 'محاولة إلغاء بعد تأكيد الدفع' 
+        : 'Cancellation attempt after payment confirmation';
+      openDispute(order.id, reason_dispute);
+      showSuccess(isRTL 
+        ? '⚖️ تم فتح نزاع – لا يمكن الإلغاء بعد الدفع'
+        : '⚖️ Dispute opened – Cannot cancel after payment'
+      );
+      return;
+    }
+  };
+
+  const handleAction = (action: ActionType) => {
+    switch (action) {
+      case 'confirm_payment':
+        setShowPaymentConfirm(true);
+        break;
+      case 'delete':
+        handleDeleteOrder();
+        break;
+      case 'cancel':
+        // Show cancel dialog for awaiting_payment or paid
+        setShowCancelDialog(true);
         break;
       case 'dispute':
         if (disputeReason.trim()) {
@@ -184,7 +231,6 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
     setShowPaymentConfirm(false);
     showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
     
-    // In mock mode, trigger automatic seller confirmation after 3-5 seconds
     if (isMockMode) {
       triggerMockSellerConfirmation(order.id);
     }
@@ -202,17 +248,10 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
 
   // Handler for PaymentSteps cancellation with reason
   const handlePaymentStepsCancel = (reason: string) => {
-    const cancelled = cancelOrderWithReason(order.id, reason);
-    if (cancelled) {
-      showSuccess(isRTL ? 'تم إلغاء الطلب' : 'Order cancelled');
-    } else {
-      showError(isRTL 
-        ? 'لا يمكنك الإلغاء. تم تجاوز حد الإلغاءات (3 خلال 24 ساعة).'
-        : 'Cannot cancel. You have exceeded the cancellation limit (3 per 24 hours).'
-      );
-    }
+    handleCancelWithReason(reason);
   };
 
+  // Get available actions based on order status and user role
   const getAvailableActions = (): ActionType[] => {
     const actions: ActionType[] = [];
 
@@ -222,25 +261,38 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
       return actions;
     }
 
-    // Buyer actions (Note: waiting_payment is handled by P2PPaymentSteps, not here)
-    if (isBuyer) {
-      // For 'created' status only, show cancel button (waiting_payment is handled by PaymentSteps)
-      if (order.status === 'created') {
-        actions.push('cancel');
-      }
-      // Note: When status is 'paid', buyer is waiting - no actions available
-      // Note: When status is 'waiting_payment', PaymentSteps component handles it
+    // Terminal states - no actions
+    if (isTerminalState) {
+      return actions;
     }
 
-    // Seller actions
-    if (isSeller) {
-      if (order.status === 'paid') {
+    // OPEN status - creator can delete (no penalty)
+    if (order.status === 'created' && isCreator) {
+      actions.push('delete');
+      return actions;
+    }
+
+    // WAITING_PAYMENT - buyer actions are handled by PaymentSteps
+    // Seller can cancel (return to market)
+    if (order.status === 'waiting_payment') {
+      if (isSeller) {
+        actions.push('cancel');
+      }
+      // Buyer actions handled by PaymentSteps component
+      return actions;
+    }
+
+    // PAID status
+    if (order.status === 'paid') {
+      if (isSeller) {
         actions.push('release');
         actions.push('no_payment');
       }
-      if (order.status === 'waiting_payment') {
-        actions.push('dispute');
+      // Buyer can try to cancel (will open dispute)
+      if (isBuyer) {
+        actions.push('cancel');
       }
+      return actions;
     }
 
     return actions;
@@ -264,11 +316,49 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
   // If seller, show seller-specific flow
   if (showSellerSteps) {
     return (
-      <P2PSellerSteps
-        order={order}
-        currentUserId={currentUserId}
-        onOrderCompleted={onOrderCompleted}
-      />
+      <>
+        <P2PSellerSteps
+          order={order}
+          currentUserId={currentUserId}
+          onOrderCompleted={onOrderCompleted}
+        />
+        {/* Also show cancel button for seller in waiting_payment */}
+        {order.status === 'waiting_payment' && (
+          <div className="px-3 pb-3">
+            <Button
+              variant="ghost"
+              onClick={() => setShowCancelDialog(true)}
+              className="w-full h-10 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            >
+              <XCircle className="h-4 w-4" />
+              <span className="text-sm">
+                {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
+              </span>
+            </Button>
+          </div>
+        )}
+        {/* Cancel Order Dialog */}
+        <P2PCancelOrderDialog
+          open={showCancelDialog}
+          onOpenChange={setShowCancelDialog}
+          onConfirm={handleCancelWithReason}
+        />
+      </>
+    );
+  }
+
+  // Terminal state message
+  if (isTerminalState) {
+    return (
+      <div className="p-3 bg-muted/30 border-t border-border">
+        <div className="text-center text-sm text-muted-foreground py-2">
+          {order.status === 'completed' || order.status === 'released' ? (
+            isRTL ? '🎉 تمت الصفقة بنجاح' : '🎉 Transaction completed'
+          ) : (
+            isRTL ? '❌ تم إلغاء الطلب' : '❌ Order cancelled'
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -286,6 +376,36 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
           variant={config.variant as any}
           className="flex-1 gap-2"
           onClick={() => setShowPaymentConfirm(true)}
+        >
+          <Icon className="h-4 w-4" />
+          {language === 'ar' ? config.ar : config.en}
+        </Button>
+      );
+    }
+
+    // For cancel, show the cancel dialog with reasons
+    if (action === 'cancel') {
+      return (
+        <Button
+          key={action}
+          variant="outline"
+          className="flex-1 gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
+          onClick={() => setShowCancelDialog(true)}
+        >
+          <Icon className="h-4 w-4" />
+          {language === 'ar' ? config.ar : config.en}
+        </Button>
+      );
+    }
+
+    // For delete, confirm first
+    if (action === 'delete') {
+      return (
+        <Button
+          key={action}
+          variant="destructive"
+          className="flex-1 gap-2"
+          onClick={() => setConfirmDialog('delete')}
         >
           <Icon className="h-4 w-4" />
           {language === 'ar' ? config.ar : config.en}
@@ -313,6 +433,13 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
         {availableActions.map(renderButton)}
       </div>
 
+      {/* Cancel Order Dialog with reasons */}
+      <P2PCancelOrderDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        onConfirm={handleCancelWithReason}
+      />
+
       {/* Payment Confirmation Dialog */}
       <P2PConfirmPaymentDialog
         open={showPaymentConfirm}
@@ -321,7 +448,7 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
         onConfirm={handlePaymentConfirm}
       />
 
-      {/* Other Confirmation Dialogs */}
+      {/* Delete/Other Confirmation Dialogs */}
       <AlertDialog open={confirmDialog !== null} onOpenChange={() => setConfirmDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -332,7 +459,22 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
               )}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmDialog === 'dispute' ? (
+              {confirmDialog === 'delete' ? (
+                <div className="space-y-2">
+                  <p>
+                    {language === 'ar'
+                      ? 'هل أنت متأكد من حذف هذا الطلب؟ سيتم إزالته من السوق.'
+                      : 'Are you sure you want to delete this order? It will be removed from the market.'
+                    }
+                  </p>
+                  <p className="text-success text-sm">
+                    {language === 'ar'
+                      ? '✓ لا يوجد عقوبات أو تأثير على حسابك'
+                      : '✓ No penalties or impact on your account'
+                    }
+                  </p>
+                </div>
+              ) : confirmDialog === 'dispute' ? (
                 <div className="space-y-3">
                   <p>
                     {language === 'ar' 
@@ -350,21 +492,6 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
                 language === 'ar'
                   ? `هل أنت متأكد من تحرير ${order.amount.toFixed(0)} Nova للمشتري؟`
                   : `Are you sure you want to release ${order.amount.toFixed(0)} Nova to the buyer?`
-              ) : confirmDialog === 'cancel' ? (
-                <div className="space-y-2">
-                  <p>
-                    {language === 'ar'
-                      ? 'هل أنت متأكد من إلغاء هذا الطلب؟'
-                      : 'Are you sure you want to cancel this order?'
-                    }
-                  </p>
-                  <p className="text-warning text-sm">
-                    {language === 'ar'
-                      ? `عدد الإلغاءات اليوم: ${getCancellationsIn24h()}/3`
-                      : `Cancellations today: ${getCancellationsIn24h()}/3`
-                    }
-                  </p>
-                </div>
               ) : (
                 language === 'ar'
                   ? 'هل أنت متأكد من هذا الإجراء؟'
