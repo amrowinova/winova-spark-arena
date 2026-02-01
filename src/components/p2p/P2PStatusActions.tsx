@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Unlock, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Unlock, Clock, Loader2, FileQuestion, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -15,10 +15,11 @@ import { motion } from 'framer-motion';
 interface P2PStatusActionsProps {
   order: P2POrder;
   currentUserId: string;
+  isSupport?: boolean;
   onOrderCompleted?: () => void;
 }
 
-export function P2PStatusActions({ order, currentUserId, onOrderCompleted }: P2PStatusActionsProps) {
+export function P2PStatusActions({ order, currentUserId, isSupport = false, onOrderCompleted }: P2PStatusActionsProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
   const { 
@@ -26,6 +27,8 @@ export function P2PStatusActions({ order, currentUserId, onOrderCompleted }: P2P
     cancelOrderWithReason, 
     releaseFunds, 
     openDispute,
+    requestProof,
+    resolveDispute,
     isMockMode,
     triggerMockSellerConfirmation,
   } = useP2P();
@@ -37,6 +40,71 @@ export function P2PStatusActions({ order, currentUserId, onOrderCompleted }: P2P
   // Get role info
   const roleInfo = getP2PRoleInfoFromOrder(order, currentUserId);
   const permissions = getActionPermissions(order.status, roleInfo);
+  
+  // Support actions in dispute
+  if (isSupport && order.status === 'dispute') {
+    return (
+      <div className="p-3 bg-muted/30 border-t border-border space-y-3">
+        <Card className="p-4 bg-destructive/10 border-destructive/30">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <p className="font-medium text-destructive">
+                {isRTL ? '⚖️ نزاع قيد المراجعة' : '⚖️ Dispute Under Review'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {isRTL ? 'اتخذ إجراءً لحل النزاع' : 'Take action to resolve the dispute'}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                requestProof(order.id);
+                showSuccess(isRTL ? 'تم طلب الإثبات' : 'Proof requested');
+              }}
+            >
+              <FileQuestion className="h-4 w-4" />
+              {isRTL ? 'طلب إثبات' : 'Request Proof'}
+            </Button>
+            
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                resolveDispute(order.id, 'release_to_buyer');
+                showSuccess(isRTL ? 'تم تحرير Nova للمشتري' : 'Nova released to buyer');
+                onOrderCompleted?.();
+              }}
+            >
+              <CheckCircle className="h-4 w-4" />
+              {isRTL ? 'تحرير للمشتري' : 'Release to Buyer'}
+            </Button>
+            
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                resolveDispute(order.id, 'return_to_seller');
+                showSuccess(isRTL ? 'تم إعادة Nova للبائع' : 'Nova returned to seller');
+              }}
+            >
+              <Shield className="h-4 w-4" />
+              {isRTL ? 'إعادة للبائع' : 'Return to Seller'}
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
   
   // Buyer flow: awaiting_payment / waiting_payment
   if (roleInfo.isBuyer && (order.status === 'waiting_payment' || order.status === 'created')) {
@@ -233,8 +301,8 @@ export function P2PStatusActions({ order, currentUserId, onOrderCompleted }: P2P
     );
   }
   
-  // Dispute state (both parties)
-  if (order.status === 'dispute') {
+  // Dispute state (both parties - non-support)
+  if (order.status === 'dispute' && !isSupport) {
     return (
       <div className="p-3 bg-muted/30 border-t border-border">
         <Card className="p-4 bg-destructive/10 border-destructive/30">

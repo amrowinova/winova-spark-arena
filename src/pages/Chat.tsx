@@ -29,9 +29,9 @@ import {
   P2PChatHeader, 
   P2POrderCard, 
   P2PPaymentCard, 
-  P2PActionButtons,
   P2PSystemMessage 
 } from '@/components/p2p';
+import { P2PStatusActions } from '@/components/p2p/P2PStatusActions';
 import { useBanner } from '@/contexts/BannerContext';
 
 import type { UserRank } from '@/contexts/UserContext';
@@ -669,7 +669,7 @@ function ChatContent() {
 
           {/* Action Buttons (based on role and order status) */}
           {activeOrder && (
-            <P2PActionButtons 
+            <P2PStatusActions 
               order={activeOrder} 
               currentUserId={user.id}
               isSupport={activeP2PChat.supportPresent && user.id === 'support'}
