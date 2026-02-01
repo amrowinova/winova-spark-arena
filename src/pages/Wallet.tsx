@@ -13,10 +13,11 @@ import { useUser } from '@/contexts/UserContext';
 import { useTransactions, RANK_COMMISSION_RATES } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWallet } from '@/hooks/useWallet';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { ReceiptCard, ReceiptDialog } from '@/components/common/ReceiptCard';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ConvertNovaAuraDialog } from '@/components/wallet/ConvertNovaAuraDialog';
-import { WalletCountrySelector, getWalletCountryPricing } from '@/components/wallet/WalletCountrySelector';
+import { WalletCountrySelector } from '@/components/wallet/WalletCountrySelector';
 import { EarningsSummarySheet } from '@/components/wallet/EarningsSummarySheet';
 import { LockedEarningsCard, getNextReleaseDate } from '@/components/wallet/LockedEarningsCard';
 import { UnifiedTransactionCard } from '@/components/wallet/UnifiedTransactionCard';
@@ -34,6 +35,10 @@ export default function WalletPage() {
   const { receipts, calculateLocalAmount } = useTransactions();
   const { wallet } = useWallet();
   const navigate = useNavigate();
+  
+  // Use unified pricing from app_settings
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(user.walletCountry);
 
   const [selectedTab, setSelectedTab] = useState('aura');
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
@@ -41,11 +46,9 @@ export default function WalletPage() {
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
 
-  // Get local currency info based on wallet country (not registered country)
-  const pricing = getWalletCountryPricing(user.walletCountry);
+  // Calculate local values using unified pricing
   const novaLocalValue = user.novaBalance * pricing.novaRate;
   const lockedLocalValue = user.lockedNovaBalance * pricing.novaRate;
-  const auraLocalValue = user.auraBalance * pricing.auraRate;
   const releaseInfo = getNextReleaseDate();
 
   // Filter user receipts
@@ -150,7 +153,7 @@ export default function WalletPage() {
                     {formatBalance(user.novaBalance)}
                   </p>
                   <p className="text-muted-foreground text-xs mt-1">
-                    ≈ {pricing.symbol} {formatBalance(novaLocalValue)}
+                    ≈ {language === 'ar' ? pricing.symbolAr : pricing.symbol} {formatBalance(novaLocalValue)}
                   </p>
                 </div>
 
@@ -169,7 +172,7 @@ export default function WalletPage() {
                           <span className="text-nova">И</span> {formatBalance(user.lockedNovaBalance)}
                         </p>
                         <p className="text-muted-foreground text-xs mt-1">
-                          ≈ {pricing.symbol} {formatBalance(lockedLocalValue)}
+                          ≈ {language === 'ar' ? pricing.symbolAr : pricing.symbol} {formatBalance(lockedLocalValue)}
                         </p>
                       </div>
                       <div className="text-end bg-warning/10 rounded-lg px-3 py-2">
@@ -285,7 +288,7 @@ export default function WalletPage() {
           </motion.div>
         )}
 
-        {/* Price Info - Nova rate display */}
+        {/* Price Info - Nova rate display from app_settings */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -297,7 +300,7 @@ export default function WalletPage() {
                 {language === 'ar' ? 'سعر Nova' : 'Nova Rate'}
               </span>
               <span className="font-semibold text-foreground">
-                <span className="text-nova">И</span> 1 = {pricing.symbol} {pricing.novaRate.toLocaleString()}
+                <span className="text-nova">И</span> 1 = {language === 'ar' ? pricing.symbolAr : pricing.symbol} {pricing.novaRate.toLocaleString()}
               </span>
             </div>
           </Card>

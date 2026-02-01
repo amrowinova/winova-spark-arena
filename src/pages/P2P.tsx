@@ -47,7 +47,7 @@ import {
   P2POffer,
   P2POrderListItem,
   SavedPaymentMethod,
-  COUNTRIES,
+  useP2PCountries,
   getDefaultCountry,
 } from '@/components/p2p';
 
@@ -212,8 +212,12 @@ export default function P2PPage() {
   const { success: showSuccess, error: showError } = useBanner();
   const isRTL = language === 'ar';
 
-  // State
-  const [selectedCountry, setSelectedCountry] = useState<CountryConfig>(getDefaultCountry());
+  // Get countries with live rates from app_settings
+  const countries = useP2PCountries();
+  const defaultCountry = countries[0]; // Saudi Arabia with live rate
+
+  // State - initialize with the live-rate country
+  const [selectedCountry, setSelectedCountry] = useState<CountryConfig | null>(null);
   const [selectedTab, setSelectedTab] = useState<'buy' | 'sell' | 'orders'>('buy');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createOrderType, setCreateOrderType] = useState<'buy' | 'sell'>('buy');
@@ -229,9 +233,12 @@ export default function P2PPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Generate offers based on selected country
-  const buyOffers = generateBuyOffersForCountry(selectedCountry);
-  const sellOffers = generateSellOffersForCountry(selectedCountry);
+  // Use the live-rate country (selectedCountry or default)
+  const currentCountry = selectedCountry || defaultCountry;
+
+  // Generate offers based on selected country with live rates
+  const buyOffers = generateBuyOffersForCountry(currentCountry);
+  const sellOffers = generateSellOffersForCountry(currentCountry);
 
   // Get all orders from chats
   const allOrders: P2POrder[] = chats.flatMap(chat => chat.orders);
@@ -361,7 +368,7 @@ export default function P2PPage() {
     savedPaymentMethod?: import('@/components/p2p').SavedPaymentMethod;
   }) => {
     const me = p2pParticipantFromUser(user);
-    const counterpartyCountryName = selectedCountry.name;
+    const counterpartyCountryName = currentCountry.name;
 
     const buyer =
       orderData.type === 'buy' ? me : p2pPlaceholderParticipant('buyer', counterpartyCountryName);
@@ -378,10 +385,10 @@ export default function P2PPage() {
     const created = createOrder({
       type: orderData.type,
       amount: orderData.amount,
-      price: selectedCountry.novaRate,
-      total: orderData.amount * selectedCountry.novaRate,
-      currency: selectedCountry.currency,
-      currencySymbol: selectedCountry.currencySymbol,
+      price: currentCountry.novaRate,
+      total: orderData.amount * currentCountry.novaRate,
+      currency: currentCountry.currency,
+      currencySymbol: currentCountry.currencySymbol,
       seller,
       buyer,
       paymentDetails,
@@ -650,7 +657,7 @@ export default function P2PPage() {
 
         {/* Country Selector */}
         <P2PCountrySelector
-          selectedCountry={selectedCountry}
+          selectedCountry={currentCountry}
           onCountryChange={setSelectedCountry}
           className="w-full"
         />
@@ -662,7 +669,7 @@ export default function P2PPage() {
               {isRTL ? 'سعر Nova الرسمي' : 'Official Nova Price'}
             </span>
             <span className="font-bold text-nova">
-              И 1 = {selectedCountry.currencySymbol} {selectedCountry.novaRate.toFixed(2)}
+              И 1 = {currentCountry.currencySymbol} {currentCountry.novaRate.toFixed(2)}
             </span>
           </div>
         </Card>
@@ -810,7 +817,7 @@ export default function P2PPage() {
       <P2PCreateOrderDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        country={selectedCountry}
+        country={currentCountry}
         initialOrderType={createOrderType}
         onCreateOrder={handleCreateOrder}
       />

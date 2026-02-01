@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logNovaChange } from '@/lib/auditLogger';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,6 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { formatNovaWithLocal } from '@/lib/novaExchangeRates';
 
 interface UserWallet {
   id: string;
@@ -51,6 +51,9 @@ export function AddNovaDialog({ open, onOpenChange, user, onSuccess }: AddNovaDi
   const { user: adminUser } = useAuth();
   const isRTL = language === 'ar';
   
+  // Use unified pricing from app_settings
+  const { formatWithLocal, getExchangeRateDisplay } = useNovaPricing();
+  
   const [operation, setOperation] = useState<OperationType>('add');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
@@ -59,7 +62,8 @@ export function AddNovaDialog({ open, onOpenChange, user, onSuccess }: AddNovaDi
   const country = user?.country || 'Egypt';
 
   const numericAmount = parseFloat(amount) || 0;
-  const localValue = formatNovaWithLocal(numericAmount, country, isRTL);
+  const localValue = formatWithLocal(numericAmount, country, isRTL);
+  const rateDisplay = getExchangeRateDisplay(country, isRTL);
 
   const handleSubmit = async () => {
     if (!user || !adminUser || numericAmount <= 0) return;
@@ -224,7 +228,7 @@ export function AddNovaDialog({ open, onOpenChange, user, onSuccess }: AddNovaDi
 
             {/* Exchange Rate Info */}
             <p className="text-xs text-muted-foreground text-center">
-              {localValue.rate}
+              {rateDisplay}
             </p>
           </div>
 
