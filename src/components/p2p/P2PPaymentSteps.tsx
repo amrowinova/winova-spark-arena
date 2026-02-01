@@ -8,6 +8,7 @@ import { P2PCancelOrderDialog } from './P2PCancelOrderDialog';
 import { P2PConfirmPaymentDialog } from './P2PConfirmPaymentDialog';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useP2PDatabase } from '@/hooks/useP2PDatabase';
 
 interface P2PPaymentStepsProps {
   order: P2POrder;
@@ -24,6 +25,7 @@ export function P2PPaymentSteps({
 }: P2PPaymentStepsProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
+  const db = useP2PDatabase();
 
   const [step, setStep] = useState<PaymentStep>('initial');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -34,7 +36,9 @@ export function P2PPaymentSteps({
     return null;
   }
 
-  const handleCopyAndProceed = () => {
+  const handleCopyAndProceed = async () => {
+    // Notify that buyer copied bank info
+    await db.notifyBuyerCopiedBank(order.id);
     setStep('ready_to_pay');
   };
 

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { dbStatusToUI, uiStatusToDB, isActiveStatus, DBP2POrderStatus, UIP2POrderStatus } from '@/lib/p2pStatusMapper';
+import { generateSystemMessage, P2PSystemMessageType } from '@/lib/p2pSystemMessages';
 
 // Extended order row with matched_at
 interface P2POrderRowExtended {
@@ -250,6 +251,82 @@ export function useP2PDatabase() {
     }
   }, [user]);
 
+  // Send a message (MUST be defined before functions that use it)
+  const sendMessage = useCallback(async (
+    orderId: string,
+    content: string,
+    contentAr?: string,
+    isSystemMessage = false,
+    messageType = 'text'
+  ) => {
+    if (!user) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('p2p_messages')
+        .insert({
+          order_id: orderId,
+          sender_id: user.id,
+          content,
+          content_ar: contentAr,
+          is_system_message: isSystemMessage,
+          message_type: messageType,
+        } as P2PMessageInsert)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error('Error sending P2P message:', err);
+      return null;
+    }
+  }, [user]);
+
+  // Send a system message with proper type (MUST be defined before functions that use it)
+  const sendSystemMessage = useCallback(async (
+    orderId: string,
+    type: P2PSystemMessageType,
+    content: string,
+    contentAr: string
+  ) => {
+    if (!user) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('p2p_messages')
+        .insert({
+          order_id: orderId,
+          sender_id: user.id,
+          content,
+          content_ar: contentAr,
+          is_system_message: true,
+          message_type: type,
+        } as P2PMessageInsert)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error('Error sending system message:', err);
+      return null;
+    }
+  }, [user]);
+
+  // Notify buyer copied bank info
+  const notifyBuyerCopiedBank = useCallback(async (orderId: string) => {
+    const msg = generateSystemMessage('buyer_copied_bank', {});
+    return await sendSystemMessage(orderId, 'buyer_copied_bank', msg.content, msg.contentAr);
+  }, [sendSystemMessage]);
+
+  // Extend time for order
+  const extendOrderTime = useCallback(async (orderId: string) => {
+    const msg = generateSystemMessage('time_extended', {});
+    await sendSystemMessage(orderId, 'time_extended', msg.content, msg.contentAr);
+    return true;
+  }, [sendSystemMessage]);
+
   // Create a new order
   const createOrder = useCallback(async (orderData: {
     orderType: P2POrderType;
@@ -288,15 +365,15 @@ export function useP2PDatabase() {
 
       if (error) throw error;
       
-      // Add initial system message
+      // Add initial system message with proper template
       if (data) {
-        await sendMessage(
-          data.id,
-          `Order #${data.id.slice(0, 8)} created`,
-          `تم إنشاء الطلب #${data.id.slice(0, 8)}`,
-          true,
-          'status_change'
-        );
+        const msg = generateSystemMessage('order_created', {
+          orderType: orderData.orderType,
+          novaAmount: orderData.novaAmount,
+          localAmount: orderData.localAmount,
+          currencySymbol: orderData.country === 'Saudi Arabia' ? 'ر.س' : '$',
+        });
+        await sendSystemMessage(data.id, 'order_created', msg.content, msg.contentAr);
       }
       
       // Refresh orders to get profile data
@@ -346,14 +423,32 @@ export function useP2PDatabase() {
       
       console.log('Order executed successfully:', data);
       
-      // Add system message
-      await sendMessage(
-        orderId,
-        'Order matched - Awaiting payment',
-        'تم تأكيد الطلب - بانتظار الدفع',
-        true,
-        'status_change'
-      );
+      // Get creator profile for buyer name
+      const { data: creatorProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('user_id', data.creator_id)
+        .single();
+      
+      const { data: executorProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('user_id', user.id)
+        .single();
+
+      // Determine buyer name based on order type
+      const buyerName = data.order_type === 'buy' 
+        ? creatorProfile?.name || 'Buyer'
+        : executorProfile?.name || 'Buyer';
+
+      // Add system message with proper template
+      const msg = generateSystemMessage('order_matched', {
+        buyerName,
+        novaAmount: Number(data.nova_amount),
+        localAmount: Number(data.local_amount),
+        currencySymbol: data.country === 'Saudi Arabia' ? 'ر.س' : '$',
+      });
+      await sendSystemMessage(orderId, 'order_matched', msg.content, msg.contentAr);
       
       // Refresh orders
       await fetchOrders();
@@ -377,6 +472,9 @@ export function useP2PDatabase() {
     }
 
     try {
+      // Get order details first
+      const order = ordersRef.current.find(o => o.id === orderId);
+      
       const { error } = await supabase
         .from('p2p_orders')
         .update({ status: 'payment_sent' } as P2POrderUpdate)
@@ -385,14 +483,12 @@ export function useP2PDatabase() {
 
       if (error) throw error;
       
-      // Add system message
-      await sendMessage(
-        orderId,
-        '🟡 Payment confirmed - Waiting for seller to confirm receipt',
-        '🟡 تم تأكيد الدفع من المشتري - بانتظار تأكيد البائع لتحرير Nova',
-        true,
-        'payment_confirmed'
-      );
+      // Add system message with proper template
+      const msg = generateSystemMessage('buyer_paid', {
+        localAmount: order ? Number(order.local_amount) : 0,
+        currencySymbol: order?.country === 'Saudi Arabia' ? 'ر.س' : '$',
+      });
+      await sendSystemMessage(orderId, 'buyer_paid', msg.content, msg.contentAr);
       
       fetchOrders();
       return true;
@@ -400,7 +496,7 @@ export function useP2PDatabase() {
       console.error('Error confirming payment:', err);
       return false;
     }
-  }, [user, fetchOrders, checkWalletFrozen]);
+  }, [user, fetchOrders, checkWalletFrozen, sendSystemMessage]);
 
   // Release funds (seller confirms receipt)
   const releaseFunds = useCallback(async (orderId: string) => {
@@ -427,14 +523,11 @@ export function useP2PDatabase() {
 
       if (error) throw error;
       
-      // Add system messages
-      await sendMessage(
-        orderId,
-        `✅ ${order?.nova_amount || 0} Nova released successfully!`,
-        `✅ تم تحرير ${order?.nova_amount || 0} Nova بنجاح!`,
-        true,
-        'released'
-      );
+      // Add system message with proper template
+      const msg = generateSystemMessage('nova_released', {
+        novaAmount: order ? Number(order.nova_amount) : 0,
+      });
+      await sendSystemMessage(orderId, 'nova_released', msg.content, msg.contentAr);
       
       fetchOrders();
       return true;
@@ -442,7 +535,7 @@ export function useP2PDatabase() {
       console.error('Error releasing funds:', err);
       return false;
     }
-  }, [user, fetchOrders, checkWalletFrozen]);
+  }, [user, fetchOrders, checkWalletFrozen, sendSystemMessage]);
 
   // Cancel order
   const cancelOrder = useCallback(async (orderId: string, reason?: string) => {
@@ -469,14 +562,9 @@ export function useP2PDatabase() {
 
       if (error) throw error;
       
-      // Add system message
-      await sendMessage(
-        orderId,
-        `❌ Order cancelled${reason ? `: ${reason}` : ''}\n🛈 You can continue chatting.`,
-        `❌ تم إلغاء الطلب${reason ? `: ${reason}` : ''}\n🛈 يمكنكما متابعة الدردشة.`,
-        true,
-        'order_cancelled'
-      );
+      // Add system message with proper template
+      const msg = generateSystemMessage('order_cancelled', { reason });
+      await sendSystemMessage(orderId, 'order_cancelled', msg.content, msg.contentAr);
       
       // Refresh
       fetchOrders();
@@ -487,7 +575,7 @@ export function useP2PDatabase() {
       console.error('Error cancelling order:', err);
       return false;
     }
-  }, [user, cancellationsCount, fetchOrders, fetchCancellationsCount]);
+  }, [user, cancellationsCount, fetchOrders, fetchCancellationsCount, sendSystemMessage]);
 
   // Open dispute
   const openDispute = useCallback(async (orderId: string, reason: string) => {
@@ -504,14 +592,9 @@ export function useP2PDatabase() {
 
       if (error) throw error;
       
-      // Add system message
-      await sendMessage(
-        orderId,
-        `⚖️ Dispute opened: ${reason}`,
-        `⚖️ تم فتح نزاع: ${reason}`,
-        true,
-        'dispute_opened'
-      );
+      // Add system message with proper template
+      const msg = generateSystemMessage('dispute_opened', { reason });
+      await sendSystemMessage(orderId, 'dispute_opened', msg.content, msg.contentAr);
       
       fetchOrders();
       return true;
@@ -519,7 +602,7 @@ export function useP2PDatabase() {
       console.error('Error opening dispute:', err);
       return false;
     }
-  }, [user, fetchOrders]);
+  }, [user, fetchOrders, sendSystemMessage]);
 
   // Expire order (auto-cancel when timer runs out)
   const expireOrder = useCallback(async (orderId: string) => {
@@ -550,14 +633,9 @@ export function useP2PDatabase() {
 
         if (error) throw error;
 
-        // Add system message
-        await sendMessage(
-          orderId,
-          '⏰ Time expired - Order returned to marketplace',
-          '⏰ انتهى الوقت - تم إعادة الطلب للسوق',
-          true,
-          'status_change'
-        );
+        // Add system message with proper template
+        const msg = generateSystemMessage('order_expired', {});
+        await sendSystemMessage(orderId, 'order_expired', msg.content, msg.contentAr);
 
         fetchOrders();
         return true;
@@ -566,13 +644,10 @@ export function useP2PDatabase() {
       // For paid orders, we don't auto-cancel - this goes to dispute if needed
       if (orderData.status === 'payment_sent') {
         // Auto-open dispute
-        await sendMessage(
-          orderId,
-          '⚖️ Time expired during transaction - Auto-dispute opened',
-          '⚖️ انتهى الوقت أثناء التحويل - تم فتح نزاع تلقائي',
-          true,
-          'dispute_opened'
-        );
+        const msg = generateSystemMessage('dispute_opened', { 
+          reason: 'Timer expired during payment confirmation' 
+        });
+        await sendSystemMessage(orderId, 'dispute_opened', msg.content, msg.contentAr);
 
         const { error } = await supabase
           .from('p2p_orders')
@@ -594,38 +669,6 @@ export function useP2PDatabase() {
       return false;
     }
   }, [user, fetchOrders]);
-
-  // Send a message
-  const sendMessage = useCallback(async (
-    orderId: string,
-    content: string,
-    contentAr?: string,
-    isSystemMessage = false,
-    messageType = 'text'
-  ) => {
-    if (!user) return null;
-
-    try {
-      const { data, error } = await supabase
-        .from('p2p_messages')
-        .insert({
-          order_id: orderId,
-          sender_id: user.id,
-          content,
-          content_ar: contentAr,
-          is_system_message: isSystemMessage,
-          message_type: messageType,
-        } as P2PMessageInsert)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (err) {
-      console.error('Error sending P2P message:', err);
-      return null;
-    }
-  }, [user]);
 
   // Fetch open orders (marketplace)
   const fetchOpenOrders = useCallback(async (country?: string) => {
@@ -817,6 +860,9 @@ export function useP2PDatabase() {
     openDispute,
     expireOrder,
     sendMessage,
+    sendSystemMessage,
+    notifyBuyerCopiedBank,
+    extendOrderTime,
     fetchOpenOrders,
     checkHasActiveOrder,
     checkWalletFrozen,
