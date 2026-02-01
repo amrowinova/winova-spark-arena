@@ -317,5 +317,139 @@ export const tr = {
       policies: 'Politikalar',
       logout: 'Çıkış',
     },
+    // Policies
+    policies: {
+      terms: {
+        title: 'Şartlar ve Koşullar',
+        lastUpdated: 'Son güncelleme',
+        updateDate: '1 Şubat 2026',
+        sections: {
+          platform: {
+            title: 'Platform Tanımı',
+            content: 'WINOVA, kullanıcıların günlük yarışmalara katılmasına, oy vermesine ve puan kazanmasına olanak tanıyan interaktif bir eğlence platformudur. Platform yalnızca eğlence ve sosyal etkileşim için tasarlanmıştır.',
+          },
+          nova: {
+            title: 'Nova Bakiyesi',
+            content: 'Nova, yalnızca WINOVA platformunda kullanılan dahili bir bakiyedir. Nova dijital para veya gerçek para değildir ve platform dışında herhangi bir para birimine dönüştürülemez. Nova\'nın değeri sabittir ve yönetim tarafından belirlenir.',
+          },
+          userResponsibilities: {
+            title: 'Kullanıcı Sorumlulukları',
+            content: 'Kullanıcılar hesaplarının ve şifrelerinin güvenliğinden sorumludur. Kayıt sırasında doğru bilgiler verilmelidir. Platformun yasadışı veya etik dışı amaçlarla kullanılması yasaktır.',
+          },
+          fraud: {
+            title: 'Dolandırıcılık Önleme',
+            content: 'Yarışmaları, oylamaları veya sistemin herhangi bir bölümünü manipüle etmeye veya dolandırıcılık yapmaya yönelik herhangi bir girişim kesinlikle yasaktır. Şüpheli herhangi bir aktivite hesabın derhal dondurulmasına ve soruşturulmaya yol açacaktır.',
+          },
+          adminRights: {
+            title: 'Yönetim Hakları',
+            content: 'WINOVA yönetimi şu haklara sahiptir: şüpheli hesapları dondurmak veya askıya almak, tüm işlemleri incelemek, şartları her zaman değiştirmek, şüphe durumunda herhangi bir işlemi açıklama yapmadan reddetmek.',
+          },
+          disclaimer: {
+            title: 'Sorumluluk Reddi',
+            content: 'WINOVA, platformun kötüye kullanılmasından veya hesap bilgilerinin başkalarıyla paylaşılmasından kaynaklanan kayıplardan sorumlu değildir. Platform açık veya zımni herhangi bir garanti olmaksızın "olduğu gibi" sağlanmaktadır.',
+          },
+          law: {
+            title: 'Geçerli Yasalar',
+            content: 'Bu şartlar ve koşullar Mısır Arap Cumhuriyeti\'nde geçerli yasalara tabidir. Platformun kullanımından kaynaklanan herhangi bir anlaşmazlık Mısır mahkemelerinin yetki alanına girer.',
+          },
+        },
+      },
+      privacy: {
+        title: 'Gizlilik Politikası',
+        lastUpdated: 'Son güncelleme',
+        updateDate: '1 Şubat 2026',
+        sections: {
+          dataCollected: {
+            title: 'Topladığımız Veriler',
+            content: 'Toplanan veriler: Kayıt ve iletişim için e-posta, Yerel para birimini belirlemek için ülke, şehir ve ilçe, Uygulama içi aktivite verileri (yarışmalar, oylamalar, işlemler).',
+          },
+          dataUsage: {
+            title: 'Veri Kullanımı',
+            content: 'Verilerinizi platform hizmetleri sağlamak, kullanıcı deneyimini geliştirmek, hesabınız hakkında sizinle iletişim kurmak ve dolandırıcılığı önlemek için kullanıyoruz.',
+          },
+          noSelling: {
+            title: 'Veri Satışı Yok',
+            content: 'Kişisel verilerinizi ticari amaçlarla üçüncü taraflarla satmayacağız veya paylaşmayacağız. Verileriniz sizindir ve bizimle güvende kalır.',
+          },
+          storage: {
+            title: 'Depolama ve Koruma',
+            content: 'Verilerinizi güvence altına almak için en son şifreleme ve koruma teknolojilerini kullanıyoruz. Veriler düzenli yedeklemelerle güvenli sunucularda saklanır.',
+          },
+          userRights: {
+            title: 'Kullanıcı Hakları',
+            content: 'Şu haklara sahipsiniz: Kişisel verilerinizi görüntüleme, yanlış verilerin düzeltilmesini talep etme, hesabınızın ve verilerinizin silinmesini talep etme, verilerinizin bir kopyasını alma.',
+          },
+          contact: {
+            title: 'Gizlilik İletişimi',
+            content: 'Gizlilikle ilgili sorularınız için support@winova.app adresinden bize ulaşın',
+          },
+        },
+      },
+      refund: {
+        title: 'İade Politikası',
+        lastUpdated: 'Son güncelleme',
+        updateDate: '1 Şubat 2026',
+        sections: {
+          novaBalance: {
+            title: 'Nova Bakiyesi Yapısı',
+            content: 'Nova, platform dahili bakiyesidir ve gerçek para birimi değildir. Yalnızca WINOVA içinde yarışmalara katılmak, oy vermek ve işlem yapmak için kullanılır.',
+          },
+          noAutoRefund: {
+            title: 'Otomatik İade Yok',
+            content: 'Nova bakiyesi için otomatik iade sistemi yoktur. Satın alınan veya kazanılan herhangi bir bakiye platformda kalır.',
+          },
+          manualRefund: {
+            title: 'Manuel İadeler',
+            content: 'İstisnai durumlarda, destek ekibiyle iletişime geçerek manuel iade talep edilebilir. Her talep ayrı ayrı incelenecektir.',
+          },
+          rejectionCases: {
+            title: 'Red Durumları',
+            content: 'İade talepleri şu durumlarda reddedilir: Yarışmalarda veya oylamalarda kullanılan bakiye, Kullanım şartlarının ihlali, Dolandırıcılık aktivitesi şüphesi.',
+          },
+          fraudCases: {
+            title: 'Dolandırıcılık Durumları',
+            content: 'Dolandırıcılık aktivitesi tespit edilmesi durumunda, hesap dondurulur ve bakiye herhangi bir tazminat veya iade olmaksızın müsadere edilir.',
+          },
+        },
+      },
+      aml: {
+        title: 'Dolandırıcılık Karşıtı Politika',
+        lastUpdated: 'Son güncelleme',
+        updateDate: '1 Şubat 2026',
+        sections: {
+          combating: {
+            title: 'Mücadele Ettiklerimiz',
+            content: 'Mücadele ettiklerimiz: Her türlü dolandırıcılık, Platform kötüye kullanımı, Yarışma sonuçlarının manipülasyonu, Atlatma için birden fazla hesap kullanımı, Platform bütünlüğünü tehdit eden herhangi bir aktivite.',
+          },
+          freezeRights: {
+            title: 'Hesap Dondurma Hakları',
+            content: 'Yönetim, şüpheli aktivite tespit edildiğinde herhangi bir hesabı derhal dondurma hakkını saklı tutar. Hesap sahibi bilgilendirilecek ve açıklama fırsatı verilecektir.',
+          },
+          manualReview: {
+            title: 'Manuel İnceleme',
+            content: 'Tüm şüpheli vakalar, herhangi bir nihai işlem yapılmadan önce uzman bir ekip tarafından manuel olarak incelenir. Tüm vakaların ele alınmasında adaleti sağlıyoruz.',
+          },
+          authorities: {
+            title: 'Yetkililerle İşbirliği',
+            content: 'Ciddi dolandırıcılık veya yasadışı faaliyetler durumunda, ilgili yasal makamlarla işbirliği yapma ve gerekli bilgileri sağlama hakkımızı saklı tutarız.',
+          },
+        },
+      },
+      contact: {
+        title: 'Bize Ulaşın',
+        email: {
+          title: 'E-posta',
+        },
+        response: {
+          title: 'Yanıt Süresi',
+          content: '24-48 iş saati içinde yanıt vermeyi hedefliyoruz',
+        },
+        inApp: {
+          title: 'Uygulama İçi Destek',
+          content: 'Daha hızlı destek için uygulama içinden destek bileti açabilirsiniz',
+          button: 'Bilet Aç',
+        },
+      },
+    },
   },
 };

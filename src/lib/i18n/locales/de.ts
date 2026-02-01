@@ -317,5 +317,139 @@ export const de = {
       policies: 'Richtlinien',
       logout: 'Abmelden',
     },
+    // Policies
+    policies: {
+      terms: {
+        title: 'Allgemeine Geschäftsbedingungen',
+        lastUpdated: 'Zuletzt aktualisiert',
+        updateDate: '1. Februar 2026',
+        sections: {
+          platform: {
+            title: 'Plattformdefinition',
+            content: 'WINOVA ist eine interaktive Unterhaltungsplattform, die Benutzern ermöglicht, an täglichen Wettbewerben teilzunehmen, abzustimmen und Punkte zu sammeln. Die Plattform ist nur für Unterhaltung und soziale Interaktion konzipiert.',
+          },
+          nova: {
+            title: 'Nova-Guthaben',
+            content: 'Nova ist ein internes Guthaben, das ausschließlich auf der WINOVA-Plattform verwendet wird. Nova ist keine digitale Währung oder echtes Geld und kann nicht außerhalb der Plattform umgetauscht werden. Der Wert von Nova ist fest und wird von der Verwaltung bestimmt.',
+          },
+          userResponsibilities: {
+            title: 'Benutzerpflichten',
+            content: 'Benutzer sind für die Sicherheit ihres Kontos und Passworts verantwortlich. Bei der Registrierung müssen genaue Informationen angegeben werden. Die Nutzung der Plattform für illegale oder unethische Zwecke ist verboten.',
+          },
+          fraud: {
+            title: 'Betrugsprävention',
+            content: 'Jeder Versuch, Betrug zu begehen oder Wettbewerbe, Abstimmungen oder Teile des Systems zu manipulieren, ist streng verboten. Verdächtige Aktivitäten führen zur sofortigen Kontosperrung und Untersuchung.',
+          },
+          adminRights: {
+            title: 'Verwaltungsrechte',
+            content: 'Die WINOVA-Verwaltung behält sich das Recht vor: verdächtige Konten einzufrieren oder zu sperren, alle Transaktionen zu überprüfen, Bedingungen jederzeit zu ändern, Transaktionen ohne Erklärung bei Verdacht abzulehnen.',
+          },
+          disclaimer: {
+            title: 'Haftungsausschluss',
+            content: 'WINOVA ist nicht verantwortlich für Verluste durch Missbrauch der Plattform oder Weitergabe von Kontodaten. Die Plattform wird "wie besehen" ohne ausdrückliche oder stillschweigende Garantien bereitgestellt.',
+          },
+          law: {
+            title: 'Anwendbares Recht',
+            content: 'Diese AGB unterliegen den Gesetzen der Arabischen Republik Ägypten. Streitigkeiten aus der Nutzung der Plattform unterliegen der Zuständigkeit ägyptischer Gerichte.',
+          },
+        },
+      },
+      privacy: {
+        title: 'Datenschutzrichtlinie',
+        lastUpdated: 'Zuletzt aktualisiert',
+        updateDate: '1. Februar 2026',
+        sections: {
+          dataCollected: {
+            title: 'Gesammelte Daten',
+            content: 'Wir sammeln: E-Mail für Registrierung und Kommunikation, Land, Stadt und Bezirk zur Bestimmung der lokalen Währung, In-App-Aktivitätsdaten (Wettbewerbe, Abstimmungen, Transaktionen).',
+          },
+          dataUsage: {
+            title: 'Datennutzung',
+            content: 'Wir verwenden Ihre Daten, um Plattformdienste bereitzustellen, die Benutzererfahrung zu verbessern, Sie über Ihr Konto zu informieren und Betrug zu verhindern.',
+          },
+          noSelling: {
+            title: 'Kein Datenverkauf',
+            content: 'Wir verpflichten uns, Ihre persönlichen Daten nicht an Dritte für kommerzielle Zwecke zu verkaufen oder zu teilen. Ihre Daten gehören Ihnen und bleiben bei uns sicher.',
+          },
+          storage: {
+            title: 'Speicherung und Schutz',
+            content: 'Wir verwenden modernste Verschlüsselungs- und Schutztechnologien zur Sicherung Ihrer Daten. Daten werden auf sicheren Servern mit regelmäßigen Backups gespeichert.',
+          },
+          userRights: {
+            title: 'Benutzerrechte',
+            content: 'Sie haben das Recht: Ihre persönlichen Daten einzusehen, die Korrektur falscher Daten zu verlangen, die Löschung Ihres Kontos und Ihrer Daten zu beantragen, eine Kopie Ihrer Daten zu erhalten.',
+          },
+          contact: {
+            title: 'Datenschutzkontakt',
+            content: 'Bei datenschutzbezogenen Fragen kontaktieren Sie uns unter support@winova.app',
+          },
+        },
+      },
+      refund: {
+        title: 'Rückerstattungsrichtlinie',
+        lastUpdated: 'Zuletzt aktualisiert',
+        updateDate: '1. Februar 2026',
+        sections: {
+          novaBalance: {
+            title: 'Nova-Guthaben-Natur',
+            content: 'Nova ist ein internes Plattformguthaben und keine echte Währung. Es wird nur für die Teilnahme an Wettbewerben, Abstimmungen und Transaktionen auf WINOVA verwendet.',
+          },
+          noAutoRefund: {
+            title: 'Keine automatischen Rückerstattungen',
+            content: 'Es gibt kein automatisches Rückerstattungssystem für Nova-Guthaben. Jedes gekaufte oder verdiente Guthaben verbleibt auf der Plattform.',
+          },
+          manualRefund: {
+            title: 'Manuelle Rückerstattungen',
+            content: 'In Ausnahmefällen können manuelle Rückerstattungen durch Kontaktaufnahme mit dem Support-Team angefordert werden. Jede Anfrage wird individuell geprüft.',
+          },
+          rejectionCases: {
+            title: 'Ablehnungsfälle',
+            content: 'Rückerstattungsanfragen werden abgelehnt bei: Verwendung des Guthabens in Wettbewerben oder Abstimmungen, Verstoß gegen Nutzungsbedingungen, Verdacht auf betrügerische Aktivitäten.',
+          },
+          fraudCases: {
+            title: 'Betrugsfälle',
+            content: 'Bei Entdeckung betrügerischer Aktivitäten wird das Konto eingefroren und das Guthaben ohne Entschädigung oder Rückerstattung eingezogen.',
+          },
+        },
+      },
+      aml: {
+        title: 'Anti-Betrugs-Richtlinie',
+        lastUpdated: 'Zuletzt aktualisiert',
+        updateDate: '1. Februar 2026',
+        sections: {
+          combating: {
+            title: 'Was wir bekämpfen',
+            content: 'Wir bekämpfen: Betrug in allen Formen, Plattformmissbrauch, Manipulation von Wettbewerbsergebnissen, Verwendung mehrerer Konten zur Umgehung, Jede Aktivität, die die Plattformintegrität gefährdet.',
+          },
+          freezeRights: {
+            title: 'Kontosperrungsrechte',
+            content: 'Die Verwaltung behält sich das Recht vor, jedes Konto bei verdächtiger Aktivität sofort einzufrieren. Der Kontoinhaber wird benachrichtigt und erhält die Möglichkeit zur Klärung.',
+          },
+          manualReview: {
+            title: 'Manuelle Überprüfung',
+            content: 'Alle Verdachtsfälle werden von einem spezialisierten Team manuell überprüft, bevor endgültige Maßnahmen ergriffen werden. Wir gewährleisten Fairness bei der Behandlung aller Fälle.',
+          },
+          authorities: {
+            title: 'Zusammenarbeit mit Behörden',
+            content: 'Bei schwerem Betrug oder illegalen Aktivitäten behalten wir uns das Recht vor, mit den zuständigen Behörden zusammenzuarbeiten und notwendige Informationen bereitzustellen.',
+          },
+        },
+      },
+      contact: {
+        title: 'Kontaktieren Sie uns',
+        email: {
+          title: 'E-Mail',
+        },
+        response: {
+          title: 'Antwortzeit',
+          content: 'Wir bemühen uns, innerhalb von 24-48 Geschäftsstunden zu antworten',
+        },
+        inApp: {
+          title: 'In-App-Support',
+          content: 'Für schnelleren Support können Sie ein Support-Ticket in der App öffnen',
+          button: 'Ticket öffnen',
+        },
+      },
+    },
   },
 };
