@@ -317,5 +317,139 @@ export const en = {
       policies: 'Policies',
       logout: 'Logout',
     },
+    // Policies
+    policies: {
+      terms: {
+        title: 'Terms & Conditions',
+        lastUpdated: 'Last Updated',
+        updateDate: 'February 1, 2026',
+        sections: {
+          platform: {
+            title: 'Platform Definition',
+            content: 'WINOVA is an interactive entertainment platform that allows users to participate in daily contests, vote, and earn points. The platform is designed for entertainment and social interaction only.',
+          },
+          nova: {
+            title: 'Nova Balance',
+            content: 'Nova is an internal balance used exclusively within the WINOVA platform. Nova is not a digital currency or real money, and cannot be exchanged or converted to any currency outside the platform. The value of Nova is fixed and determined by the administration.',
+          },
+          userResponsibilities: {
+            title: 'User Responsibilities',
+            content: 'Users are responsible for maintaining the security of their account and password. Accurate and correct information must be provided during registration. Using the platform for any illegal or unethical purpose is prohibited.',
+          },
+          fraud: {
+            title: 'Fraud and Manipulation Prevention',
+            content: 'Any attempt to commit fraud or manipulate contests, voting, or any part of the system is strictly prohibited. Any suspicious activity will result in immediate account freezing and investigation.',
+          },
+          adminRights: {
+            title: 'Administration Rights',
+            content: 'WINOVA administration reserves the right to: freeze or suspend any suspicious account, review all transactions, modify terms and conditions at any time, reject or cancel any transaction without explanation in cases of suspicion.',
+          },
+          disclaimer: {
+            title: 'Disclaimer',
+            content: 'WINOVA is not responsible for any losses resulting from misuse of the platform or sharing account data with others. The platform is provided "as is" without any express or implied warranties.',
+          },
+          law: {
+            title: 'Applicable Laws',
+            content: 'These terms and conditions are governed by the laws applicable in the Arab Republic of Egypt. Any dispute arising from the use of the platform is subject to the jurisdiction of Egyptian courts.',
+          },
+        },
+      },
+      privacy: {
+        title: 'Privacy Policy',
+        lastUpdated: 'Last Updated',
+        updateDate: 'February 1, 2026',
+        sections: {
+          dataCollected: {
+            title: 'Data We Collect',
+            content: 'We collect the following data: Email for registration and communication, Country, city, and district to determine local currency and improve service, In-app activity data (contests, voting, transactions) to improve experience.',
+          },
+          dataUsage: {
+            title: 'How We Use Data',
+            content: 'We use your data to provide platform services, improve user experience, communicate with you about your account, and prevent fraud and protect the platform.',
+          },
+          noSelling: {
+            title: 'No Data Selling',
+            content: 'We are committed to not selling or sharing your personal data with any third party for commercial purposes. Your data is yours and remains safe with us.',
+          },
+          storage: {
+            title: 'Storage and Protection',
+            content: 'We use the latest encryption and protection technologies to secure your data. Data is stored on secure servers with regular backups.',
+          },
+          userRights: {
+            title: 'User Rights',
+            content: 'You have the right to: view your personal data, request correction of incorrect data, request deletion of your account and data, obtain a copy of your data.',
+          },
+          contact: {
+            title: 'Privacy Contact',
+            content: 'For any privacy-related inquiries, please contact us at support@winova.app',
+          },
+        },
+      },
+      refund: {
+        title: 'Refund Policy',
+        lastUpdated: 'Last Updated',
+        updateDate: 'February 1, 2026',
+        sections: {
+          novaBalance: {
+            title: 'Nova Balance Nature',
+            content: 'Nova is an internal platform balance and not real currency. It is used for participating in contests, voting, and transactions within WINOVA only.',
+          },
+          noAutoRefund: {
+            title: 'No Automatic Refunds',
+            content: 'There is no automatic refund system for Nova balance. Any balance purchased or earned remains within the platform.',
+          },
+          manualRefund: {
+            title: 'Manual Refunds',
+            content: 'In exceptional cases, manual refunds can be requested by contacting the support team. Each request will be reviewed individually and an appropriate decision will be made.',
+          },
+          rejectionCases: {
+            title: 'Refund Rejection Cases',
+            content: 'Refund requests will be rejected in the following cases: Balance used in contests or voting, Violation of terms of use, Suspicion of fraudulent activity.',
+          },
+          fraudCases: {
+            title: 'Fraud Cases',
+            content: 'In case of discovering any fraudulent activity, the account will be frozen and balance confiscated without any compensation or refund.',
+          },
+        },
+      },
+      aml: {
+        title: 'Anti-Fraud Policy',
+        lastUpdated: 'Last Updated',
+        updateDate: 'February 1, 2026',
+        sections: {
+          combating: {
+            title: 'What We Combat',
+            content: 'We work hard to combat: Fraud in all its forms, Platform misuse, Contest result manipulation, Using multiple accounts for circumvention, Any activity threatening platform integrity.',
+          },
+          freezeRights: {
+            title: 'Account Freeze Rights',
+            content: 'Administration reserves the right to immediately freeze any account when suspicious activity is detected. The account owner will be notified and given the opportunity to clarify.',
+          },
+          manualReview: {
+            title: 'Manual Review',
+            content: 'All suspected cases undergo manual review by a specialized team before any final action is taken. We ensure fairness in handling all cases.',
+          },
+          authorities: {
+            title: 'Cooperation with Authorities',
+            content: 'In cases of serious fraud or illegal activities, we reserve the right to cooperate with relevant legal authorities and provide necessary information.',
+          },
+        },
+      },
+      contact: {
+        title: 'Contact Us',
+        email: {
+          title: 'Email',
+        },
+        response: {
+          title: 'Response Time',
+          content: 'We aim to respond within 24-48 business hours',
+        },
+        inApp: {
+          title: 'In-App Support',
+          content: 'For faster support, you can open a support ticket from within the app',
+          button: 'Open Support Ticket',
+        },
+      },
+    },
   },
 };

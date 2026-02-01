@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   User, Lock, Shield, Eye, Bell, Wallet, ArrowLeftRight, Info,
   ChevronRight, ChevronDown, Key, Smartphone, Mail, Phone, UserX, Trash2,
   Fingerprint, Monitor, History, AlertTriangle, MessageCircle, Users,
   Trophy, DollarSign, Globe, ToggleLeft, Gavel, Headphones, FileText,
-  CheckCircle, XCircle
+  CheckCircle
 } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -33,6 +34,7 @@ interface SettingItem {
   comingSoon?: boolean;
   destructive?: boolean;
   verified?: boolean;
+  route?: string;
 }
 
 interface SettingSection {
@@ -47,7 +49,7 @@ interface SettingSection {
 export default function Settings() {
   const { currentLanguage } = useLanguage();
   const isRTL = currentLanguage.direction === 'rtl';
-  
+  const navigate = useNavigate();
   const [openSections, setOpenSections] = useState<string[]>(['account']);
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
     '2fa': false,
@@ -177,10 +179,12 @@ export default function Settings() {
       titleAr: 'عام',
       items: [
         { id: 'aboutWinova', icon: Info, titleEn: 'About WINOVA', titleAr: 'عن WINOVA', type: 'link', comingSoon: true },
-        { id: 'helpCenter', icon: Headphones, titleEn: 'Help Center', titleAr: 'مركز المساعدة', type: 'link' },
-        { id: 'contactSupport', icon: MessageCircle, titleEn: 'Contact Support', titleAr: 'تواصل مع الدعم', type: 'link' },
-        { id: 'terms', icon: FileText, titleEn: 'Terms & Conditions', titleAr: 'الشروط والأحكام', type: 'link', comingSoon: true },
-        { id: 'privacyPolicy', icon: Shield, titleEn: 'Privacy Policy', titleAr: 'سياسة الخصوصية', type: 'link', comingSoon: true },
+        { id: 'helpCenter', icon: Headphones, titleEn: 'Help Center', titleAr: 'مركز المساعدة', type: 'link', route: '/help' },
+        { id: 'contactSupport', icon: MessageCircle, titleEn: 'Contact Support', titleAr: 'تواصل مع الدعم', type: 'link', route: '/contact' },
+        { id: 'terms', icon: FileText, titleEn: 'Terms & Conditions', titleAr: 'الشروط والأحكام', type: 'link', route: '/terms' },
+        { id: 'privacyPolicy', icon: Shield, titleEn: 'Privacy Policy', titleAr: 'سياسة الخصوصية', type: 'link', route: '/privacy' },
+        { id: 'refundPolicy', icon: Wallet, titleEn: 'Refund Policy', titleAr: 'سياسة الاسترداد', type: 'link', route: '/refund' },
+        { id: 'amlPolicy', icon: Shield, titleEn: 'Anti-Fraud Policy', titleAr: 'سياسة مكافحة الاحتيال', type: 'link', route: '/aml' },
         { id: 'appVersion', icon: Info, titleEn: 'App Version', titleAr: 'إصدار التطبيق', descriptionEn: 'v1.0.0', descriptionAr: 'v1.0.0', type: 'info' },
       ]
     },
@@ -189,9 +193,16 @@ export default function Settings() {
   const renderSettingItem = (item: SettingItem) => {
     const Icon = item.icon;
     
+    const handleClick = () => {
+      if (!item.comingSoon && item.route) {
+        navigate(item.route);
+      }
+    };
+    
     return (
       <div
         key={item.id}
+        onClick={handleClick}
         className={cn(
           "flex items-center gap-3 py-3 px-2 rounded-lg transition-all",
           item.comingSoon ? "opacity-60" : "hover:bg-muted/50 cursor-pointer",

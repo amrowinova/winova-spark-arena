@@ -44,6 +44,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminWallets from "./pages/admin/AdminWallets";
 import AdminRoles from "./pages/admin/AdminRoles";
 
+// Policy Pages
+import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
+
 
 const queryClient = new QueryClient();
 
@@ -68,6 +71,14 @@ const App = () => (
                         <Route path="/hall-of-fame" element={<HallOfFame />} />
                         <Route path="/winners" element={<Winners />} />
                         <Route path="/help" element={<Help />} />
+                        <Route path="/user/:userId" element={<PublicProfile />} />
+                        
+                        {/* Policy pages - public, no login required */}
+                        <Route path="/terms" element={<Terms />} />
+                        <Route path="/privacy" element={<Privacy />} />
+                        <Route path="/refund" element={<Refund />} />
+                        <Route path="/aml" element={<AML />} />
+                        <Route path="/contact" element={<Contact />} />
                         <Route path="/user/:userId" element={<PublicProfile />} />
                         
                         {/* Protected routes - require authentication */}

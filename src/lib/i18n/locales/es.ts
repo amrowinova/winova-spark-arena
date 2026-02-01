@@ -317,5 +317,139 @@ export const es = {
       policies: 'Políticas',
       logout: 'Salir',
     },
+    // Policies
+    policies: {
+      terms: {
+        title: 'Términos y Condiciones',
+        lastUpdated: 'Última actualización',
+        updateDate: '1 de febrero de 2026',
+        sections: {
+          platform: {
+            title: 'Definición de la Plataforma',
+            content: 'WINOVA es una plataforma de entretenimiento interactiva que permite a los usuarios participar en concursos diarios, votar y ganar puntos. La plataforma está diseñada solo para entretenimiento e interacción social.',
+          },
+          nova: {
+            title: 'Saldo Nova',
+            content: 'Nova es un saldo interno utilizado exclusivamente en la plataforma WINOVA. Nova no es una moneda digital ni dinero real, y no puede ser intercambiado o convertido a ninguna moneda fuera de la plataforma. El valor de Nova es fijo y determinado por la administración.',
+          },
+          userResponsibilities: {
+            title: 'Responsabilidades del Usuario',
+            content: 'Los usuarios son responsables de mantener la seguridad de su cuenta y contraseña. Se debe proporcionar información precisa durante el registro. El uso de la plataforma para fines ilegales o poco éticos está prohibido.',
+          },
+          fraud: {
+            title: 'Prevención de Fraude',
+            content: 'Cualquier intento de cometer fraude o manipular concursos, votaciones o cualquier parte del sistema está estrictamente prohibido. Cualquier actividad sospechosa resultará en la congelación inmediata de la cuenta e investigación.',
+          },
+          adminRights: {
+            title: 'Derechos de Administración',
+            content: 'La administración de WINOVA se reserva el derecho de: congelar o suspender cualquier cuenta sospechosa, revisar todas las transacciones, modificar términos y condiciones en cualquier momento, rechazar o cancelar cualquier transacción sin explicación en casos de sospecha.',
+          },
+          disclaimer: {
+            title: 'Descargo de Responsabilidad',
+            content: 'WINOVA no es responsable de pérdidas resultantes del mal uso de la plataforma o de compartir datos de cuenta con otros. La plataforma se proporciona "tal cual" sin garantías expresas o implícitas.',
+          },
+          law: {
+            title: 'Leyes Aplicables',
+            content: 'Estos términos y condiciones se rigen por las leyes aplicables en la República Árabe de Egipto. Cualquier disputa derivada del uso de la plataforma está sujeta a la jurisdicción de los tribunales egipcios.',
+          },
+        },
+      },
+      privacy: {
+        title: 'Política de Privacidad',
+        lastUpdated: 'Última actualización',
+        updateDate: '1 de febrero de 2026',
+        sections: {
+          dataCollected: {
+            title: 'Datos que Recopilamos',
+            content: 'Recopilamos: Email para registro y comunicación, País, ciudad y distrito para determinar la moneda local, Datos de actividad en la app (concursos, votaciones, transacciones).',
+          },
+          dataUsage: {
+            title: 'Uso de Datos',
+            content: 'Usamos tus datos para proporcionar servicios de la plataforma, mejorar la experiencia del usuario, comunicarnos contigo sobre tu cuenta y prevenir fraudes.',
+          },
+          noSelling: {
+            title: 'Sin Venta de Datos',
+            content: 'Nos comprometemos a no vender ni compartir tus datos personales con terceros con fines comerciales. Tus datos son tuyos y permanecen seguros con nosotros.',
+          },
+          storage: {
+            title: 'Almacenamiento y Protección',
+            content: 'Utilizamos las últimas tecnologías de cifrado y protección para asegurar tus datos. Los datos se almacenan en servidores seguros con copias de seguridad regulares.',
+          },
+          userRights: {
+            title: 'Derechos del Usuario',
+            content: 'Tienes derecho a: ver tus datos personales, solicitar la corrección de datos incorrectos, solicitar la eliminación de tu cuenta y datos, obtener una copia de tus datos.',
+          },
+          contact: {
+            title: 'Contacto de Privacidad',
+            content: 'Para consultas relacionadas con la privacidad, contáctanos en support@winova.app',
+          },
+        },
+      },
+      refund: {
+        title: 'Política de Reembolso',
+        lastUpdated: 'Última actualización',
+        updateDate: '1 de febrero de 2026',
+        sections: {
+          novaBalance: {
+            title: 'Naturaleza del Saldo Nova',
+            content: 'Nova es un saldo interno de la plataforma y no moneda real. Se utiliza para participar en concursos, votar y realizar transacciones solo dentro de WINOVA.',
+          },
+          noAutoRefund: {
+            title: 'Sin Reembolsos Automáticos',
+            content: 'No existe un sistema de reembolso automático para el saldo Nova. Cualquier saldo comprado o ganado permanece en la plataforma.',
+          },
+          manualRefund: {
+            title: 'Reembolsos Manuales',
+            content: 'En casos excepcionales, se pueden solicitar reembolsos manuales contactando al equipo de soporte. Cada solicitud será revisada individualmente.',
+          },
+          rejectionCases: {
+            title: 'Casos de Rechazo',
+            content: 'Las solicitudes de reembolso serán rechazadas en los siguientes casos: Saldo utilizado en concursos o votaciones, Violación de términos de uso, Sospecha de actividad fraudulenta.',
+          },
+          fraudCases: {
+            title: 'Casos de Fraude',
+            content: 'En caso de descubrir actividad fraudulenta, la cuenta será congelada y el saldo confiscado sin compensación ni reembolso.',
+          },
+        },
+      },
+      aml: {
+        title: 'Política Anti-Fraude',
+        lastUpdated: 'Última actualización',
+        updateDate: '1 de febrero de 2026',
+        sections: {
+          combating: {
+            title: 'Lo que Combatimos',
+            content: 'Trabajamos para combatir: Fraude en todas sus formas, Abuso de la plataforma, Manipulación de resultados de concursos, Uso de múltiples cuentas para evadir, Cualquier actividad que amenace la integridad de la plataforma.',
+          },
+          freezeRights: {
+            title: 'Derechos de Congelación de Cuenta',
+            content: 'La administración se reserva el derecho de congelar inmediatamente cualquier cuenta cuando se detecte actividad sospechosa. El propietario de la cuenta será notificado y tendrá la oportunidad de aclarar.',
+          },
+          manualReview: {
+            title: 'Revisión Manual',
+            content: 'Todos los casos sospechosos se someten a revisión manual por un equipo especializado antes de tomar cualquier acción final. Garantizamos equidad en el manejo de todos los casos.',
+          },
+          authorities: {
+            title: 'Cooperación con Autoridades',
+            content: 'En casos de fraude grave o actividades ilegales, nos reservamos el derecho de cooperar con las autoridades legales correspondientes y proporcionar la información necesaria.',
+          },
+        },
+      },
+      contact: {
+        title: 'Contáctanos',
+        email: {
+          title: 'Email',
+        },
+        response: {
+          title: 'Tiempo de Respuesta',
+          content: 'Nos esforzamos por responder en 24-48 horas hábiles',
+        },
+        inApp: {
+          title: 'Soporte en la App',
+          content: 'Para un soporte más rápido, puedes abrir un ticket de soporte desde la aplicación',
+          button: 'Abrir Ticket',
+        },
+      },
+    },
   },
 };
