@@ -134,18 +134,3 @@ export function useWalletCountryPricing(walletCountry: string) {
     decimals: info.decimals,
   };
 }
-
-/**
- * @deprecated Use useWalletCountryPricing hook instead
- * Kept for backward compatibility - will be removed
- */
-export function getWalletCountryPricing(walletCountry: string) {
-  console.warn('getWalletCountryPricing is deprecated. Use useWalletCountryPricing hook instead.');
-  // Return default values - components should migrate to the hook
-  return {
-    currency: 'EGP',
-    symbol: 'EGP',
-    novaRate: 10,
-    auraRate: 5,
-  };
-}

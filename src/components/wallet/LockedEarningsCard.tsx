@@ -1,7 +1,7 @@
 import { Lock, Calendar, Unlock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getWalletCountryPricing } from './WalletCountrySelector';
+import { useWalletCountryPricing } from './WalletCountrySelector';
 
 // Format number - remove decimals if whole number
 const formatAmount = (value: number): string => {
@@ -53,7 +53,7 @@ interface LockedEarningsCardProps {
 
 export function LockedEarningsCard({ lockedBalance, walletCountry }: LockedEarningsCardProps) {
   const { language } = useLanguage();
-  const pricing = getWalletCountryPricing(walletCountry);
+  const pricing = useWalletCountryPricing(walletCountry);
   const localValue = lockedBalance * pricing.novaRate;
   const releaseInfo = getNextReleaseDate();
 
@@ -80,7 +80,7 @@ export function LockedEarningsCard({ lockedBalance, walletCountry }: LockedEarni
             <span className="text-nova">И</span> {formatAmount(lockedBalance)}
           </p>
           <p className="text-xs text-muted-foreground">
-            ≈ {pricing.symbol} {formatAmount(localValue)}
+            ≈ {language === 'ar' ? pricing.symbolAr : pricing.symbol} {formatAmount(localValue)}
           </p>
         </div>
 

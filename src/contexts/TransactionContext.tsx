@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 
 export type TransactionType = 
   | 'transfer_nova'
@@ -73,46 +74,7 @@ export interface Receipt extends Transaction {
   receiptNumber: string;
 }
 
-/**
- * @deprecated Use useNovaPricing hook instead
- * All prices should come from app_settings via the hook.
- * This is kept for backward compatibility only.
- */
-export const countryPricing: Record<string, { currency: string; symbol: string; novaRate: number }> = {};
-
-// Default pricing for TransactionContext internal use (fallback only)
-// Components should use useNovaPricing hook instead
-const DEFAULT_PRICING: Record<string, { currency: string; symbol: string; novaRate: number }> = {
-  'Saudi Arabia': { currency: 'SAR', symbol: 'ر.س', novaRate: 0.75 },
-  'السعودية': { currency: 'SAR', symbol: 'ر.س', novaRate: 0.75 },
-  'Egypt': { currency: 'EGP', symbol: 'ج.م', novaRate: 10 },
-  'مصر': { currency: 'EGP', symbol: 'ج.م', novaRate: 10 },
-  'UAE': { currency: 'AED', symbol: 'د.إ', novaRate: 0.73 },
-  'الإمارات': { currency: 'AED', symbol: 'د.إ', novaRate: 0.73 },
-  'default': { currency: 'EGP', symbol: 'ج.م', novaRate: 10 },
-};
-
-/**
- * @deprecated Use useNovaPricing().getCurrencyInfo() instead
- */
-export const getAuraRate = (country: string) => {
-  console.warn('getAuraRate is deprecated. Use useNovaPricing hook instead.');
-  return 5; // Default fallback
-};
-
-/**
- * @deprecated Use useNovaPricing().getCurrencyInfo() instead
- */
-export const getPricing = (country: string) => {
-  console.warn('getPricing is deprecated. Use useNovaPricing hook instead.');
-  const pricing = DEFAULT_PRICING[country] || DEFAULT_PRICING['default'];
-  return {
-    currency: pricing.currency,
-    symbol: pricing.symbol,
-    novaRate: pricing.novaRate,
-    auraRate: pricing.novaRate / 2,
-  };
-};
+// NOTE: Pricing is sourced exclusively via useNovaPricing (from app_settings -> nova_prices).
 
 interface TransactionContextType {
   transactions: Transaction[];
@@ -314,6 +276,7 @@ const initialTransactions: Transaction[] = [
 
 export function TransactionProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const { getCurrencyInfo } = useNovaPricing();
   const [receipts, setReceipts] = useState<Receipt[]>(
     initialTransactions.map(tx => ({
       ...tx,
@@ -322,12 +285,13 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   );
 
   const calculateLocalAmount = (amount: number, country: string, currency: 'nova' | 'aura' = 'nova') => {
-    const pricing = DEFAULT_PRICING[country] || DEFAULT_PRICING['default'];
-    const rate = currency === 'nova' ? pricing.novaRate : pricing.novaRate / 2;
+    const info = getCurrencyInfo(country);
+    const rate = currency === 'nova' ? info.novaRate : info.auraRate;
     return {
       amount: amount * rate,
-      currency: pricing.currency,
-      symbol: pricing.symbol,
+      currency: info.code,
+      // Keep Arabic symbol for consistency with existing UI expectations
+      symbol: info.symbolAr,
     };
   };
 
