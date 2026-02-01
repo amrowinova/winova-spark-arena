@@ -521,6 +521,80 @@ export function useP2PDatabase() {
     }
   }, [user, fetchOrders]);
 
+  // Expire order (auto-cancel when timer runs out)
+  const expireOrder = useCallback(async (orderId: string) => {
+    if (!user) return false;
+
+    try {
+      // Get the order to check if it's still active
+      const { data: orderData, error: fetchError } = await supabase
+        .from('p2p_orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError || !orderData) return false;
+
+      // Only expire orders in awaiting_payment status that haven't been paid
+      if (orderData.status === 'awaiting_payment') {
+        // Reset order to open (return to market)
+        const { error } = await supabase
+          .from('p2p_orders')
+          .update({
+            status: 'open',
+            executor_id: null,
+            matched_at: null,
+          } as P2POrderUpdate)
+          .eq('id', orderId)
+          .eq('status', 'awaiting_payment');
+
+        if (error) throw error;
+
+        // Add system message
+        await sendMessage(
+          orderId,
+          '⏰ Time expired - Order returned to marketplace',
+          '⏰ انتهى الوقت - تم إعادة الطلب للسوق',
+          true,
+          'status_change'
+        );
+
+        fetchOrders();
+        return true;
+      }
+
+      // For paid orders, we don't auto-cancel - this goes to dispute if needed
+      if (orderData.status === 'payment_sent') {
+        // Auto-open dispute
+        await sendMessage(
+          orderId,
+          '⚖️ Time expired during transaction - Auto-dispute opened',
+          '⚖️ انتهى الوقت أثناء التحويل - تم فتح نزاع تلقائي',
+          true,
+          'dispute_opened'
+        );
+
+        const { error } = await supabase
+          .from('p2p_orders')
+          .update({
+            status: 'disputed',
+            cancellation_reason: 'Timer expired during payment confirmation',
+          } as P2POrderUpdate)
+          .eq('id', orderId);
+
+        if (error) throw error;
+        
+        fetchOrders();
+        return true;
+      }
+
+      return false;
+    } catch (err) {
+      console.error('Error expiring order:', err);
+      return false;
+    }
+  }, [user, fetchOrders]);
+
   // Send a message
   const sendMessage = useCallback(async (
     orderId: string,
@@ -741,6 +815,7 @@ export function useP2PDatabase() {
     releaseFunds,
     cancelOrder,
     openDispute,
+    expireOrder,
     sendMessage,
     fetchOpenOrders,
     checkHasActiveOrder,

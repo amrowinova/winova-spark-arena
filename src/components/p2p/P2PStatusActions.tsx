@@ -106,44 +106,90 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
     );
   }
   
-  // Buyer flow: awaiting_payment / waiting_payment
-  if (roleInfo.isBuyer && (order.status === 'waiting_payment' || order.status === 'created')) {
-    if (order.status === 'waiting_payment') {
+  // Creator can cancel OPEN orders
+  if (order.status === 'created') {
+    const isCreator = (order.type === 'buy' && roleInfo.isBuyer) || (order.type === 'sell' && roleInfo.isSeller);
+    
+    if (isCreator) {
       return (
-        <div className="p-3 bg-muted/30 border-t border-border space-y-3">
-          {/* Role indicator */}
-          <div className="flex items-center justify-between">
-            <P2PRoleBadge role="buyer" isYou size="md" />
-            <span className="text-xs text-muted-foreground">
-              {isRTL ? 'أكمل الدفع لتحصل على Nova' : 'Complete payment to get Nova'}
-            </span>
-          </div>
-          
-          <P2PPaymentSteps
-            order={order}
-            onConfirmPayment={() => {
-              confirmPayment(order.id);
-              showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
-              if (isMockMode) {
-                triggerMockSellerConfirmation(order.id);
-              }
-            }}
-            onCancelOrder={(reason) => {
-              const cancelled = cancelOrderWithReason(order.id, reason);
-              if (cancelled) {
-                showSuccess(isRTL ? 'تم إلغاء الطلب' : 'Order cancelled');
-              } else {
-                showError(isRTL 
-                  ? 'لا يمكنك الإلغاء. تم تجاوز حد الإلغاءات.'
-                  : 'Cannot cancel. Cancellation limit exceeded.'
+        <div className="p-3 bg-muted/30 border-t border-border">
+          <Card className="p-4 bg-info/10 border-info/30">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-info" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-info">
+                  {isRTL ? '📢 طلبك معروض في السوق' : '📢 Your order is listed in market'}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isRTL 
+                    ? 'بانتظار طرف آخر لقبول طلبك'
+                    : 'Waiting for another user to accept your order'
+                  }
+                </p>
+              </div>
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-3 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => {
+                const cancelled = cancelOrderWithReason(order.id, isRTL 
+                  ? 'تم الإلغاء من قبل المنشئ'
+                  : 'Cancelled by creator'
                 );
-              }
-            }}
-          />
+                if (cancelled) {
+                  showSuccess(isRTL ? 'تم إلغاء الطلب' : 'Order cancelled');
+                }
+              }}
+            >
+              <XCircle className="h-4 w-4" />
+              {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
+            </Button>
+          </Card>
         </div>
       );
     }
     return null;
+  }
+  
+  // Buyer flow: waiting_payment
+  if (roleInfo.isBuyer && order.status === 'waiting_payment') {
+    return (
+      <div className="p-3 bg-muted/30 border-t border-border space-y-3">
+        {/* Role indicator */}
+        <div className="flex items-center justify-between">
+          <P2PRoleBadge role="buyer" isYou size="md" />
+          <span className="text-xs text-muted-foreground">
+            {isRTL ? 'أكمل الدفع لتحصل على Nova' : 'Complete payment to get Nova'}
+          </span>
+        </div>
+        
+        <P2PPaymentSteps
+          order={order}
+          onConfirmPayment={() => {
+            confirmPayment(order.id);
+            showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
+            if (isMockMode) {
+              triggerMockSellerConfirmation(order.id);
+            }
+          }}
+          onCancelOrder={(reason) => {
+            const cancelled = cancelOrderWithReason(order.id, reason);
+            if (cancelled) {
+              showSuccess(isRTL ? 'تم إلغاء الطلب' : 'Order cancelled');
+            } else {
+              showError(isRTL 
+                ? 'لا يمكنك الإلغاء. تم تجاوز حد الإلغاءات.'
+                : 'Cannot cancel. Cancellation limit exceeded.'
+              );
+            }
+          }}
+        />
+      </div>
+    );
   }
   
   // Buyer flow: paid (waiting for seller)
