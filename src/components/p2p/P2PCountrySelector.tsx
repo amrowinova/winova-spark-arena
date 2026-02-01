@@ -199,7 +199,7 @@ export interface CountryConfig {
 
 // Hook to get country configs with live rates from app_settings
 export function useP2PCountries() {
-  const { getCurrencyInfo, getNovaRate } = useNovaPricing();
+  const { getCurrencyInfo } = useNovaPricing();
   
   const countries: CountryConfig[] = COUNTRY_META.map(meta => {
     const currencyInfo = getCurrencyInfo(meta.name);
@@ -217,18 +217,6 @@ export function useP2PCountries() {
   
   return countries;
 }
-
-// Legacy export for backward compatibility - use useP2PCountries hook instead
-export const COUNTRIES: CountryConfig[] = COUNTRY_META.map(meta => ({
-  code: meta.code,
-  name: meta.name,
-  nameAr: meta.nameAr,
-  flag: meta.flag,
-  currency: meta.currencyCode,
-  currencySymbol: meta.currencyCode, // Will be overridden by hook usage
-  novaRate: 1, // Placeholder - actual rates come from useNovaPricing
-  paymentMethods: meta.paymentMethods,
-}));
 
 interface P2PCountrySelectorProps {
   selectedCountry: CountryConfig;
@@ -304,12 +292,6 @@ export function P2PCountrySelector({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
-
-export function getDefaultCountry(): CountryConfig {
-  // Returns Saudi Arabia with placeholder rate
-  // Components should use useP2PCountries to get live rates
-  return COUNTRIES[0];
 }
 
 // Hook to get default country with live rates

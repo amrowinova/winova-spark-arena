@@ -48,7 +48,6 @@ import {
   P2POrderListItem,
   SavedPaymentMethod,
   useP2PCountries,
-  getDefaultCountry,
 } from '@/components/p2p';
 
 import { P2POrder, P2POrderStatus, P2PChat, P2PMessage, useP2P } from '@/contexts/P2PContext';
