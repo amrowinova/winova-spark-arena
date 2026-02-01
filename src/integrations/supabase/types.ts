@@ -932,6 +932,15 @@ export type Database = {
         }
         Returns: Json
       }
+      cast_vote: {
+        Args: {
+          p_contest_id: string
+          p_contestant_id: string
+          p_vote_count?: number
+          p_voter_id: string
+        }
+        Returns: Json
+      }
       execute_transfer: {
         Args: {
           p_amount: number
@@ -955,6 +964,10 @@ export type Database = {
       }
       is_support_staff: { Args: { _user_id: string }; Returns: boolean }
       is_wallet_frozen: { Args: { _user_id: string }; Returns: boolean }
+      join_contest: {
+        Args: { p_contest_id: string; p_entry_fee?: number; p_user_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "support"
