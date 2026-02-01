@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuthRequired } from '@/contexts/AuthRequiredContext';
 import { useEffect, ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 
@@ -10,15 +10,14 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
   const { user, isLoading } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { showAuthRequired } = useAuthRequired();
 
   useEffect(() => {
     if (!isLoading && requireAuth && !user) {
-      // Redirect to home (which shows auth flow) with return path
-      navigate('/', { state: { from: location.pathname } });
+      // Show auth modal instead of redirecting
+      showAuthRequired();
     }
-  }, [user, isLoading, requireAuth, navigate, location.pathname]);
+  }, [user, isLoading, requireAuth, showAuthRequired]);
 
   if (isLoading) {
     return (
@@ -32,7 +31,8 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
   }
 
   if (requireAuth && !user) {
-    return null; // Will redirect in useEffect
+    // Return null - modal will be shown by useEffect
+    return null;
   }
 
   return <>{children}</>;

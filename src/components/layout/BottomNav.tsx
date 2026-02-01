@@ -1,19 +1,33 @@
 import { Home, Trophy, MessageCircle, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthRequired } from '@/contexts/AuthRequiredContext';
 
 const navItems = [
-  { icon: Home, path: '/', labelKey: 'nav.home' },
-  { icon: Trophy, path: '/contests', labelKey: 'nav.contests' },
-  { icon: MessageCircle, path: '/chat', labelKey: 'nav.chat' },
-  { icon: Users, path: '/team', labelKey: 'nav.team' },
+  { icon: Home, path: '/', labelKey: 'nav.home', protected: false },
+  { icon: Trophy, path: '/contests', labelKey: 'nav.contests', protected: true },
+  { icon: MessageCircle, path: '/chat', labelKey: 'nav.chat', protected: true },
+  { icon: Users, path: '/team', labelKey: 'nav.team', protected: true },
 ];
 
 export function BottomNav() {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { showAuthRequired } = useAuthRequired();
+
+  const handleNavClick = (item: typeof navItems[0], e: React.MouseEvent) => {
+    if (item.protected && !user) {
+      e.preventDefault();
+      showAuthRequired();
+      return;
+    }
+    navigate(item.path);
+  };
 
   return (
     <nav className="bottom-nav safe-bottom z-50">
@@ -23,9 +37,9 @@ export function BottomNav() {
           const Icon = item.icon;
           
           return (
-            <Link
+            <button
               key={item.path}
-              to={item.path}
+              onClick={(e) => handleNavClick(item, e)}
               className={cn(
                 'relative flex flex-col items-center justify-center gap-1 px-4 py-2 transition-all duration-200',
                 isActive ? 'text-primary' : 'text-muted-foreground'
@@ -40,7 +54,7 @@ export function BottomNav() {
               )}
               <Icon className={cn('h-5 w-5', isActive && 'scale-110')} />
               <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
-            </Link>
+            </button>
           );
         })}
       </div>
