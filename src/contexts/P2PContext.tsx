@@ -150,6 +150,9 @@ interface P2PContextType {
   cancelOrderWithReason: (orderId: string, reason: string) => boolean | Promise<boolean>;
   openDispute: (orderId: string, reason: string) => void;
   
+  // Timer expiration
+  expireOrder: (orderId: string) => void;
+  
   // Seller actions
   releaseFunds: (orderId: string) => void;
   reportNoPayment: (orderId: string) => void;
@@ -515,6 +518,11 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     await db.openDispute(orderId, reason);
   }, [db]);
 
+  // Timer expiration
+  const expireOrder = useCallback(async (orderId: string) => {
+    await db.expireOrder(orderId);
+  }, [db]);
+
   // Seller actions
   const releaseFunds = useCallback(async (orderId: string) => {
     await db.releaseFunds(orderId);
@@ -597,6 +605,7 @@ export function P2PProvider({ children }: { children: ReactNode }) {
         cancelOrder,
         cancelOrderWithReason,
         openDispute,
+        expireOrder,
         releaseFunds,
         reportNoPayment,
         triggerMockSellerConfirmation,

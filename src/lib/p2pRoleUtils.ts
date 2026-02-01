@@ -160,16 +160,30 @@ export interface P2PActionPermissions {
   canRelease: boolean;
   canReportNoPayment: boolean;
   canOpenDispute: boolean;
+  canCancelOpen: boolean;
   isWaiting: boolean;
   waitingMessage: string;
   waitingMessageAr: string;
 }
 
+interface ActionPermissionsParams {
+  status: string;
+  roleInfo: P2PRoleInfo;
+  orderType: 'buy' | 'sell';
+  isCreator: boolean;
+}
+
 export function getActionPermissions(
   status: string,
-  roleInfo: P2PRoleInfo
+  roleInfo: P2PRoleInfo,
+  orderType?: 'buy' | 'sell',
+  creatorId?: string,
+  currentUserId?: string
 ): P2PActionPermissions {
   const { isBuyer, isSeller } = roleInfo;
+  
+  // Determine if current user is the order creator
+  const isCreator = creatorId && currentUserId ? creatorId === currentUserId : false;
   
   // Default: no actions
   const permissions: P2PActionPermissions = {
@@ -178,12 +192,25 @@ export function getActionPermissions(
     canRelease: false,
     canReportNoPayment: false,
     canOpenDispute: false,
+    canCancelOpen: false,
     isWaiting: false,
     waitingMessage: '',
     waitingMessageAr: '',
   };
   
   switch (status) {
+    case 'created':
+    case 'open':
+      // Only creator can cancel open orders
+      if (isCreator) {
+        permissions.canCancelOpen = true;
+      } else {
+        permissions.isWaiting = true;
+        permissions.waitingMessage = 'Order is open in marketplace';
+        permissions.waitingMessageAr = 'الطلب معروض في السوق';
+      }
+      break;
+      
     case 'waiting_payment':
     case 'awaiting_payment':
       if (isBuyer) {
