@@ -28,32 +28,27 @@ export default function LuckyLeadersPage() {
   useEffect(() => {
     async function fetchLuckyLeaders() {
       try {
-        const { data, error } = await supabase
+        // Step 1: Fetch ledger entries (no join)
+        const { data: ledgerData, error: ledgerError } = await supabase
           .from('wallet_ledger')
-          .select(`
-            user_id,
-            amount,
-            created_at,
-            profiles!inner(name, country)
-          `)
+          .select('user_id, amount, created_at')
           .in('entry_type', ['referral_bonus', 'contest_win'])
           .gt('amount', 0);
 
-        if (error) throw error;
+        if (ledgerError) throw ledgerError;
 
-        const userWins: Record<string, { name: string; country: string; total: number; lastDate: string }> = {};
-        
-        for (const entry of data || []) {
+        if (!ledgerData || ledgerData.length === 0) {
+          setLeaders([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Step 2: Aggregate by user
+        const userWins: Record<string, { total: number; lastDate: string }> = {};
+        for (const entry of ledgerData) {
           const userId = entry.user_id;
-          const profile = entry.profiles as any;
-          
           if (!userWins[userId]) {
-            userWins[userId] = {
-              name: profile?.name || 'User',
-              country: profile?.country || '',
-              total: 0,
-              lastDate: entry.created_at,
-            };
+            userWins[userId] = { total: 0, lastDate: entry.created_at };
           }
           userWins[userId].total += Number(entry.amount) || 0;
           if (entry.created_at > userWins[userId].lastDate) {
@@ -61,13 +56,36 @@ export default function LuckyLeadersPage() {
           }
         }
 
+        // Get unique user IDs
+        const userIds = Object.keys(userWins);
+        if (userIds.length === 0) {
+          setLeaders([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Step 3: Fetch profiles separately
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, name, country')
+          .in('user_id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        // Create profile map
+        const profileMap: Record<string, { name: string; country: string }> = {};
+        for (const p of profilesData || []) {
+          profileMap[p.user_id] = { name: p.name, country: p.country };
+        }
+
+        // Step 4: Build sorted list
         const sorted = Object.entries(userWins)
           .sort((a, b) => b[1].total - a[1].total)
           .slice(0, 20)
-          .map(([id, data], index) => ({
-            id,
-            name: data.name,
-            country: data.country,
+          .map(([userId, data], index) => ({
+            id: userId,
+            name: profileMap[userId]?.name || 'User',
+            country: profileMap[userId]?.country || '',
             novaWon: data.total,
             winDate: new Date(data.lastDate),
             position: index + 1,
@@ -76,6 +94,7 @@ export default function LuckyLeadersPage() {
         setLeaders(sorted);
       } catch (err) {
         console.error('Error fetching lucky leaders:', err);
+        setLeaders([]);
       } finally {
         setIsLoading(false);
       }

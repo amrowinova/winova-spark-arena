@@ -46,49 +46,72 @@ export default function HallOfFame() {
   useEffect(() => {
     async function fetchHallOfFame() {
       try {
-        // Fetch all contest wins from ledger
-        const { data, error } = await supabase
+        // Step 1: Fetch ledger entries for contest_win (no join)
+        const { data: ledgerData, error: ledgerError } = await supabase
           .from('wallet_ledger')
-          .select(`
-            user_id,
-            amount,
-            created_at,
-            profiles!inner(name, country)
-          `)
+          .select('user_id, amount, created_at')
           .eq('entry_type', 'contest_win')
           .gt('amount', 0);
 
-        if (error) throw error;
+        if (ledgerError) throw ledgerError;
 
-        // Aggregate by user
-        const userWins: Record<string, HallOfFameEntry> = {};
-        
-        for (const entry of data || []) {
+        if (!ledgerData || ledgerData.length === 0) {
+          setWinners([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Step 2: Aggregate by user
+        const userWins: Record<string, { total: number; lastDate: string }> = {};
+        for (const entry of ledgerData) {
           const userId = entry.user_id;
-          const profile = entry.profiles as any;
-          
           if (!userWins[userId]) {
-            userWins[userId] = {
-              id: userId,
-              name: profile?.name || 'User',
-              country: profile?.country || '',
-              totalNovaWon: 0,
-              lastWinDate: entry.created_at,
-            };
+            userWins[userId] = { total: 0, lastDate: entry.created_at };
           }
-          userWins[userId].totalNovaWon += Number(entry.amount) || 0;
-          if (entry.created_at > userWins[userId].lastWinDate) {
-            userWins[userId].lastWinDate = entry.created_at;
+          userWins[userId].total += Number(entry.amount) || 0;
+          if (entry.created_at > userWins[userId].lastDate) {
+            userWins[userId].lastDate = entry.created_at;
           }
         }
 
-        const sorted = Object.values(userWins)
-          .sort((a, b) => b.totalNovaWon - a.totalNovaWon)
-          .slice(0, 20);
+        // Get unique user IDs
+        const userIds = Object.keys(userWins);
+        if (userIds.length === 0) {
+          setWinners([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Step 3: Fetch profiles separately
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, name, country')
+          .in('user_id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        // Create profile map
+        const profileMap: Record<string, { name: string; country: string }> = {};
+        for (const p of profilesData || []) {
+          profileMap[p.user_id] = { name: p.name, country: p.country };
+        }
+
+        // Step 4: Build sorted list
+        const sorted = Object.entries(userWins)
+          .sort((a, b) => b[1].total - a[1].total)
+          .slice(0, 20)
+          .map(([userId, data]) => ({
+            id: userId,
+            name: profileMap[userId]?.name || 'User',
+            country: profileMap[userId]?.country || '',
+            totalNovaWon: data.total,
+            lastWinDate: data.lastDate,
+          }));
 
         setWinners(sorted);
       } catch (err) {
         console.error('Error fetching hall of fame:', err);
+        setWinners([]);
       } finally {
         setIsLoading(false);
       }

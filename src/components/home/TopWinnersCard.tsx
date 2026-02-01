@@ -29,51 +29,69 @@ export function TopWinnersCard({ limit = 5 }: TopWinnersCardProps) {
   useEffect(() => {
     async function fetchTopWinners() {
       try {
-        // Fetch contest entries with prizes, grouped by user
-        const { data, error } = await supabase
+        // Step 1: Fetch contest entries with prizes (no join)
+        const { data: entriesData, error: entriesError } = await supabase
           .from('contest_entries')
-          .select(`
-            user_id,
-            prize_won,
-            profiles!inner(name, country)
-          `)
+          .select('user_id, prize_won')
           .not('prize_won', 'is', null)
           .gt('prize_won', 0);
 
-        if (error) throw error;
+        if (entriesError) throw entriesError;
 
-        // Aggregate prizes by user
-        const userPrizes: Record<string, { name: string; country: string; total: number }> = {};
-        
-        for (const entry of data || []) {
-          const userId = entry.user_id;
-          const profile = entry.profiles as any;
-          
-          if (!userPrizes[userId]) {
-            userPrizes[userId] = {
-              name: profile?.name || 'User',
-              country: profile?.country || '',
-              total: 0,
-            };
-          }
-          userPrizes[userId].total += Number(entry.prize_won) || 0;
+        if (!entriesData || entriesData.length === 0) {
+          setWinners([]);
+          setIsLoading(false);
+          return;
         }
 
-        // Sort and take top N
-        const sorted = Object.entries(userPrizes)
-          .sort((a, b) => b[1].total - a[1].total)
+        // Step 2: Aggregate prizes by user_id
+        const userPrizeMap: Record<string, number> = {};
+        for (const entry of entriesData) {
+          const userId = entry.user_id;
+          userPrizeMap[userId] = (userPrizeMap[userId] || 0) + Number(entry.prize_won);
+        }
+
+        // Get unique user IDs
+        const userIds = Object.keys(userPrizeMap);
+        if (userIds.length === 0) {
+          setWinners([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Step 3: Fetch profiles for these users
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, name, country')
+          .in('user_id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        // Create profile map
+        const profileMap: Record<string, { name: string; country: string }> = {};
+        for (const profile of profilesData || []) {
+          profileMap[profile.user_id] = {
+            name: profile.name,
+            country: profile.country,
+          };
+        }
+
+        // Step 4: Build sorted winner list
+        const sorted = Object.entries(userPrizeMap)
+          .sort((a, b) => b[1] - a[1])
           .slice(0, limit)
-          .map(([id, data], index) => ({
-            id,
-            name: data.name,
-            totalNovaPrizes: data.total,
+          .map(([userId, total], index) => ({
+            id: userId,
+            name: profileMap[userId]?.name || 'User',
+            totalNovaPrizes: total,
             position: index + 1,
-            country: getCountryFlag(data.country) || '',
+            country: getCountryFlag(profileMap[userId]?.country || '') || '',
           }));
 
         setWinners(sorted);
       } catch (err) {
         console.error('Error fetching top winners:', err);
+        setWinners([]);
       } finally {
         setIsLoading(false);
       }

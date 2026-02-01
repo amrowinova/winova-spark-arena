@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Ban, Trophy } from 'lucide-react';
+import { Info, Ban, Trophy, Clock } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { useBanner } from '@/contexts/BannerContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getContestTiming, formatTimeRemaining, formatContestTime } from '@/lib/contestTiming';
 
 // Contest Components
 import {
@@ -49,16 +51,22 @@ const formatBalance = (value: number): string => {
 export default function ContestsPage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
+  const { user: authUser } = useAuth();
   const { user, spendAura, spendNova } = useUser();
   const { createTransaction } = useTransactions();
   const { success: showSuccess, error: showError } = useBanner();
 
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [activeContestId, setActiveContestId] = useState<string | null>(null);
   const [userVotes, setUserVotes] = useState(0);
   const [userRank, setUserRank] = useState(0);
   const [hasJoined, setHasJoined] = useState(false);
   const [prizePool, setPrizePool] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Contest timing - KSA based
+  const [timing, setTiming] = useState(getContestTiming());
+  const [timeRemaining, setTimeRemaining] = useState(formatTimeRemaining(timing.timeRemaining));
   
   // Voting state
   const [usedVotesStage1, setUsedVotesStage1] = useState(0);
@@ -72,70 +80,95 @@ export default function ContestsPage() {
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
-  
-  // Stage - default to stage1
-  const [demoStage, setDemoStage] = useState<'stage1' | 'final'>('stage1');
-  const isStage1 = demoStage === 'stage1';
-  const isFinal = demoStage === 'final';
 
-  // Contest timing
-  const stage1EndsAt = new Date();
-  stage1EndsAt.setHours(18, 0, 0, 0);
-  if (stage1EndsAt < new Date()) stage1EndsAt.setDate(stage1EndsAt.getDate() + 1);
-  
-  const finalEndsAt = new Date(stage1EndsAt.getTime() + 4 * 60 * 60 * 1000);
+  // Stage derived from KSA timing
+  const isStage1 = timing.currentStage === 'stage1';
+  const isFinal = timing.currentStage === 'final';
+  const isClosed = timing.currentStage === 'closed';
   const entryFee = 10;
 
-  // Fetch real contest data
+  // Update timing every second
   useEffect(() => {
-    async function fetchContestData() {
-      try {
-        // Fetch active contest
-        const { data: contestData, error: contestError } = await supabase
-          .from('contests')
-          .select('*')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+    const interval = setInterval(() => {
+      const newTiming = getContestTiming();
+      setTiming(newTiming);
+      setTimeRemaining(formatTimeRemaining(newTiming.timeRemaining));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
-        if (contestData) {
-          setPrizePool(contestData.prize_pool || 0);
-        }
+  // Fetch real contest data
+  const fetchContestData = useCallback(async () => {
+    try {
+      // Fetch active contest
+      const { data: contestData, error: contestError } = await supabase
+        .from('contests')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-        // Fetch contest entries with profiles
+      if (contestData) {
+        setActiveContestId(contestData.id);
+        setPrizePool(contestData.prize_pool || 0);
+
+        // Fetch contest entries (separate query to avoid FK issues)
         const { data: entriesData, error: entriesError } = await supabase
           .from('contest_entries')
-          .select(`
-            user_id,
-            votes_received,
-            rank,
-            profiles!inner(name, username, country)
-          `)
-          .eq('contest_id', contestData?.id || '')
+          .select('user_id, votes_received, rank')
+          .eq('contest_id', contestData.id)
           .order('votes_received', { ascending: false });
 
-        if (!entriesError && entriesData) {
-          const formattedParticipants: Participant[] = entriesData.map((entry: any, index: number) => ({
+        if (!entriesError && entriesData && entriesData.length > 0) {
+          // Get user IDs
+          const userIds = entriesData.map(e => e.user_id);
+          
+          // Fetch profiles separately
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('user_id, name, username, country')
+            .in('user_id', userIds);
+
+          const profileMap: Record<string, { name: string; username: string; country: string }> = {};
+          for (const p of profilesData || []) {
+            profileMap[p.user_id] = { name: p.name, username: p.username, country: p.country };
+          }
+
+          const formattedParticipants: Participant[] = entriesData.map((entry, index) => ({
             id: entry.user_id,
-            name: entry.profiles?.name || 'User',
-            username: entry.profiles?.username || '',
+            name: profileMap[entry.user_id]?.name || 'User',
+            username: profileMap[entry.user_id]?.username || '',
             votes: entry.votes_received || 0,
             avatar: '👤',
             rank: index + 1,
-            country: entry.profiles?.country || '',
+            country: profileMap[entry.user_id]?.country || '',
           }));
+          
           setParticipants(formattedParticipants);
-        }
-      } catch (err) {
-        console.error('Error fetching contest data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
 
+          // Check if current user has joined
+          if (authUser) {
+            const userEntry = formattedParticipants.find(p => p.id === authUser.id);
+            if (userEntry) {
+              setHasJoined(true);
+              setUserRank(userEntry.rank);
+              setUserVotes(userEntry.votes);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching contest data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authUser]);
+
+  useEffect(() => {
     fetchContestData();
-  }, []);
+  }, [fetchContestData]);
 
   // In final stage, only top 50 are shown
   const displayParticipants = isFinal ? participants.slice(0, 50) : participants;
@@ -149,6 +182,12 @@ export default function ContestsPage() {
   const rank1Threshold = participants[0]?.votes || 0;
 
   const handleJoinContest = () => {
+    // Check if contest is open for joining
+    if (!timing.canJoin) {
+      showError(language === 'ar' ? 'التسجيل مغلق حالياً' : 'Registration is currently closed');
+      return;
+    }
+
     const auraEquivalent = entryFee * 2;
     
     if (user.auraBalance >= auraEquivalent) {
@@ -196,12 +235,20 @@ export default function ContestsPage() {
   };
 
   const handleVote = (participant: Participant) => {
+    if (!timing.canVote) {
+      showError(language === 'ar' ? 'التصويت مغلق حالياً' : 'Voting is currently closed');
+      return;
+    }
     setSelectedParticipant(participant);
     setVoteDialogOpen(true);
   };
 
   const handleConfirmVote = (voteCount: number, isFreeVote: boolean) => {
     if (!selectedParticipant) return;
+    if (!timing.canVote) {
+      showError(language === 'ar' ? 'التصويت مغلق حالياً' : 'Voting is currently closed');
+      return;
+    }
 
     if (!isFreeVote) {
       let remainingVotes = voteCount;
@@ -246,7 +293,11 @@ export default function ContestsPage() {
   };
 
   const handleUseFreeVote = () => {
-    if (!selectedParticipant || freeVoteUsed || !freeVoteActive) return;
+    if (!selectedParticipant || freeVoteUsed || !freeVoteActive || isFinal) return;
+    if (!timing.canVote) {
+      showError(language === 'ar' ? 'التصويت مغلق حالياً' : 'Voting is currently closed');
+      return;
+    }
 
     setFreeVoteUsed(true);
     
@@ -270,7 +321,38 @@ export default function ContestsPage() {
     );
   };
 
-  // Empty state
+  // Closed state - contest not active
+  if (isClosed) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
+        <main className="flex-1 px-4 py-4 pb-20 flex items-center justify-center">
+          <div className="text-center">
+            <Clock className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+            <h2 className="text-lg font-bold mb-2">
+              {language === 'ar' ? 'المسابقة مغلقة' : 'Contest Closed'}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {language === 'ar' 
+                ? `المسابقة القادمة تبدأ الساعة ${formatContestTime(timing.stage1Start)}`
+                : `Next contest starts at ${formatContestTime(timing.stage1Start)}`}
+            </p>
+            <Card className="p-4 bg-muted/30">
+              <p className="text-xs text-muted-foreground mb-2">
+                {language === 'ar' ? 'الوقت المتبقي' : 'Time until next contest'}
+              </p>
+              <p className="text-2xl font-bold font-mono">
+                {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
+              </p>
+            </Card>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  // Empty state - no participants yet
   if (!isLoading && participants.length === 0) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
@@ -279,16 +361,18 @@ export default function ContestsPage() {
           <div className="text-center">
             <Trophy className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
             <h2 className="text-lg font-bold mb-2">
-              {language === 'ar' ? 'لا توجد مسابقة نشطة' : 'No Active Contest'}
+              {language === 'ar' ? 'لا يوجد مشاركين بعد' : 'No Participants Yet'}
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
               {language === 'ar' 
-                ? 'المسابقة اليومية ستبدأ قريباً!'
-                : 'The daily contest will start soon!'}
+                ? 'كن أول من ينضم للمسابقة!'
+                : 'Be the first to join the contest!'}
             </p>
-            <Button onClick={() => setJoinDialogOpen(true)}>
-              {language === 'ar' ? 'كن أول المشاركين' : 'Be the First to Join'}
-            </Button>
+            {timing.canJoin && (
+              <Button onClick={() => setJoinDialogOpen(true)}>
+                {language === 'ar' ? 'انضم الآن' : 'Join Now'}
+              </Button>
+            )}
           </div>
         </main>
         <BottomNav />
@@ -301,27 +385,9 @@ export default function ContestsPage() {
       <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
       <main className="flex-1 px-4 py-4 pb-20 space-y-4">
 
-        {/* Demo Stage Toggle (for testing - remove in production) */}
-        <div className="flex gap-2 justify-center">
-          <Button 
-            size="sm" 
-            variant={isStage1 ? "default" : "outline"}
-            onClick={() => setDemoStage('stage1')}
-          >
-            {language === 'ar' ? 'المرحلة الأولى' : 'Stage 1'}
-          </Button>
-          <Button 
-            size="sm" 
-            variant={isFinal ? "default" : "outline"}
-            onClick={() => setDemoStage('final')}
-          >
-            {language === 'ar' ? 'المرحلة النهائية' : 'Final Stage'}
-          </Button>
-        </div>
-
-        {/* Stage Header - Conditional */}
+        {/* Stage Header - Based on KSA time */}
         <motion.div
-          key={demoStage}
+          key={timing.currentStage}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -329,19 +395,36 @@ export default function ContestsPage() {
             <ContestStageHeader
               stage="stage1"
               participants={participants.length}
-              endsAt={stage1EndsAt}
+              endsAt={timing.stage1End}
             />
           ) : (
             <FinalStageHeader
               participants={Math.min(50, participants.length)}
               prizePool={prizePool}
-              endsAt={finalEndsAt}
+              endsAt={timing.finalEnd}
               country={user.country}
             />
           )}
         </motion.div>
 
-        {/* User Status Card - Unified for both stages */}
+        {/* Live Timer */}
+        <Card className="p-3 bg-primary/5 border-primary/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">
+                {language === 'ar' 
+                  ? (isStage1 ? 'المرحلة الأولى' : 'المرحلة النهائية')
+                  : (isStage1 ? 'Stage 1' : 'Final Stage')}
+              </span>
+            </div>
+            <span className="font-mono font-bold text-lg">
+              {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
+            </span>
+          </div>
+        </Card>
+
+        {/* User Status Card */}
         <ContestUserStatusCard
           userRank={userRank}
           userVotes={userVotes}
@@ -376,7 +459,7 @@ export default function ContestsPage() {
         )}
 
         {/* Join Button (Stage 1 only, if not joined) */}
-        {isStage1 && !hasJoined && (
+        {isStage1 && !hasJoined && timing.canJoin && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <Card className="p-4">
               <div className="text-center mb-3">
@@ -396,9 +479,8 @@ export default function ContestsPage() {
           </motion.div>
         )}
 
-        {/* Contestants Section - No tabs */}
+        {/* Contestants Section */}
         <div className="space-y-3">
-          {/* Stage-specific info */}
           {isStage1 && <ContestInfoBox variant="qualification-rules" />}
           
           {isFinal && (
@@ -428,7 +510,7 @@ export default function ContestsPage() {
                         contestant={participant}
                         index={index}
                         onVote={handleVote}
-                        canVote={hasJoined}
+                        canVote={hasJoined && timing.canVote}
                         votesExhausted={votesExhausted}
                       />
                     ) : (
@@ -436,12 +518,12 @@ export default function ContestsPage() {
                         contestant={participant}
                         index={index}
                         onVote={handleVote}
-                        canVote={userQualified && hasJoined}
+                        canVote={userQualified && hasJoined && timing.canVote}
                         votesExhausted={votesExhausted}
                       />
                     )}
                   
-                    {/* Fixed notice after 5th contestant */}
+                    {/* Prize notice after 5th contestant */}
                     {participant.rank === 5 && (
                       <motion.div
                         key="prize-notice"
@@ -520,13 +602,13 @@ export default function ContestsPage() {
           open={voteDialogOpen}
           onClose={() => setVoteDialogOpen(false)}
           contestant={selectedParticipant}
-          stage={demoStage}
+          stage={isStage1 ? 'stage1' : 'final'}
           auraBalance={user.auraBalance}
           novaBalance={user.novaBalance}
           usedVotesStage1={usedVotesStage1}
           usedVotesFinal={usedVotesFinal}
           freeVoteUsed={freeVoteUsed}
-          freeVoteActive={freeVoteActive}
+          freeVoteActive={freeVoteActive && isStage1}
           onVote={handleConfirmVote}
           onUseFreeVote={handleUseFreeVote}
         />
