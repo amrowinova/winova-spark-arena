@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Wallet as WalletIcon, Send, RefreshCw, History, TrendingUp, Users, Lock } from 'lucide-react';
+import { Wallet as WalletIcon, Send, RefreshCw, History, TrendingUp, Users, Lock, AlertTriangle, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useUser } from '@/contexts/UserContext';
 import { useTransactions, RANK_COMMISSION_RATES } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWallet } from '@/hooks/useWallet';
 import { ReceiptCard, ReceiptDialog } from '@/components/common/ReceiptCard';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ConvertNovaAuraDialog } from '@/components/wallet/ConvertNovaAuraDialog';
@@ -29,6 +32,8 @@ export default function WalletPage() {
   const { language } = useLanguage();
   const { user } = useUser();
   const { receipts, calculateLocalAmount } = useTransactions();
+  const { wallet } = useWallet();
+  const navigate = useNavigate();
 
   const [selectedTab, setSelectedTab] = useState('aura');
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
@@ -74,10 +79,43 @@ export default function WalletPage() {
     setReceiptDialogOpen(true);
   };
 
+  // Check if wallet is frozen
+  const isWalletFrozen = wallet?.is_frozen ?? false;
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('wallet.title')} />
       <main className="flex-1 px-4 py-4 pb-20 space-y-5">
+        {/* Frozen Wallet Warning Banner */}
+        {isWalletFrozen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+              <AlertTriangle className="h-5 w-5" />
+              <AlertTitle className="font-bold">
+                {language === 'ar' ? '⚠️ رصيدك مجمّد مؤقتًا' : '⚠️ Your wallet is temporarily frozen'}
+              </AlertTitle>
+              <AlertDescription className="mt-2">
+                <p className="text-sm mb-3">
+                  {language === 'ar' 
+                    ? 'لا يمكنك حاليًا سحب أو تحويل Nova. يرجى التواصل مع الدعم لمزيد من المعلومات.'
+                    : 'You cannot currently withdraw or transfer Nova. Please contact support for more information.'}
+                </p>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10"
+                  onClick={() => navigate('/help')}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {language === 'ar' ? 'تواصل مع الدعم' : 'Contact Support'}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
         {/* Balance Card - Clean White Design */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
