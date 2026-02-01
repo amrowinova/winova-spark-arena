@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
-import { getPricing } from '@/contexts/TransactionContext';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { Link } from 'react-router-dom';
 
 interface ContestJoinCardProps {
@@ -51,7 +51,8 @@ export function ContestJoinCard({
 }: ContestJoinCardProps) {
   const { language } = useLanguage();
   const { user } = useUser();
-  const pricing = getPricing(user.country);
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(user.country);
   
   // Calculate total balance in Nova equivalent (1 Nova = 2 Aura)
   const totalNovaEquivalent = user.novaBalance + (user.auraBalance / 2);

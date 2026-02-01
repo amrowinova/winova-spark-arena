@@ -1,7 +1,7 @@
 import { Trophy, Users } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
-import { getPricing } from '@/contexts/TransactionContext';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 
 interface FinalStageHeaderProps {
   participants: number;
@@ -12,7 +12,8 @@ interface FinalStageHeaderProps {
 
 export function FinalStageHeader({ participants, prizePool, endsAt, country }: FinalStageHeaderProps) {
   const { language } = useLanguage();
-  const pricing = getPricing(country);
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(country);
   const prizePoolLocal = prizePool * pricing.novaRate;
   
   return (

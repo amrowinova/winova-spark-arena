@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getPricing } from '@/contexts/TransactionContext';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { getPlatformUserById } from '@/lib/platformUsers';
 
 // Home Components
@@ -93,7 +93,8 @@ export default function HomePage() {
   const endsAt = new Date(closesAt.getTime() + 4 * 60 * 60 * 1000);
   
   // Get local currency info
-  const pricing = getPricing(user.country);
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(user.country);
   const novaLocalValue = user.novaBalance * pricing.novaRate;
 
   // User contest state

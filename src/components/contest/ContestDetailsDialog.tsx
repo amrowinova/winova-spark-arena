@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getPricing } from '@/contexts/TransactionContext';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { ContestHistoryItem } from './ContestHistoryCard';
 import { getPlatformUserById } from '@/lib/platformUsers';
 import { getCountryFlag } from '@/lib/countryFlags';
@@ -18,7 +18,8 @@ interface ContestDetailsDialogProps {
 
 export function ContestDetailsDialog({ contest, open, onClose, country }: ContestDetailsDialogProps) {
   const { language } = useLanguage();
-  const pricing = getPricing(country);
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(country);
   const navigate = useNavigate();
 
   const handleProfileClick = (winnerId: string) => {
