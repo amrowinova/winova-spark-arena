@@ -121,12 +121,11 @@ export function useProfileEnsure(): EnsureResult {
         }
       }
 
-      // Check if user role exists
-      const { data: existingRole, error: roleCheckError } = await supabase
+      // Check if user role exists (user can have multiple roles, so we check for any)
+      const { data: existingRoles, error: roleCheckError } = await supabase
         .from('user_roles')
         .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .eq('user_id', user.id);
 
       if (roleCheckError) {
         console.error('Error checking user role:', roleCheckError);
@@ -134,7 +133,7 @@ export function useProfileEnsure(): EnsureResult {
 
       // If no role, we can't create one (admin-only insert policy)
       // But we log it for debugging
-      if (!existingRole) {
+      if (!existingRoles || existingRoles.length === 0) {
         console.warn('User role not found - trigger may have failed. User:', user.id);
         // Note: We can't insert user_roles from client side due to RLS
         // This would need to be handled by the trigger or admin
