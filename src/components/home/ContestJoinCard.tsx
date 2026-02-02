@@ -71,28 +71,44 @@ export function ContestJoinCard({
     fifth: Math.floor(prizePool * 0.05),
   };
 
-  // Dynamic join window messaging
+  // Dynamic join window messaging - based on KSA time (10:00-18:00)
   useEffect(() => {
     const updateJoinWindow = () => {
+      // Case 1: No contest record for today
       if (!contestAvailable) {
         setCanJoin(false);
         setJoinWindowMessage(language === 'ar' ? 'لا توجد مسابقة لليوم' : 'No contest for today');
         return;
       }
 
+      // Case 2: Contest exists - check time window
       const now = new Date();
-      const diff = closesAt.getTime() - now.getTime();
-      const minutesLeft = Math.max(0, Math.floor(diff / 60000));
+      const ksaNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));
+      const ksaHour = ksaNow.getHours();
       
-      if (diff <= 0) {
+      // Before 10:00 KSA - not open yet
+      if (ksaHour < 10) {
         setCanJoin(false);
-        setJoinWindowMessage(language === 'ar' ? 'باب الانضمام مغلق' : 'Joining closed');
-      } else if (minutesLeft <= 30) {
+        setJoinWindowMessage(language === 'ar' ? 'التسجيل يفتح الساعة 10:00 صباحاً' : 'Registration opens at 10:00 AM');
+        return;
+      }
+      
+      // After 18:00 KSA - closed for the day
+      if (ksaHour >= 18) {
+        setCanJoin(false);
+        setJoinWindowMessage(language === 'ar' ? 'تم إغلاق باب الانضمام' : 'Registration is closed');
+        return;
+      }
+      
+      // Between 10:00 and 18:00 KSA - open for joining
+      const minutesUntilClose = (18 - ksaHour) * 60 - ksaNow.getMinutes();
+      
+      if (minutesUntilClose <= 30) {
         setCanJoin(true);
-        setJoinWindowMessage(language === 'ar' ? 'باب الانضمام يغلق قريبًا' : 'Joining closes soon');
-      } else if (minutesLeft <= 60) {
+        setJoinWindowMessage(language === 'ar' ? '⚠️ باب الانضمام يغلق قريبًا!' : '⚠️ Joining closes soon!');
+      } else if (minutesUntilClose <= 60) {
         setCanJoin(true);
-        setJoinWindowMessage(language === 'ar' ? `⏳ باب الانضمام يغلق خلال ${minutesLeft} دقيقة` : `⏳ Joining closes in ${minutesLeft} minutes`);
+        setJoinWindowMessage(language === 'ar' ? `⏳ باب الانضمام يغلق خلال ${minutesUntilClose} دقيقة` : `⏳ Joining closes in ${minutesUntilClose} min`);
       } else {
         setCanJoin(true);
         setJoinWindowMessage(language === 'ar' ? '⏳ باب الانضمام مفتوح' : '⏳ Joining is open');
@@ -102,7 +118,7 @@ export function ContestJoinCard({
     updateJoinWindow();
     const interval = setInterval(updateJoinWindow, 1000);
     return () => clearInterval(interval);
-  }, [closesAt, language, contestAvailable]);
+  }, [language, contestAvailable]);
 
   // Calculate stage 1 end and final stage times
   const now = new Date();
@@ -283,12 +299,7 @@ export function ContestJoinCard({
                   className="p-3 bg-gradient-to-r from-primary/15 to-primary/10 border border-primary/30 rounded-lg text-center"
                 >
                   <p className="text-sm text-primary font-semibold mb-0.5">
-                    {language === 'ar' ? '⏳ باب الانضمام مفتوح' : '⏳ Joining is open'}
-                  </p>
-                  <p className="text-xs text-primary/80">
-                    {language === 'ar' 
-                      ? `باقي ${Math.max(0, Math.floor((closesAt.getTime() - new Date().getTime()) / 60000))} دقيقة قبل إغلاق الانضمام`
-                      : `${Math.max(0, Math.floor((closesAt.getTime() - new Date().getTime()) / 60000))} minutes left to join`}
+                    {joinWindowMessage}
                   </p>
                 </motion.div>
 
@@ -300,11 +311,10 @@ export function ContestJoinCard({
                   {language === 'ar' ? '🔴 انضم الآن' : '🔴 Join Now'}
                   <ArrowRight className="h-4 w-4 ms-2" />
                 </Button>
-
               </>
             ) : (
-              <div className="p-3 bg-muted rounded-lg text-center">
-                <p className="text-sm text-muted-foreground">
+              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center">
+                <p className="text-sm font-medium text-destructive">
                   {joinWindowMessage}
                 </p>
               </div>
