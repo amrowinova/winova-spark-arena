@@ -39,6 +39,12 @@ export function useDirectMessages() {
   const [messages, setMessages] = useState<Record<string, DMMessage[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const activeConversationRef = useRef<string | null>(null);
+  const conversationsRef = useRef<DMConversation[]>([]);
+  
+  // Keep conversationsRef in sync
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // Fetch all conversations with optimized queries
   const fetchConversations = useCallback(async () => {
@@ -321,31 +327,46 @@ export function useDirectMessages() {
     }
   }, [user]);
 
-  // Subscribe to realtime updates - INSTANT with direct state mutation
+  // Subscribe to realtime updates - ULTRA INSTANT with optimistic updates
   useEffect(() => {
     if (!user) return;
 
     fetchConversations();
 
-    // Profile cache for faster lookups
-    const profileCache = new Map<string, string>();
+    // Profile cache for instant lookups
+    const profileCache = new Map<string, { name: string; username: string; avatar: string | null }>();
     
-    const getProfileName = async (userId: string): Promise<string> => {
+    const getProfileInfo = async (userId: string) => {
       if (profileCache.has(userId)) return profileCache.get(userId)!;
       
       const { data } = await supabase
         .from('profiles')
-        .select('name')
+        .select('name, username, avatar_url')
         .eq('user_id', userId)
         .single();
       
-      const name = data?.name || 'Unknown';
-      profileCache.set(userId, name);
-      return name;
+      const info = { 
+        name: data?.name || 'Unknown', 
+        username: data?.username || 'user',
+        avatar: data?.avatar_url || null 
+      };
+      profileCache.set(userId, info);
+      return info;
     };
 
+    // Pre-cache current conversation participants from ref
+    conversationsRef.current.forEach(conv => {
+      if (!profileCache.has(conv.participantId)) {
+        profileCache.set(conv.participantId, {
+          name: conv.participantName,
+          username: conv.participantUsername,
+          avatar: conv.participantAvatar
+        });
+      }
+    });
+
     const channel = supabase
-      .channel('dm-instant-updates')
+      .channel('dm-ultra-instant')
       .on(
         'postgres_changes',
         {
@@ -359,24 +380,58 @@ export function useDirectMessages() {
           // Skip my own messages (already added optimistically)
           if (newMsg.sender_id === user.id) return;
           
-          // Check if this conversation involves me
+          // INSTANT UI UPDATE FIRST - before any async operations
+          const now = newMsg.created_at;
+          const conversationId = newMsg.conversation_id;
+          const isActiveConv = activeConversationRef.current === conversationId;
+          
+          // Update conversations list IMMEDIATELY (optimistic)
+          setConversations(prev => {
+            const existingConv = prev.find(c => c.id === conversationId);
+            
+            if (existingConv) {
+              // Update existing conversation instantly
+              const updated = prev.map(conv => 
+                conv.id === conversationId 
+                  ? { 
+                      ...conv, 
+                      lastMessage: newMsg.content, 
+                      lastMessageAt: now,
+                      unreadCount: isActiveConv ? 0 : conv.unreadCount + 1,
+                    }
+                  : conv
+              );
+              
+              // Sort by newest first
+              return updated.sort((a, b) => {
+                const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+                const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+                return bTime - aTime;
+              });
+            }
+            
+            return prev; // Will handle new conversation below
+          });
+
+          // Now do async verification in background
           const { data: conv } = await supabase
             .from('conversations')
             .select('participant1_id, participant2_id')
-            .eq('id', newMsg.conversation_id)
+            .eq('id', conversationId)
             .single();
           
           if (!conv) return;
           if (conv.participant1_id !== user.id && conv.participant2_id !== user.id) return;
           
-          const senderName = await getProfileName(newMsg.sender_id);
+          // Get sender info (use cache if available)
+          const senderInfo = await getProfileInfo(newMsg.sender_id);
           
-          // DIRECT STATE UPDATE - no refetch
+          // Add message to local state
           const formattedMessage: DMMessage = {
             id: newMsg.id,
             conversationId: newMsg.conversation_id,
             senderId: newMsg.sender_id,
-            senderName,
+            senderName: senderInfo.name,
             content: newMsg.content,
             contentAr: newMsg.content_ar,
             messageType: newMsg.message_type,
@@ -387,56 +442,54 @@ export function useDirectMessages() {
             transferRecipientId: newMsg.transfer_recipient_id,
           };
 
-          // Add to messages if we're in this conversation
           setMessages(prev => {
-            const convMessages = prev[newMsg.conversation_id] || [];
+            const convMessages = prev[conversationId] || [];
             // Avoid duplicates
             if (convMessages.some(m => m.id === newMsg.id)) return prev;
             return {
               ...prev,
-              [newMsg.conversation_id]: [...convMessages, formattedMessage],
+              [conversationId]: [...convMessages, formattedMessage],
             };
           });
           
-          // Update conversation list - INSTANT with sorting
+          // Handle new conversation that doesn't exist in state
           setConversations(prev => {
-            const isActiveConv = activeConversationRef.current === newMsg.conversation_id;
-            
-            // Check if conversation exists
-            const convExists = prev.some(conv => conv.id === newMsg.conversation_id);
-            
-            if (!convExists) {
-              // New conversation - need to fetch it
-              console.log('[DM Realtime] New conversation detected, fetching...');
-              fetchConversations();
-              return prev;
+            const exists = prev.some(c => c.id === conversationId);
+            if (!exists) {
+              // Add new conversation to list
+              const partnerId = conv.participant1_id === user.id 
+                ? conv.participant2_id 
+                : conv.participant1_id;
+              
+              const newConv: DMConversation = {
+                id: conversationId,
+                participantId: partnerId,
+                participantName: senderInfo.name,
+                participantUsername: senderInfo.username,
+                participantAvatar: senderInfo.avatar,
+                participantCountry: '',
+                lastMessage: newMsg.content,
+                lastMessageAt: now,
+                unreadCount: isActiveConv ? 0 : 1,
+                createdAt: now,
+              };
+              
+              return [newConv, ...prev];
             }
-            
-            const updated = prev.map(conv => 
-              conv.id === newMsg.conversation_id 
-                ? { 
-                    ...conv, 
-                    lastMessage: newMsg.content, 
-                    lastMessageAt: newMsg.created_at,
-                    unreadCount: isActiveConv ? conv.unreadCount : conv.unreadCount + 1,
-                  }
-                : conv
-            );
-            
-            // Sort by last message time - newest first
-            return updated.sort((a, b) => {
-              const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-              const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-              return bTime - aTime;
-            });
+            return prev;
           });
 
           // If viewing this conversation, mark as read immediately
-          if (activeConversationRef.current === newMsg.conversation_id) {
-            await supabase
+          if (isActiveConv) {
+            supabase
               .from('direct_messages')
               .update({ is_read: true })
-              .eq('id', newMsg.id);
+              .eq('id', newMsg.id)
+              .then(() => {
+                setConversations(prev => 
+                  prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
+                );
+              });
           }
         }
       )
@@ -473,9 +526,37 @@ export function useDirectMessages() {
           schema: 'public',
           table: 'conversations',
         },
-        () => {
-          // New conversation - just refetch list
-          fetchConversations();
+        async (payload) => {
+          const newConv = payload.new as any;
+          
+          // Check if I'm part of this conversation
+          if (newConv.participant1_id !== user.id && newConv.participant2_id !== user.id) return;
+          
+          // Add to state immediately
+          const partnerId = newConv.participant1_id === user.id 
+            ? newConv.participant2_id 
+            : newConv.participant1_id;
+          
+          const partnerInfo = await getProfileInfo(partnerId);
+          
+          setConversations(prev => {
+            if (prev.some(c => c.id === newConv.id)) return prev;
+            
+            const conv: DMConversation = {
+              id: newConv.id,
+              participantId: partnerId,
+              participantName: partnerInfo.name,
+              participantUsername: partnerInfo.username,
+              participantAvatar: partnerInfo.avatar,
+              participantCountry: '',
+              lastMessage: null,
+              lastMessageAt: newConv.created_at,
+              unreadCount: 0,
+              createdAt: newConv.created_at,
+            };
+            
+            return [conv, ...prev];
+          });
         }
       )
       .subscribe();
