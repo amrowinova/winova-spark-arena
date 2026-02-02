@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones, UserPlus } from 'lucide-react';
+import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones, UserPlus, Loader2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useP2P, P2PChat, P2PMessage } from '@/contexts/P2PContext';
 import { useSupport } from '@/contexts/SupportContext';
 import { useDirectMessages, DMConversation, DMMessage } from '@/hooks/useDirectMessages';
+import { useUserSearch, SearchedUser } from '@/hooks/useUserSearch';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { Receipt } from '@/contexts/TransactionContext';
@@ -27,6 +28,9 @@ import { TeamInfoSheet, TeamChatMember } from '@/components/chat/TeamInfoSheet';
 import { ChatSearchResults, ConversationResult, UserResult } from '@/components/chat/ChatSearchResults';
 import { SupportChatView } from '@/components/chat/SupportChatView';
 import { UserSearchSheet } from '@/components/chat/UserSearchSheet';
+import { RankBadge } from '@/components/common/RankBadge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getCountryFlag } from '@/lib/countryFlags';
 import { 
   P2PChatHeader, 
   P2POrderCard, 
@@ -99,6 +103,9 @@ function ChatContent() {
     sendMessage: sendDMMessage,
     getOrCreateConversation,
   } = useDirectMessages();
+  
+  // User search hook for inline search
+  const { results: userSearchResults, isSearching: isUserSearching, searchUsers, clearResults: clearUserSearch } = useUserSearch();
 
   const [selectedTab, setSelectedTab] = useState('dm');
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
@@ -132,6 +139,15 @@ function ChatContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChat?.messages, activeP2PChat?.messages]);
 
+  // Trigger user search when searchQuery changes - MUST be before any early returns
+  useEffect(() => {
+    if (searchQuery.trim().length >= 1) {
+      const timer = setTimeout(() => searchUsers(searchQuery), 200);
+      return () => clearTimeout(timer);
+    } else {
+      clearUserSearch();
+    }
+  }, [searchQuery, searchUsers, clearUserSearch]);
   // Convert P2P chats to conversation format for the list (P2P = order-bound chats only)
   const p2pConversations: Conversation[] = p2pChats.map(chat => {
     const otherParty = chat.buyer.id === user.id ? chat.seller : chat.buyer;
@@ -988,12 +1004,37 @@ function ChatContent() {
       handleOpenConversation(fullConv);
     }
     setSearchQuery('');
+    clearUserSearch();
   };
 
-  const handleSelectUserFromSearch = (user: UserResult) => {
-    // Navigate to public profile - user can start DM or send Nova from there
+  const handleSelectUserFromSearch = async (searchedUser: SearchedUser) => {
+    // Start DM with the user directly
+    const conversationId = await getOrCreateConversation(searchedUser.userId);
+    if (conversationId) {
+      const dmConv = dmConversations.find(c => c.id === conversationId);
+      if (dmConv) {
+        setActiveDMConversation(dmConv);
+        fetchDMMessages(dmConv.id);
+        setActiveChat(null);
+        setActiveP2PChat(null);
+      }
+    }
     setSearchQuery('');
+    clearUserSearch();
   };
+
+
+  // Convert search results to UserResult format for ChatSearchResults
+  const usersForSearch: UserResult[] = userSearchResults.map(u => ({
+    id: u.userId,
+    name: u.name,
+    nameAr: u.name, // Arabic name is same field
+    username: u.username,
+    avatar: u.avatarUrl || undefined,
+    isOnline: false,
+    lastSeen: '',
+    lastSeenAr: '',
+  }));
 
   // Conversations List
   return (
@@ -1006,7 +1047,7 @@ function ChatContent() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('common.search')}
+              placeholder={language === 'ar' ? 'ابحث عن محادثة أو مستخدم...' : 'Search conversations or users...'}
               className="ps-10"
             />
             {searchQuery && (
@@ -1014,7 +1055,7 @@ function ChatContent() {
                 variant="ghost"
                 size="icon"
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                onClick={() => setSearchQuery('')}
+                onClick={() => { setSearchQuery(''); clearUserSearch(); }}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -1031,15 +1072,99 @@ function ChatContent() {
           </Button>
         </div>
 
-        {/* Search Results */}
+        {/* Search Results - Show conversations + users inline */}
         {searchQuery.trim() ? (
-          <ChatSearchResults
-            searchQuery={searchQuery}
-            conversations={conversationsForSearch}
-            users={[]} // Real user search is handled by UserSearchSheet
-            onSelectConversation={handleSelectConversationFromSearch}
-            onSelectUser={handleSelectUserFromSearch}
-          />
+          <div className="space-y-4">
+            {isUserSearching && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            
+            {/* User Results Section */}
+            {userSearchResults.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground px-1">
+                  {language === 'ar' ? 'المستخدمون' : 'Users'}
+                </h3>
+                {userSearchResults.map((searchedUser) => (
+                  <button
+                    key={searchedUser.id}
+                    onClick={() => handleSelectUserFromSearch(searchedUser)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors text-start"
+                  >
+                    <Avatar className="h-11 w-11">
+                      <AvatarImage src={searchedUser.avatarUrl || undefined} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {searchedUser.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{searchedUser.name}</span>
+                        <RankBadge rank={searchedUser.rank as any} size="sm" />
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">@{searchedUser.username}</p>
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span>{getCountryFlag(searchedUser.country)}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {/* Conversation Results Section */}
+            {conversationsForSearch.filter(conv => {
+              const searchLower = searchQuery.toLowerCase();
+              return conv.name.toLowerCase().includes(searchLower) || conv.nameAr?.toLowerCase().includes(searchLower);
+            }).length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground px-1">
+                  {language === 'ar' ? 'المحادثات' : 'Conversations'}
+                </h3>
+                {conversationsForSearch.filter(conv => {
+                  const searchLower = searchQuery.toLowerCase();
+                  return conv.name.toLowerCase().includes(searchLower) || conv.nameAr?.toLowerCase().includes(searchLower);
+                }).map((conv) => (
+                  <Card 
+                    key={conv.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSelectConversationFromSearch(conv)}
+                  >
+                    <CardContent className="flex items-center gap-3 p-3">
+                      <Avatar className="h-11 w-11">
+                        <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                          {conv.avatar}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium truncate block">
+                          {language === 'ar' && conv.nameAr ? conv.nameAr : conv.name}
+                        </span>
+                        <p className="text-sm text-muted-foreground truncate">{conv.lastMessage}</p>
+                      </div>
+                      {conv.unread > 0 && (
+                        <span className="min-w-[20px] h-[20px] px-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                          {conv.unread}
+                        </span>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* No Results */}
+            {!isUserSearching && userSearchResults.length === 0 && conversationsForSearch.filter(conv => {
+              const searchLower = searchQuery.toLowerCase();
+              return conv.name.toLowerCase().includes(searchLower) || conv.nameAr?.toLowerCase().includes(searchLower);
+            }).length === 0 && searchQuery.length >= 1 && (
+              <div className="text-center py-8 text-muted-foreground">
+                {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
+              </div>
+            )}
+          </div>
         ) : (
           /* Tabs - Only show when not searching */
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>

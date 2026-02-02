@@ -123,7 +123,8 @@ export async function searchUsersByUsername(
   excludeUserId?: string,
   limit: number = 10
 ): Promise<RecipientLookupResult[]> {
-  if (!query || query.length < 2) {
+  // Search from first character (Arabic/English/numbers)
+  if (!query || query.length < 1) {
     return [];
   }
 

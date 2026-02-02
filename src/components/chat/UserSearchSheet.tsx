@@ -82,7 +82,7 @@ export function UserSearchSheet({ open, onOpenChange, onSelectUser }: UserSearch
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
             </div>
-          ) : results.length === 0 && query.length >= 2 ? (
+          ) : results.length === 0 && query.length >= 1 ? (
             <div className="text-center py-8 text-muted-foreground">
               {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
             </div>
