@@ -19,7 +19,8 @@ export function useUserSearch() {
   const [isSearching, setIsSearching] = useState(false);
 
   const searchUsers = useCallback(async (query: string) => {
-    if (!user || query.length < 2) {
+    // Start search from first character (not 2)
+    if (!user || query.length < 1) {
       setResults([]);
       return;
     }
@@ -27,22 +28,25 @@ export function useUserSearch() {
     setIsSearching(true);
 
     try {
-      // Search by name or username
+      // Search by name or username - remove @ prefix if present
       const searchTerm = query.startsWith('@') ? query.slice(1) : query;
       
-      // Only return users with complete profiles (username must exist and be at least 3 chars)
+      // Search profiles with partial match on name OR username
+      // No .gte() filter - RLS policy handles username validation
       const { data, error } = await supabase
         .from('profiles')
         .select('id, user_id, name, username, avatar_url, country, city, rank')
         .or(`name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
         .neq('user_id', user.id)
         .not('username', 'is', null)
-        .gte('username', 'aaa') // Ensure username has at least 3 chars
         .limit(20);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Search query error:', error);
+        throw error;
+      }
 
-      // Filter out any users without proper username (safety check)
+      // Filter for complete profiles only
       const validUsers = (data || []).filter(p => 
         p.username && 
         p.username.length >= 3 && 

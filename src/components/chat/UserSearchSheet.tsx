@@ -28,8 +28,9 @@ export function UserSearchSheet({ open, onOpenChange, onSelectUser }: UserSearch
   const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    if (query.length >= 2) {
-      const timer = setTimeout(() => searchUsers(query), 300);
+    // Start search from first character
+    if (query.length >= 1) {
+      const timer = setTimeout(() => searchUsers(query), 200);
       return () => clearTimeout(timer);
     } else {
       clearResults();
