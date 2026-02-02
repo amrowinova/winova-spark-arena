@@ -1294,6 +1294,66 @@ export type Database = {
         Args: { p_conversation_id: string; p_recipient_id: string }
         Returns: number
       }
+      p2p_cancel_order: {
+        Args: { p_order_id: string; p_reason?: string; p_user_id: string }
+        Returns: Json
+      }
+      p2p_confirm_payment: {
+        Args: { p_order_id: string; p_user_id: string }
+        Returns: Json
+      }
+      p2p_create_buy_order: {
+        Args: {
+          p_country: string
+          p_creator_id: string
+          p_exchange_rate: number
+          p_local_amount: number
+          p_nova_amount: number
+          p_payment_method_id?: string
+          p_time_limit_minutes?: number
+        }
+        Returns: Json
+      }
+      p2p_create_sell_order: {
+        Args: {
+          p_country: string
+          p_creator_id: string
+          p_exchange_rate: number
+          p_local_amount: number
+          p_nova_amount: number
+          p_payment_method_id?: string
+          p_time_limit_minutes?: number
+        }
+        Returns: Json
+      }
+      p2p_delete_order: {
+        Args: { p_order_id: string; p_user_id: string }
+        Returns: Json
+      }
+      p2p_execute_order: {
+        Args: {
+          p_executor_id: string
+          p_order_id: string
+          p_payment_method_id?: string
+        }
+        Returns: Json
+      }
+      p2p_open_dispute: {
+        Args: { p_order_id: string; p_reason: string; p_user_id: string }
+        Returns: Json
+      }
+      p2p_release_escrow: {
+        Args: { p_order_id: string; p_user_id: string }
+        Returns: Json
+      }
+      p2p_relist_order: {
+        Args: { p_order_id: string; p_reason?: string; p_user_id: string }
+        Returns: Json
+      }
+      p2p_resolve_dispute: {
+        Args: { p_order_id: string; p_resolution: string; p_staff_id: string }
+        Returns: Json
+      }
       record_spotlight_points: {
         Args: { p_points: number; p_source: string; p_user_id: string }
         Returns: undefined
