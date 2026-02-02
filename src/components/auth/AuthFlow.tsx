@@ -9,6 +9,7 @@ import { ProfileCompletionScreen } from './ProfileCompletionScreen';
 import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthRequired } from '@/contexts/AuthRequiredContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -30,6 +31,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   const [email, setEmail] = useState('');
   const { language } = useLanguage();
   const { user } = useAuth();
+  const { markAuthComplete } = useAuthRequired();
   const isRTL = language === 'ar';
 
   // Reset screen when modal opens
@@ -53,7 +55,10 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   };
 
   const handleAuthComplete = async () => {
-    // Close the modal first
+    // Mark auth as complete FIRST to prevent any modals from showing
+    markAuthComplete();
+    
+    // Close the modal
     onOpenChange(false);
     
     // Get user profile to get the name
@@ -80,14 +85,16 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
       console.error('Error fetching profile for welcome message:', error);
     }
     
-    // Trigger callback and navigate
+    // Trigger callback
     onAuthSuccess?.();
   };
 
   // Login success handler (for password login)
   const handleLoginSuccess = async () => {
+    // Mark auth complete immediately
+    markAuthComplete();
+    
     // The useEffect above will catch the auth state change and handle it
-    // This is just a backup in case the auth state doesn't update immediately
     setTimeout(() => {
       if (!user) {
         handleAuthComplete();
@@ -97,6 +104,9 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
 
   // Signup success handler (for password signup with name)
   const handleSignupSuccess = async (name: string) => {
+    // Mark auth complete FIRST to prevent any modals from showing
+    markAuthComplete();
+    
     // Close the modal
     onOpenChange(false);
     

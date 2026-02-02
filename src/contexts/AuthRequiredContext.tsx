@@ -12,6 +12,7 @@ interface AuthRequiredContextType {
   authFlowMode: 'login' | 'signup';
   closeAuthFlow: () => void;
   isAuthTransitioning: boolean;
+  markAuthComplete: () => void;
 }
 
 const AuthRequiredContext = createContext<AuthRequiredContextType | undefined>(undefined);
@@ -25,7 +26,7 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
   
   // Track if we just completed auth to prevent modal from showing during transition
   const justAuthenticatedRef = useRef(false);
-  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear timeout on unmount
   useEffect(() => {
@@ -39,10 +40,9 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
   // When user becomes authenticated, mark that we just authenticated
   useEffect(() => {
     if (user && !isLoading) {
+      // User is authenticated - close everything and mark transition
       justAuthenticatedRef.current = true;
       setIsAuthTransitioning(true);
-      
-      // Close any open modals immediately
       setIsModalOpen(false);
       setAuthFlowOpen(false);
       
@@ -55,9 +55,26 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
       transitionTimeoutRef.current = setTimeout(() => {
         justAuthenticatedRef.current = false;
         setIsAuthTransitioning(false);
-      }, 2000); // Extended to 2 seconds for safety
+      }, 3000); // 3 seconds grace period
     }
   }, [user, isLoading]);
+
+  // Mark auth as complete - call this after successful login/signup
+  const markAuthComplete = useCallback(() => {
+    justAuthenticatedRef.current = true;
+    setIsAuthTransitioning(true);
+    setIsModalOpen(false);
+    setAuthFlowOpen(false);
+    
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+    
+    transitionTimeoutRef.current = setTimeout(() => {
+      justAuthenticatedRef.current = false;
+      setIsAuthTransitioning(false);
+    }, 3000);
+  }, []);
 
   const showAuthRequired = useCallback(() => {
     // Don't show modal if:
@@ -65,14 +82,8 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
     // 2. Auth is still loading
     // 3. We just completed authentication (grace period)
     // 4. Auth flow is currently open
+    // 5. We're in auth transition
     if (user || isLoading || justAuthenticatedRef.current || authFlowOpen || isAuthTransitioning) {
-      console.log('[AuthRequired] Skipping modal:', { 
-        hasUser: !!user, 
-        isLoading, 
-        justAuthenticated: justAuthenticatedRef.current,
-        authFlowOpen,
-        isAuthTransitioning
-      });
       return;
     }
     setIsModalOpen(true);
@@ -81,10 +92,10 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
   const requireAuth = useCallback((action: () => void) => {
     if (user) {
       action();
-    } else if (!isLoading && !justAuthenticatedRef.current && !isAuthTransitioning) {
+    } else if (!isLoading && !justAuthenticatedRef.current && !isAuthTransitioning && !authFlowOpen) {
       setIsModalOpen(true);
     }
-  }, [user, isLoading, isAuthTransitioning]);
+  }, [user, isLoading, isAuthTransitioning, authFlowOpen]);
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);
@@ -92,41 +103,27 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
 
   /**
    * Opens the auth flow with session isolation.
-   * Signs out any existing session to prevent conflicts between devices.
    */
   const openAuthFlow = useCallback(async (mode: 'login' | 'signup') => {
     setIsModalOpen(false);
     setIsAuthTransitioning(true);
     
     // Session isolation: sign out any existing session before starting auth
-    // This prevents session conflicts when switching accounts or devices
     try {
       await supabase.auth.signOut();
     } catch (error) {
       console.warn('Session cleanup failed:', error);
-      // Continue anyway - the auth flow will handle any issues
     }
     
     setAuthFlowMode(mode);
     setAuthFlowOpen(true);
+    setIsAuthTransitioning(false);
   }, []);
 
   const closeAuthFlow = useCallback(() => {
     setAuthFlowOpen(false);
-    // Mark as just authenticated when closing auth flow
-    justAuthenticatedRef.current = true;
-    setIsAuthTransitioning(true);
-    
-    // Clear previous timeout
-    if (transitionTimeoutRef.current) {
-      clearTimeout(transitionTimeoutRef.current);
-    }
-    
-    transitionTimeoutRef.current = setTimeout(() => {
-      justAuthenticatedRef.current = false;
-      setIsAuthTransitioning(false);
-    }, 2000);
-  }, []);
+    markAuthComplete();
+  }, [markAuthComplete]);
 
   return (
     <AuthRequiredContext.Provider
@@ -140,6 +137,7 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
         authFlowMode,
         closeAuthFlow,
         isAuthTransitioning,
+        markAuthComplete,
       }}
     >
       {children}
