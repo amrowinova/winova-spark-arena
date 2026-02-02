@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { DMMessageBubble, DMMessageData } from './DMMessageBubble';
@@ -12,6 +11,7 @@ import { ForwardDialog } from './ForwardDialog';
 import { MessageInfoSheet } from './MessageInfoSheet';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { DMConversation, DMMessage } from '@/hooks/useDirectMessages';
+import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 
 interface DMChatViewProps {
   conversation: DMConversation;
@@ -40,26 +40,25 @@ export function DMChatView({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Typing indicator
+  const { otherUserTyping, handleTyping, stopTyping } = useTypingIndicator(conversation.id);
 
   // Convert messages to DMMessageData format with reply info
-  const formattedMessages: DMMessageData[] = messages.map(msg => {
-    // Find if this message has a reply (for now, based on replyTo state matching)
-    return {
-      id: msg.id,
-      conversationId: msg.conversationId,
-      senderId: msg.senderId,
-      senderName: msg.senderName,
-      content: msg.content,
-      messageType: msg.messageType,
-      isRead: msg.isRead,
-      createdAt: msg.createdAt,
-      isMine: msg.isMine,
-      transferAmount: msg.transferAmount,
-      // Reply info would come from message metadata in a full implementation
-      replyTo: undefined,
-    };
-  });
+  const formattedMessages: DMMessageData[] = messages.map(msg => ({
+    id: msg.id,
+    conversationId: msg.conversationId,
+    senderId: msg.senderId,
+    senderName: msg.senderName,
+    content: msg.content,
+    messageType: msg.messageType,
+    isRead: msg.isRead,
+    createdAt: msg.createdAt,
+    isMine: msg.isMine,
+    transferAmount: msg.transferAmount,
+    replyTo: undefined,
+  }));
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -70,7 +69,7 @@ export function DMChatView({
     };
     
     // Small delay to ensure DOM is updated
-    const timer = setTimeout(scrollToBottom, 100);
+    const timer = setTimeout(scrollToBottom, 50);
     return () => clearTimeout(timer);
   }, [messages.length]);
 
@@ -105,11 +104,7 @@ export function DMChatView({
     const content = message.trim();
     setMessage('');
     setReplyTo(null);
-    
-    // Auto-resize textarea back to single line
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-    }
+    stopTyping();
     
     await onSendMessage(conversation.id, content);
   };
@@ -122,14 +117,10 @@ export function DMChatView({
     }
   };
 
-  // Auto-resize textarea
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  // Handle input change with typing indicator
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMessage(e.target.value);
-    
-    // Auto-resize
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    handleTyping();
   };
 
   // Message actions
@@ -192,24 +183,26 @@ export function DMChatView({
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Fixed Header */}
-      <ChatHeader
-        name={conversation.participantName}
-        username={conversation.participantUsername}
-        avatar="👤"
-        isOnline={false}
-        onBack={onBack}
-        onTransfer={() => setTransferDialogOpen(true)}
-      />
+    <div className="fixed inset-0 z-50 flex flex-col bg-background" style={{ height: '100dvh' }}>
+      {/* Fixed Header - Always at top */}
+      <div className="flex-shrink-0">
+        <ChatHeader
+          name={conversation.participantName}
+          username={conversation.participantUsername}
+          avatar="👤"
+          isOnline={false}
+          isTyping={!!otherUserTyping}
+          onBack={onBack}
+          onTransfer={() => setTransferDialogOpen(true)}
+        />
+      </div>
 
-      {/* Scrollable Messages Area */}
+      {/* Scrollable Messages Area - Takes remaining space */}
       <div 
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto overscroll-contain"
-        style={{ paddingBottom: replyTo ? '120px' : '80px' }}
       >
-        <div className="p-4 space-y-1">
+        <div className="p-4 space-y-1 pb-2">
           {formattedMessages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>{language === 'ar' ? 'ابدأ المحادثة' : 'Start the conversation'}</p>
@@ -217,7 +210,7 @@ export function DMChatView({
           ) : (
             groupedMessages.map((group, groupIndex) => (
               <div key={groupIndex} className="space-y-0.5">
-                {group.messages.map((msg, msgIndex) => (
+                {group.messages.map((msg) => (
                   <div
                     key={msg.id}
                     ref={(el) => {
@@ -245,8 +238,11 @@ export function DMChatView({
         </div>
       </div>
 
-      {/* Fixed Bottom Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
+      {/* Fixed Bottom Input Area - Always visible */}
+      <div 
+        className="flex-shrink-0 bg-card border-t border-border"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
         {/* Reply Preview */}
         {replyTo && (
           <ReplyBar
@@ -256,15 +252,15 @@ export function DMChatView({
         )}
         
         {/* Input Bar */}
-        <div className="p-3 pb-safe flex items-end gap-2">
-          <Textarea
+        <div className="p-3 flex items-center gap-2">
+          <Input
             ref={inputRef}
             value={message}
-            onChange={handleTextareaChange}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder={language === 'ar' ? 'اكتب رسالة...' : 'Type a message...'}
-            className="flex-1 min-h-[40px] max-h-[120px] resize-none py-2"
-            rows={1}
+            className="flex-1"
+            autoComplete="off"
           />
           <Button 
             size="icon" 
