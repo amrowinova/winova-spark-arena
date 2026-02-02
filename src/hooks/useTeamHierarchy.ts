@@ -15,6 +15,10 @@ export interface TeamMemberData {
   parent_id: string;
 }
 
+/**
+ * Hook to fetch real team hierarchy from database
+ * Uses get_team_hierarchy RPC for production-ready data
+ */
 export function useTeamHierarchy(maxDepth: number = 5) {
   const { user } = useAuth();
   const [members, setMembers] = useState<TeamMemberData[]>([]);
@@ -29,15 +33,34 @@ export function useTeamHierarchy(maxDepth: number = 5) {
 
     try {
       setLoading(true);
+      setError(null);
 
+      // Call real RPC to get team hierarchy from database
       const { data, error: rpcError } = await supabase.rpc('get_team_hierarchy', {
         p_leader_id: user.id,
         p_max_depth: maxDepth
       });
 
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        console.error('Team hierarchy RPC error:', rpcError);
+        throw rpcError;
+      }
 
-      setMembers((data || []) as TeamMemberData[]);
+      // Map the response to our interface
+      const mappedMembers: TeamMemberData[] = (data || []).map((m: any) => ({
+        member_id: m.member_id,
+        level: m.level,
+        name: m.name || 'Unknown',
+        username: m.username || 'unknown',
+        avatar_url: m.avatar_url,
+        rank: m.rank || 'subscriber',
+        weekly_active: m.weekly_active || false,
+        active_weeks: m.active_weeks || 0,
+        direct_count: Number(m.direct_count) || 0,
+        parent_id: m.parent_id
+      }));
+
+      setMembers(mappedMembers);
     } catch (err) {
       console.error('Error fetching team hierarchy:', err);
       setError('Failed to load team');
@@ -50,7 +73,7 @@ export function useTeamHierarchy(maxDepth: number = 5) {
     fetchTeam();
   }, [fetchTeam]);
 
-  // Computed values
+  // Computed values - ALL DERIVED FROM REAL DATABASE DATA
   const directMembers = members.filter(m => m.level === 1);
   const indirectMembers = members.filter(m => m.level > 1);
   
@@ -61,7 +84,7 @@ export function useTeamHierarchy(maxDepth: number = 5) {
   const activeDirectCount = directMembers.filter(m => m.weekly_active).length;
   const activeIndirectCount = indirectMembers.filter(m => m.weekly_active).length;
 
-  // Group indirect members by their parent
+  // Get indirect members by their parent (for viewing sub-teams)
   const getIndirectByParent = (parentId: string) => {
     return members.filter(m => m.parent_id === parentId && m.level > 1);
   };

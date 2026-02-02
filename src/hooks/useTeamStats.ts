@@ -59,7 +59,7 @@ export function useTeamStats() {
       setLoading(true);
       setError(null);
 
-      // Fetch all stats in parallel
+      // Fetch all stats in parallel using real RPCs
       const [statsResult, referralResult, rankingResult, breakdownResult] = await Promise.all([
         supabase.rpc('get_team_stats', { p_user_id: user.id }),
         supabase.rpc('get_referral_stats', { p_user_id: user.id }),
@@ -67,15 +67,29 @@ export function useTeamStats() {
         supabase.rpc('get_team_level_breakdown', { p_user_id: user.id, p_max_level: 5 })
       ]);
 
-      if (statsResult.error) throw statsResult.error;
-      if (referralResult.error) throw referralResult.error;
-      if (rankingResult.error) throw rankingResult.error;
-      if (breakdownResult.error) throw breakdownResult.error;
+      if (statsResult.error) {
+        console.error('Team stats error:', statsResult.error);
+      } else {
+        setStats(statsResult.data as unknown as TeamStats);
+      }
 
-      setStats(statsResult.data as unknown as TeamStats);
-      setReferralStats(referralResult.data as unknown as ReferralStats);
-      setRanking(rankingResult.data as unknown as TeamRanking);
-      setLevelBreakdown((breakdownResult.data as unknown as LevelBreakdown[]) || []);
+      if (referralResult.error) {
+        console.error('Referral stats error:', referralResult.error);
+      } else {
+        setReferralStats(referralResult.data as unknown as ReferralStats);
+      }
+
+      if (rankingResult.error) {
+        console.error('Ranking error:', rankingResult.error);
+      } else {
+        setRanking(rankingResult.data as unknown as TeamRanking);
+      }
+
+      if (breakdownResult.error) {
+        console.error('Breakdown error:', breakdownResult.error);
+      } else {
+        setLevelBreakdown((breakdownResult.data as unknown as LevelBreakdown[]) || []);
+      }
     } catch (err) {
       console.error('Error fetching team stats:', err);
       setError('Failed to load team stats');
@@ -88,7 +102,7 @@ export function useTeamStats() {
     fetchStats();
   }, [fetchStats]);
 
-  // Computed values with safe defaults
+  // Computed values with safe defaults - ALL FROM DATABASE
   const directCount = stats?.direct_count ?? 0;
   const indirectCount = stats?.indirect_count ?? 0;
   const totalCount = stats?.total_count ?? 0;
@@ -105,13 +119,13 @@ export function useTeamStats() {
   const userRank = stats?.user_rank ?? 'subscriber';
 
   return {
-    // Raw data
+    // Raw data from DB
     stats,
     referralStats,
     ranking,
     levelBreakdown,
     
-    // Computed values
+    // Computed values from DB
     directCount,
     indirectCount,
     totalCount,
