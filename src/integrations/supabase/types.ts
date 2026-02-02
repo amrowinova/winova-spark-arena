@@ -205,6 +205,7 @@ export type Database = {
           content_ar: string | null
           conversation_id: string
           created_at: string
+          delivered_at: string | null
           id: string
           is_read: boolean
           message_type: string
@@ -217,6 +218,7 @@ export type Database = {
           content_ar?: string | null
           conversation_id: string
           created_at?: string
+          delivered_at?: string | null
           id?: string
           is_read?: boolean
           message_type?: string
@@ -229,6 +231,7 @@ export type Database = {
           content_ar?: string | null
           conversation_id?: string
           created_at?: string
+          delivered_at?: string | null
           id?: string
           is_read?: boolean
           message_type?: string
@@ -483,6 +486,7 @@ export type Database = {
           engagement_status: Database["public"]["Enums"]["engagement_status"]
           has_joined_with_nova: boolean
           id: string
+          last_seen_at: string | null
           name: string
           rank: Database["public"]["Enums"]["user_rank"]
           referral_code: string | null
@@ -506,6 +510,7 @@ export type Database = {
           engagement_status?: Database["public"]["Enums"]["engagement_status"]
           has_joined_with_nova?: boolean
           id?: string
+          last_seen_at?: string | null
           name: string
           rank?: Database["public"]["Enums"]["user_rank"]
           referral_code?: string | null
@@ -529,6 +534,7 @@ export type Database = {
           engagement_status?: Database["public"]["Enums"]["engagement_status"]
           has_joined_with_nova?: boolean
           id?: string
+          last_seen_at?: string | null
           name?: string
           rank?: Database["public"]["Enums"]["user_rank"]
           referral_code?: string | null
@@ -1201,6 +1207,46 @@ export type Database = {
         Args: { p_country: string; p_username: string }
         Returns: string
       }
+      get_team_hierarchy: {
+        Args: { p_leader_id: string; p_max_depth?: number }
+        Returns: {
+          active_weeks: number
+          avatar_url: string
+          direct_count: number
+          level: number
+          member_id: string
+          name: string
+          parent_id: string
+          rank: string
+          username: string
+          weekly_active: boolean
+        }[]
+      }
+      get_wallet_history: {
+        Args: {
+          p_currency?: string
+          p_limit?: number
+          p_offset?: number
+          p_user_id: string
+        }
+        Returns: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          counterparty_id: string
+          counterparty_name: string
+          counterparty_username: string
+          created_at: string
+          currency: string
+          description: string
+          description_ar: string
+          entry_type: string
+          id: string
+          metadata: Json
+          reference_id: string
+          reference_type: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1214,6 +1260,28 @@ export type Database = {
         Args: { p_contest_id: string; p_entry_fee?: number; p_user_id: string }
         Returns: Json
       }
+      mark_messages_delivered: {
+        Args: { p_conversation_id: string; p_recipient_id: string }
+        Returns: number
+      }
+      search_messages: {
+        Args: {
+          p_conversation_id?: string
+          p_limit?: number
+          p_query: string
+          p_user_id: string
+        }
+        Returns: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          participant_name: string
+          sender_id: string
+          sender_name: string
+        }[]
+      }
+      update_last_seen: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "support"

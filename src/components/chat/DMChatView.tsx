@@ -228,7 +228,6 @@ export function DMChatView({
                     <DMMessageBubble
                       message={msg}
                       showReadReceipts={true}
-                      isDelivered={true}
                       onReply={handleReply}
                       onForward={handleForward}
                       onCopy={handleCopy}
