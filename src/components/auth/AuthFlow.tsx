@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AuthLanding } from './AuthLanding';
 import { LoginScreen } from './LoginScreen';
@@ -50,16 +49,16 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     }
   }, [user, open]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     onOpenChange(false);
-  };
+  }, [onOpenChange]);
 
-  const handleAuthComplete = async () => {
+  const handleAuthComplete = useCallback(async () => {
     // Mark auth as complete FIRST to prevent any modals from showing
     markAuthComplete();
     
-    // Close the modal
-    onOpenChange(false);
+    // Trigger callback first (this will close the flow properly)
+    onAuthSuccess?.();
     
     // Get user profile to get the name
     try {
@@ -84,31 +83,27 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     } catch (error) {
       console.error('Error fetching profile for welcome message:', error);
     }
-    
-    // Trigger callback
-    onAuthSuccess?.();
-  };
+  }, [isRTL, markAuthComplete, onAuthSuccess]);
 
   // Login success handler (for password login)
-  const handleLoginSuccess = async () => {
+  const handleLoginSuccess = useCallback(async () => {
     // Mark auth complete immediately
     markAuthComplete();
     
-    // The useEffect above will catch the auth state change and handle it
-    setTimeout(() => {
-      if (!user) {
-        handleAuthComplete();
-      }
-    }, 500);
-  };
+    // Trigger success callback
+    onAuthSuccess?.();
+    
+    // Show welcome toast
+    toast({
+      title: isRTL ? 'مرحباً بعودتك! 👋' : 'Welcome back! 👋',
+      description: isRTL ? 'تم تسجيل الدخول بنجاح' : 'Signed in successfully',
+    });
+  }, [markAuthComplete, onAuthSuccess, isRTL]);
 
   // Signup success handler (for password signup with name)
-  const handleSignupSuccess = async (name: string) => {
+  const handleSignupSuccess = useCallback((name: string) => {
     // Mark auth complete FIRST to prevent any modals from showing
     markAuthComplete();
-    
-    // Close the modal
-    onOpenChange(false);
     
     // Show success notification with the name
     toast({
@@ -120,7 +115,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     
     // Trigger callback
     onAuthSuccess?.();
-  };
+  }, [markAuthComplete, onAuthSuccess, isRTL]);
 
   // Login flow: email → OTP → success
   const handleLoginSendOTP = (userEmail: string) => {

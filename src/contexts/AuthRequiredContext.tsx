@@ -10,7 +10,7 @@ interface AuthRequiredContextType {
   openAuthFlow: (mode: 'login' | 'signup') => void;
   authFlowOpen: boolean;
   authFlowMode: 'login' | 'signup';
-  closeAuthFlow: () => void;
+  closeAuthFlow: (isSuccess?: boolean) => void;
   isAuthTransitioning: boolean;
   markAuthComplete: () => void;
 }
@@ -102,27 +102,26 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Opens the auth flow with session isolation.
+   * Opens the auth flow without signing out existing user.
+   * Only for unauthenticated users to start login/signup.
    */
-  const openAuthFlow = useCallback(async (mode: 'login' | 'signup') => {
-    setIsModalOpen(false);
-    setIsAuthTransitioning(true);
-    
-    // Session isolation: sign out any existing session before starting auth
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.warn('Session cleanup failed:', error);
+  const openAuthFlow = useCallback((mode: 'login' | 'signup') => {
+    // Don't open auth flow if user is already authenticated
+    if (user) {
+      return;
     }
     
+    setIsModalOpen(false);
     setAuthFlowMode(mode);
     setAuthFlowOpen(true);
-    setIsAuthTransitioning(false);
-  }, []);
+  }, [user]);
 
-  const closeAuthFlow = useCallback(() => {
+  const closeAuthFlow = useCallback((isSuccess?: boolean) => {
     setAuthFlowOpen(false);
-    markAuthComplete();
+    // Only mark auth complete if it was a successful auth
+    if (isSuccess) {
+      markAuthComplete();
+    }
   }, [markAuthComplete]);
 
   return (

@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRequired } from '@/contexts/AuthRequiredContext';
-import { useEffect, ReactNode, useRef } from 'react';
+import { useEffect, ReactNode, useRef, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
@@ -13,6 +13,7 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
   const { showAuthRequired, isAuthTransitioning, authFlowOpen } = useAuthRequired();
   const hasShownModalRef = useRef(false);
   const mountedRef = useRef(false);
+  const initialLoadCompletedRef = useRef(false);
 
   // Track mount state
   useEffect(() => {
@@ -22,6 +23,17 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
     };
   }, []);
 
+  // Mark initial load as complete after first auth check
+  useEffect(() => {
+    if (!isLoading && !initialLoadCompletedRef.current) {
+      // Add a small delay before allowing modal to show
+      const timer = setTimeout(() => {
+        initialLoadCompletedRef.current = true;
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
   // Reset modal shown flag when user changes
   useEffect(() => {
     if (user) {
@@ -29,7 +41,7 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
     }
   }, [user]);
 
-  useEffect(() => {
+  const checkAndShowModal = useCallback(() => {
     // Only show modal if ALL these conditions are true:
     // 1. Component is mounted
     // 2. Not loading
@@ -38,6 +50,7 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
     // 5. Not in auth transition
     // 6. Auth flow is not open
     // 7. Haven't shown modal yet in this session
+    // 8. Initial load has completed
     const shouldShowModal = 
       mountedRef.current &&
       !isLoading && 
@@ -45,20 +58,22 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
       !user && 
       !isAuthTransitioning && 
       !authFlowOpen &&
-      !hasShownModalRef.current;
+      !hasShownModalRef.current &&
+      initialLoadCompletedRef.current;
 
     if (shouldShowModal) {
-      // Add a small delay to ensure auth state is fully propagated
-      const timer = setTimeout(() => {
-        if (mountedRef.current && !user && !isAuthTransitioning && !authFlowOpen) {
-          hasShownModalRef.current = true;
-          showAuthRequired();
-        }
-      }, 500);
-      
-      return () => clearTimeout(timer);
+      hasShownModalRef.current = true;
+      showAuthRequired();
     }
   }, [user, isLoading, requireAuth, showAuthRequired, isAuthTransitioning, authFlowOpen]);
+
+  useEffect(() => {
+    if (!isLoading && !user && !isAuthTransitioning && !authFlowOpen && initialLoadCompletedRef.current) {
+      // Add a delay to ensure auth state is fully propagated
+      const timer = setTimeout(checkAndShowModal, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [user, isLoading, isAuthTransitioning, authFlowOpen, checkAndShowModal]);
 
   // Show loading during initial auth check or during transition
   if (isLoading || isAuthTransitioning) {
