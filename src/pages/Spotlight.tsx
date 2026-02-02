@@ -82,6 +82,8 @@ function SpotlightContent() {
             currentDay={spotlightData.currentDay}
             totalDays={spotlightData.totalDays}
             cyclePoints={spotlightData.userCyclePoints}
+            daysRemaining={spotlightData.daysRemaining}
+            progressPercentage={spotlightData.progressPercentage}
           />
         </motion.div>
 

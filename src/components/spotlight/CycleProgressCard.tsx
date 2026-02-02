@@ -1,4 +1,4 @@
-import { Calendar, Sparkles } from 'lucide-react';
+import { Calendar, Sparkles, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -7,17 +7,23 @@ interface CycleProgressCardProps {
   currentDay: number;
   totalDays: number;
   cyclePoints: number;
+  daysRemaining?: number;
+  progressPercentage?: number;
 }
 
 export function CycleProgressCard({
   currentDay,
   totalDays,
   cyclePoints,
+  daysRemaining,
+  progressPercentage,
 }: CycleProgressCardProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
 
-  const dayProgress = (currentDay / totalDays) * 100;
+  // Use provided percentage or calculate from days
+  const dayProgress = progressPercentage ?? (currentDay / totalDays) * 100;
+  const remaining = daysRemaining ?? (totalDays - currentDay);
 
   return (
     <Card className="overflow-hidden">
@@ -34,6 +40,20 @@ export function CycleProgressCard({
             </span>
           </div>
           <Progress value={dayProgress} className="h-2" />
+          
+          {/* Days remaining */}
+          <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              <span>{isRTL ? 'التقدم' : 'Progress'}: {dayProgress.toFixed(1)}%</span>
+            </div>
+            <span>
+              {isRTL 
+                ? `${remaining} يوم متبقي`
+                : `${remaining} days remaining`
+              }
+            </span>
+          </div>
         </div>
 
         {/* Cumulative Cycle Points */}

@@ -2,16 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-interface SpotlightCycle {
-  id: string;
-  cycle_number: number;
-  start_date: string;
-  end_date: string;
-  total_days: number;
-  total_weeks: number;
-  status: string;
-}
+import { useCycleProgress } from './useCycleProgress';
+import { useWeeklyPointsChart } from './useWeeklyPointsChart';
 
 interface DailyDraw {
   id: string;
@@ -40,12 +32,14 @@ interface WeeklyPerformance {
 }
 
 interface SpotlightData {
-  // Cycle info
+  // Cycle info (from useCycleProgress)
   currentDay: number;
   totalDays: number;
   currentWeek: number;
   totalWeeks: number;
   cycleId: string | null;
+  daysRemaining: number;
+  progressPercentage: number;
 
   // User points
   userDailyPoints: number;
@@ -55,6 +49,7 @@ interface SpotlightData {
 
   // Weekly performance
   weeklyPerformance: WeeklyPerformance[];
+  weeklyChartData: { dayOfWeek: number; date: string; points: number }[];
 
   // Daily pool and winners
   dailyPool: number;
@@ -75,7 +70,12 @@ export function useSpotlight(): SpotlightData {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
 
-  const [activeCycle, setActiveCycle] = useState<SpotlightCycle | null>(null);
+  // Use real cycle progress from RPC
+  const cycleProgress = useCycleProgress();
+  
+  // Use real weekly chart data from RPC
+  const weeklyChart = useWeeklyPointsChart(cycleProgress.cycleId);
+
   const [todayDraw, setTodayDraw] = useState<DailyDraw | null>(null);
   const [yesterdayDraw, setYesterdayDraw] = useState<DailyDraw | null>(null);
   const [userPoints, setUserPoints] = useState<{ daily: number; cycle: number; weeklyData: WeeklyPerformance[] }>({
@@ -91,32 +91,9 @@ export function useSpotlight(): SpotlightData {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch active cycle
-  useEffect(() => {
-    const fetchActiveCycle = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('spotlight_cycles')
-          .select('*')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (error && error.code !== 'PGRST116') throw error;
-        setActiveCycle(data);
-      } catch (err) {
-        console.error('Error fetching active cycle:', err);
-        setError('Failed to load cycle data');
-      }
-    };
-
-    fetchActiveCycle();
-  }, []);
-
   // Fetch daily draws (today and yesterday)
   useEffect(() => {
-    if (!activeCycle) return;
+    if (!cycleProgress.cycleId) return;
 
     const fetchDailyDraws = async () => {
       try {
@@ -127,7 +104,7 @@ export function useSpotlight(): SpotlightData {
         const { data: todayData } = await supabase
           .from('spotlight_daily_draws')
           .select('*')
-          .eq('cycle_id', activeCycle.id)
+          .eq('cycle_id', cycleProgress.cycleId)
           .eq('draw_date', today)
           .single();
 
@@ -137,7 +114,7 @@ export function useSpotlight(): SpotlightData {
         const { data: yesterdayData } = await supabase
           .from('spotlight_daily_draws')
           .select('*')
-          .eq('cycle_id', activeCycle.id)
+          .eq('cycle_id', cycleProgress.cycleId)
           .eq('draw_date', yesterday)
           .single();
 
@@ -178,7 +155,7 @@ export function useSpotlight(): SpotlightData {
           event: '*',
           schema: 'public',
           table: 'spotlight_daily_draws',
-          filter: `cycle_id=eq.${activeCycle.id}`
+          filter: `cycle_id=eq.${cycleProgress.cycleId}`
         },
         () => {
           fetchDailyDraws();
@@ -189,11 +166,11 @@ export function useSpotlight(): SpotlightData {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeCycle]);
+  }, [cycleProgress.cycleId]);
 
   // Fetch user points
   useEffect(() => {
-    if (!user?.id || !activeCycle) return;
+    if (!user?.id || !cycleProgress.cycleId) return;
 
     const fetchUserPoints = async () => {
       try {
@@ -204,7 +181,7 @@ export function useSpotlight(): SpotlightData {
           .from('spotlight_user_points')
           .select('daily_points')
           .eq('user_id', user.id)
-          .eq('cycle_id', activeCycle.id)
+          .eq('cycle_id', cycleProgress.cycleId)
           .eq('points_date', today);
 
         const dailyTotal = todayPoints?.reduce((sum, p) => sum + p.daily_points, 0) || 0;
@@ -214,13 +191,13 @@ export function useSpotlight(): SpotlightData {
           .from('spotlight_user_points')
           .select('daily_points, week_number')
           .eq('user_id', user.id)
-          .eq('cycle_id', activeCycle.id);
+          .eq('cycle_id', cycleProgress.cycleId);
 
         const cycleTotal = cyclePoints?.reduce((sum, p) => sum + p.daily_points, 0) || 0;
 
-        // Group by week for weekly performance
+        // Group by week for weekly performance (used in WeeklyPerformanceCard)
         const weeklyMap = new Map<number, number>();
-        for (let i = 1; i <= activeCycle.total_weeks; i++) {
+        for (let i = 1; i <= cycleProgress.totalWeeks; i++) {
           weeklyMap.set(i, 0);
         }
         cyclePoints?.forEach(p => {
@@ -243,11 +220,11 @@ export function useSpotlight(): SpotlightData {
     };
 
     fetchUserPoints();
-  }, [user?.id, activeCycle]);
+  }, [user?.id, cycleProgress.cycleId, cycleProgress.totalWeeks]);
 
   // Fetch user ranking within their rank tier
   useEffect(() => {
-    if (!user?.id || !activeCycle) return;
+    if (!user?.id || !cycleProgress.cycleId) return;
 
     const fetchRanking = async () => {
       try {
@@ -274,7 +251,7 @@ export function useSpotlight(): SpotlightData {
         const { data: allPoints } = await supabase
           .from('spotlight_user_points')
           .select('user_id, daily_points')
-          .eq('cycle_id', activeCycle.id)
+          .eq('cycle_id', cycleProgress.cycleId)
           .in('user_id', userIds);
 
         // Aggregate points per user
@@ -303,21 +280,7 @@ export function useSpotlight(): SpotlightData {
     };
 
     fetchRanking();
-  }, [user?.id, activeCycle]);
-
-  // Calculate current day and week in cycle
-  const { currentDay, currentWeek } = useMemo(() => {
-    if (!activeCycle) return { currentDay: 1, currentWeek: 1 };
-
-    const startDate = new Date(activeCycle.start_date);
-    const today = new Date();
-    const diffTime = today.getTime() - startDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    const currentDay = Math.min(Math.max(diffDays, 1), activeCycle.total_days);
-    const currentWeek = Math.min(Math.ceil(currentDay / 7), activeCycle.total_weeks);
-
-    return { currentDay, currentWeek };
-  }, [activeCycle]);
+  }, [user?.id, cycleProgress.cycleId]);
 
   // Build winners arrays
   const buildWinners = (draw: DailyDraw | null): DailyWinner[] => {
@@ -353,22 +316,34 @@ export function useSpotlight(): SpotlightData {
     return endOfDay;
   }, []);
 
-  return {
-    currentDay,
-    totalDays: activeCycle?.total_days || 98,
-    currentWeek,
-    totalWeeks: activeCycle?.total_weeks || 14,
-    cycleId: activeCycle?.id || null,
+  // Combine loading states
+  const isLoading = cycleProgress.loading || weeklyChart.loading || loading;
 
+  return {
+    // Cycle info from useCycleProgress
+    currentDay: cycleProgress.currentDay,
+    totalDays: cycleProgress.totalDays,
+    currentWeek: cycleProgress.currentWeek,
+    totalWeeks: cycleProgress.totalWeeks,
+    cycleId: cycleProgress.cycleId,
+    daysRemaining: cycleProgress.daysRemaining,
+    progressPercentage: cycleProgress.progressPercentage,
+
+    // User points
     userDailyPoints: userPoints.daily,
     userCyclePoints: userPoints.cycle,
     userRankPosition: rankingData.position,
     totalInRank: rankingData.totalInRank,
 
+    // Weekly performance (for 14-week overview chart)
     weeklyPerformance: userPoints.weeklyData.length > 0 
       ? userPoints.weeklyData 
       : Array.from({ length: 14 }, (_, i) => ({ week: i + 1, points: 0 })),
+    
+    // Weekly chart data (for current week daily breakdown)
+    weeklyChartData: weeklyChart.days,
 
+    // Daily draws
     dailyPool: todayDraw?.total_pool || 0,
     dailyWinners: buildWinners(todayDraw),
     yesterdayPool: yesterdayDraw?.total_pool || 0,
@@ -376,7 +351,7 @@ export function useSpotlight(): SpotlightData {
     
     nextDrawTime,
     
-    loading,
-    error
+    loading: isLoading,
+    error: cycleProgress.error || weeklyChart.error || error
   };
 }
