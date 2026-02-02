@@ -155,6 +155,37 @@ function ChatContent() {
     }
   }, [location.state]);
 
+  // Listen for notification clicks to open specific DM conversation
+  useEffect(() => {
+    const handleOpenDMConversation = (event: CustomEvent<{ conversationId: string }>) => {
+      const { conversationId } = event.detail;
+      
+      // Find the DM conversation
+      const dmConv = dmConversations.find(c => c.id === conversationId);
+      if (dmConv) {
+        // Switch to DM tab
+        setSelectedTab('dm');
+        // Open the conversation
+        setActiveDMConversation(dmConv);
+        setActiveDMConversationId(dmConv.id);
+        fetchDMMessages(dmConv.id);
+        setActiveChat(null);
+        setActiveP2PChat(null);
+        setShowSupportChat(false);
+        
+        // Navigate to chat page if not already there
+        if (!location.pathname.includes('/chat')) {
+          navigate('/chat');
+        }
+      }
+    };
+
+    window.addEventListener('open-dm-conversation', handleOpenDMConversation as EventListener);
+    return () => {
+      window.removeEventListener('open-dm-conversation', handleOpenDMConversation as EventListener);
+    };
+  }, [dmConversations, setActiveDMConversationId, fetchDMMessages, navigate, location.pathname]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChat?.messages, activeP2PChat?.messages]);
