@@ -30,16 +30,27 @@ export function useUserSearch() {
       // Search by name or username
       const searchTerm = query.startsWith('@') ? query.slice(1) : query;
       
+      // Only return users with complete profiles (username must exist and be at least 3 chars)
       const { data, error } = await supabase
         .from('profiles')
         .select('id, user_id, name, username, avatar_url, country, city, rank')
         .or(`name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
         .neq('user_id', user.id)
+        .not('username', 'is', null)
+        .gte('username', 'aaa') // Ensure username has at least 3 chars
         .limit(20);
 
       if (error) throw error;
 
-      const formattedResults: SearchedUser[] = (data || []).map(p => ({
+      // Filter out any users without proper username (safety check)
+      const validUsers = (data || []).filter(p => 
+        p.username && 
+        p.username.length >= 3 && 
+        p.name && 
+        p.name.trim().length > 0
+      );
+
+      const formattedResults: SearchedUser[] = validUsers.map(p => ({
         id: p.id,
         userId: p.user_id,
         name: p.name,
