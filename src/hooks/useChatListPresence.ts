@@ -107,8 +107,8 @@ export function useChatListPresence(conversationIds: string[]) {
       });
       typingTimeoutsRef.current.clear();
     };
-  }, [user, conversationIds.join(',')]); // Re-run when conversation list changes
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, JSON.stringify(conversationIds)]); // Re-run when conversation list changes
   // Get status for a specific conversation
   const getStatus = useCallback((conversationId: string): ConversationStatus => {
     return statusMap.get(conversationId) || { isTyping: false, isOnline: false, lastSeen: null };
