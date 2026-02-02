@@ -97,6 +97,13 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Safety: if join dialog is open and join window closes (18:00 KSA), close it immediately.
+  useEffect(() => {
+    if (joinDialogOpen && !timing.canJoin) {
+      setJoinDialogOpen(false);
+    }
+  }, [joinDialogOpen, timing.canJoin]);
+
   // Fetch real contest data
   const fetchContestData = useCallback(async () => {
     try {
@@ -157,8 +164,8 @@ export default function HomePage() {
     if (!timing.canJoin) {
       showError(
         language === 'ar'
-          ? 'التسجيل متاح من 10:00 إلى 18:00 بتوقيت السعودية'
-          : 'Registration is open 10:00–18:00 (KSA)'
+          ? 'تم إغلاق باب الانضمام'
+          : 'Registration is closed'
       );
       return;
     }
@@ -173,7 +180,7 @@ export default function HomePage() {
     }
 
     if (!timing.canJoin) {
-      showError(language === 'ar' ? 'التسجيل مغلق حالياً' : 'Registration is currently closed');
+      showError(language === 'ar' ? 'تم إغلاق باب الانضمام' : 'Registration is closed');
       setJoinDialogOpen(false);
       return;
     }
@@ -201,7 +208,17 @@ export default function HomePage() {
       const result = data as { success: boolean; error?: string };
 
       if (!result.success) {
-        showError(result.error || (language === 'ar' ? 'فشل الانضمام' : 'Failed to join'));
+        const normalizedError = (() => {
+          if (!result.error) return undefined;
+          if (language !== 'ar') return result.error;
+          if (result.error === 'Joining is closed') return 'تم إغلاق باب الانضمام';
+          if (result.error === 'No contest for today') return 'لا توجد مسابقة لليوم';
+          if (result.error === 'Already joined this contest') return 'أنت منضم بالفعل لهذه المسابقة';
+          if (result.error === 'Insufficient Nova balance') return 'رصيد Nova غير كافي';
+          return result.error;
+        })();
+
+        showError(normalizedError || (language === 'ar' ? 'فشل الانضمام' : 'Failed to join'));
         return;
       }
 

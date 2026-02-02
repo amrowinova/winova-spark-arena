@@ -8,6 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { Link } from 'react-router-dom';
+import { getKsaJoinWindow } from '@/lib/ksaTime';
 
 interface ContestJoinCardProps {
   prizePool: number;
@@ -81,27 +82,25 @@ export function ContestJoinCard({
         return;
       }
 
-      // Case 2: Contest exists - check time window
-      const now = new Date();
-      const ksaNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));
-      const ksaHour = ksaNow.getHours();
-      
+      // Case 2: Contest exists - check time window (KSA wall-clock, second-precise)
+      const joinWindow = getKsaJoinWindow();
+
       // Before 10:00 KSA - not open yet
-      if (ksaHour < 10) {
+      if (joinWindow.nowWallClockMs < joinWindow.joinOpenWallClockMs) {
         setCanJoin(false);
         setJoinWindowMessage(language === 'ar' ? 'التسجيل يفتح الساعة 10:00 صباحاً' : 'Registration opens at 10:00 AM');
         return;
       }
       
       // After 18:00 KSA - closed for the day
-      if (ksaHour >= 18) {
+      if (joinWindow.nowWallClockMs >= joinWindow.joinCloseWallClockMs) {
         setCanJoin(false);
         setJoinWindowMessage(language === 'ar' ? 'تم إغلاق باب الانضمام' : 'Registration is closed');
         return;
       }
       
       // Between 10:00 and 18:00 KSA - open for joining
-      const minutesUntilClose = (18 - ksaHour) * 60 - ksaNow.getMinutes();
+      const minutesUntilClose = Math.max(0, Math.floor(joinWindow.msUntilClose / 60000));
       
       if (minutesUntilClose <= 30) {
         setCanJoin(true);
