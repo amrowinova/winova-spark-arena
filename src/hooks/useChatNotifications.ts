@@ -117,6 +117,20 @@ export function useChatNotifications(options: UseChatNotificationsOptions = {}) 
             return;
           }
           
+          // EMIT EVENT FIRST - so chat list updates at the SAME TIME as notification
+          window.dispatchEvent(new CustomEvent('dm-message-received', {
+            detail: {
+              id: newMsg.id,
+              conversationId: newMsg.conversation_id,
+              senderId: newMsg.sender_id,
+              senderName: sender.name,
+              senderUsername: sender.username,
+              content: newMsg.content,
+              createdAt: newMsg.created_at,
+              messageType: newMsg.message_type,
+            }
+          }));
+          
           // Play notification sound
           playNotificationSound();
           

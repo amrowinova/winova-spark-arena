@@ -327,7 +327,102 @@ export function useDirectMessages() {
     }
   }, [user]);
 
-  // Subscribe to realtime updates - ULTRA INSTANT with optimistic updates
+  // Listen for notification-triggered message events - SYNC with notifications
+  useEffect(() => {
+    const handleNewMessage = (event: CustomEvent<{
+      id: string;
+      conversationId: string;
+      senderId: string;
+      senderName: string;
+      senderUsername: string;
+      content: string;
+      createdAt: string;
+      messageType: string;
+    }>) => {
+      const msg = event.detail;
+      const isActiveConv = activeConversationRef.current === msg.conversationId;
+      
+      // Update conversations list INSTANTLY - same moment as notification
+      setConversations(prev => {
+        const existingConv = prev.find(c => c.id === msg.conversationId);
+        
+        if (existingConv) {
+          const updated = prev.map(conv => 
+            conv.id === msg.conversationId 
+              ? { 
+                  ...conv, 
+                  lastMessage: msg.content, 
+                  lastMessageAt: msg.createdAt,
+                  unreadCount: isActiveConv ? 0 : conv.unreadCount + 1,
+                }
+              : conv
+          );
+          
+          return updated.sort((a, b) => {
+            const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+            const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+            return bTime - aTime;
+          });
+        }
+        
+        // New conversation - add it
+        const newConv: DMConversation = {
+          id: msg.conversationId,
+          participantId: msg.senderId,
+          participantName: msg.senderName,
+          participantUsername: msg.senderUsername,
+          participantAvatar: null,
+          participantCountry: '',
+          lastMessage: msg.content,
+          lastMessageAt: msg.createdAt,
+          unreadCount: isActiveConv ? 0 : 1,
+          createdAt: msg.createdAt,
+        };
+        
+        return [newConv, ...prev];
+      });
+      
+      // Also add to messages if we have this conversation loaded
+      const formattedMessage: DMMessage = {
+        id: msg.id,
+        conversationId: msg.conversationId,
+        senderId: msg.senderId,
+        senderName: msg.senderName,
+        content: msg.content,
+        contentAr: null,
+        messageType: msg.messageType,
+        isRead: false,
+        createdAt: msg.createdAt,
+        isMine: false,
+        transferAmount: null,
+        transferRecipientId: null,
+      };
+      
+      setMessages(prev => {
+        const convMessages = prev[msg.conversationId] || [];
+        if (convMessages.some(m => m.id === msg.id)) return prev;
+        return {
+          ...prev,
+          [msg.conversationId]: [...convMessages, formattedMessage],
+        };
+      });
+      
+      // Mark as read if viewing this conversation
+      if (isActiveConv) {
+        supabase
+          .from('direct_messages')
+          .update({ is_read: true })
+          .eq('id', msg.id);
+      }
+    };
+    
+    window.addEventListener('dm-message-received', handleNewMessage as EventListener);
+    return () => {
+      window.removeEventListener('dm-message-received', handleNewMessage as EventListener);
+    };
+  }, []);
+
+  // Subscribe to realtime updates - backup for own messages and read status
   useEffect(() => {
     if (!user) return;
 
@@ -366,7 +461,7 @@ export function useDirectMessages() {
     });
 
     const channel = supabase
-      .channel('dm-ultra-instant')
+      .channel('dm-realtime-backup')
       .on(
         'postgres_changes',
         {
@@ -377,120 +472,11 @@ export function useDirectMessages() {
         async (payload) => {
           const newMsg = payload.new as any;
           
-          // Skip my own messages (already added optimistically)
-          if (newMsg.sender_id === user.id) return;
+          // Skip messages from others - handled by event listener from notifications
+          // Only process our own messages here for optimistic UI confirmation
+          if (newMsg.sender_id !== user.id) return;
           
-          // INSTANT UI UPDATE FIRST - before any async operations
-          const now = newMsg.created_at;
-          const conversationId = newMsg.conversation_id;
-          const isActiveConv = activeConversationRef.current === conversationId;
-          
-          // Update conversations list IMMEDIATELY (optimistic)
-          setConversations(prev => {
-            const existingConv = prev.find(c => c.id === conversationId);
-            
-            if (existingConv) {
-              // Update existing conversation instantly
-              const updated = prev.map(conv => 
-                conv.id === conversationId 
-                  ? { 
-                      ...conv, 
-                      lastMessage: newMsg.content, 
-                      lastMessageAt: now,
-                      unreadCount: isActiveConv ? 0 : conv.unreadCount + 1,
-                    }
-                  : conv
-              );
-              
-              // Sort by newest first
-              return updated.sort((a, b) => {
-                const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-                const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-                return bTime - aTime;
-              });
-            }
-            
-            return prev; // Will handle new conversation below
-          });
-
-          // Now do async verification in background
-          const { data: conv } = await supabase
-            .from('conversations')
-            .select('participant1_id, participant2_id')
-            .eq('id', conversationId)
-            .single();
-          
-          if (!conv) return;
-          if (conv.participant1_id !== user.id && conv.participant2_id !== user.id) return;
-          
-          // Get sender info (use cache if available)
-          const senderInfo = await getProfileInfo(newMsg.sender_id);
-          
-          // Add message to local state
-          const formattedMessage: DMMessage = {
-            id: newMsg.id,
-            conversationId: newMsg.conversation_id,
-            senderId: newMsg.sender_id,
-            senderName: senderInfo.name,
-            content: newMsg.content,
-            contentAr: newMsg.content_ar,
-            messageType: newMsg.message_type,
-            isRead: newMsg.is_read,
-            createdAt: newMsg.created_at,
-            isMine: false,
-            transferAmount: newMsg.transfer_amount,
-            transferRecipientId: newMsg.transfer_recipient_id,
-          };
-
-          setMessages(prev => {
-            const convMessages = prev[conversationId] || [];
-            // Avoid duplicates
-            if (convMessages.some(m => m.id === newMsg.id)) return prev;
-            return {
-              ...prev,
-              [conversationId]: [...convMessages, formattedMessage],
-            };
-          });
-          
-          // Handle new conversation that doesn't exist in state
-          setConversations(prev => {
-            const exists = prev.some(c => c.id === conversationId);
-            if (!exists) {
-              // Add new conversation to list
-              const partnerId = conv.participant1_id === user.id 
-                ? conv.participant2_id 
-                : conv.participant1_id;
-              
-              const newConv: DMConversation = {
-                id: conversationId,
-                participantId: partnerId,
-                participantName: senderInfo.name,
-                participantUsername: senderInfo.username,
-                participantAvatar: senderInfo.avatar,
-                participantCountry: '',
-                lastMessage: newMsg.content,
-                lastMessageAt: now,
-                unreadCount: isActiveConv ? 0 : 1,
-                createdAt: now,
-              };
-              
-              return [newConv, ...prev];
-            }
-            return prev;
-          });
-
-          // If viewing this conversation, mark as read immediately
-          if (isActiveConv) {
-            supabase
-              .from('direct_messages')
-              .update({ is_read: true })
-              .eq('id', newMsg.id)
-              .then(() => {
-                setConversations(prev => 
-                  prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
-                );
-              });
-          }
+          // Our own message - already added optimistically, just skip
         }
       )
       .on(
