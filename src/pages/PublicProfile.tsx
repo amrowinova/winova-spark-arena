@@ -454,105 +454,133 @@ export default function PublicProfile() {
             </div>
           </motion.section>
 
-          {/* Wins Section - Only shows if user has wins */}
-          {wins.length > 0 && (
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
+          {/* Wins Section - Always visible with empty state */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            {wins.length > 0 ? (
               <UserWinsSection
                 wins={wins}
                 isOwnProfile={isOwnProfile}
                 onViewMore={() => navigate('/winners')}
                 onViewContest={(contestId) => navigate('/winners')}
               />
-            </motion.section>
-          )}
-
-          {/* P2P Reputation Section - Only shows if user has P2P activity */}
-          {p2pStats.tradesCount > 0 && (
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
+            ) : (
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-base">
-                      <Star className="h-5 w-5 text-nova fill-nova" />
-                      {isOwnProfile 
-                        ? (language === 'ar' ? 'سمعتي P2P' : 'My P2P Reputation')
-                        : (language === 'ar' ? 'سمعته P2P' : 'Their P2P Reputation')
-                      }
-                    </div>
-                    <Badge variant="outline" className="text-sm font-bold text-success">
-                      <Star className="h-3.5 w-3.5 mr-1 fill-current" />
-                      {p2pStats.rating}%
-                    </Badge>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Trophy className="h-5 w-5 text-nova" />
+                    {isOwnProfile 
+                      ? (language === 'ar' ? 'انتصاراتي' : 'My Wins')
+                      : (language === 'ar' ? 'انتصاراته' : 'Their Wins')
+                    }
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Rating Summary */}
-                  <div className="flex items-center justify-center gap-6 py-2">
-                    <div className="text-center">
-                      <div className="flex items-center gap-1 text-success">
-                        <ThumbsUp className="h-5 w-5" />
-                        <span className="text-xl font-bold">{p2pStats.positiveCount}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {language === 'ar' ? 'إيجابي' : 'Positive'}
-                      </p>
-                    </div>
-                    <div className="h-8 w-px bg-border" />
-                    <div className="text-center">
-                      <div className="flex items-center gap-1 text-destructive">
-                        <ThumbsDown className="h-5 w-5" />
-                        <span className="text-xl font-bold">{p2pStats.negativeCount}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {language === 'ar' ? 'سلبي' : 'Negative'}
-                      </p>
-                    </div>
+                <CardContent>
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Trophy className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">
+                      {language === 'ar' ? 'لا توجد انتصارات بعد' : 'No wins yet'}
+                    </p>
                   </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-lg p-3 text-center bg-primary/10">
-                      <span className="text-lg font-bold text-foreground">{p2pStats.tradesCount}</span>
-                      <p className="text-[10px] text-muted-foreground">
-                        {language === 'ar' ? 'عدد الصفقات' : 'Total Deals'}
-                      </p>
-                    </div>
-                    <div className="rounded-lg p-3 text-center bg-success/10">
-                      <span className="text-lg font-bold text-foreground">{p2pStats.tradesCount}</span>
-                      <p className="text-[10px] text-muted-foreground">
-                        {language === 'ar' ? 'طلبات مكتملة' : 'Completed'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* View Ratings - disabled until we have real ratings */}
-                  {p2pRatings.length > 0 && (
-                    <Button 
-                      variant="outline" 
-                      className="w-full gap-2"
-                      onClick={handleViewP2PRatings}
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      {language === 'ar' ? 'عرض التقييمات' : 'View Ratings'}
-                      {isRTL ? (
-                        <ChevronLeft className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
                 </CardContent>
               </Card>
-            </motion.section>
-          )}
+            )}
+          </motion.section>
+
+          {/* P2P Reputation Section - Always visible with empty state */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-base">
+                    <Star className="h-5 w-5 text-nova fill-nova" />
+                    {isOwnProfile 
+                      ? (language === 'ar' ? 'سمعتي P2P' : 'My P2P Reputation')
+                      : (language === 'ar' ? 'سمعته P2P' : 'Their P2P Reputation')
+                    }
+                  </div>
+                  <Badge variant="outline" className={cn(
+                    "text-sm font-bold",
+                    p2pStats.tradesCount > 0 ? "text-success" : "text-muted-foreground"
+                  )}>
+                    <Star className="h-3.5 w-3.5 mr-1 fill-current" />
+                    {p2pStats.rating}%
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Rating Summary */}
+                <div className="flex items-center justify-center gap-6 py-2">
+                  <div className="text-center">
+                    <div className="flex items-center gap-1 text-success">
+                      <ThumbsUp className="h-5 w-5" />
+                      <span className="text-xl font-bold">{p2pStats.positiveCount}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'ar' ? 'إيجابي' : 'Positive'}
+                    </p>
+                  </div>
+                  <div className="h-8 w-px bg-border" />
+                  <div className="text-center">
+                    <div className="flex items-center gap-1 text-destructive">
+                      <ThumbsDown className="h-5 w-5" />
+                      <span className="text-xl font-bold">{p2pStats.negativeCount}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'ar' ? 'سلبي' : 'Negative'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg p-3 text-center bg-primary/10">
+                    <span className="text-lg font-bold text-foreground">{p2pStats.tradesCount}</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {language === 'ar' ? 'عدد الصفقات' : 'Total Deals'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-3 text-center bg-success/10">
+                    <span className="text-lg font-bold text-foreground">{p2pStats.tradesCount}</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {language === 'ar' ? 'طلبات مكتملة' : 'Completed'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Empty state message if no trades */}
+                {p2pStats.tradesCount === 0 && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    {language === 'ar' ? 'لا توجد صفقات بعد' : 'No trades yet'}
+                  </p>
+                )}
+
+                {/* View Ratings - only if there are ratings */}
+                {p2pRatings.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full gap-2"
+                    onClick={handleViewP2PRatings}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    {language === 'ar' ? 'عرض التقييمات' : 'View Ratings'}
+                    {isRTL ? (
+                      <ChevronLeft className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </motion.section>
         </div>
 
         {/* Fixed Action Buttons - Only for other users */}
