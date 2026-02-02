@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { Hash, TrendingUp, Users } from 'lucide-react';
+import { Hash, TrendingUp, Users, AtSign } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { RankBadge } from '@/components/common/RankBadge';
 import { ProgressRing } from '@/components/common/ProgressRing';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRankBasedData } from '@/hooks/useRankBasedData';
+import { useProfile } from '@/hooks/useProfile';
 
 interface UserIdentityCardProps {
   rankOverride?: UserRank | null;
@@ -13,6 +14,7 @@ interface UserIdentityCardProps {
 
 export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
   const { user } = useUser();
+  const { profile } = useProfile();
   const { language } = useLanguage();
   
   // Use override rank for dev testing, otherwise use actual user rank
@@ -37,9 +39,15 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
             
             {/* User Info */}
             <div className="flex-1">
-              <h2 className="text-white text-xl font-bold mb-1">
+              <h2 className="text-white text-xl font-bold mb-0.5">
                 {user.name}
               </h2>
+              {profile?.username && (
+                <div className="flex items-center gap-1 text-white/70 text-sm mb-1">
+                  <AtSign className="h-3 w-3" />
+                  <span>{profile.username}</span>
+                </div>
+              )}
               <RankBadge rank={displayRank} size="sm" />
             </div>
 

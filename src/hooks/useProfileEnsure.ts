@@ -69,7 +69,11 @@ export function useProfileEnsure(): EnsureResult {
         
         const userName = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
         const username = user.user_metadata?.username || `user_${user.id.substring(0, 8)}`;
-        const referralCode = `WINOVA-${generateRandomCode()}`;
+        const userCountry = user.user_metadata?.country || 'Saudi Arabia';
+        
+        // Generate referral code in format WINOVA-{USERNAME}-{COUNTRY_CODE}
+        const countryCode = getCountryCode(userCountry);
+        const referralCode = `WINOVA-${username.toUpperCase()}-${countryCode}`;
 
         const { error: profileInsertError } = await supabase
           .from('profiles')
@@ -78,8 +82,8 @@ export function useProfileEnsure(): EnsureResult {
             name: userName,
             username: username,
             referral_code: referralCode,
-            country: 'Saudi Arabia',
-            wallet_country: 'Saudi Arabia',
+            country: userCountry,
+            wallet_country: userCountry,
           });
 
         if (profileInsertError) {
@@ -152,13 +156,41 @@ export function useProfileEnsure(): EnsureResult {
 }
 
 /**
- * Generate a random 6-character code for referral
+ * Map country name to 2-letter ISO code
  */
-function generateRandomCode(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+function getCountryCode(country: string): string {
+  const countryMap: Record<string, string> = {
+    'Saudi Arabia': 'SA',
+    'Egypt': 'EG',
+    'UAE': 'AE',
+    'United Arab Emirates': 'AE',
+    'Kuwait': 'KW',
+    'Qatar': 'QA',
+    'Bahrain': 'BH',
+    'Oman': 'OM',
+    'Jordan': 'JO',
+    'Iraq': 'IQ',
+    'Lebanon': 'LB',
+    'Syria': 'SY',
+    'Morocco': 'MA',
+    'Tunisia': 'TN',
+    'Algeria': 'DZ',
+    'Libya': 'LY',
+    'Sudan': 'SD',
+    'Yemen': 'YE',
+    'Pakistan': 'PK',
+    'Turkey': 'TR',
+    'Iran': 'IR',
+    'United States': 'US',
+    'USA': 'US',
+    'United Kingdom': 'GB',
+    'UK': 'GB',
+    'Germany': 'DE',
+    'France': 'FR',
+    'Netherlands': 'NL',
+    'Italy': 'IT',
+    'Spain': 'ES',
+  };
+  
+  return countryMap[country] || 'XX';
 }
