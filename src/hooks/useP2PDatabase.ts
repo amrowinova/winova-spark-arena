@@ -5,6 +5,7 @@ import { Database } from '@/integrations/supabase/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { dbStatusToUI, uiStatusToDB, isActiveStatus, DBP2POrderStatus, UIP2POrderStatus } from '@/lib/p2pStatusMapper';
 import { generateSystemMessage, P2PSystemMessageType } from '@/lib/p2pSystemMessages';
+import * as P2PEscrow from '@/lib/p2pEscrowService';
 
 // Extended order row with matched_at
 interface P2POrderRowExtended {
@@ -333,7 +334,7 @@ export function useP2PDatabase() {
     return true;
   }, [sendSystemMessage]);
 
-  // Create a new order
+  // Create a new order using atomic RPC with escrow lock
   const createOrder = useCallback(async (orderData: {
     orderType: P2POrderType;
     novaAmount: number;
@@ -345,116 +346,62 @@ export function useP2PDatabase() {
   }) => {
     if (!user) return null;
 
-    // Check if wallet is frozen
-    const frozen = await checkWalletFrozen();
-    if (frozen) {
-      console.error('Cannot create order: wallet is frozen');
-      return null;
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('p2p_orders')
-        .insert({
-          creator_id: user.id,
-          order_type: orderData.orderType,
-          nova_amount: orderData.novaAmount,
-          local_amount: orderData.localAmount,
-          exchange_rate: orderData.exchangeRate,
-          country: orderData.country,
-          time_limit_minutes: orderData.timeLimitMinutes,
-          payment_method_id: orderData.paymentMethodId,
-          status: 'open',
-        } as P2POrderInsert)
-        .select()
-        .single();
+      let result;
+      
+      if (orderData.orderType === 'sell') {
+        // SELL order: RPC locks Nova in escrow atomically
+        result = await P2PEscrow.createSellOrder(
+          user.id,
+          orderData.novaAmount,
+          orderData.localAmount,
+          orderData.exchangeRate,
+          orderData.country,
+          orderData.timeLimitMinutes,
+          orderData.paymentMethodId
+        );
+      } else {
+        // BUY order: No escrow needed for buyer
+        result = await P2PEscrow.createBuyOrder(
+          user.id,
+          orderData.novaAmount,
+          orderData.localAmount,
+          orderData.exchangeRate,
+          orderData.country,
+          orderData.timeLimitMinutes,
+          orderData.paymentMethodId
+        );
+      }
 
-      if (error) throw error;
-      
-      // NOTE: NO system message here - chat is only created when order is ACCEPTED (matched)
-      // This matches Binance/OKX/Bybit P2P behavior where:
-      // - Open orders are just listings in the marketplace
-      // - Chat/timer only starts when another user accepts the order
-      
+      if (!result.success) {
+        console.error('Create order failed:', result.error);
+        return null;
+      }
+
       // Refresh orders to get profile data
       fetchOrders();
       
-      return data;
+      return { id: result.order_id };
     } catch (err) {
       console.error('Error creating P2P order:', err);
       return null;
     }
-  }, [user, fetchOrders, checkWalletFrozen]);
+  }, [user, fetchOrders]);
 
-  // Execute/match an order (buyer/seller accepts)
-  const executeOrder = useCallback(async (orderId: string) => {
+  // Execute/match an order using atomic RPC (locks escrow for BUY orders)
+  const executeOrder = useCallback(async (orderId: string, paymentMethodId?: string) => {
     if (!user) return false;
 
-    // Check if wallet is frozen
-    const frozen = await checkWalletFrozen();
-    if (frozen) {
-      console.error('Cannot execute order: wallet is frozen');
-      return false;
-    }
-
     try {
-      // Use .select() to get the updated row and verify it was actually updated
-      const { data, error } = await supabase
-        .from('p2p_orders')
-        .update({
-          executor_id: user.id,
-          status: 'awaiting_payment',
-        } as P2POrderUpdate)
-        .eq('id', orderId)
-        .eq('status', 'open')
-        .select()
-        .maybeSingle();
+      // Use atomic RPC - locks escrow for BUY orders (executor is seller)
+      const result = await P2PEscrow.executeOrder(orderId, user.id, paymentMethodId);
 
-      if (error) {
-        console.error('Database error executing order:', error);
-        throw error;
-      }
-      
-      // CRITICAL: Verify a row was actually updated
-      if (!data) {
-        console.error('No rows updated - order may already be taken or does not exist');
+      if (!result.success) {
+        console.error('Execute order failed:', result.error);
         return false;
       }
       
-      console.log('Order executed successfully:', data);
-      
-      // Get creator profile for buyer name
-      const { data: creatorProfile } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('user_id', data.creator_id)
-        .single();
-      
-      const { data: executorProfile } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('user_id', user.id)
-        .single();
-
-      // Determine buyer and seller names based on order type
-      const buyerName = data.order_type === 'buy' 
-        ? creatorProfile?.name || 'Buyer'
-        : executorProfile?.name || 'Buyer';
-      
-      const sellerName = data.order_type === 'sell' 
-        ? creatorProfile?.name || 'Seller'
-        : executorProfile?.name || 'Seller';
-
-      // Add system message with proper template (includes both buyer and seller names)
-      const msg = generateSystemMessage('order_matched', {
-        buyerName,
-        sellerName,
-        novaAmount: Number(data.nova_amount),
-        localAmount: Number(data.local_amount),
-        currencySymbol: data.country === 'Saudi Arabia' ? 'ر.س' : '$',
-        timeLimit: data.time_limit_minutes,
-      });
-      await sendSystemMessage(orderId, 'order_matched', msg.content, msg.contentAr);
+      console.log('Order executed successfully via RPC');
       
       // Refresh orders
       await fetchOrders();
@@ -464,44 +411,19 @@ export function useP2PDatabase() {
       console.error('Error executing P2P order:', err);
       return false;
     }
-  }, [user, fetchOrders, checkWalletFrozen]);
+  }, [user, fetchOrders]);
 
-  // Confirm payment (buyer marks as paid)
+  // Confirm payment using atomic RPC
   const confirmPayment = useCallback(async (orderId: string) => {
     if (!user) return false;
 
-    // Check if wallet is frozen
-    const frozen = await checkWalletFrozen();
-    if (frozen) {
-      console.error('Cannot confirm payment: wallet is frozen');
-      return false;
-    }
-
     try {
-      // Get order details first
-      const order = ordersRef.current.find(o => o.id === orderId);
-      
-      // Get buyer name based on order type
-      const buyerName = order?.order_type === 'buy' 
-        ? order.creator_profile?.name || 'Buyer'
-        : order?.executor_profile?.name || 'Buyer';
-      
-      const { error } = await supabase
-        .from('p2p_orders')
-        .update({ status: 'payment_sent' } as P2POrderUpdate)
-        .eq('id', orderId)
-        .in('status', ['awaiting_payment', 'matched']);
+      const result = await P2PEscrow.confirmPayment(orderId, user.id);
 
-      if (error) throw error;
-      
-      // Add system message with buyer name
-      const msg = generateSystemMessage('buyer_paid', {
-        buyerName,
-        localAmount: order ? Number(order.local_amount) : 0,
-        novaAmount: order ? Number(order.nova_amount) : 0,
-        currencySymbol: order?.country === 'Saudi Arabia' ? 'ر.س' : '$',
-      });
-      await sendSystemMessage(orderId, 'buyer_paid', msg.content, msg.contentAr);
+      if (!result.success) {
+        console.error('Confirm payment failed:', result.error);
+        return false;
+      }
       
       fetchOrders();
       return true;
@@ -509,38 +431,25 @@ export function useP2PDatabase() {
       console.error('Error confirming payment:', err);
       return false;
     }
-  }, [user, fetchOrders, checkWalletFrozen, sendSystemMessage]);
+  }, [user, fetchOrders]);
 
-  // Release funds (seller confirms receipt)
+  // Release funds using atomic RPC - transfers Nova from seller to buyer
   const releaseFunds = useCallback(async (orderId: string) => {
     if (!user) return false;
 
-    // Check if wallet is frozen
-    const frozen = await checkWalletFrozen();
-    if (frozen) {
-      console.error('Cannot release funds: wallet is frozen');
-      return false;
-    }
-
     try {
-      const order = ordersRef.current.find(o => o.id === orderId);
-      
-      const { error } = await supabase
-        .from('p2p_orders')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-        } as P2POrderUpdate)
-        .eq('id', orderId)
-        .eq('status', 'payment_sent');
+      // CRITICAL: This RPC atomically:
+      // 1. Deducts from seller's locked_nova_balance
+      // 2. Adds to buyer's nova_balance
+      // 3. Creates ledger entries for both parties
+      const result = await P2PEscrow.releaseEscrow(orderId, user.id);
 
-      if (error) throw error;
+      if (!result.success) {
+        console.error('Release escrow failed:', result.error);
+        return false;
+      }
       
-      // Add system message with proper template
-      const msg = generateSystemMessage('nova_released', {
-        novaAmount: order ? Number(order.nova_amount) : 0,
-      });
-      await sendSystemMessage(orderId, 'nova_released', msg.content, msg.contentAr);
+      console.log('Nova released successfully:', result);
       
       fetchOrders();
       return true;
@@ -548,28 +457,22 @@ export function useP2PDatabase() {
       console.error('Error releasing funds:', err);
       return false;
     }
-  }, [user, fetchOrders, checkWalletFrozen, sendSystemMessage]);
+  }, [user, fetchOrders]);
 
-  // Delete OPEN order (no penalty, no cancellation count)
+  // Delete OPEN order using atomic RPC (refunds escrow)
   const deleteOrder = useCallback(async (orderId: string) => {
     if (!user) return false;
 
     try {
-      // Only allow deleting OPEN orders (not matched yet)
-      const { error } = await supabase
-        .from('p2p_orders')
-        .update({
-          status: 'cancelled',
-          cancelled_by: user.id,
-          cancellation_reason: 'Order deleted by creator',
-        } as P2POrderUpdate)
-        .eq('id', orderId)
-        .eq('status', 'open')
-        .eq('creator_id', user.id); // Only creator can delete
+      // RPC handles escrow refund for sell orders
+      const result = await P2PEscrow.deleteOrder(orderId, user.id);
 
-      if (error) throw error;
+      if (!result.success) {
+        console.error('Delete order failed:', result.error);
+        return false;
+      }
       
-      // No system message for deleted orders (they never had a chat)
+      console.log('Order deleted, Nova refunded:', result.nova_refunded);
       fetchOrders();
       
       return true;
@@ -579,42 +482,27 @@ export function useP2PDatabase() {
     }
   }, [user, fetchOrders]);
 
-  // Cancel order (counts against cancellation limit)
+  // Cancel order using atomic RPC (handles escrow refund)
   const cancelOrder = useCallback(async (orderId: string, reason?: string) => {
     if (!user) return false;
 
-    // Get the order to check if it's open (use deleteOrder for open orders)
-    const order = ordersRef.current.find(o => o.id === orderId);
-    
-    // For open orders, use deleteOrder (no penalty)
-    if (order?.status === 'open') {
-      return await deleteOrder(orderId);
-    }
-
     // Check cancellation limit for matched orders
-    if (cancellationsCount >= 3) {
+    const order = ordersRef.current.find(o => o.id === orderId);
+    if (order?.status !== 'open' && cancellationsCount >= 3) {
       console.error('Cancellation limit exceeded');
       return false;
     }
 
     try {
-      const update: P2POrderUpdate = {
-        status: 'cancelled',
-        cancelled_by: user.id,
-        cancellation_reason: reason || 'User cancelled',
-      };
+      // RPC handles all cases: open, awaiting_payment, and escrow refund
+      const result = await P2PEscrow.cancelOrder(orderId, user.id, reason);
 
-      const { error } = await supabase
-        .from('p2p_orders')
-        .update(update)
-        .eq('id', orderId)
-        .in('status', ['matched', 'awaiting_payment']);
-
-      if (error) throw error;
+      if (!result.success) {
+        console.error('Cancel order failed:', result.error);
+        return false;
+      }
       
-      // Add system message with proper template
-      const msg = generateSystemMessage('order_cancelled', { reason });
-      await sendSystemMessage(orderId, 'order_cancelled', msg.content, msg.contentAr);
+      console.log('Order cancelled, Nova refunded:', result.nova_refunded);
       
       // Refresh
       fetchOrders();
@@ -625,30 +513,19 @@ export function useP2PDatabase() {
       console.error('Error cancelling order:', err);
       return false;
     }
-  }, [user, cancellationsCount, fetchOrders, fetchCancellationsCount, sendSystemMessage, deleteOrder]);
+  }, [user, cancellationsCount, fetchOrders, fetchCancellationsCount]);
 
-  // Relist order (cancel awaiting_payment and return to market)
+  // Relist order using atomic RPC (escrow stays locked for sell orders)
   const relistOrder = useCallback(async (orderId: string, reason: string) => {
     if (!user) return false;
 
     try {
-      // Reset order to open (return to market)
-      const { error } = await supabase
-        .from('p2p_orders')
-        .update({
-          status: 'open',
-          executor_id: null,
-          matched_at: null,
-          cancellation_reason: reason,
-        } as P2POrderUpdate)
-        .eq('id', orderId)
-        .eq('status', 'awaiting_payment');
+      const result = await P2PEscrow.relistOrder(orderId, user.id, reason);
 
-      if (error) throw error;
-
-      // Add system message with cancellation reason
-      const msg = generateSystemMessage('order_cancelled', { reason });
-      await sendSystemMessage(orderId, 'order_cancelled', msg.content, msg.contentAr);
+      if (!result.success) {
+        console.error('Relist order failed:', result.error);
+        return false;
+      }
 
       // Increment cancellation count
       fetchCancellationsCount();
@@ -659,26 +536,19 @@ export function useP2PDatabase() {
       console.error('Error relisting order:', err);
       return false;
     }
-  }, [user, fetchOrders, fetchCancellationsCount, sendSystemMessage]);
+  }, [user, fetchOrders, fetchCancellationsCount]);
 
-  // Open dispute
+  // Open dispute using atomic RPC
   const openDispute = useCallback(async (orderId: string, reason: string) => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
-        .from('p2p_orders')
-        .update({
-          status: 'disputed',
-          cancellation_reason: reason, // Using this field for dispute reason
-        } as P2POrderUpdate)
-        .eq('id', orderId);
+      const result = await P2PEscrow.openDispute(orderId, user.id, reason);
 
-      if (error) throw error;
-      
-      // Add system message with proper template
-      const msg = generateSystemMessage('dispute_opened', { reason });
-      await sendSystemMessage(orderId, 'dispute_opened', msg.content, msg.contentAr);
+      if (!result.success) {
+        console.error('Open dispute failed:', result.error);
+        return false;
+      }
       
       fetchOrders();
       return true;
@@ -686,7 +556,7 @@ export function useP2PDatabase() {
       console.error('Error opening dispute:', err);
       return false;
     }
-  }, [user, fetchOrders, sendSystemMessage]);
+  }, [user, fetchOrders]);
 
   // Expire order (auto-cancel when timer runs out)
   const expireOrder = useCallback(async (orderId: string) => {
