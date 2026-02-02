@@ -124,6 +124,12 @@ export default function HomePage() {
 
           setHasJoined(!!entryData);
         }
+      } else {
+        // Strict zero-state: never keep stale UI when there is no real active contest.
+        setActiveContestId(null);
+        setPrizePool(0);
+        setParticipantCount(0);
+        setHasJoined(false);
       }
     } catch (err) {
       console.error('Error fetching contest:', err);
@@ -139,12 +145,30 @@ export default function HomePage() {
       showError(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
       return;
     }
+
+     // Pre-payment verification: don't even open the payment dialog unless contest + timing are valid.
+    if (!timing.canJoin) {
+      showError(language === 'ar' ? 'لا توجد مسابقة نشطة حالياً' : 'No active contest currently');
+      return;
+    }
+
+    if (!activeContestId) {
+      showError(language === 'ar' ? 'لا توجد مسابقة نشطة' : 'No active contest');
+      return;
+    }
+
     setJoinDialogOpen(true);
   };
 
   const confirmJoin = async () => {
     if (!authUser || !activeContestId) {
       showError(language === 'ar' ? 'لا توجد مسابقة نشطة' : 'No active contest');
+      return;
+    }
+
+    if (!timing.canJoin) {
+      showError(language === 'ar' ? 'التسجيل مغلق حالياً' : 'Registration is currently closed');
+      setJoinDialogOpen(false);
       return;
     }
 
@@ -309,7 +333,7 @@ export default function HomePage() {
             prizePool={prizePool}
             participants={participantCount}
             stage={timing.currentStage === 'final' ? 'final' : 'stage1'}
-            closesAt={timing.stage1End}
+            closesAt={timing.joinCloseAt}
             endsAt={timing.finalEnd}
             entryFee={entryFee}
             hasJoined={hasJoined}
