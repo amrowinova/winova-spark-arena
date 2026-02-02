@@ -192,6 +192,7 @@ export function DMChatView({
       {/* Fixed Header - Always at top */}
       <div className="flex-shrink-0">
         <ChatHeader
+          id={conversation.participantId}
           name={conversation.participantName}
           username={conversation.participantUsername}
           avatar="👤"
