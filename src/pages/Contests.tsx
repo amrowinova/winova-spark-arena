@@ -266,14 +266,38 @@ export default function ContestsPage() {
 
   const [isJoining, setIsJoining] = useState(false);
 
-  const handleJoinContest = async () => {
+  // Unified handler: opens dialog only after full pre-check
+  const openJoinDialog = () => {
+    // Pre-check 1: user logged in
+    if (!authUser) {
+      showError(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
+      return;
+    }
+    // Pre-check 2: real active contest exists
+    if (!activeContestId) {
+      showError(language === 'ar' ? 'لا توجد مسابقة نشطة حالياً' : 'No active contest currently');
+      return;
+    }
+    // Pre-check 3: within join window (KSA timing)
     if (!timing.canJoin) {
       showError(language === 'ar' ? 'التسجيل مغلق حالياً' : 'Registration is currently closed');
       return;
     }
+    // All good → open payment dialog
+    setJoinDialogOpen(true);
+  };
+
+  const handleJoinContest = async () => {
+    // Double-check before server call (user could have stale dialog)
+    if (!timing.canJoin) {
+      showError(language === 'ar' ? 'التسجيل مغلق حالياً' : 'Registration is currently closed');
+      setJoinDialogOpen(false);
+      return;
+    }
 
     if (!authUser || !activeContestId) {
-      showError(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
+      showError(language === 'ar' ? 'لا توجد مسابقة نشطة' : 'No active contest');
+      setJoinDialogOpen(false);
       return;
     }
 
@@ -680,7 +704,7 @@ export default function ContestsPage() {
               </div>
               <Button 
                 className="w-full"
-                onClick={() => setJoinDialogOpen(true)}
+                onClick={openJoinDialog}
                 disabled={user.novaBalance < entryFee}
               >
                 {language === 'ar' ? 'انضم الآن' : 'Join Now'}
@@ -811,8 +835,8 @@ export default function ContestsPage() {
                 ? 'كن أول من ينضم للمسابقة!'
                 : 'Be the first to join the contest!'}
             </p>
-            {timing.canJoin && (
-              <Button onClick={() => setJoinDialogOpen(true)}>
+            {timing.canJoin && activeContestId && (
+              <Button onClick={openJoinDialog}>
                 {language === 'ar' ? 'انضم الآن' : 'Join Now'}
               </Button>
             )}
@@ -926,7 +950,7 @@ export default function ContestsPage() {
               </div>
               <Button 
                 className="w-full"
-                onClick={() => setJoinDialogOpen(true)}
+                onClick={openJoinDialog}
                 disabled={user.novaBalance < entryFee}
               >
                 {language === 'ar' ? 'انضم الآن' : 'Join Now'}
