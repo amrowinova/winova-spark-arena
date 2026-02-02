@@ -54,24 +54,20 @@ export function useP2PMarketplace(selectedCountry?: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Fetch open orders from marketplace
+  // Fetch open orders from marketplace using secure view
   const fetchOpenOrders = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Use secure marketplace view that hides sensitive creator data
+      // The view only exposes order details needed for marketplace display
       let query = supabase
-        .from('p2p_orders')
+        .from('p2p_marketplace_orders')
         .select('*')
-        .eq('status', 'open')
         .order('created_at', { ascending: false });
 
       // Optionally filter by country
       if (selectedCountry) {
         query = query.eq('country', selectedCountry);
-      }
-
-      // Exclude user's own orders
-      if (user) {
-        query = query.neq('creator_id', user.id);
       }
 
       const { data: ordersData, error: ordersError } = await query;
@@ -85,49 +81,29 @@ export function useP2PMarketplace(selectedCountry?: string) {
         return;
       }
 
-      // Get unique creator IDs
-      const creatorIds = [...new Set(ordersData.map(o => o.creator_id))];
-
-      // Fetch profiles for creators
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('user_id', creatorIds);
-
-      if (profilesError) throw profilesError;
-
-      // Create profile map
-      const profilesMap = new Map<string, ProfileRow>();
-      profilesData?.forEach(profile => {
-        profilesMap.set(profile.user_id, profile);
-      });
-
-      // Transform orders
-      const marketplaceOrders: MarketplaceOrder[] = ordersData.map(order => {
-        const profile = profilesMap.get(order.creator_id);
-        return {
-          id: order.id,
-          creatorId: order.creator_id,
-          orderType: order.order_type,
-          novaAmount: Number(order.nova_amount),
-          localAmount: Number(order.local_amount),
-          exchangeRate: Number(order.exchange_rate),
-          country: order.country,
-          timeLimitMinutes: order.time_limit_minutes,
-          createdAt: order.created_at,
-          creatorName: profile?.name || 'User',
-          creatorUsername: profile?.username || 'unknown',
-          creatorAvatar: profile?.avatar_url || '👤',
-          creatorCountry: profile?.country || order.country,
-          currencySymbol: getCurrencySymbol(order.country),
-          rating: 5.0, // TODO: Implement rating system
-          completedTrades: 0, // TODO: Track completed trades
-        };
-      });
+      // Transform orders - marketplace view hides creator_id for privacy
+      // Creator profile info is only revealed after order is matched
+      const marketplaceOrders: MarketplaceOrder[] = ordersData.map(order => ({
+        id: order.id!,
+        creatorId: '', // Hidden for privacy until matched
+        orderType: order.order_type!,
+        novaAmount: Number(order.nova_amount),
+        localAmount: Number(order.local_amount),
+        exchangeRate: Number(order.exchange_rate),
+        country: order.country!,
+        timeLimitMinutes: order.time_limit_minutes!,
+        createdAt: order.created_at!,
+        // Creator info hidden in marketplace for privacy
+        creatorName: 'Trader',
+        creatorUsername: '',
+        creatorAvatar: '👤',
+        creatorCountry: order.country!,
+        currencySymbol: getCurrencySymbol(order.country!),
+        rating: 5.0,
+        completedTrades: 0,
+      }));
 
       // Separate by order type
-      // buy orders = user wants to buy Nova, so YOU can sell to them
-      // sell orders = user wants to sell Nova, so YOU can buy from them
       const buy = marketplaceOrders.filter(o => o.orderType === 'buy');
       const sell = marketplaceOrders.filter(o => o.orderType === 'sell');
 
@@ -139,7 +115,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, selectedCountry]);
+  }, [selectedCountry]);
 
   // Initial fetch
   useEffect(() => {

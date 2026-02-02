@@ -321,6 +321,13 @@ export type Database = {
             foreignKeyName: "p2p_messages_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "p2p_marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "p2p_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "p2p_orders"
             referencedColumns: ["id"]
           },
@@ -533,6 +540,13 @@ export type Database = {
             columns: ["referred_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_search"
             referencedColumns: ["id"]
           },
         ]
@@ -886,6 +900,42 @@ export type Database = {
       }
     }
     Views: {
+      p2p_marketplace_orders: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          exchange_rate: number | null
+          id: string | null
+          local_amount: number | null
+          nova_amount: number | null
+          order_type: Database["public"]["Enums"]["p2p_order_type"] | null
+          status: Database["public"]["Enums"]["p2p_order_status"] | null
+          time_limit_minutes: number | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          exchange_rate?: number | null
+          id?: string | null
+          local_amount?: number | null
+          nova_amount?: number | null
+          order_type?: Database["public"]["Enums"]["p2p_order_type"] | null
+          status?: Database["public"]["Enums"]["p2p_order_status"] | null
+          time_limit_minutes?: number | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          exchange_rate?: number | null
+          id?: string | null
+          local_amount?: number | null
+          nova_amount?: number | null
+          order_type?: Database["public"]["Enums"]["p2p_order_type"] | null
+          status?: Database["public"]["Enums"]["p2p_order_status"] | null
+          time_limit_minutes?: number | null
+        }
+        Relationships: []
+      }
       p2p_orders_with_profiles: {
         Row: {
           cancellation_reason: string | null
@@ -924,6 +974,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles_search: {
+        Row: {
+          avatar_url: string | null
+          country: string | null
+          id: string | null
+          name: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          country?: string | null
+          id?: string | null
+          name?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          country?: string | null
+          id?: string | null
+          name?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {

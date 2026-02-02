@@ -1026,7 +1026,6 @@ function ChatContent() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{searchedUser.name}</span>
-                        <RankBadge rank={searchedUser.rank as any} size="sm" />
                       </div>
                       <p className="text-sm text-muted-foreground truncate">@{searchedUser.username}</p>
                     </div>

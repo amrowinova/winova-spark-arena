@@ -9,8 +9,6 @@ export interface SearchedUser {
   username: string;
   avatarUrl: string | null;
   country: string;
-  city: string | null;
-  rank: string;
 }
 
 export function useUserSearch() {
@@ -31,36 +29,27 @@ export function useUserSearch() {
       // Search by name or username - remove @ prefix if present
       const searchTerm = query.startsWith('@') ? query.slice(1) : query;
       
-      // Search profiles with ILIKE for Arabic + English support
-      // No minimum length filters - search from first character
+      // Use the secure profiles_search view that exposes only minimal data
+      // This protects sensitive user information while allowing search functionality
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, user_id, name, username, avatar_url, country, city, rank')
+        .from('profiles_search')
+        .select('id, user_id, name, username, avatar_url, country')
         .or(`name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
         .neq('user_id', user.id)
-        .limit(30); // Increased limit for better results
+        .limit(30);
 
       if (error) {
         console.error('Search query error:', error);
         throw error;
       }
 
-      // REMOVED: restrictive filters that were hiding users
-      // Filter only for profiles that have at least some username/name
-      const validUsers = (data || []).filter(p => 
-        (p.username && p.username.length >= 1) || 
-        (p.name && p.name.trim().length > 0)
-      );
-
-      const formattedResults: SearchedUser[] = validUsers.map(p => ({
+      const formattedResults: SearchedUser[] = (data || []).map(p => ({
         id: p.id,
         userId: p.user_id,
         name: p.name || 'User',
         username: p.username || '',
         avatarUrl: p.avatar_url,
         country: p.country,
-        city: p.city,
-        rank: p.rank,
       }));
 
       setResults(formattedResults);
