@@ -145,9 +145,23 @@ export function useChatNotifications(options: UseChatNotificationsOptions = {}) 
             action: {
               label: 'عرض',
               onClick: () => {
-                window.dispatchEvent(new CustomEvent('open-dm-conversation', {
-                  detail: { conversationId: newMsg.conversation_id }
-                }));
+                // Navigate to chat page and dispatch the conversation open event
+                // This ensures navigation happens first, then the conversation opens
+                const chatUrl = '/chat';
+                const convId = newMsg.conversation_id;
+                
+                // Store in sessionStorage for pickup after navigation
+                sessionStorage.setItem('pendingDMConversation', convId);
+                
+                // Navigate to chat if not already there
+                if (!window.location.pathname.includes('/chat')) {
+                  window.location.href = chatUrl;
+                } else {
+                  // Already on chat page - dispatch event directly
+                  window.dispatchEvent(new CustomEvent('open-dm-conversation', {
+                    detail: { conversationId: convId }
+                  }));
+                }
               },
             },
           });
