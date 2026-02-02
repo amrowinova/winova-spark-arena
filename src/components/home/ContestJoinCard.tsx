@@ -19,6 +19,7 @@ interface ContestJoinCardProps {
   hasJoined: boolean;
   userRank?: number;
   onJoin: () => void;
+  contestAvailable?: boolean;
 }
 
 // Helper to get day name
@@ -48,6 +49,7 @@ export function ContestJoinCard({
   hasJoined,
   userRank,
   onJoin,
+  contestAvailable = true,
 }: ContestJoinCardProps) {
   const { language } = useLanguage();
   const { user } = useUser();
@@ -72,6 +74,12 @@ export function ContestJoinCard({
   // Dynamic join window messaging
   useEffect(() => {
     const updateJoinWindow = () => {
+      if (!contestAvailable) {
+        setCanJoin(false);
+        setJoinWindowMessage(language === 'ar' ? 'لا توجد مسابقة لليوم' : 'No contest for today');
+        return;
+      }
+
       const now = new Date();
       const diff = closesAt.getTime() - now.getTime();
       const minutesLeft = Math.max(0, Math.floor(diff / 60000));
@@ -94,7 +102,7 @@ export function ContestJoinCard({
     updateJoinWindow();
     const interval = setInterval(updateJoinWindow, 1000);
     return () => clearInterval(interval);
-  }, [closesAt, language]);
+  }, [closesAt, language, contestAvailable]);
 
   // Calculate stage 1 end and final stage times
   const now = new Date();
