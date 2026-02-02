@@ -77,47 +77,43 @@ export function AddNovaDialog({ open, onOpenChange, user, onSuccess }: AddNovaDi
     setIsLoading(true);
 
     try {
-      const newBalance = operation === 'add' 
-        ? user.nova_balance + numericAmount 
-        : user.nova_balance - numericAmount;
+      // Use secure RPC function for atomic, server-validated balance adjustments
+      const { data, error } = await supabase.rpc('admin_adjust_balance', {
+        p_admin_id: adminUser.id,
+        p_target_user_id: user.user_id,
+        p_amount: numericAmount,
+        p_currency: 'nova' as const,
+        p_is_credit: operation === 'add',
+        p_reason: reason || (operation === 'add' ? 'Admin deposit' : 'Admin withdrawal')
+      });
 
-      // 1. Update wallet balance
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .update({ nova_balance: newBalance })
-        .eq('user_id', user.user_id);
+      if (error) throw error;
 
-      if (walletError) throw walletError;
+      // Type-safe response parsing
+      const response = data as { 
+        success: boolean; 
+        error?: string; 
+        balance_before?: number; 
+        balance_after?: number;
+        ledger_id?: string;
+      } | null;
 
-      // 2. Record transaction
-      const transactionData = {
-        user_id: user.user_id,
-        amount: operation === 'add' ? numericAmount : -numericAmount,
-        currency: 'nova' as const,
-        type: operation === 'add' ? 'deposit' as const : 'withdrawal' as const,
-        description: reason || (operation === 'add' 
-          ? 'Admin deposit' 
-          : 'Admin withdrawal'),
-        description_ar: reason || (operation === 'add' 
-          ? 'إيداع من المشرف' 
-          : 'سحب من المشرف'),
-      };
+      // Check RPC response for success
+      if (!response?.success) {
+        const errorMessage = response?.error || (isRTL ? 'فشلت العملية' : 'Operation failed');
+        toast.error(errorMessage);
+        return;
+      }
 
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert(transactionData);
-
-      if (transactionError) throw transactionError;
-
-      // 3. Create audit log
+      // Create audit log with balance data from RPC response
       await logNovaChange({
         action: operation === 'add' ? 'nova_add' : 'nova_deduct',
         walletId: user.id,
         performedBy: adminUser.id,
         targetUserId: user.user_id,
         targetUsername: user.username,
-        oldBalance: user.nova_balance,
-        newBalance: newBalance,
+        oldBalance: response.balance_before ?? user.nova_balance,
+        newBalance: response.balance_after ?? (operation === 'add' ? user.nova_balance + numericAmount : user.nova_balance - numericAmount),
         amount: numericAmount,
         reason: reason || (operation === 'add' ? 'Admin deposit' : 'Admin withdrawal'),
       });
