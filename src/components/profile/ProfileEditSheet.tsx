@@ -13,25 +13,46 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { banner } from '@/contexts/BannerContext';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProfileEditSheetProps {
   open: boolean;
   onClose: () => void;
 }
 
-// Mock function to check username availability
-const checkUsernameAvailability = async (username: string): Promise<boolean> => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  // Simulate some taken usernames
-  const takenUsernames = ['admin', 'winova', 'test', 'user123'];
-  return !takenUsernames.includes(username.toLowerCase());
+// Real function to check username availability in database
+const checkUsernameAvailability = async (username: string, currentUserId?: string): Promise<boolean> => {
+  try {
+    let query = supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username.toLowerCase());
+    
+    // Exclude current user from check
+    if (currentUserId) {
+      query = query.neq('user_id', currentUserId);
+    }
+    
+    const { data, error } = await query.maybeSingle();
+    
+    if (error) {
+      console.error('Error checking username:', error);
+      return false;
+    }
+    
+    return !data; // Available if no matching user found
+  } catch {
+    return false;
+  }
 };
 
 export function ProfileEditSheet({ open, onClose }: ProfileEditSheetProps) {
   const { t, i18n } = useTranslation();
   const { user } = useUser();
+  const { user: authUser } = useAuth();
   const isRTL = i18n.language === 'ar';
   
   // Form state
@@ -74,7 +95,7 @@ export function ProfileEditSheet({ open, onClose }: ProfileEditSheetProps) {
       setIsCheckingUsername(true);
       setUsernameError('');
       try {
-        const available = await checkUsernameAvailability(username);
+        const available = await checkUsernameAvailability(username, authUser?.id);
         setUsernameAvailable(available);
         if (!available) {
           setUsernameError(isRTL ? 'اسم المستخدم محجوز' : 'Username is taken');

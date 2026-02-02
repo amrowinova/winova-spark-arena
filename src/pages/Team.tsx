@@ -11,6 +11,7 @@ import { DirectTeamList } from '@/components/team/DirectTeamList';
 import { IndirectTeamList } from '@/components/team/IndirectTeamList';
 import { TeamMember } from '@/components/team/TeamMemberCard';
 import { RankSwitcher } from '@/components/team/DevRankSwitcher';
+import { ReferralCodeCard } from '@/components/team/ReferralCodeCard';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -183,6 +184,9 @@ function TeamContent() {
         
         {/* User Identity Card - uses displayRank for testing */}
         <UserIdentityCard rankOverride={devRankOverride} />
+
+        {/* Referral Code Card - with copy/share */}
+        <ReferralCodeCard />
 
         {/* Team Size Card */}
         <TeamSizeCard 
