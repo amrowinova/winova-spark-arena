@@ -44,8 +44,8 @@ export function DMChatView({
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Real-time hooks
-  const { otherUserTyping, handleTyping, stopTyping } = useTypingIndicator(conversation.id);
+  // Real-time hooks - pass participant name for global typing broadcast
+  const { otherUserTyping, handleTyping, stopTyping } = useTypingIndicator(conversation.id, conversation.participantName);
   const { isOnline, getLastSeenText } = useChatPresence(conversation.id, conversation.participantId);
 
   // Convert messages to DMMessageData format with pending state
