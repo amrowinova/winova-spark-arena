@@ -31,6 +31,7 @@ export interface DMMessageData {
     userReacted: boolean;
   }>;
   isForwarded?: boolean;
+  isPending?: boolean; // Optimistic UI pending state
 }
 
 interface DMMessageBubbleProps {
@@ -129,6 +130,11 @@ export function DMMessageBubble({
   const getStatusIndicator = () => {
     if (!message.isMine || !showReadReceipts) return null;
 
+    // Pending message - show clock or single check with animation
+    if (message.isPending) {
+      return <Check className="h-3.5 w-3.5 text-muted-foreground/40 animate-pulse" />;
+    }
+
     if (message.isRead) {
       // Read - blue double check
       return <CheckCheck className="h-3.5 w-3.5 text-info" />;
@@ -177,7 +183,9 @@ export function DMMessageBubble({
 
         {/* Message bubble */}
         <div
-          className={`relative px-3 py-2 rounded-2xl ${
+          className={`relative px-3 py-2 rounded-2xl transition-opacity ${
+            message.isPending ? 'opacity-70' : ''
+          } ${
             message.isMine
               ? 'bg-primary text-primary-foreground rounded-br-sm'
               : 'bg-muted rounded-bl-sm'
