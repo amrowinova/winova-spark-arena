@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -12,6 +12,7 @@ import { MessageInfoSheet } from './MessageInfoSheet';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
+import { useChatPresence } from '@/hooks/useChatPresence';
 
 interface DMChatViewProps {
   conversation: DMConversation;
@@ -36,16 +37,18 @@ export function DMChatView({
   const [forwardMessage, setForwardMessage] = useState<DMMessageData | null>(null);
   const [messageInfo, setMessageInfo] = useState<DMMessageData | null>(null);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Typing indicator
+  // Real-time hooks
   const { otherUserTyping, handleTyping, stopTyping } = useTypingIndicator(conversation.id);
+  const { isOnline, getLastSeenText } = useChatPresence(conversation.id, conversation.participantId);
 
-  // Convert messages to DMMessageData format with reply info
+  // Convert messages to DMMessageData format with pending state
   const formattedMessages: DMMessageData[] = messages.map(msg => ({
     id: msg.id,
     conversationId: msg.conversationId,
@@ -58,6 +61,7 @@ export function DMChatView({
     isMine: msg.isMine,
     transferAmount: msg.transferAmount,
     replyTo: undefined,
+    isPending: msg.isPending,
   }));
 
   // Auto-scroll to bottom on new messages
@@ -97,16 +101,17 @@ export function DMChatView({
     }
   }, []);
 
-  // Handle send
+  // Handle send - INSTANT with optimistic UI
   const handleSend = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || isSending) return;
     
     const content = message.trim();
     setMessage('');
     setReplyTo(null);
     stopTyping();
     
-    await onSendMessage(conversation.id, content);
+    // Don't wait for completion - optimistic UI handles display
+    onSendMessage(conversation.id, content);
   };
 
   // Handle key press
@@ -190,7 +195,8 @@ export function DMChatView({
           name={conversation.participantName}
           username={conversation.participantUsername}
           avatar="👤"
-          isOnline={false}
+          isOnline={isOnline}
+          lastSeen={getLastSeenText(language as 'ar' | 'en') || undefined}
           isTyping={!!otherUserTyping}
           onBack={onBack}
           onTransfer={() => setTransferDialogOpen(true)}

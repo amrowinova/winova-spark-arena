@@ -28,6 +28,9 @@ export interface DMMessage {
   isMine: boolean;
   transferAmount: number | null;
   transferRecipientId: string | null;
+  // Optimistic UI fields
+  isPending?: boolean;
+  tempId?: string;
 }
 
 export function useDirectMessages() {
@@ -197,7 +200,7 @@ export function useDirectMessages() {
     }
   }, [user, fetchConversations]);
 
-  // Send message
+  // Send message with OPTIMISTIC UI - instant local display
   const sendMessage = useCallback(async (
     conversationId: string, 
     content: string,
@@ -206,8 +209,47 @@ export function useDirectMessages() {
   ) => {
     if (!user) return;
 
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const now = new Date().toISOString();
+    
+    // OPTIMISTIC: Add message to local state IMMEDIATELY
+    const optimisticMessage: DMMessage = {
+      id: tempId,
+      conversationId,
+      senderId: user.id,
+      senderName: user.user_metadata?.name || 'You',
+      content,
+      contentAr: null,
+      messageType: transferAmount ? 'transfer' : 'text',
+      isRead: false,
+      createdAt: now,
+      isMine: true,
+      transferAmount: transferAmount || null,
+      transferRecipientId: transferRecipientId || null,
+      isPending: true,
+      tempId,
+    };
+
+    // Update messages state instantly
+    setMessages(prev => ({
+      ...prev,
+      [conversationId]: [...(prev[conversationId] || []), optimisticMessage],
+    }));
+
+    // Update conversation list instantly
+    setConversations(prev => prev.map(conv => 
+      conv.id === conversationId 
+        ? { ...conv, lastMessage: content, lastMessageAt: now }
+        : conv
+    ).sort((a, b) => {
+      const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return bTime - aTime;
+    }));
+
     try {
-      const { error } = await supabase
+      // Insert to DB (background)
+      const { data, error } = await supabase
         .from('direct_messages')
         .insert({
           conversation_id: conversationId,
@@ -216,22 +258,47 @@ export function useDirectMessages() {
           message_type: transferAmount ? 'transfer' : 'text',
           transfer_amount: transferAmount,
           transfer_recipient_id: transferRecipientId,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
 
-      // Update conversation timestamp
+      // Replace temp message with real one
+      setMessages(prev => {
+        const convMessages = prev[conversationId] || [];
+        return {
+          ...prev,
+          [conversationId]: convMessages.map(m => 
+            m.tempId === tempId 
+              ? { ...m, id: data.id, isPending: false, tempId: undefined }
+              : m
+          ),
+        };
+      });
+
+      // Update conversation timestamp (background)
       await supabase
         .from('conversations')
-        .update({ last_message_at: new Date().toISOString() })
+        .update({ last_message_at: now })
         .eq('id', conversationId);
 
-      await fetchMessages(conversationId);
-      await fetchConversations();
     } catch (err) {
       console.error('Error sending message:', err);
+      // Mark message as failed but keep it visible
+      setMessages(prev => {
+        const convMessages = prev[conversationId] || [];
+        return {
+          ...prev,
+          [conversationId]: convMessages.map(m => 
+            m.tempId === tempId 
+              ? { ...m, isPending: false }
+              : m
+          ),
+        };
+      });
     }
-  }, [user, fetchMessages, fetchConversations]);
+  }, [user]);
 
   // Set active conversation for read tracking
   const setActiveConversation = useCallback((conversationId: string | null) => {
@@ -254,14 +321,31 @@ export function useDirectMessages() {
     }
   }, [user]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates - INSTANT with direct state mutation
   useEffect(() => {
     if (!user) return;
 
     fetchConversations();
 
+    // Profile cache for faster lookups
+    const profileCache = new Map<string, string>();
+    
+    const getProfileName = async (userId: string): Promise<string> => {
+      if (profileCache.has(userId)) return profileCache.get(userId)!;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('user_id', userId)
+        .single();
+      
+      const name = data?.name || 'Unknown';
+      profileCache.set(userId, name);
+      return name;
+    };
+
     const channel = supabase
-      .channel('dm-updates-v2')
+      .channel('dm-instant-updates')
       .on(
         'postgres_changes',
         {
@@ -272,24 +356,74 @@ export function useDirectMessages() {
         async (payload) => {
           const newMsg = payload.new as any;
           
-          // Check if we're in this conversation
-          const isActiveConv = activeConversationRef.current === newMsg.conversation_id;
+          // Skip my own messages (already added optimistically)
+          if (newMsg.sender_id === user.id) return;
           
-          // Refetch messages if we're in this conversation
-          if (messages[newMsg.conversation_id] || isActiveConv) {
-            fetchMessages(newMsg.conversation_id);
-          }
+          // Check if this conversation involves me
+          const { data: conv } = await supabase
+            .from('conversations')
+            .select('participant1_id, participant2_id')
+            .eq('id', newMsg.conversation_id)
+            .single();
           
-          // If it's a new message from someone else and we're viewing it, mark as read
-          if (isActiveConv && newMsg.sender_id !== user.id) {
+          if (!conv) return;
+          if (conv.participant1_id !== user.id && conv.participant2_id !== user.id) return;
+          
+          const senderName = await getProfileName(newMsg.sender_id);
+          
+          // DIRECT STATE UPDATE - no refetch
+          const formattedMessage: DMMessage = {
+            id: newMsg.id,
+            conversationId: newMsg.conversation_id,
+            senderId: newMsg.sender_id,
+            senderName,
+            content: newMsg.content,
+            contentAr: newMsg.content_ar,
+            messageType: newMsg.message_type,
+            isRead: newMsg.is_read,
+            createdAt: newMsg.created_at,
+            isMine: false,
+            transferAmount: newMsg.transfer_amount,
+            transferRecipientId: newMsg.transfer_recipient_id,
+          };
+
+          // Add to messages if we're in this conversation
+          setMessages(prev => {
+            const convMessages = prev[newMsg.conversation_id] || [];
+            // Avoid duplicates
+            if (convMessages.some(m => m.id === newMsg.id)) return prev;
+            return {
+              ...prev,
+              [newMsg.conversation_id]: [...convMessages, formattedMessage],
+            };
+          });
+          
+          // Update conversation list
+          setConversations(prev => {
+            const isActiveConv = activeConversationRef.current === newMsg.conversation_id;
+            return prev.map(conv => 
+              conv.id === newMsg.conversation_id 
+                ? { 
+                    ...conv, 
+                    lastMessage: newMsg.content, 
+                    lastMessageAt: newMsg.created_at,
+                    unreadCount: isActiveConv ? conv.unreadCount : conv.unreadCount + 1,
+                  }
+                : conv
+            ).sort((a, b) => {
+              const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+              const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+              return bTime - aTime;
+            });
+          });
+
+          // If viewing this conversation, mark as read immediately
+          if (activeConversationRef.current === newMsg.conversation_id) {
             await supabase
               .from('direct_messages')
               .update({ is_read: true })
               .eq('id', newMsg.id);
           }
-          
-          // Always refetch conversations to update last message and unread
-          fetchConversations();
         }
       )
       .on(
@@ -302,7 +436,7 @@ export function useDirectMessages() {
         (payload) => {
           const updatedMsg = payload.new as any;
           
-          // Update message in local state
+          // DIRECT STATE UPDATE for read status
           setMessages(prev => {
             const convMessages = prev[updatedMsg.conversation_id];
             if (!convMessages) return prev;
@@ -316,9 +450,6 @@ export function useDirectMessages() {
               ),
             };
           });
-          
-          // Refetch conversations to update unread count
-          fetchConversations();
         }
       )
       .on(
@@ -329,6 +460,7 @@ export function useDirectMessages() {
           table: 'conversations',
         },
         () => {
+          // New conversation - just refetch list
           fetchConversations();
         }
       )
@@ -337,7 +469,7 @@ export function useDirectMessages() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, fetchConversations, fetchMessages, messages]);
+  }, [user, fetchConversations]);
 
   return {
     conversations,
