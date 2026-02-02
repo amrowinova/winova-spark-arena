@@ -1,16 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Reply,
-  Forward,
-  Copy,
-  Info,
   Check,
   CheckCheck,
+  CornerDownRight,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { MessageReactions, ReactionPicker } from './MessageReactions';
+import { MessageReactions } from './MessageReactions';
+import { MessageActionMenu } from './MessageActionMenu';
 
 export interface DMMessageData {
   id: string;
@@ -33,6 +30,7 @@ export interface DMMessageData {
     count: number;
     userReacted: boolean;
   }>;
+  isForwarded?: boolean;
 }
 
 interface DMMessageBubbleProps {
@@ -43,6 +41,9 @@ interface DMMessageBubbleProps {
   onInfo?: (message: DMMessageData) => void;
   onReact?: (messageId: string, emoji: string) => void;
   onScrollToMessage?: (messageId: string) => void;
+  onStar?: (message: DMMessageData) => void;
+  onReport?: (message: DMMessageData) => void;
+  onDelete?: (messageId: string) => void;
   // Status indicators
   showReadReceipts?: boolean;
   isDelivered?: boolean;
@@ -56,6 +57,9 @@ export function DMMessageBubble({
   onInfo,
   onReact,
   onScrollToMessage,
+  onStar,
+  onReport,
+  onDelete,
   showReadReceipts = true,
   isDelivered = true,
 }: DMMessageBubbleProps) {
@@ -86,7 +90,7 @@ export function DMMessageBubble({
 
   // Close actions when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (bubbleRef.current && !bubbleRef.current.contains(e.target as Node)) {
         setShowActions(false);
         setShowReactionPicker(false);
@@ -116,6 +120,11 @@ export function DMMessageBubble({
     setShowActions(false);
   };
 
+  const closeActions = () => {
+    setShowActions(false);
+    setShowReactionPicker(false);
+  };
+
   // Get read status indicator
   const getStatusIndicator = () => {
     if (!message.isMine || !showReadReceipts) return null;
@@ -137,12 +146,20 @@ export function DMMessageBubble({
       ref={bubbleRef}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative flex ${message.isMine ? 'justify-end' : 'justify-start'} mb-2`}
+      className={`relative flex ${message.isMine ? 'justify-end' : 'justify-start'} mb-1`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onContextMenu={handleContextMenu}
     >
       <div className="max-w-[85%]">
+        {/* Forwarded Label */}
+        {message.isForwarded && (
+          <div className={`flex items-center gap-1 text-xs text-muted-foreground mb-1 ${message.isMine ? 'justify-end' : ''}`}>
+            <CornerDownRight className="h-3 w-3" />
+            <span>{language === 'ar' ? 'تمت إعادة التوجيه' : 'Forwarded'}</span>
+          </div>
+        )}
+
         {/* Reply preview */}
         {message.replyTo && (
           <div
@@ -206,88 +223,40 @@ export function DMMessageBubble({
         {/* Long-press action menu */}
         <AnimatePresence>
           {showActions && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -10 }}
-              className={`absolute z-50 ${
-                message.isMine ? 'end-0' : 'start-0'
-              } -top-14 flex items-center gap-1 bg-card border border-border rounded-xl p-1 shadow-lg`}
-            >
-              {/* Quick reaction picker */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-lg"
-                onClick={() => setShowReactionPicker(!showReactionPicker)}
-              >
-                😊
-              </Button>
-
-              <div className="w-px h-6 bg-border" />
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => {
-                  onReply?.(message);
-                  setShowActions(false);
-                }}
-              >
-                <Reply className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => {
-                  onForward?.(message);
-                  setShowActions(false);
-                }}
-              >
-                <Forward className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => {
-                  onCopy?.(message.content);
-                  setShowActions(false);
-                }}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => {
-                  onInfo?.(message);
-                  setShowActions(false);
-                }}
-              >
-                <Info className="h-4 w-4" />
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Reaction picker */}
-        <AnimatePresence>
-          {showReactionPicker && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className={`absolute z-50 ${message.isMine ? 'end-0' : 'start-0'} -top-24`}
-            >
-              <ReactionPicker onSelect={handleReact} />
-            </motion.div>
+            <MessageActionMenu
+              isMine={message.isMine}
+              showReactionPicker={showReactionPicker}
+              onToggleReactionPicker={() => setShowReactionPicker(!showReactionPicker)}
+              onReact={handleReact}
+              onReply={() => {
+                onReply?.(message);
+                closeActions();
+              }}
+              onForward={() => {
+                onForward?.(message);
+                closeActions();
+              }}
+              onCopy={() => {
+                onCopy?.(message.content);
+                closeActions();
+              }}
+              onInfo={() => {
+                onInfo?.(message);
+                closeActions();
+              }}
+              onStar={onStar ? () => {
+                onStar(message);
+                closeActions();
+              } : undefined}
+              onReport={!message.isMine && onReport ? () => {
+                onReport(message);
+                closeActions();
+              } : undefined}
+              onDelete={message.isMine && onDelete ? () => {
+                onDelete(message.id);
+                closeActions();
+              } : undefined}
+            />
           )}
         </AnimatePresence>
       </div>

@@ -1,0 +1,306 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Send } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useBanner } from '@/contexts/BannerContext';
+import { DMMessageBubble, DMMessageData } from './DMMessageBubble';
+import { ChatHeader } from './ChatHeader';
+import { ReplyBar } from './ReplyBar';
+import { ForwardDialog } from './ForwardDialog';
+import { MessageInfoSheet } from './MessageInfoSheet';
+import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
+import { DMConversation, DMMessage } from '@/hooks/useDirectMessages';
+
+interface DMChatViewProps {
+  conversation: DMConversation;
+  messages: DMMessage[];
+  onBack: () => void;
+  onSendMessage: (conversationId: string, content: string, transferAmount?: number, transferRecipientId?: string) => Promise<void>;
+  onForwardMessage?: (messageContent: string, recipientIds: string[]) => void;
+}
+
+export function DMChatView({ 
+  conversation, 
+  messages, 
+  onBack, 
+  onSendMessage,
+  onForwardMessage,
+}: DMChatViewProps) {
+  const { language } = useLanguage();
+  const { info: showInfo, success: showSuccess } = useBanner();
+  
+  const [message, setMessage] = useState('');
+  const [replyTo, setReplyTo] = useState<DMMessageData | null>(null);
+  const [forwardMessage, setForwardMessage] = useState<DMMessageData | null>(null);
+  const [messageInfo, setMessageInfo] = useState<DMMessageData | null>(null);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Convert messages to DMMessageData format with reply info
+  const formattedMessages: DMMessageData[] = messages.map(msg => {
+    // Find if this message has a reply (for now, based on replyTo state matching)
+    return {
+      id: msg.id,
+      conversationId: msg.conversationId,
+      senderId: msg.senderId,
+      senderName: msg.senderName,
+      content: msg.content,
+      messageType: msg.messageType,
+      isRead: msg.isRead,
+      createdAt: msg.createdAt,
+      isMine: msg.isMine,
+      transferAmount: msg.transferAmount,
+      // Reply info would come from message metadata in a full implementation
+      replyTo: undefined,
+    };
+  });
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+    
+    // Small delay to ensure DOM is updated
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
+  }, [messages.length]);
+
+  // Handle keyboard appearance (mobile)
+  useEffect(() => {
+    const handleResize = () => {
+      // Scroll to bottom when virtual keyboard appears
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    if (typeof visualViewport !== 'undefined') {
+      visualViewport.addEventListener('resize', handleResize);
+      return () => visualViewport.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
+  // Scroll to a specific message
+  const scrollToMessage = useCallback((messageId: string) => {
+    const element = messageRefs.current.get(messageId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Flash highlight effect
+      element.classList.add('bg-primary/20');
+      setTimeout(() => element.classList.remove('bg-primary/20'), 1500);
+    }
+  }, []);
+
+  // Handle send
+  const handleSend = async () => {
+    if (!message.trim()) return;
+    
+    const content = message.trim();
+    setMessage('');
+    setReplyTo(null);
+    
+    // Auto-resize textarea back to single line
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
+    
+    await onSendMessage(conversation.id, content);
+  };
+
+  // Handle key press
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  // Auto-resize textarea
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    
+    // Auto-resize
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+  };
+
+  // Message actions
+  const handleReply = (msg: DMMessageData) => {
+    setReplyTo(msg);
+    inputRef.current?.focus();
+  };
+
+  const handleForward = (msg: DMMessageData) => {
+    setForwardMessage(msg);
+  };
+
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content);
+    showInfo(language === 'ar' ? 'تم النسخ' : 'Copied');
+  };
+
+  const handleInfo = (msg: DMMessageData) => {
+    setMessageInfo(msg);
+  };
+
+  const handleReact = (messageId: string, emoji: string) => {
+    // TODO: Implement reactions with database support
+    showInfo(`${emoji} ${language === 'ar' ? 'تفاعل' : 'reacted'}`);
+  };
+
+  const handleForwardSubmit = (recipientIds: string[]) => {
+    if (forwardMessage && onForwardMessage) {
+      onForwardMessage(forwardMessage.content, recipientIds);
+    }
+    showSuccess(
+      language === 'ar'
+        ? `تم إعادة التوجيه إلى ${recipientIds.length} جهة اتصال`
+        : `Forwarded to ${recipientIds.length} contacts`
+    );
+    setForwardMessage(null);
+  };
+
+  const handleTransferComplete = (receipt: { amount: number }) => {
+    onSendMessage(
+      conversation.id,
+      language === 'ar'
+        ? `تم تحويل ${receipt.amount} Nova`
+        : `Transferred ${receipt.amount} Nova`,
+      receipt.amount,
+      conversation.participantId
+    );
+    setTransferDialogOpen(false);
+  };
+
+  // Group consecutive messages from same sender
+  const groupedMessages = formattedMessages.reduce<Array<{ messages: DMMessageData[]; senderId: string }>>((groups, msg) => {
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup && lastGroup.senderId === msg.senderId) {
+      lastGroup.messages.push(msg);
+    } else {
+      groups.push({ senderId: msg.senderId, messages: [msg] });
+    }
+    return groups;
+  }, []);
+
+  return (
+    <div className="flex flex-col h-screen bg-background">
+      {/* Fixed Header */}
+      <ChatHeader
+        name={conversation.participantName}
+        username={conversation.participantUsername}
+        avatar="👤"
+        isOnline={false}
+        onBack={onBack}
+        onTransfer={() => setTransferDialogOpen(true)}
+      />
+
+      {/* Scrollable Messages Area */}
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto overscroll-contain"
+        style={{ paddingBottom: replyTo ? '120px' : '80px' }}
+      >
+        <div className="p-4 space-y-1">
+          {formattedMessages.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>{language === 'ar' ? 'ابدأ المحادثة' : 'Start the conversation'}</p>
+            </div>
+          ) : (
+            groupedMessages.map((group, groupIndex) => (
+              <div key={groupIndex} className="space-y-0.5">
+                {group.messages.map((msg, msgIndex) => (
+                  <div
+                    key={msg.id}
+                    ref={(el) => {
+                      if (el) messageRefs.current.set(msg.id, el);
+                    }}
+                    className="transition-colors duration-500 rounded-lg"
+                  >
+                    <DMMessageBubble
+                      message={msg}
+                      showReadReceipts={true}
+                      isDelivered={true}
+                      onReply={handleReply}
+                      onForward={handleForward}
+                      onCopy={handleCopy}
+                      onInfo={handleInfo}
+                      onReact={handleReact}
+                      onScrollToMessage={scrollToMessage}
+                    />
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+          <div ref={messagesEndRef} className="h-1" />
+        </div>
+      </div>
+
+      {/* Fixed Bottom Input Area */}
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
+        {/* Reply Preview */}
+        {replyTo && (
+          <ReplyBar
+            replyTo={{ sender: replyTo.senderName, content: replyTo.content }}
+            onCancel={() => setReplyTo(null)}
+          />
+        )}
+        
+        {/* Input Bar */}
+        <div className="p-3 pb-safe flex items-end gap-2">
+          <Textarea
+            ref={inputRef}
+            value={message}
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            placeholder={language === 'ar' ? 'اكتب رسالة...' : 'Type a message...'}
+            className="flex-1 min-h-[40px] max-h-[120px] resize-none py-2"
+            rows={1}
+          />
+          <Button 
+            size="icon" 
+            onClick={handleSend} 
+            disabled={!message.trim()}
+            className="shrink-0 h-10 w-10"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Transfer Dialog */}
+      <TransferNovaDialog
+        open={transferDialogOpen}
+        onClose={() => setTransferDialogOpen(false)}
+        recipientId={conversation.participantId}
+        recipientName={conversation.participantName}
+        recipientUsername={conversation.participantUsername}
+        onTransferComplete={handleTransferComplete}
+      />
+
+      {/* Forward Dialog */}
+      <ForwardDialog
+        open={!!forwardMessage}
+        onClose={() => setForwardMessage(null)}
+        onForward={handleForwardSubmit}
+        messagePreview={forwardMessage?.content || ''}
+      />
+
+      {/* Message Info Sheet */}
+      <MessageInfoSheet
+        open={!!messageInfo}
+        onOpenChange={(open) => !open && setMessageInfo(null)}
+        message={messageInfo}
+      />
+    </div>
+  );
+}
