@@ -4,47 +4,48 @@ import { motion } from 'framer-motion';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { UserIdentityCard } from '@/components/team/UserIdentityCard';
-import { TeamSizeCard } from '@/components/team/TeamSizeCard';
 import { ActivityCard } from '@/components/team/ActivityCard';
 import { PromotionCard } from '@/components/team/PromotionCard';
 import { WarningCard } from '@/components/team/WarningCard';
-import { RankSwitcher } from '@/components/team/DevRankSwitcher';
 import { ReferralCodeCard } from '@/components/team/ReferralCodeCard';
-import { useUser, UserRank } from '@/contexts/UserContext';
+import { TeamRankingCard } from '@/components/team/TeamRankingCard';
+import { TeamLevelBreakdown } from '@/components/team/TeamLevelBreakdown';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTeamHierarchy } from '@/hooks/useTeamHierarchy';
+import { useTeamStats } from '@/hooks/useTeamStats';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, ChevronRight, Loader2, UserCheck, UserX } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Users, ChevronRight, Loader2, UserCheck, UserX, BarChart3 } from 'lucide-react';
 
 type ViewLevel = 'overview' | 'direct' | 'indirect';
 
 function TeamContent() {
   const { t } = useTranslation();
-  const { user } = useUser();
   const { language } = useLanguage();
   const isRTL = language === 'ar';
   
   const [viewLevel, setViewLevel] = useState<ViewLevel>('overview');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  
-  // Dev-only: Override rank for testing UI
-  const [devRankOverride, setDevRankOverride] = useState<UserRank | null>(null);
-  const displayRank = devRankOverride ?? user.rank;
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch real team data from database
   const {
     directMembers,
-    indirectMembers,
-    directCount,
-    indirectCount,
-    activeDirectCount,
     getIndirectByParent,
-    loading
+    loading: hierarchyLoading
   } = useTeamHierarchy(5);
 
+  const { 
+    directCount, 
+    indirectCount, 
+    activeDirectCount,
+    loading: statsLoading 
+  } = useTeamStats();
+
+  const loading = hierarchyLoading || statsLoading;
   const inactiveCount = directCount - activeDirectCount;
 
   const handleViewDirect = () => {
@@ -193,73 +194,189 @@ function TeamContent() {
     );
   }
 
-  // Level 1: Overview
+  // Level 1: Overview with Tabs
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('team.title')} />
-      <main className="flex-1 px-4 py-4 pb-20 space-y-4">
-        {/* Rank Switcher */}
-        <RankSwitcher currentRank={displayRank} onRankChange={setDevRankOverride} language={language} />
-        
-        {/* User Identity Card */}
-        <UserIdentityCard rankOverride={devRankOverride} />
+      <main className="flex-1 px-4 py-4 pb-20">
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full grid grid-cols-4 mb-4">
+            <TabsTrigger value="overview" className="text-xs">
+              {isRTL ? 'نظرة عامة' : 'Overview'}
+            </TabsTrigger>
+            <TabsTrigger value="direct" className="text-xs">
+              {isRTL ? 'المباشر' : 'Direct'}
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="text-xs">
+              {isRTL ? 'الإحصائيات' : 'Stats'}
+            </TabsTrigger>
+            <TabsTrigger value="referral" className="text-xs">
+              {isRTL ? 'الإحالة' : 'Referral'}
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Referral Code Card */}
-        <ReferralCodeCard />
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-4 mt-0">
+            {/* User Identity Card */}
+            <UserIdentityCard />
 
-        {/* Team Size Card - Updated with real data */}
-        <Card className="p-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            {isRTL ? 'حجم الفريق' : 'Team Size'}
-          </h3>
-          
-          {loading ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <Card 
-                className="p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={handleViewDirect}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-2xl font-bold text-primary">{directCount}</p>
+            {/* Team Size Card - Real Data */}
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                {isRTL ? 'حجم الفريق' : 'Team Size'}
+              </h3>
+              
+              {loading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Card 
+                    className="p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={handleViewDirect}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-2xl font-bold text-primary">{directCount}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {isRTL ? 'مباشر' : 'Direct'}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  </Card>
+
+                  <Card className="p-3">
+                    <p className="text-2xl font-bold text-muted-foreground">{indirectCount}</p>
                     <p className="text-xs text-muted-foreground">
-                      {isRTL ? 'مباشر' : 'Direct'}
+                      {isRTL ? 'غير مباشر' : 'Indirect'}
+                    </p>
+                  </Card>
+                </div>
+              )}
+
+              <div className="mt-3 pt-3 border-t">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{isRTL ? 'إجمالي الفريق' : 'Total Team'}</span>
+                  <span className="font-bold">{directCount + indirectCount}</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Activity Card - Real DB data */}
+            <ActivityCard />
+
+            {/* Promotion Card - Real DB data */}
+            <PromotionCard />
+
+            {/* Warning Card */}
+            <WarningCard inactiveCount={inactiveCount} directTeamCount={directCount} />
+          </TabsContent>
+
+          {/* Direct Team Tab */}
+          <TabsContent value="direct" className="space-y-3 mt-0">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : directMembers.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+                <h2 className="text-lg font-bold mb-2">
+                  {isRTL ? 'لا يوجد أعضاء بعد' : 'No Team Members Yet'}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {isRTL ? 'شارك كود الدعوة الخاص بك لبناء فريقك!' : 'Share your referral code to build your team!'}
+                </p>
+              </div>
+            ) : (
+              directMembers.map((member) => (
+                <motion.div
+                  key={member.member_id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <TeamMemberCard 
+                    member={member} 
+                    onViewTeam={member.direct_count > 0 ? () => handleViewIndirect(member.member_id) : undefined}
+                  />
+                </motion.div>
+              ))
+            )}
+          </TabsContent>
+
+          {/* Stats Tab */}
+          <TabsContent value="stats" className="space-y-4 mt-0">
+            {/* Ranking Card */}
+            <TeamRankingCard />
+            
+            {/* Level Breakdown */}
+            <TeamLevelBreakdown />
+            
+            {/* Activity Card */}
+            <ActivityCard />
+          </TabsContent>
+
+          {/* Referral Tab */}
+          <TabsContent value="referral" className="space-y-4 mt-0">
+            {/* Referral Code Card with Stats */}
+            <ReferralCodeCard />
+            
+            {/* How it works */}
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">
+                {isRTL ? 'كيف تعمل الإحالة؟' : 'How Referral Works?'}
+              </h3>
+              
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                    1
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">
+                      {isRTL ? 'شارك كودك' : 'Share Your Code'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isRTL ? 'أرسل كود الإحالة لأصدقائك' : 'Send your referral code to friends'}
                     </p>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </div>
-              </Card>
-
-              <Card className="p-3">
-                <p className="text-2xl font-bold text-muted-foreground">{indirectCount}</p>
-                <p className="text-xs text-muted-foreground">
-                  {isRTL ? 'غير مباشر' : 'Indirect'}
-                </p>
-              </Card>
-            </div>
-          )}
-
-          <div className="mt-3 pt-3 border-t">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{isRTL ? 'إجمالي الفريق' : 'Total Team'}</span>
-              <span className="font-bold">{directCount + indirectCount}</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Activity Card */}
-        <ActivityCard rankOverride={devRankOverride} />
-
-        {/* Promotion Card */}
-        <PromotionCard rankOverride={devRankOverride} />
-
-        {/* Warning Card */}
-        <WarningCard inactiveCount={inactiveCount} directTeamCount={directCount} />
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                    2
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">
+                      {isRTL ? 'ينضمون إلى WINOVA' : 'They Join WINOVA'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isRTL ? 'يستخدمون كودك عند التسجيل' : 'They use your code when signing up'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center text-xs font-bold text-success shrink-0">
+                    3
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">
+                      {isRTL ? 'تكسب نقاط ومكافآت' : 'Earn Points & Rewards'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isRTL ? 'كلما كان فريقك نشيطاً، زادت مكافآتك' : 'The more active your team, the more you earn'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
       <BottomNav />
     </div>

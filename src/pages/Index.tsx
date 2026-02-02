@@ -18,7 +18,6 @@ import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
 import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
-import { useActiveUsers } from '@/hooks/useActiveUsers';
 import { getContestTiming } from '@/lib/contestTiming';
 
 import {
@@ -56,9 +55,6 @@ export default function HomePage() {
   const { user } = useUser();
   const { chats: p2pChats } = useP2PSafe();
   const { success: showSuccess, error: showError } = useBanner();
-  
-  // Active users counter - updates every 30 seconds
-  const globalActiveUsers = useActiveUsers();
   
   // Check for active P2P orders, disputes, or unread messages
   const hasActiveP2POrder = p2pChats.some(chat => 
@@ -246,7 +242,7 @@ export default function HomePage() {
       >
         {/* Active Users Badge - Compact inline bar */}
         <motion.div variants={itemVariants} className="flex justify-center">
-          <ActiveUsersCard count={globalActiveUsers} />
+          <ActiveUsersCard />
         </motion.div>
 
         {/* 1️⃣ Welcome Message */}

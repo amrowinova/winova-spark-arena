@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
-import { Target, CheckCircle2, Circle } from 'lucide-react';
+import { Target, CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { RankBadge } from '@/components/common/RankBadge';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useRankBasedData } from '@/hooks/useRankBasedData';
+import { useTeamStats } from '@/hooks/useTeamStats';
 import {
   SubscriberScreen,
   MarketerScreen,
@@ -26,96 +26,73 @@ import {
  * 3. قائد (Leader)       → 10 direct marketers
  * 4. مدير (Manager)      → 10 direct leaders
  * 5. رئيس (President)    → 10+ managers + highest spotlight points
- * 
- * USER VIEW LOGIC:
- * - User ONLY sees their current rank
- * - No tabs or rank switching visible to user
- * - View automatically updates on promotion
- * - Promotion progress shows requirements for NEXT rank only
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-// ═══════════════════════════════════════════════════════════════════════════
-// RANK: مشترك (SUBSCRIBER) → مسوّق (MARKETER)
-// ═══════════════════════════════════════════════════════════════════════════
-const subscriberRequirements = {
-  nextRank: 'marketer' as UserRank,
-  directRequired: 3,
-  requirementType: 'active_subscribers',
-  descriptionEn: 'Bring 3 active subscribers',
-  descriptionAr: 'أحضر 3 مشتركين نشيطين',
+// Rank requirements configuration
+const promotionRequirements: Record<UserRank, {
+  nextRank: UserRank | null;
+  directRequired: number;
+  descriptionEn: string;
+  descriptionAr: string;
+}> = {
+  subscriber: {
+    nextRank: 'marketer',
+    directRequired: 3,
+    descriptionEn: 'Bring 3 active subscribers',
+    descriptionAr: 'أحضر 3 مشتركين نشيطين',
+  },
+  marketer: {
+    nextRank: 'leader',
+    directRequired: 10,
+    descriptionEn: 'Bring 10 direct active marketers',
+    descriptionAr: 'أحضر 10 مسوّقين مباشرين نشيطين',
+  },
+  leader: {
+    nextRank: 'manager',
+    directRequired: 10,
+    descriptionEn: 'Promote 10 direct active Leaders',
+    descriptionAr: 'رقِّ 10 قادة مباشرين نشيطين',
+  },
+  manager: {
+    nextRank: 'president',
+    directRequired: 10,
+    descriptionEn: 'Promote 10 direct Managers + be top in points',
+    descriptionAr: 'رقِّ 10 مدراء مباشرين وكن من الأعلى نقاطًا',
+  },
+  president: {
+    nextRank: null,
+    directRequired: 15,
+    descriptionEn: 'Maintain 15+ active managers + be top in country',
+    descriptionAr: 'حافظ على +15 مدير نشيط وكن الأعلى نقاطًا في الدولة',
+  },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// RANK: مسوّق (MARKETER) → قائد (LEADER)
-// ═══════════════════════════════════════════════════════════════════════════
-const marketerRequirements = {
-  nextRank: 'leader' as UserRank,
-  directRequired: 10,
-  requirementType: 'direct_marketers',
-  descriptionEn: 'Bring 10 direct active marketers',
-  descriptionAr: 'أحضر 10 مسوّقين مباشرين نشيطين',
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// RANK: قائد (LEADER) → مدير (MANAGER)
-// ═══════════════════════════════════════════════════════════════════════════
-const leaderRequirements = {
-  nextRank: 'manager' as UserRank,
-  directRequired: 10,
-  requirementType: 'direct_leaders',
-  descriptionEn: 'Promote 10 direct active Leaders',
-  descriptionAr: 'رقِّ 10 قادة مباشرين نشيطين',
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// RANK: مدير (MANAGER) → رئيس (PRESIDENT)
-// ═══════════════════════════════════════════════════════════════════════════
-const managerRequirements = {
-  nextRank: 'president' as UserRank,
-  directRequired: 10,
-  requirementType: 'managers_and_points',
-  descriptionEn: 'Promote 10 direct Managers + be top in points',
-  descriptionAr: 'رقِّ 10 مدراء مباشرين وكن من الأعلى نقاطًا',
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// RANK: رئيس (PRESIDENT) - TOP RANK
-// ═══════════════════════════════════════════════════════════════════════════
-const presidentRequirements = {
-  nextRank: null,
-  directRequired: 15,
-  requirementType: 'maintain_presidency',
-  descriptionEn: 'Maintain 15+ active managers + be top in country',
-  descriptionAr: 'حافظ على +15 مدير نشيط وكن الأعلى نقاطًا في الدولة',
-};
-
-// Combined requirements map
-const promotionRequirements: Record<UserRank, typeof subscriberRequirements> = {
-  subscriber: subscriberRequirements,
-  marketer: marketerRequirements,
-  leader: leaderRequirements,
-  manager: managerRequirements,
-  president: presidentRequirements,
-};
-
-interface PromotionCardProps {
-  rankOverride?: UserRank | null;
-}
-
-export function PromotionCard({ rankOverride }: PromotionCardProps) {
+export function PromotionCard() {
   const { user } = useUser();
   const { language } = useLanguage();
+  const { 
+    activeDirectCount, 
+    directCount,
+    userRank,
+    loading 
+  } = useTeamStats();
   
-  // Use override rank for dev testing, otherwise use actual user rank
-  const displayRank = rankOverride ?? user.rank;
-  const rankData = useRankBasedData(displayRank);
-
+  // Use real rank from DB, fallback to context
+  const displayRank = (userRank as UserRank) || user.rank;
   const currentPromotion = promotionRequirements[displayRank];
-  
-  // ═══════════════════════════════════════════════════════════════════════
-  // PRESIDENT VIEW - Full President Screen
-  // ═══════════════════════════════════════════════════════════════════════
+
+  if (loading) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </Card>
+    );
+  }
+
+  // President view - top rank
   if (!currentPromotion.nextRank) {
     return (
       <div className="space-y-4">
@@ -125,14 +102,10 @@ export function PromotionCard({ rankOverride }: PromotionCardProps) {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PROMOTION PROGRESS VIEW - For all other ranks
-  // ═══════════════════════════════════════════════════════════════════════
-  // Use rank-based data for progress calculations
-  const activeDirectCount = rankData.directTeamActiveCount;
-  const promotionProgress = Math.min(100, rankData.promotionProgress);
-  const remaining = Math.max(0, currentPromotion.directRequired - activeDirectCount);
+  // Calculate progress from real data
   const achieved = Math.min(activeDirectCount, currentPromotion.directRequired);
+  const remaining = Math.max(0, currentPromotion.directRequired - activeDirectCount);
+  const promotionProgress = Math.min(100, Math.round((activeDirectCount / currentPromotion.directRequired) * 100));
 
   return (
     <motion.div
@@ -159,14 +132,14 @@ export function PromotionCard({ rankOverride }: PromotionCardProps) {
             <RankBadge rank={currentPromotion.nextRank} size="sm" />
           </div>
 
-          {/* Progress Stats - Clear Numbers */}
+          {/* Progress Stats - Real Numbers */}
           <div className="bg-muted/50 rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">
                 {language === 'ar' ? 'التقدم' : 'Progress'}
               </span>
               <span className="text-lg font-bold text-primary">
-                {Math.round(promotionProgress)}%
+                {promotionProgress}%
               </span>
             </div>
             
