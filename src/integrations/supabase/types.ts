@@ -572,6 +572,136 @@ export type Database = {
           },
         ]
       }
+      spotlight_cycles: {
+        Row: {
+          created_at: string
+          cycle_number: number
+          end_date: string
+          id: string
+          start_date: string
+          status: string
+          total_days: number
+          total_weeks: number
+        }
+        Insert: {
+          created_at?: string
+          cycle_number: number
+          end_date: string
+          id?: string
+          start_date: string
+          status?: string
+          total_days?: number
+          total_weeks?: number
+        }
+        Update: {
+          created_at?: string
+          cycle_number?: number
+          end_date?: string
+          id?: string
+          start_date?: string
+          status?: string
+          total_days?: number
+          total_weeks?: number
+        }
+        Relationships: []
+      }
+      spotlight_daily_draws: {
+        Row: {
+          announced_at: string | null
+          created_at: string
+          cycle_id: string
+          draw_date: string
+          first_place_percentage: number | null
+          first_place_prize: number | null
+          first_place_user_id: string | null
+          id: string
+          is_announced: boolean
+          second_place_percentage: number | null
+          second_place_prize: number | null
+          second_place_user_id: string | null
+          total_pool: number
+        }
+        Insert: {
+          announced_at?: string | null
+          created_at?: string
+          cycle_id: string
+          draw_date: string
+          first_place_percentage?: number | null
+          first_place_prize?: number | null
+          first_place_user_id?: string | null
+          id?: string
+          is_announced?: boolean
+          second_place_percentage?: number | null
+          second_place_prize?: number | null
+          second_place_user_id?: string | null
+          total_pool?: number
+        }
+        Update: {
+          announced_at?: string | null
+          created_at?: string
+          cycle_id?: string
+          draw_date?: string
+          first_place_percentage?: number | null
+          first_place_prize?: number | null
+          first_place_user_id?: string | null
+          id?: string
+          is_announced?: boolean
+          second_place_percentage?: number | null
+          second_place_prize?: number | null
+          second_place_user_id?: string | null
+          total_pool?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spotlight_daily_draws_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "spotlight_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spotlight_user_points: {
+        Row: {
+          created_at: string
+          cycle_id: string
+          daily_points: number
+          id: string
+          points_date: string
+          source: string
+          user_id: string
+          week_number: number
+        }
+        Insert: {
+          created_at?: string
+          cycle_id: string
+          daily_points?: number
+          id?: string
+          points_date: string
+          source?: string
+          user_id: string
+          week_number: number
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string
+          daily_points?: number
+          id?: string
+          points_date?: string
+          source?: string
+          user_id?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spotlight_user_points_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "spotlight_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_messages: {
         Row: {
           content: string

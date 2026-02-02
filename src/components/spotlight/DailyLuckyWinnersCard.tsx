@@ -104,48 +104,63 @@ export function DailyLuckyWinnersCard({
       </CardHeader>
 
       <CardContent className="space-y-3">
-        {displayWinners.map((winner, index) => (
-          <motion.div
-            key={winner.id}
-            initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className={`flex items-center gap-3 p-3 rounded-xl ${
-              index === 0 
-                ? 'bg-gradient-to-r from-nova/20 to-nova/5 border border-nova/30' 
-                : 'bg-muted/50'
-            }`}
-          >
-            {/* Medal */}
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-              index === 0 ? 'bg-gradient-nova' : 'bg-muted'
-            }`}>
-              {index === 0 ? '🥇' : '🥈'}
-            </div>
-
-            {/* Winner Info */}
-            <div className="flex-1">
-              <p 
-                className="font-medium cursor-pointer hover:text-nova transition-colors"
-                onClick={() => handleProfileClick(winner.id)}
-              >
-                {winner.name}
-              </p>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className={index === 0 ? 'text-nova font-bold' : ''}>
-                  {winner.percentage}%
-                </span>
+        {displayWinners.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">
+              {isRTL 
+                ? 'لم يتم الإعلان عن الفائزين بعد' 
+                : 'No winners announced yet'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {isRTL 
+                ? 'سيتم الإعلان عن الفائزين عند انتهاء السحب' 
+                : 'Winners will be announced after the draw'}
+            </p>
+          </div>
+        ) : (
+          displayWinners.map((winner, index) => (
+            <motion.div
+              key={winner.id}
+              initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className={`flex items-center gap-3 p-3 rounded-xl ${
+                index === 0 
+                  ? 'bg-gradient-to-r from-nova/20 to-nova/5 border border-nova/30' 
+                  : 'bg-muted/50'
+              }`}
+            >
+              {/* Medal */}
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
+                index === 0 ? 'bg-gradient-nova' : 'bg-muted'
+              }`}>
+                {index === 0 ? '🥇' : '🥈'}
               </div>
-            </div>
 
-            {/* Prize */}
-            <div className="text-end">
-              <p className={`font-bold ${index === 0 ? 'text-nova text-lg' : ''}`}>
-                И {winner.prize.toFixed(0)}
-              </p>
-            </div>
-          </motion.div>
-        ))}
+              {/* Winner Info */}
+              <div className="flex-1">
+                <p 
+                  className="font-medium cursor-pointer hover:text-nova transition-colors"
+                  onClick={() => handleProfileClick(winner.id)}
+                >
+                  {winner.name}
+                </p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className={index === 0 ? 'text-nova font-bold' : ''}>
+                    {winner.percentage}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Prize */}
+              <div className="text-end">
+                <p className={`font-bold ${index === 0 ? 'text-nova text-lg' : ''}`}>
+                  И {winner.prize.toFixed(0)}
+                </p>
+              </div>
+            </motion.div>
+          ))
+        )}
       </CardContent>
     </Card>
   );
