@@ -95,9 +95,9 @@ export function TransferNovaDialog({
   // 4. Wallet is not frozen
   const canTransfer = hasEnoughBalance && novaAmount > 0 && confirmedRecipient?.userId && !isWalletFrozen;
 
-  // Search users when query changes
+  // Search users when query changes - start from first character
   const handleSearch = useCallback(async (query: string) => {
-    if (query.length < 2) {
+    if (query.length < 1) {
       setSearchResults([]);
       setShowDropdown(false);
       return;
@@ -326,7 +326,7 @@ export function TransferNovaDialog({
                               <Loader2 className="h-4 w-4 animate-spin" />
                               {language === 'ar' ? 'جاري البحث...' : 'Searching...'}
                             </div>
-                          ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
+                          ) : searchResults.length === 0 && searchQuery.length >= 1 ? (
                             <div className="p-4 text-center text-muted-foreground">
                               <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
                               <p className="font-medium">
