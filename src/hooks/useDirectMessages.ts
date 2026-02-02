@@ -398,10 +398,21 @@ export function useDirectMessages() {
             };
           });
           
-          // Update conversation list
+          // Update conversation list - INSTANT with sorting
           setConversations(prev => {
             const isActiveConv = activeConversationRef.current === newMsg.conversation_id;
-            return prev.map(conv => 
+            
+            // Check if conversation exists
+            const convExists = prev.some(conv => conv.id === newMsg.conversation_id);
+            
+            if (!convExists) {
+              // New conversation - need to fetch it
+              console.log('[DM Realtime] New conversation detected, fetching...');
+              fetchConversations();
+              return prev;
+            }
+            
+            const updated = prev.map(conv => 
               conv.id === newMsg.conversation_id 
                 ? { 
                     ...conv, 
@@ -410,7 +421,10 @@ export function useDirectMessages() {
                     unreadCount: isActiveConv ? conv.unreadCount : conv.unreadCount + 1,
                   }
                 : conv
-            ).sort((a, b) => {
+            );
+            
+            // Sort by last message time - newest first
+            return updated.sort((a, b) => {
               const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
               const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
               return bTime - aTime;

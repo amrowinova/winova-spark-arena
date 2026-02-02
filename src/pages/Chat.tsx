@@ -238,9 +238,19 @@ function ChatContent() {
   };
 
   // Combine all conversations - Real DMs + Support + P2P (remove mock DMs from conversations)
+  // Sort DMs by lastMessageAt to ensure newest conversation is at top
   const teamConversations = conversations.filter(c => c.type === 'team');
-  const allConversations = [supportConversation, ...realDMConversations, ...teamConversations, ...p2pConversations];
-
+  const sortedDMConversations = [...realDMConversations].sort((a, b) => {
+    // Support always stays at top of Private tab for visibility
+    const aTime = (a as any).dmConversationId 
+      ? dmConversations.find(d => d.id === (a as any).dmConversationId)?.lastMessageAt || ''
+      : '';
+    const bTime = (b as any).dmConversationId 
+      ? dmConversations.find(d => d.id === (b as any).dmConversationId)?.lastMessageAt || ''
+      : '';
+    return new Date(bTime).getTime() - new Date(aTime).getTime();
+  });
+  const allConversations = [supportConversation, ...sortedDMConversations, ...teamConversations, ...p2pConversations];
   const filteredConversations = allConversations.filter(conv => {
     if (conv.type === 'system') return false;
     if (conv.id === 'support') return selectedTab === 'dm';
