@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { P2PRatingsSheet, type P2PRating } from '@/components/profile/P2PRatingsSheet';
 import { UserWinsSection, type ContestWin, type LuckyWin, type UserWin } from '@/components/profile/UserWinsSection';
+import { FollowersSheet } from '@/components/profile/FollowersSheet';
 import { getCountryFlag } from '@/lib/countryFlags';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,6 +89,8 @@ export default function PublicProfile() {
   const [error, setError] = useState<string | null>(null);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [showRatingsSheet, setShowRatingsSheet] = useState(false);
+  const [showFollowersSheet, setShowFollowersSheet] = useState(false);
+  const [followersSheetTab, setFollowersSheetTab] = useState<'followers' | 'following'>('followers');
 
   // Check if viewing own profile
   const isOwnProfile = currentUser?.id === userId;
@@ -393,25 +396,37 @@ export default function PublicProfile() {
               @{profile.username}
             </span>
 
-            {/* Followers / Following Stats */}
+            {/* Followers / Following Stats - Clickable */}
             <div className="mt-3 flex items-center gap-4">
-              <div className="text-center">
+              <button
+                onClick={() => {
+                  setFollowersSheetTab('followers');
+                  setShowFollowersSheet(true);
+                }}
+                className="text-center hover:opacity-80 transition-opacity"
+              >
                 <span className="text-lg font-bold text-foreground">
                   {followersCount}
                 </span>
                 <span className="text-sm text-muted-foreground mx-1">
                   {language === 'ar' ? 'متابِع' : 'Followers'}
                 </span>
-              </div>
+              </button>
               <div className="h-4 w-px bg-border" />
-              <div className="text-center">
+              <button
+                onClick={() => {
+                  setFollowersSheetTab('following');
+                  setShowFollowersSheet(true);
+                }}
+                className="text-center hover:opacity-80 transition-opacity"
+              >
                 <span className="text-lg font-bold text-foreground">
                   {followingCount}
                 </span>
                 <span className="text-sm text-muted-foreground mx-1">
                   {language === 'ar' ? 'يتابع' : 'Following'}
                 </span>
-              </div>
+              </button>
             </div>
 
             {/* Follow Button - Only for other users */}
@@ -687,6 +702,16 @@ export default function PublicProfile() {
           positiveCount={p2pStats.positiveCount}
           negativeCount={p2pStats.negativeCount}
         />
+
+        {/* Followers/Following Sheet */}
+        {userId && (
+          <FollowersSheet
+            open={showFollowersSheet}
+            onOpenChange={setShowFollowersSheet}
+            userId={userId}
+            initialTab={followersSheetTab}
+          />
+        )}
       </div>
     </AppLayout>
   );
