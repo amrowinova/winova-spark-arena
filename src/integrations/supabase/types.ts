@@ -84,6 +84,7 @@ export type Database = {
         Row: {
           contest_id: string
           created_at: string
+          free_vote_used: boolean | null
           id: string
           prize_won: number | null
           rank: number | null
@@ -93,6 +94,7 @@ export type Database = {
         Insert: {
           contest_id: string
           created_at?: string
+          free_vote_used?: boolean | null
           id?: string
           prize_won?: number | null
           rank?: number | null
@@ -102,6 +104,7 @@ export type Database = {
         Update: {
           contest_id?: string
           created_at?: string
+          free_vote_used?: boolean | null
           id?: string
           prize_won?: number | null
           rank?: number | null
@@ -929,6 +932,14 @@ export type Database = {
           p_is_credit: boolean
           p_reason?: string
           p_target_user_id: string
+        }
+        Returns: Json
+      }
+      cast_free_vote: {
+        Args: {
+          p_contest_id: string
+          p_contestant_id: string
+          p_voter_id: string
         }
         Returns: Json
       }

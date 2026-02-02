@@ -143,7 +143,7 @@ export default function ContestsPage() {
         // Fetch contest entries
         const { data: entriesData, error: entriesError } = await supabase
           .from('contest_entries')
-          .select('user_id, votes_received, rank, prize_won')
+          .select('user_id, votes_received, rank, prize_won, free_vote_used')
           .eq('contest_id', contestData.id)
           .order('votes_received', { ascending: false });
 
@@ -190,11 +190,16 @@ export default function ContestsPage() {
 
           // Check if current user has joined
           if (authUser) {
+            const userEntryData = entriesData.find(e => e.user_id === authUser.id);
             const userEntry = formattedParticipants.find(p => p.id === authUser.id);
             if (userEntry) {
               setHasJoined(true);
               setUserRank(userEntry.rank);
               setUserVotes(userEntry.votes);
+              // Check if user has used their free vote
+              if (userEntryData?.free_vote_used) {
+                setFreeVoteUsed(true);
+              }
             }
           }
         }
@@ -427,33 +432,64 @@ export default function ContestsPage() {
     }
   };
 
-  const handleUseFreeVote = () => {
+  const handleUseFreeVote = async () => {
     if (!selectedParticipant || freeVoteUsed || !freeVoteActive || isFinal) return;
     if (!timing.canVote) {
       showError(language === 'ar' ? 'التصويت مغلق حالياً' : 'Voting is currently closed');
       return;
     }
+    if (!authUser || !activeContestId) return;
 
-    setFreeVoteUsed(true);
-    
-    const updatedParticipants = participants.map(p => 
-      p.id === selectedParticipant.id 
-        ? { ...p, votes: p.votes + 1 }
-        : p
-    ).sort((a, b) => b.votes - a.votes).map((p, i) => ({ ...p, rank: i + 1 }));
+    setIsVoting(true);
 
-    setParticipants(updatedParticipants);
+    try {
+      const { data, error } = await supabase.rpc('cast_free_vote', {
+        p_voter_id: authUser.id,
+        p_contestant_id: selectedParticipant.id,
+        p_contest_id: activeContestId,
+      });
 
-    const newParticipantData = updatedParticipants.find(p => p.id === selectedParticipant.id);
-    const newRank = newParticipantData?.rank || selectedParticipant.rank;
+      if (error) {
+        console.error('Free vote error:', error);
+        showError(error.message);
+        return;
+      }
 
-    setVoteDialogOpen(false);
+      const result = data as { success: boolean; error?: string };
 
-    showSuccess(
-      language === 'ar' 
-        ? `🎁 رائع! استخدمت صوتك المجاني لـ ${selectedParticipant.name} وأصبح الآن #${newRank}`
-        : `🎁 Great! You used your free vote for ${selectedParticipant.name} and is now #${newRank}`
-    );
+      if (!result.success) {
+        showError(result.error || (language === 'ar' ? 'فشل التصويت المجاني' : 'Free vote failed'));
+        return;
+      }
+
+      setFreeVoteUsed(true);
+      
+      const updatedParticipants = participants.map(p => 
+        p.id === selectedParticipant.id 
+          ? { ...p, votes: p.votes + 1 }
+          : p
+      ).sort((a, b) => b.votes - a.votes).map((p, i) => ({ ...p, rank: i + 1 }));
+
+      setParticipants(updatedParticipants);
+
+      const newParticipantData = updatedParticipants.find(p => p.id === selectedParticipant.id);
+      const newRank = newParticipantData?.rank || selectedParticipant.rank;
+
+      setVoteDialogOpen(false);
+
+      showSuccess(
+        language === 'ar' 
+          ? `🎁 رائع! استخدمت صوتك المجاني لـ ${selectedParticipant.name} وأصبح الآن #${newRank}`
+          : `🎁 Great! You used your free vote for ${selectedParticipant.name} and is now #${newRank}`
+      );
+
+      fetchContestData();
+    } catch (err) {
+      console.error('Free vote error:', err);
+      showError(language === 'ar' ? 'حدث خطأ' : 'An error occurred');
+    } finally {
+      setIsVoting(false);
+    }
   };
 
   // Get countdown info
