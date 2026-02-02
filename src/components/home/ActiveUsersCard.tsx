@@ -1,16 +1,21 @@
 import { motion } from 'framer-motion';
-import { Users } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRealActiveUsers } from '@/hooks/useRealActiveUsers';
 
 interface ActiveUsersCardProps {
-  count: number;
   className?: string;
 }
 
-export function ActiveUsersCard({ count, className }: ActiveUsersCardProps) {
+export function ActiveUsersCard({ className }: ActiveUsersCardProps) {
   const { language } = useLanguage();
+  
+  // Use real presence-based count
+  const activeCount = useRealActiveUsers();
 
-  const formattedCount = count.toLocaleString();
+  // Don't show if no users (still loading)
+  if (activeCount === 0) return null;
+
+  const formattedCount = activeCount.toLocaleString();
 
   return (
     <motion.div
@@ -28,9 +33,6 @@ export function ActiveUsersCard({ count, className }: ActiveUsersCardProps) {
       </span>
       <span className="text-xs font-bold text-success">
         {formattedCount}
-      </span>
-      <span className="text-xs text-muted-foreground">
-        {language === 'ar' ? 'شخص' : 'people'}
       </span>
     </motion.div>
   );
