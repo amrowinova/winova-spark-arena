@@ -73,142 +73,13 @@ interface Conversation {
   dmParticipantId?: string;
 }
 
-// Mock conversations with enhanced messages
-const initialConversations: Conversation[] = [
-  {
-    id: '1',
-    type: 'dm',
-    name: 'سارة أحمد',
-    username: 'sara_ahmed',
-    avatar: '👩',
-    rank: 'marketer',
-    isOnline: true,
-    lastMessage: 'شكراً على التصويت!',
-    time: '2m',
-    unread: 2,
-    messages: [
-      { 
-        id: 'm1', 
-        sender: 'سارة أحمد', 
-        senderId: '2', 
-        content: 'مرحباً! كيف حالك؟', 
-        time: '10:30 AM', 
-        isMine: false,
-        reactions: [{ emoji: '👋', count: 1, userReacted: true }]
-      },
-      { 
-        id: 'm2', 
-        sender: 'أنت', 
-        senderId: '1', 
-        content: 'الحمد لله بخير، وأنتِ؟', 
-        time: '10:32 AM', 
-        isMine: true,
-        read: true
-      },
-      { 
-        id: 'm3', 
-        sender: 'سارة أحمد', 
-        senderId: '2', 
-        content: 'شكراً على التصويت!', 
-        time: '10:35 AM', 
-        isMine: false,
-        transaction: {
-          type: 'vote',
-          amount: 12,
-          description: 'صوّت لك سارة – المرحلة الأولى',
-        }
-      },
-    ],
-    pinnedMessages: [],
-  },
-  {
-    id: '2',
-    type: 'team',
-    name: 'Team Alpha',
-    nameAr: 'فريق ألفا',
-    avatar: '👥',
-    lastMessage: 'مبروك للجميع على الإنجاز!',
-    time: '15m',
-    unread: 5,
-    isMuted: false,
-    messages: [
-      { id: 't1', sender: 'محمد خالد', senderId: '3', content: 'السلام عليكم', time: '09:00 AM', isMine: false },
-      { id: 't3', sender: 'أنت', senderId: '1', content: 'أهلاً بكم جميعاً!', time: '09:30 AM', isMine: true, read: true },
-      { id: 't4', sender: 'محمد خالد', senderId: '3', content: 'مبروك للجميع على الإنجاز!', time: '10:00 AM', isMine: false, pinned: true },
-    ],
-    pinnedMessages: [
-      { id: 't4', sender: 'محمد خالد', senderId: '3', content: 'مبروك للجميع على الإنجاز!', time: '10:00 AM', isMine: false, pinned: true },
-    ],
-    // System messages (automated events)
-    systemMessages: [
-      { id: 'sys1', type: 'member_joined', memberName: 'Layla Hassan', memberNameAr: 'ليلى حسن', time: '08:00 AM' },
-      { id: 'sys2', type: 'contest_entered', memberName: 'Omar Ali', memberNameAr: 'عمر علي', time: '09:15 AM', contestName: 'Daily Contest', contestNameAr: 'مسابقة اليوم' },
-      { id: 'sys3', type: 'member_won', memberName: 'Sarah Ahmed', memberNameAr: 'سارة أحمد', time: '11:00 AM', prizeAmount: 50 },
-      { id: 'sys4', type: 'member_promoted', memberName: 'Khaled Mahmoud', memberNameAr: 'خالد محمود', time: '02:00 PM', newRank: 'marketer' },
-      { id: 'sys5', type: 'vote_request', memberName: 'Nour El-Din', memberNameAr: 'نور الدين', time: '03:30 PM' },
-    ],
-    // Team members
-    teamMembers: [
-      { id: 'tm1', name: 'Omar Ali', nameAr: 'عمر علي', username: 'omar_ali', rank: 'marketer', active: true, avatar: '👨', directCount: 5, activityRanking: 1 },
-      { id: 'tm2', name: 'Sarah Ahmed', nameAr: 'سارة أحمد', username: 'sara_ahmed', rank: 'marketer', active: true, avatar: '👩', directCount: 3, activityRanking: 2 },
-      { id: 'tm3', name: 'Khaled Mahmoud', nameAr: 'خالد محمود', username: 'khaled_m', rank: 'marketer', active: true, avatar: '👨', directCount: 2, activityRanking: 3 },
-      { id: 'tm4', name: 'Layla Hassan', nameAr: 'ليلى حسن', username: 'layla_h', rank: 'subscriber', active: true, avatar: '👩', directCount: 0, activityRanking: 4 },
-      { id: 'tm5', name: 'Nour El-Din', nameAr: 'نور الدين', username: 'nour_d', rank: 'subscriber', active: false, avatar: '👨', directCount: 0, activityRanking: 5 },
-      { id: 'tm6', name: 'Fatima Zahra', nameAr: 'فاطمة الزهراء', username: 'fatima_z', rank: 'subscriber', active: false, avatar: '👩', directCount: 1, activityRanking: 6 },
-    ],
-    manager: {
-      id: 'mgr1',
-      name: 'Ahmed Hassan',
-      nameAr: 'أحمد حسن',
-      avatar: '👑',
-      rank: 'leader',
-      active: true,
-    },
-  },
-  {
-    id: '4',
-    type: 'system',
-    name: 'إشعارات النظام',
-    avatar: '🔔',
-    lastMessage: 'حصلت على 10 Aura من مكافآت التصويت',
-    time: '2h',
-    unread: 3,
-    isSystem: true,
-    messages: [
-      { 
-        id: 's2', 
-        sender: 'System', 
-        senderId: 'system', 
-        content: 'باقي 8 أصوات لتدخل Top 50', 
-        time: '3h ago', 
-        isMine: false 
-      },
-      { 
-        id: 's3', 
-        sender: 'System', 
-        senderId: 'system', 
-        content: '',
-        time: '2h ago', 
-        isMine: false,
-        transaction: {
-          type: 'aura',
-          amount: 10,
-          description: 'مكافآت التصويت',
-        }
-      },
-    ],
-    pinnedMessages: [],
-  },
-];
+// NO MOCK CONVERSATIONS - all data comes from database
+// Team conversations are fetched from team_members table
+// DM conversations are fetched via useDirectMessages hook
+// P2P chats are fetched via useP2P context
 
-// Mock users for search
-const mockPlatformUsers: UserResult[] = [
-  { id: 'u1', name: 'Mohammed Ali', nameAr: 'محمد علي', username: 'mohammed_ali', isOnline: true },
-  { id: 'u2', name: 'Fatima Hassan', nameAr: 'فاطمة حسن', username: 'fatima_h', isOnline: false, lastSeen: '10 min ago', lastSeenAr: 'منذ 10 دقائق' },
-  { id: 'u3', name: 'Omar Khaled', nameAr: 'عمر خالد', username: 'omar_k', isOnline: true },
-  { id: 'u4', name: 'Layla Ahmed', nameAr: 'ليلى أحمد', username: 'layla_a', isOnline: false, lastSeen: '2 hours ago', lastSeenAr: 'منذ ساعتين' },
-  { id: 'u5', name: 'Yusuf Ibrahim', nameAr: 'يوسف ابراهيم', username: 'yusuf_i', isOnline: true },
-];
+const initialConversations: Conversation[] = [];
+
 
 function ChatContent() {
   const { t } = useTranslation();
@@ -1165,7 +1036,7 @@ function ChatContent() {
           <ChatSearchResults
             searchQuery={searchQuery}
             conversations={conversationsForSearch}
-            users={mockPlatformUsers}
+            users={[]} // Real user search is handled by UserSearchSheet
             onSelectConversation={handleSelectConversationFromSearch}
             onSelectUser={handleSelectUserFromSearch}
           />

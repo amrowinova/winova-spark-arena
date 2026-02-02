@@ -24,6 +24,9 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
   const isRTL = language === 'ar';
   
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -40,6 +43,62 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
   const [referralCode, setReferralCode] = useState('');
   const [referralVerified, setReferralVerified] = useState<{ name: string; avatar: string | null } | null>(null);
   const [verifyingReferral, setVerifyingReferral] = useState(false);
+
+  // Auto-generate username from name
+  const generateUsername = (inputName: string): string => {
+    return inputName
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+      .slice(0, 20);
+  };
+
+  // Handle name change and auto-suggest username
+  const handleNameChange = (value: string) => {
+    setName(value);
+    if (!username || username === generateUsername(name)) {
+      setUsername(generateUsername(value));
+      checkUsernameAvailability(generateUsername(value));
+    }
+  };
+
+  // Handle username change with validation
+  const handleUsernameChange = (value: string) => {
+    const cleaned = value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20);
+    setUsername(cleaned);
+    if (cleaned.length >= 3) {
+      checkUsernameAvailability(cleaned);
+    } else {
+      setUsernameAvailable(null);
+    }
+  };
+
+  // Check username availability in database
+  const checkUsernameAvailability = async (uname: string) => {
+    if (uname.length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+    
+    setCheckingUsername(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', uname)
+        .maybeSingle();
+      
+      if (error) {
+        setUsernameAvailable(null);
+      } else {
+        setUsernameAvailable(!data); // Available if no user found
+      }
+    } catch {
+      setUsernameAvailable(null);
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
 
   // Get cities based on selected country
   const cities = useMemo(() => {
@@ -117,6 +176,21 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
         setIsLoading(false);
         return;
       }
+      if (!username || username.length < 3) {
+        setError(isRTL ? 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل' : 'Username must be at least 3 characters');
+        setIsLoading(false);
+        return;
+      }
+      if (!/^[a-z0-9_]+$/.test(username)) {
+        setError(isRTL ? 'اسم المستخدم يقبل فقط أحرف وأرقام و _' : 'Username can only contain letters, numbers, and _');
+        setIsLoading(false);
+        return;
+      }
+      if (usernameAvailable === false) {
+        setError(isRTL ? 'اسم المستخدم مستخدم بالفعل' : 'Username already taken');
+        setIsLoading(false);
+        return;
+      }
       if (!password || password.length < 6) {
         setError(isRTL ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters');
         setIsLoading(false);
@@ -145,6 +219,7 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
       
       const { error: authError } = await signUp(email, password, { 
         name,
+        username,
         country: countryData?.name || selectedCountry,
         city: cityData?.name || selectedCity,
         district: districtData?.name || selectedDistrict,
@@ -294,11 +369,62 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
                   id="name"
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => handleNameChange(e.target.value)}
                   placeholder={isRTL ? 'أدخل اسمك الكامل' : 'Enter your full name'}
                   className="ps-10 h-12"
                 />
               </div>
+            </motion.div>
+          )}
+
+          {/* Username Field - Only for password signup */}
+          {usePassword && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-2"
+            >
+              <Label htmlFor="username" className="text-sm font-medium">
+                {isRTL ? 'اسم المستخدم' : 'Username'}
+              </Label>
+              <div className="relative">
+                <span className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">@</span>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
+                  placeholder={isRTL ? 'مثال: ahmed_sa' : 'e.g., ahmed_sa'}
+                  className="ps-10 pe-10 h-12"
+                  dir="ltr"
+                />
+                {checkingUsername && (
+                  <div className="absolute end-3 top-1/2 -translate-y-1/2">
+                    <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                )}
+                {!checkingUsername && usernameAvailable === true && username.length >= 3 && (
+                  <div className="absolute end-3 top-1/2 -translate-y-1/2 text-success">✓</div>
+                )}
+                {!checkingUsername && usernameAvailable === false && username.length >= 3 && (
+                  <div className="absolute end-3 top-1/2 -translate-y-1/2 text-destructive">✗</div>
+                )}
+              </div>
+              {username.length > 0 && username.length < 3 && (
+                <p className="text-xs text-muted-foreground">
+                  {isRTL ? '3 أحرف على الأقل' : 'At least 3 characters'}
+                </p>
+              )}
+              {usernameAvailable === false && (
+                <p className="text-xs text-destructive">
+                  {isRTL ? 'اسم المستخدم مستخدم بالفعل' : 'Username already taken'}
+                </p>
+              )}
+              {usernameAvailable === true && username.length >= 3 && (
+                <p className="text-xs text-success">
+                  {isRTL ? 'اسم المستخدم متاح ✓' : 'Username available ✓'}
+                </p>
+              )}
             </motion.div>
           )}
 

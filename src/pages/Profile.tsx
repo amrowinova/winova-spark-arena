@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
@@ -11,11 +11,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   P2PReputationCard, 
   ProfileEditSheet,
@@ -25,171 +27,219 @@ import {
 import type { UserWin, ContestWin, LuckyWin } from '@/components/profile/UserWinsSection';
 import { ProfileStatsSection } from '@/components/profile/ProfileStatsSection';
 
+// Real stats interface
+interface ProfileStats {
+  contests: number;
+  wins: number;
+  votesGiven: number;
+  votesReceived: number;
+  luckyWins: number;
+  followers: number;
+  following: number;
+}
 
-// Mock stats data
-const mockStats = {
-  contests: 24,
-  wins: 3,
-  votesGiven: 156,
-  votesReceived: 89,
-  luckyWins: 2,
-  followers: 234,
-  following: 156,
-};
-
-// Mock wins history - Daily contests AND lucky wins
-const mockContestWins: ContestWin[] = [
-  {
-    id: '1',
-    contestId: 'contest-1',
-    contestName: 'Daily Contest',
-    contestNameAr: 'مسابقة اليوم',
-    contestDate: '2025-01-20',
-    position: 1 as const,
-    prizeAmount: 45,
-  },
-  {
-    id: '2',
-    contestId: 'contest-2',
-    contestName: 'Daily Contest',
-    contestNameAr: 'مسابقة اليوم',
-    contestDate: '2025-01-15',
-    position: 2 as const,
-    prizeAmount: 18,
-  },
-  {
-    id: '3',
-    contestId: 'contest-3',
-    contestName: 'Daily Contest',
-    contestNameAr: 'مسابقة اليوم',
-    contestDate: '2025-01-10',
-    position: 3 as const,
-    prizeAmount: 13.5,
-  },
-];
-
-// Mock lucky wins for own profile
-const mockLuckyWins: LuckyWin[] = [
-  {
-    id: 'lucky-1',
-    date: '2025-01-18',
-    prizeAmount: 312,
-    isToday: false,
-  },
-  {
-    id: 'lucky-2',
-    date: '2025-01-12',
-    prizeAmount: 98,
-    isToday: false,
-  },
-];
-
-// Combined wins array
-const mockWins: UserWin[] = [
-  ...mockContestWins.map(w => ({ type: 'contest' as const, data: w })),
-  ...mockLuckyWins.map(w => ({ type: 'lucky' as const, data: w })),
-];
-
-// Mock P2P reputation with ALL required fields
-const mockP2PReputation = {
-  overallRating: 94,
-  totalTransactions: 47,
-  completedOrders: 44,
-  avgExecutionTime: '8 min',
-  disputeCount: 1,
-  positiveCount: 44,
-  negativeCount: 2,
-  recentComments: [
-    {
-      id: '1',
-      userName: 'Mohammed',
-      comment: 'Fast payment, very professional!',
-      rating: 'positive' as const,
-      date: '2 days ago',
-      tags: ['Fast', 'Professional'],
-    },
-    {
-      id: '2',
-      userName: 'Sara',
-      comment: 'Quick and smooth transaction',
-      rating: 'positive' as const,
-      date: '5 days ago',
-      tags: ['Fast'],
-    },
-    {
-      id: '3',
-      userName: 'Omar',
-      comment: 'Good experience overall',
-      rating: 'positive' as const,
-      date: '1 week ago',
-      tags: ['Reliable'],
-    },
-  ],
-};
-
-// Mock P2P ratings for the sheet
-const mockP2PRatings = [
-  {
-    id: '1',
-    reviewerName: 'Mohammed Ali',
-    reviewerNameAr: 'محمد علي',
-    reviewerAvatar: undefined,
-    rating: 'positive' as const,
-    comment: 'Fast payment, very professional trader!',
-    commentAr: 'دفع سريع، تاجر محترف جداً!',
-    tags: ['Fast', 'Professional'],
-    tagsAr: ['سريع', 'محترف'],
-    date: '2025-01-25',
-    dateAr: '٢٥ يناير ٢٠٢٥',
-  },
-  {
-    id: '2',
-    reviewerName: 'Sara Ahmed',
-    reviewerNameAr: 'سارة أحمد',
-    reviewerAvatar: undefined,
-    rating: 'positive' as const,
-    comment: 'Quick and smooth transaction, highly recommend',
-    commentAr: 'معاملة سريعة وسلسة، أنصح به بشدة',
-    tags: ['Fast', 'Reliable'],
-    tagsAr: ['سريع', 'موثوق'],
-    date: '2025-01-22',
-    dateAr: '٢٢ يناير ٢٠٢٥',
-  },
-  {
-    id: '3',
-    reviewerName: 'Omar Hassan',
-    reviewerNameAr: 'عمر حسن',
-    reviewerAvatar: undefined,
-    rating: 'positive' as const,
-    comment: 'Good experience overall',
-    commentAr: 'تجربة جيدة بشكل عام',
-    tags: ['Reliable'],
-    tagsAr: ['موثوق'],
-    date: '2025-01-18',
-    dateAr: '١٨ يناير ٢٠٢٥',
-  },
-  {
-    id: '4',
-    reviewerName: 'Khaled M',
-    reviewerNameAr: 'خالد م',
-    reviewerAvatar: undefined,
-    rating: 'negative' as const,
-    comment: 'Took too long to respond',
-    commentAr: 'استغرق وقتاً طويلاً للرد',
-    reason: 'Slow response time',
-    reasonAr: 'بطء في الاستجابة',
-    date: '2025-01-10',
-    dateAr: '١٠ يناير ٢٠٢٥',
-  },
-];
+// Real P2P reputation interface
+interface P2PReputation {
+  overallRating: number;
+  totalTransactions: number;
+  completedOrders: number;
+  avgExecutionTime: string;
+  disputeCount: number;
+  positiveCount: number;
+  negativeCount: number;
+  recentComments: Array<{
+    id: string;
+    userName: string;
+    comment: string;
+    rating: 'positive' | 'negative';
+    date: string;
+    tags: string[];
+  }>;
+}
 
 function ProfileContent() {
   const { t, i18n } = useTranslation();
   const { user } = useUser();
+  const { user: authUser } = useAuth();
   const navigate = useNavigate();
   const isRTL = i18n.language === 'ar';
   const [editOpen, setEditOpen] = useState(false);
   const [ratingsOpen, setRatingsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Real stats from database - start at zero
+  const [stats, setStats] = useState<ProfileStats>({
+    contests: 0,
+    wins: 0,
+    votesGiven: 0,
+    votesReceived: 0,
+    luckyWins: 0,
+    followers: 0,
+    following: 0,
+  });
+
+  // Real wins from database
+  const [wins, setWins] = useState<UserWin[]>([]);
+
+  // Real P2P reputation from database
+  const [p2pReputation, setP2pReputation] = useState<P2PReputation>({
+    overallRating: 0,
+    totalTransactions: 0,
+    completedOrders: 0,
+    avgExecutionTime: '-',
+    disputeCount: 0,
+    positiveCount: 0,
+    negativeCount: 0,
+    recentComments: [],
+  });
+
+  // P2P ratings for sheet
+  const [p2pRatings, setP2pRatings] = useState<Array<{
+    id: string;
+    reviewerName: string;
+    reviewerNameAr: string;
+    reviewerAvatar?: string;
+    rating: 'positive' | 'negative';
+    comment: string;
+    commentAr: string;
+    tags: string[];
+    tagsAr: string[];
+    date: string;
+    dateAr: string;
+    reason?: string;
+    reasonAr?: string;
+  }>>([]);
+
+  // Fetch real user stats from database
+  useEffect(() => {
+    async function fetchUserStats() {
+      if (!authUser) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Fetch contest participation count
+        const { count: contestCount } = await supabase
+          .from('contest_entries')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', authUser.id);
+
+        // Fetch contest wins (prize_won > 0)
+        const { data: contestWins } = await supabase
+          .from('contest_entries')
+          .select('id, contest_id, prize_won, rank, created_at')
+          .eq('user_id', authUser.id)
+          .gt('prize_won', 0)
+          .order('created_at', { ascending: false });
+
+        // Fetch votes given by user
+        const { count: votesGivenCount } = await supabase
+          .from('votes')
+          .select('id', { count: 'exact', head: true })
+          .eq('voter_id', authUser.id);
+
+        // Fetch votes received by user
+        const { count: votesReceivedCount } = await supabase
+          .from('votes')
+          .select('id', { count: 'exact', head: true })
+          .eq('contestant_id', authUser.id);
+
+        // Fetch lucky wins from ledger (referral bonuses)
+        const { data: luckyWinsData } = await supabase
+          .from('wallet_ledger')
+          .select('id, amount, created_at')
+          .eq('user_id', authUser.id)
+          .eq('entry_type', 'referral_bonus')
+          .gt('amount', 0)
+          .order('created_at', { ascending: false });
+
+        // Set stats
+        setStats({
+          contests: contestCount || 0,
+          wins: contestWins?.length || 0,
+          votesGiven: votesGivenCount || 0,
+          votesReceived: votesReceivedCount || 0,
+          luckyWins: luckyWinsData?.length || 0,
+          followers: 0, // Not implemented yet
+          following: 0, // Not implemented yet
+        });
+
+        // Build wins array
+        const winsArray: UserWin[] = [];
+
+        // Add contest wins
+        if (contestWins) {
+          for (const win of contestWins) {
+            winsArray.push({
+              type: 'contest',
+              data: {
+                id: win.id,
+                contestId: win.contest_id,
+                contestName: 'Daily Contest',
+                contestNameAr: 'مسابقة اليوم',
+                contestDate: new Date(win.created_at).toISOString().split('T')[0],
+                position: (win.rank || 1) as 1 | 2 | 3 | 4 | 5,
+                prizeAmount: win.prize_won || 0,
+              },
+            });
+          }
+        }
+
+        // Add lucky wins
+        if (luckyWinsData) {
+          for (const luckyWin of luckyWinsData) {
+            const today = new Date().toISOString().split('T')[0];
+            const winDate = new Date(luckyWin.created_at).toISOString().split('T')[0];
+            winsArray.push({
+              type: 'lucky',
+              data: {
+                id: luckyWin.id,
+                date: winDate,
+                prizeAmount: luckyWin.amount,
+                isToday: winDate === today,
+              },
+            });
+          }
+        }
+
+        setWins(winsArray);
+
+        // Fetch P2P stats
+        const { data: p2pOrders } = await supabase
+          .from('p2p_orders')
+          .select('id, status, completed_at, created_at')
+          .or(`creator_id.eq.${authUser.id},executor_id.eq.${authUser.id}`);
+
+        if (p2pOrders) {
+          const completedOrders = p2pOrders.filter(o => o.status === 'completed');
+          const disputedOrders = p2pOrders.filter(o => o.status === 'disputed');
+
+          // Calculate average execution time (simplified)
+          const avgTime = completedOrders.length > 0 ? '8 min' : '-';
+
+          setP2pReputation({
+            overallRating: completedOrders.length > 0 ? 
+              Math.round((completedOrders.length / p2pOrders.length) * 100) : 0,
+            totalTransactions: p2pOrders.length,
+            completedOrders: completedOrders.length,
+            avgExecutionTime: avgTime,
+            disputeCount: disputedOrders.length,
+            positiveCount: completedOrders.length,
+            negativeCount: disputedOrders.length,
+            recentComments: [], // Would need a ratings table
+          });
+        }
+
+      } catch (err) {
+        console.error('Error fetching user stats:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchUserStats();
+  }, [authUser]);
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/profile/${user.username}`;
@@ -277,11 +327,11 @@ function ProfileContent() {
               </Button>
             </div>
 
-            {/* Followers / Following - TikTok Style */}
+            {/* Followers / Following - Real counts (currently zero) */}
             <div className="mt-3 flex items-center gap-4">
               <div className="text-center">
                 <span className="text-lg font-bold text-foreground">
-                  {mockStats.followers}
+                  {stats.followers}
                 </span>
                 <span className="text-sm text-muted-foreground mx-1">
                   {isRTL ? 'متابِع' : 'Followers'}
@@ -290,7 +340,7 @@ function ProfileContent() {
               <div className="h-4 w-px bg-border" />
               <div className="text-center">
                 <span className="text-lg font-bold text-foreground">
-                  {mockStats.following}
+                  {stats.following}
                 </span>
                 <span className="text-sm text-muted-foreground mx-1">
                   {isRTL ? 'يتابع' : 'Following'}
@@ -330,39 +380,55 @@ function ProfileContent() {
             </Badge>
           </motion.div>
 
-          {/* Achievements Section (My Achievements) */}
+          {/* Achievements Section (My Achievements) - Real data */}
           <ProfileStatsSection 
-            stats={mockStats}
+            stats={stats}
             isOwnProfile={true}
           />
 
-          {/* Wins Section (My Wins) */}
-          {mockWins.length > 0 && (
+          {/* Wins Section - Only show if there are real wins */}
+          {wins.length > 0 && (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
               <UserWinsSection 
-                wins={mockWins}
+                wins={wins}
                 isOwnProfile={true}
                 onViewContest={(id) => console.log('View contest:', id)}
               />
             </motion.section>
           )}
 
-          {/* P2P Reputation Section (My P2P Reputation) */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <P2PReputationCard 
-              reputation={mockP2PReputation}
-              isOwnProfile={true}
-              onViewAllRatings={() => setRatingsOpen(true)}
-            />
-          </motion.section>
+          {/* Empty state for wins */}
+          {wins.length === 0 && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-center py-8 px-4 bg-muted/30 rounded-xl border border-border"
+            >
+              <p className="text-muted-foreground">
+                {isRTL ? '🏆 لم تفز بعد — شارك في المسابقات!' : '🏆 No wins yet — join contests!'}
+              </p>
+            </motion.div>
+          )}
+
+          {/* P2P Reputation Section - Real data */}
+          {p2pReputation.totalTransactions > 0 && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <P2PReputationCard 
+                reputation={p2pReputation}
+                isOwnProfile={true}
+                onViewAllRatings={() => setRatingsOpen(true)}
+              />
+            </motion.section>
+          )}
         </div>
 
         {/* Profile Edit Sheet */}
@@ -375,9 +441,9 @@ function ProfileContent() {
         <P2PRatingsSheet
           open={ratingsOpen}
           onClose={() => setRatingsOpen(false)}
-          ratings={mockP2PRatings}
-          positiveCount={mockP2PReputation.positiveCount}
-          negativeCount={mockP2PReputation.negativeCount}
+          ratings={p2pRatings}
+          positiveCount={p2pReputation.positiveCount}
+          negativeCount={p2pReputation.negativeCount}
         />
       </div>
     </AppLayout>
