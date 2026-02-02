@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Ban, Trophy, Clock } from 'lucide-react';
+import { Info, Ban, Trophy, Clock, Users, Gift, Timer, CalendarClock } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,14 @@ import {
 } from '@/components/ui/dialog';
 import { useBanner } from '@/contexts/BannerContext';
 import { supabase } from '@/integrations/supabase/client';
-import { getContestTiming, formatTimeRemaining, formatContestTime } from '@/lib/contestTiming';
+import { 
+  getContestTiming, 
+  formatTimeRemaining, 
+  formatContestTime,
+  getPhaseLabel,
+  getCountdownTarget,
+  type ContestPhase 
+} from '@/lib/contestTiming';
 
 // Contest Components
 import {
@@ -44,9 +51,22 @@ interface Participant {
   country: string;
 }
 
+interface Winner {
+  id: string;
+  name: string;
+  username: string;
+  rank: number;
+  prize: number;
+  votes: number;
+  country: string;
+}
+
 const formatBalance = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
 };
+
+// Prize distribution percentages
+const PRIZE_DISTRIBUTION = [50, 20, 15, 10, 5]; // Top 5
 
 export default function ContestsPage() {
   const { t } = useTranslation();
@@ -57,6 +77,7 @@ export default function ContestsPage() {
   const { success: showSuccess, error: showError } = useBanner();
 
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [winners, setWinners] = useState<Winner[]>([]);
   const [activeContestId, setActiveContestId] = useState<string | null>(null);
   const [userVotes, setUserVotes] = useState(0);
   const [userRank, setUserRank] = useState(0);
@@ -81,10 +102,13 @@ export default function ContestsPage() {
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
 
-  // Stage derived from KSA timing
-  const isStage1 = timing.currentStage === 'stage1';
-  const isFinal = timing.currentStage === 'final';
-  const isClosed = timing.currentStage === 'closed';
+  // Phase checks
+  const currentPhase = timing.currentPhase;
+  const isPreOpen = currentPhase === 'pre_open';
+  const isJoinOnly = currentPhase === 'join_only';
+  const isStage1 = currentPhase === 'stage1';
+  const isFinal = currentPhase === 'final';
+  const isResults = currentPhase === 'results';
   const entryFee = 10;
 
   // Update timing every second
@@ -101,11 +125,13 @@ export default function ContestsPage() {
   // Fetch real contest data
   const fetchContestData = useCallback(async () => {
     try {
-      // Fetch active contest
+      // Fetch active or most recent completed contest
+      const statusFilter = isResults ? ['completed', 'active'] : ['active'];
+      
       const { data: contestData, error: contestError } = await supabase
         .from('contests')
         .select('*')
-        .eq('status', 'active')
+        .in('status', statusFilter)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -114,18 +140,16 @@ export default function ContestsPage() {
         setActiveContestId(contestData.id);
         setPrizePool(contestData.prize_pool || 0);
 
-        // Fetch contest entries (separate query to avoid FK issues)
+        // Fetch contest entries
         const { data: entriesData, error: entriesError } = await supabase
           .from('contest_entries')
-          .select('user_id, votes_received, rank')
+          .select('user_id, votes_received, rank, prize_won')
           .eq('contest_id', contestData.id)
           .order('votes_received', { ascending: false });
 
         if (!entriesError && entriesData && entriesData.length > 0) {
-          // Get user IDs
           const userIds = entriesData.map(e => e.user_id);
           
-          // Fetch profiles separately
           const { data: profilesData } = await supabase
             .from('profiles')
             .select('user_id, name, username, country')
@@ -148,6 +172,22 @@ export default function ContestsPage() {
           
           setParticipants(formattedParticipants);
 
+          // Set winners for results phase
+          if (isResults && contestData.status === 'completed') {
+            const topWinners: Winner[] = entriesData
+              .slice(0, 5)
+              .map((entry, index) => ({
+                id: entry.user_id,
+                name: profileMap[entry.user_id]?.name || 'User',
+                username: profileMap[entry.user_id]?.username || '',
+                rank: index + 1,
+                prize: entry.prize_won || 0,
+                votes: entry.votes_received || 0,
+                country: profileMap[entry.user_id]?.country || '',
+              }));
+            setWinners(topWinners);
+          }
+
           // Check if current user has joined
           if (authUser) {
             const userEntry = formattedParticipants.find(p => p.id === authUser.id);
@@ -164,13 +204,13 @@ export default function ContestsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [authUser]);
+  }, [authUser, isResults]);
 
   useEffect(() => {
     fetchContestData();
   }, [fetchContestData]);
 
-  // Realtime subscription for contest updates
+  // Realtime subscription
   useEffect(() => {
     if (!activeContestId) return;
 
@@ -184,10 +224,7 @@ export default function ContestsPage() {
           table: 'contest_entries',
           filter: `contest_id=eq.${activeContestId}`,
         },
-        () => {
-          // Refetch data on any contest entry change
-          fetchContestData();
-        }
+        () => fetchContestData()
       )
       .on(
         'postgres_changes',
@@ -198,8 +235,7 @@ export default function ContestsPage() {
           filter: `id=eq.${activeContestId}`,
         },
         (payload) => {
-          // Update prize pool in realtime
-          const updated = payload.new as { prize_pool?: number; current_participants?: number };
+          const updated = payload.new as { prize_pool?: number };
           if (updated.prize_pool !== undefined) {
             setPrizePool(updated.prize_pool);
           }
@@ -226,7 +262,6 @@ export default function ContestsPage() {
   const [isJoining, setIsJoining] = useState(false);
 
   const handleJoinContest = async () => {
-    // Check if contest is open for joining
     if (!timing.canJoin) {
       showError(language === 'ar' ? 'التسجيل مغلق حالياً' : 'Registration is currently closed');
       return;
@@ -237,7 +272,6 @@ export default function ContestsPage() {
       return;
     }
 
-    // Check balance before calling RPC
     if (user.novaBalance < entryFee) {
       showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
       return;
@@ -246,7 +280,6 @@ export default function ContestsPage() {
     setIsJoining(true);
 
     try {
-      // Call atomic RPC function
       const { data, error } = await supabase.rpc('join_contest', {
         p_user_id: authUser.id,
         p_contest_id: activeContestId,
@@ -266,11 +299,9 @@ export default function ContestsPage() {
         return;
       }
 
-      // Update local state
       setHasJoined(true);
       setPrizePool(result.new_prize_pool || prizePool);
       
-      // Add user to participants list
       setParticipants(prev => {
         const newParticipant: Participant = {
           id: authUser.id,
@@ -307,7 +338,6 @@ export default function ContestsPage() {
       setReceiptDialogOpen(true);
       showSuccess(language === 'ar' ? '🎉 تم الانضمام للمسابقة!' : '🎉 Joined the contest!');
       
-      // Refresh data
       fetchContestData();
     } catch (err) {
       console.error('Join error:', err);
@@ -335,7 +365,6 @@ export default function ContestsPage() {
       return;
     }
 
-    // Free vote handled separately
     if (isFreeVote) {
       handleUseFreeVote();
       return;
@@ -344,7 +373,6 @@ export default function ContestsPage() {
     setIsVoting(true);
 
     try {
-      // Call atomic RPC function
       const { data, error } = await supabase.rpc('cast_vote', {
         p_voter_id: authUser.id,
         p_contestant_id: selectedParticipant.id,
@@ -365,14 +393,12 @@ export default function ContestsPage() {
         return;
       }
 
-      // Update local state
       if (isStage1) {
         setUsedVotesStage1(prev => prev + voteCount);
       } else {
         setUsedVotesFinal(prev => prev + voteCount);
       }
 
-      // Update participant votes and re-sort
       const updatedParticipants = participants.map(p => 
         p.id === selectedParticipant.id 
           ? { ...p, votes: p.votes + voteCount }
@@ -392,7 +418,6 @@ export default function ContestsPage() {
           : `Great! You voted for ${selectedParticipant.name} with ${voteCount} vote${voteCount > 1 ? 's' : ''} and is now #${newRank}`
       );
 
-      // Refresh data
       fetchContestData();
     } catch (err) {
       console.error('Vote error:', err);
@@ -431,27 +456,32 @@ export default function ContestsPage() {
     );
   };
 
-  // Closed state - contest not active
-  if (isClosed) {
+  // Get countdown info
+  const countdownInfo = getCountdownTarget(timing);
+
+  // ==================== RENDER PHASES ====================
+
+  // PRE-OPEN: Before 10 AM
+  if (isPreOpen && !isResults) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
         <main className="flex-1 px-4 py-4 pb-20 flex items-center justify-center">
-          <div className="text-center">
-            <Clock className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
-            <h2 className="text-lg font-bold mb-2">
-              {language === 'ar' ? 'المسابقة مغلقة' : 'Contest Closed'}
+          <div className="text-center max-w-sm">
+            <CalendarClock className="h-16 w-16 mx-auto mb-4 text-primary/30" />
+            <h2 className="text-xl font-bold mb-2">
+              {language === 'ar' ? 'المسابقة قريباً' : 'Contest Coming Soon'}
             </h2>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-6">
               {language === 'ar' 
-                ? `المسابقة القادمة تبدأ الساعة ${formatContestTime(timing.stage1Start)}`
-                : `Next contest starts at ${formatContestTime(timing.stage1Start)}`}
+                ? `سيتم فتح مسابقة اليوم الساعة ${formatContestTime(timing.joinOpenAt)}`
+                : `Today's contest opens at ${formatContestTime(timing.joinOpenAt)}`}
             </p>
-            <Card className="p-4 bg-muted/30">
+            <Card className="p-4 bg-primary/5 border-primary/20">
               <p className="text-xs text-muted-foreground mb-2">
-                {language === 'ar' ? 'الوقت المتبقي' : 'Time until next contest'}
+                {language === 'ar' ? 'الوقت المتبقي للفتح' : 'Time until opening'}
               </p>
-              <p className="text-2xl font-bold font-mono">
+              <p className="text-3xl font-bold font-mono text-primary">
                 {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
               </p>
             </Card>
@@ -462,7 +492,274 @@ export default function ContestsPage() {
     );
   }
 
-  // Empty state - no participants yet
+  // RESULTS: 10 PM - 10 AM (showing winners)
+  if (isResults) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader title={language === 'ar' ? 'نتائج المسابقة' : 'Contest Results'} />
+        <main className="flex-1 px-4 py-4 pb-20 space-y-4">
+          {/* Results Header */}
+          <Card className="p-5 bg-gradient-to-br from-nova/10 via-aura/5 to-primary/10 border-nova/20">
+            <div className="text-center">
+              <Trophy className="h-12 w-12 mx-auto mb-3 text-nova" />
+              <h2 className="text-xl font-bold mb-1">
+                {language === 'ar' ? '🏆 الفائزون' : '🏆 Winners'}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                {language === 'ar' ? 'مسابقة اليوم انتهت' : "Today's contest has ended"}
+              </p>
+              <div className="flex items-center justify-center gap-2 text-lg font-bold text-nova">
+                <Gift className="h-5 w-5" />
+                <span>И {prizePool.toLocaleString()}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Winners List */}
+          <div className="space-y-3">
+            {winners.length > 0 ? (
+              winners.map((winner, index) => {
+                const prizePercent = PRIZE_DISTRIBUTION[index] || 0;
+                const prizeAmount = (prizePool * prizePercent) / 100;
+                
+                return (
+                  <motion.div
+                    key={winner.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card className={`p-4 ${index === 0 ? 'bg-nova/10 border-nova/30' : 'bg-card'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold ${
+                          index === 0 ? 'bg-nova/20 text-nova' : 
+                          index === 1 ? 'bg-muted text-foreground' :
+                          index === 2 ? 'bg-amber-500/20 text-amber-500' :
+                          'bg-muted/50 text-muted-foreground'
+                        }`}>
+                          {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${winner.rank}`}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold">{winner.name}</p>
+                          <p className="text-xs text-muted-foreground">@{winner.username}</p>
+                        </div>
+                        <div className="text-end">
+                          <p className="font-bold text-nova">И {prizeAmount.toFixed(0)}</p>
+                          <p className="text-xs text-muted-foreground">{prizePercent}%</p>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <Card className="p-6 text-center">
+                <Trophy className="h-10 w-10 mx-auto mb-2 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ar' ? 'لا توجد نتائج بعد' : 'No results yet'}
+                </p>
+              </Card>
+            )}
+          </div>
+
+          {/* Next Contest Countdown */}
+          <Card className="p-4 bg-muted/30">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-2">
+                {language === 'ar' ? 'المسابقة القادمة' : 'Next Contest'}
+              </p>
+              <p className="text-2xl font-bold font-mono">
+                {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
+              </p>
+            </div>
+          </Card>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  // JOIN ONLY: 10 AM - 2 PM
+  if (isJoinOnly) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
+        <main className="flex-1 px-4 py-4 pb-20 space-y-4">
+          {/* Join Phase Header */}
+          <Card className="p-5 bg-gradient-to-br from-primary/10 to-aura/5 border-primary/20">
+            <div className="text-center">
+              <Users className="h-10 w-10 mx-auto mb-3 text-primary" />
+              <h2 className="text-xl font-bold mb-1">
+                {language === 'ar' ? '📝 التسجيل مفتوح' : '📝 Registration Open'}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar' 
+                  ? 'سجّل الآن وانتظر بداية المرحلة الأولى'
+                  : 'Register now and wait for Stage 1 to start'}
+              </p>
+            </div>
+          </Card>
+
+          {/* Live Stats */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="p-4 text-center">
+              <Users className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-2xl font-bold">{participants.length}</p>
+              <p className="text-xs text-muted-foreground">
+                {language === 'ar' ? 'مشترك' : 'Participants'}
+              </p>
+            </Card>
+            <Card className="p-4 text-center">
+              <Gift className="h-5 w-5 mx-auto mb-2 text-nova" />
+              <p className="text-2xl font-bold text-nova">И {prizePool}</p>
+              <p className="text-xs text-muted-foreground">
+                {language === 'ar' ? 'مجموع الجوائز' : 'Prize Pool'}
+              </p>
+            </Card>
+          </div>
+
+          {/* Countdown to Stage 1 */}
+          <Card className="p-4 bg-primary/5 border-primary/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Timer className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">
+                  {language === 'ar' ? 'المرحلة الأولى تبدأ بعد' : 'Stage 1 starts in'}
+                </span>
+              </div>
+              <span className="font-mono font-bold text-lg text-primary">
+                {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
+              </span>
+            </div>
+          </Card>
+
+          {/* Join Card */}
+          {!hasJoined ? (
+            <Card className="p-4">
+              <div className="text-center mb-3">
+                <p className="text-sm text-muted-foreground mb-1">
+                  {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                </p>
+                <p className="text-xl font-bold text-primary">И {entryFee}</p>
+              </div>
+              <Button 
+                className="w-full"
+                onClick={() => setJoinDialogOpen(true)}
+                disabled={user.novaBalance < entryFee}
+              >
+                {language === 'ar' ? 'انضم الآن' : 'Join Now'}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {language === 'ar' 
+                  ? `التسجيل يغلق الساعة ${formatContestTime(timing.joinCloseAt)}`
+                  : `Registration closes at ${formatContestTime(timing.joinCloseAt)}`}
+              </p>
+            </Card>
+          ) : (
+            <Card className="p-4 bg-success/10 border-success/20">
+              <div className="flex items-center justify-center gap-2 text-success">
+                <Trophy className="h-5 w-5" />
+                <span className="font-bold">
+                  {language === 'ar' ? '✅ أنت مسجّل!' : '✅ You are registered!'}
+                </span>
+              </div>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                {language === 'ar' 
+                  ? 'انتظر بداية المرحلة الأولى للتصويت'
+                  : 'Wait for Stage 1 to start voting'}
+              </p>
+            </Card>
+          )}
+
+          {/* Registered Participants Preview */}
+          {participants.length > 0 && (
+            <Card className="p-4">
+              <h3 className="font-bold mb-3 flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                {language === 'ar' ? 'المسجّلين' : 'Registered'}
+              </h3>
+              <div className="space-y-2">
+                {participants.slice(0, 5).map((p, i) => (
+                  <div key={p.id} className="flex items-center gap-2 text-sm">
+                    <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs">
+                      {i + 1}
+                    </span>
+                    <span className="flex-1 truncate">{p.name}</span>
+                    <span className="text-muted-foreground text-xs">{p.country}</span>
+                  </div>
+                ))}
+                {participants.length > 5 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    +{participants.length - 5} {language === 'ar' ? 'آخرين' : 'more'}
+                  </p>
+                )}
+              </div>
+            </Card>
+          )}
+        </main>
+        <BottomNav />
+        
+        {/* Join Dialog */}
+        <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-center">
+                {language === 'ar' ? 'انضم للمسابقة' : 'Join Contest'}
+              </DialogTitle>
+              <DialogDescription className="text-center">
+                {language === 'ar' 
+                  ? 'سيتم الخصم تلقائياً من رصيدك'
+                  : 'Will be automatically deducted from your balance'}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-aura/10 to-nova/10 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground text-center mb-2">
+                  {language === 'ar' ? 'رصيدك الحالي' : 'Your Balance'}
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-aura font-bold text-lg">✦ {formatBalance(user.auraBalance)}</span>
+                  <span className="text-muted-foreground">/</span>
+                  <span className="text-nova font-bold text-lg">И {formatBalance(user.novaBalance)}</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground mb-1">
+                  {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                </p>
+                <p className="text-xl font-bold text-primary">И {entryFee}</p>
+              </div>
+              
+              <Button 
+                className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
+                onClick={handleJoinContest}
+                disabled={isJoining || user.novaBalance < entryFee}
+              >
+                {isJoining ? (
+                  <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+                ) : (
+                  language === 'ar' ? 'ادفع الآن' : 'Pay Now'
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Receipt Dialog */}
+        {selectedReceipt && (
+          <ReceiptDialog
+            receipt={selectedReceipt}
+            open={receiptDialogOpen}
+            onClose={() => setReceiptDialogOpen(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Empty state - no participants yet (for Stage 1 / Final)
   if (!isLoading && participants.length === 0) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
@@ -490,6 +787,7 @@ export default function ContestsPage() {
     );
   }
 
+  // STAGE 1 & FINAL: Active competition phases
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
@@ -497,7 +795,7 @@ export default function ContestsPage() {
 
         {/* Stage Header - Based on KSA time */}
         <motion.div
-          key={timing.currentStage}
+          key={currentPhase}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -516,6 +814,18 @@ export default function ContestsPage() {
             />
           )}
         </motion.div>
+
+        {/* Join Close Warning (Stage 1 only, before 6 PM) */}
+        {isStage1 && timing.canJoin && (
+          <Alert className="bg-warning/5 border-warning/20">
+            <Timer className="h-4 w-4 text-warning" />
+            <AlertDescription className="text-xs text-warning font-medium">
+              {language === 'ar' 
+                ? `⏰ التسجيل يغلق الساعة ${formatContestTime(timing.joinCloseAt)}`
+                : `⏰ Registration closes at ${formatContestTime(timing.joinCloseAt)}`}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Live Timer */}
         <Card className="p-3 bg-primary/5 border-primary/20">
@@ -568,7 +878,7 @@ export default function ContestsPage() {
           </Alert>
         )}
 
-        {/* Join Button (Stage 1 only, if not joined) */}
+        {/* Join Button (Stage 1 only, if not joined, before 6 PM) */}
         {isStage1 && !hasJoined && timing.canJoin && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <Card className="p-4">
