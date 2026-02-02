@@ -155,36 +155,55 @@ function ChatContent() {
     }
   }, [location.state]);
 
+  // Track pending conversation ID to open after data loads
+  const pendingConversationIdRef = useRef<string | null>(null);
+  
+  // Check for pending DM conversation from notification click (stored in sessionStorage)
+  useEffect(() => {
+    const pendingConvId = sessionStorage.getItem('pendingDMConversation');
+    if (pendingConvId) {
+      sessionStorage.removeItem('pendingDMConversation');
+      pendingConversationIdRef.current = pendingConvId;
+    }
+  }, []);
+
   // Listen for notification clicks to open specific DM conversation
   useEffect(() => {
     const handleOpenDMConversation = (event: CustomEvent<{ conversationId: string }>) => {
       const { conversationId } = event.detail;
-      
-      // Find the DM conversation
-      const dmConv = dmConversations.find(c => c.id === conversationId);
-      if (dmConv) {
-        // Switch to DM tab
-        setSelectedTab('dm');
-        // Open the conversation
-        setActiveDMConversation(dmConv);
-        setActiveDMConversationId(dmConv.id);
-        fetchDMMessages(dmConv.id);
-        setActiveChat(null);
-        setActiveP2PChat(null);
-        setShowSupportChat(false);
-        
-        // Navigate to chat page if not already there
-        if (!location.pathname.includes('/chat')) {
-          navigate('/chat');
-        }
-      }
+      openConversationById(conversationId);
     };
 
     window.addEventListener('open-dm-conversation', handleOpenDMConversation as EventListener);
     return () => {
       window.removeEventListener('open-dm-conversation', handleOpenDMConversation as EventListener);
     };
-  }, [dmConversations, setActiveDMConversationId, fetchDMMessages, navigate, location.pathname]);
+  }, []);
+
+  // Helper to open a conversation by its ID
+  const openConversationById = useCallback((conversationId: string) => {
+    const dmConv = dmConversations.find(c => c.id === conversationId);
+    if (dmConv) {
+      // Switch to DM tab
+      setSelectedTab('dm');
+      // Open the conversation
+      setActiveDMConversation(dmConv);
+      setActiveDMConversationId(dmConv.id);
+      fetchDMMessages(dmConv.id);
+      setActiveChat(null);
+      setActiveP2PChat(null);
+      setShowSupportChat(false);
+      // Clear pending
+      pendingConversationIdRef.current = null;
+    }
+  }, [dmConversations, setActiveDMConversationId, fetchDMMessages, setActiveP2PChat]);
+
+  // When dmConversations loads, check if we have a pending conversation to open
+  useEffect(() => {
+    if (dmConversations.length > 0 && pendingConversationIdRef.current) {
+      openConversationById(pendingConversationIdRef.current);
+    }
+  }, [dmConversations, openConversationById]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

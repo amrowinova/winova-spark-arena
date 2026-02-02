@@ -328,6 +328,9 @@ export function useDirectMessages() {
   }, [user]);
 
   // Listen for notification-triggered message events - SYNC with notifications
+  // Use a ref to track the last processed event timestamp to avoid duplicate processing
+  const lastProcessedEventRef = useRef<string | null>(null);
+  
   useEffect(() => {
     const handleNewMessage = (event: CustomEvent<{
       id: string;
@@ -340,6 +343,12 @@ export function useDirectMessages() {
       messageType: string;
     }>) => {
       const msg = event.detail;
+      
+      // Prevent duplicate processing
+      const eventKey = `${msg.id}-${msg.createdAt}`;
+      if (lastProcessedEventRef.current === eventKey) return;
+      lastProcessedEventRef.current = eventKey;
+      
       const isActiveConv = activeConversationRef.current === msg.conversationId;
       
       // Update conversations list INSTANTLY - same moment as notification
@@ -358,6 +367,7 @@ export function useDirectMessages() {
               : conv
           );
           
+          // Sort by latest message
           return updated.sort((a, b) => {
             const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
             const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
@@ -400,6 +410,7 @@ export function useDirectMessages() {
       
       setMessages(prev => {
         const convMessages = prev[msg.conversationId] || [];
+        // Check if message already exists
         if (convMessages.some(m => m.id === msg.id)) return prev;
         return {
           ...prev,
@@ -422,11 +433,19 @@ export function useDirectMessages() {
     };
   }, []);
 
+  // Ref to track if initial fetch is complete - prevents overwriting realtime updates
+  const initialFetchDoneRef = useRef(false);
+  
   // Subscribe to realtime updates - backup for own messages and read status
   useEffect(() => {
     if (!user) return;
 
-    fetchConversations();
+    // Mark initial fetch as not done
+    initialFetchDoneRef.current = false;
+    
+    fetchConversations().then(() => {
+      initialFetchDoneRef.current = true;
+    });
 
     // Profile cache for instant lookups
     const profileCache = new Map<string, { name: string; username: string; avatar: string | null }>();
