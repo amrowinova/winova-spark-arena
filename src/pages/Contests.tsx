@@ -1009,6 +1009,25 @@ export default function ContestsPage() {
           </motion.div>
         )}
 
+        {/* Registration Closed Notice (Stage 1, after 6 PM, not joined) */}
+        {isStage1 && !hasJoined && !timing.canJoin && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Card className="p-4 bg-muted/30 border-muted">
+              <div className="text-center">
+                <Ban className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="font-bold text-muted-foreground mb-1">
+                  {language === 'ar' ? 'تم إغلاق باب الانضمام' : 'Registration Closed'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'ar' 
+                    ? 'يمكنك المشاركة في مسابقة الغد'
+                    : "You can join tomorrow's contest"}
+                </p>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Contestants Section */}
         <div className="space-y-3">
           {isStage1 && <ContestInfoBox variant="qualification-rules" />}

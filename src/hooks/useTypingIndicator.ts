@@ -2,133 +2,100 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface TypingState {
-  isTyping: boolean;
-  userId: string;
-  userName: string;
-}
-
 /**
- * Real-time typing indicator - INSTANT on first character
- * No throttling for better UX
+ * Instant Typing Indicator - No Throttle, No Delay
+ * Uses Supabase Broadcast for real-time typing status
  */
 export function useTypingIndicator(conversationId: string | null) {
   const { user } = useAuth();
-  const [otherUserTyping, setOtherUserTyping] = useState<TypingState | null>(null);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const stopTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoStopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isTypingRef = useRef(false);
 
-  // Broadcast typing status - NO THROTTLE for instant feedback
-  const broadcastTyping = useCallback((isTyping: boolean) => {
+  // INSTANT: Send typing event on first keystroke (no throttle)
+  const handleTyping = useCallback(() => {
     if (!conversationId || !user || !channelRef.current) return;
-    
-    // Prevent duplicate broadcasts
-    if (isTyping && isTypingRef.current) return;
-    if (!isTyping && !isTypingRef.current) return;
-    
-    isTypingRef.current = isTyping;
 
+    // Send immediately (no throttle for instant feedback)
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { userId: user.id, isTyping: true },
+      });
+    }
+
+    // Reset stop timer - stop after 2 seconds of inactivity
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      stopTyping();
+    }, 2000);
+  }, [conversationId, user]);
+
+  // Stop typing signal
+  const stopTyping = useCallback(() => {
+    if (!channelRef.current || !user) return;
+    
+    isTypingRef.current = false;
     channelRef.current.send({
       type: 'broadcast',
       event: 'typing',
-      payload: {
-        userId: user.id,
-        userName: user.user_metadata?.name || 'User',
-        isTyping,
-        conversationId,
-        timestamp: Date.now(),
-      },
+      payload: { userId: user.id, isTyping: false },
     });
-  }, [conversationId, user]);
-
-  // Handle input change - INSTANT on first character
-  const handleTyping = useCallback(() => {
-    // Broadcast immediately on first character
-    broadcastTyping(true);
     
-    // Clear existing stop timeout
-    if (stopTypingTimeoutRef.current) {
-      clearTimeout(stopTypingTimeoutRef.current);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
     }
-    
-    // Stop typing after 3 seconds of inactivity
-    stopTypingTimeoutRef.current = setTimeout(() => {
-      broadcastTyping(false);
-    }, 3000);
-  }, [broadcastTyping]);
+  }, [user]);
 
-  // Stop typing - call when message is sent
-  const stopTyping = useCallback(() => {
-    if (stopTypingTimeoutRef.current) {
-      clearTimeout(stopTypingTimeoutRef.current);
-      stopTypingTimeoutRef.current = null;
-    }
-    broadcastTyping(false);
-    isTypingRef.current = false;
-  }, [broadcastTyping]);
-
-  // Subscribe to typing events
   useEffect(() => {
     if (!conversationId || !user) return;
 
-    const channel = supabase.channel(`typing:${conversationId}`, {
-      config: {
-        broadcast: { self: false },
-      },
-    })
+    const channel = supabase.channel(`typing:${conversationId}`);
+    channelRef.current = channel;
+
+    channel
       .on('broadcast', { event: 'typing' }, (payload) => {
-        const data = payload.payload as TypingState & { conversationId: string; timestamp: number };
+        const data = payload.payload;
         
-        // Ignore own typing
-        if (data.userId === user.id) return;
-        
-        // Only process for this conversation
-        if (data.conversationId !== conversationId) return;
-        
-        // Clear any existing clear timeout
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
-          typingTimeoutRef.current = null;
-        }
-        
-        if (data.isTyping) {
-          setOtherUserTyping({
-            isTyping: true,
-            userId: data.userId,
-            userName: data.userName,
-          });
+        // Only track other user's typing
+        if (data.userId !== user.id) {
+          setOtherUserTyping(data.isTyping);
           
-          // Auto-clear after 4 seconds (fallback if stop event missed)
-          typingTimeoutRef.current = setTimeout(() => {
-            setOtherUserTyping(prev => 
-              prev?.userId === data.userId ? null : prev
-            );
-          }, 4000);
-        } else {
-          // Immediate clear when stop typing received
-          setOtherUserTyping(prev => 
-            prev?.userId === data.userId ? null : prev
-          );
+          // Auto-clear after 3 seconds if typing (fallback if stop missed)
+          if (autoStopTimeoutRef.current) {
+            clearTimeout(autoStopTimeoutRef.current);
+          }
+          
+          if (data.isTyping) {
+            autoStopTimeoutRef.current = setTimeout(() => {
+              setOtherUserTyping(false);
+            }, 3000);
+          }
         }
       })
       .subscribe();
 
-    channelRef.current = channel;
-
     return () => {
+      stopTyping();
+      
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      if (stopTypingTimeoutRef.current) {
-        clearTimeout(stopTypingTimeoutRef.current);
+      if (autoStopTimeoutRef.current) {
+        clearTimeout(autoStopTimeoutRef.current);
       }
+      
       supabase.removeChannel(channel);
       channelRef.current = null;
-      isTypingRef.current = false;
     };
-  }, [conversationId, user]);
+  }, [conversationId, user, stopTyping]);
 
   return {
     otherUserTyping,

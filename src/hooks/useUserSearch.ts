@@ -19,7 +19,7 @@ export function useUserSearch() {
   const [isSearching, setIsSearching] = useState(false);
 
   const searchUsers = useCallback(async (query: string) => {
-    // Start search from first character (not 2)
+    // Start search from first character - instant (no length requirement)
     if (!user || query.length < 1) {
       setResults([]);
       return;
@@ -31,34 +31,32 @@ export function useUserSearch() {
       // Search by name or username - remove @ prefix if present
       const searchTerm = query.startsWith('@') ? query.slice(1) : query;
       
-      // Search profiles with partial match on name OR username
-      // No .gte() filter - RLS policy handles username validation
+      // Search profiles with ILIKE for Arabic + English support
+      // No minimum length filters - search from first character
       const { data, error } = await supabase
         .from('profiles')
         .select('id, user_id, name, username, avatar_url, country, city, rank')
         .or(`name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
         .neq('user_id', user.id)
-        .not('username', 'is', null)
-        .limit(20);
+        .limit(30); // Increased limit for better results
 
       if (error) {
         console.error('Search query error:', error);
         throw error;
       }
 
-      // Filter for complete profiles only
+      // REMOVED: restrictive filters that were hiding users
+      // Filter only for profiles that have at least some username/name
       const validUsers = (data || []).filter(p => 
-        p.username && 
-        p.username.length >= 3 && 
-        p.name && 
-        p.name.trim().length > 0
+        (p.username && p.username.length >= 1) || 
+        (p.name && p.name.trim().length > 0)
       );
 
       const formattedResults: SearchedUser[] = validUsers.map(p => ({
         id: p.id,
         userId: p.user_id,
-        name: p.name,
-        username: p.username,
+        name: p.name || 'User',
+        username: p.username || '',
         avatarUrl: p.avatar_url,
         country: p.country,
         city: p.city,
