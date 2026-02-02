@@ -1,28 +1,39 @@
 import { motion } from 'framer-motion';
-import { Calendar, Users } from 'lucide-react';
+import { Calendar, Users, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ProgressRing } from '@/components/common/ProgressRing';
-import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useRankBasedData } from '@/hooks/useRankBasedData';
+import { useTeamStats } from '@/hooks/useTeamStats';
 
-interface ActivityCardProps {
-  rankOverride?: UserRank | null;
-}
-
-export function ActivityCard({ rankOverride }: ActivityCardProps) {
-  const { user } = useUser();
+export function ActivityCard() {
   const { language } = useLanguage();
-  
-  // Use override rank for dev testing, otherwise use actual user rank
-  const displayRank = rankOverride ?? user.rank;
-  const rankData = useRankBasedData(displayRank);
+  const {
+    userActiveWeeks,
+    currentWeek,
+    totalWeeks,
+    activeDirectCount,
+    directCount,
+    loading
+  } = useTeamStats();
 
-  const personalActivity = Math.round((rankData.activeWeeks / rankData.currentWeek) * 100);
-  const teamActivity = rankData.directTeamTotalCount > 0 
-    ? Math.round((rankData.directTeamActiveCount / rankData.directTeamTotalCount) * 100) 
+  // Calculate activity percentages from real data
+  const personalActivity = currentWeek > 0 
+    ? Math.round((userActiveWeeks / currentWeek) * 100) 
     : 0;
+  const teamActivity = directCount > 0 
+    ? Math.round((activeDirectCount / directCount) * 100) 
+    : 0;
+
+  if (loading) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <motion.div
@@ -52,7 +63,7 @@ export function ActivityCard({ rankOverride }: ActivityCardProps) {
               
               <div className="flex-1">
                 <p className="text-sm font-bold text-primary">
-                  {rankData.activeWeeks}/{rankData.totalWeeks}
+                  {userActiveWeeks}/{totalWeeks}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {language === 'ar' ? 'أسبوع' : 'weeks'}
@@ -77,7 +88,7 @@ export function ActivityCard({ rankOverride }: ActivityCardProps) {
               
               <div className="flex-1">
                 <p className="text-sm font-bold text-success">
-                  {rankData.directTeamActiveCount}/{rankData.directTeamTotalCount}
+                  {activeDirectCount}/{directCount}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {language === 'ar' ? 'نشط' : 'active'}
@@ -95,11 +106,11 @@ export function ActivityCard({ rankOverride }: ActivityCardProps) {
             </span>
             <span className="font-medium">
               {language === 'ar' 
-                ? `الأسبوع ${rankData.currentWeek} من 14`
-                : `Week ${rankData.currentWeek} of 14`}
+                ? `الأسبوع ${currentWeek} من ${totalWeeks}`
+                : `Week ${currentWeek} of ${totalWeeks}`}
             </span>
           </div>
-          <Progress value={(rankData.currentWeek / 14) * 100} className="h-1.5 mt-1" />
+          <Progress value={(currentWeek / totalWeeks) * 100} className="h-1.5 mt-1" />
         </div>
       </Card>
     </motion.div>

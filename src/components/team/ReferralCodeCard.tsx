@@ -1,17 +1,20 @@
 import { useState } from 'react';
-import { Copy, Share2, Check, Gift } from 'lucide-react';
+import { Copy, Share2, Check, Gift, Users, TrendingUp, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useProfile } from '@/hooks/useProfile';
+import { useTeamStats } from '@/hooks/useTeamStats';
 import { toast } from '@/hooks/use-toast';
 
 export function ReferralCodeCard() {
   const { language } = useLanguage();
-  const { profile, isLoading } = useProfile();
+  const { referralStats, loading } = useTeamStats();
   const [copied, setCopied] = useState(false);
 
-  const referralCode = profile?.referral_code || '';
+  const referralCode = referralStats?.referral_code || '';
+  const totalInvited = referralStats?.total_invited ?? 0;
+  const activeInvited = referralStats?.active_invited ?? 0;
+  const conversionRate = referralStats?.conversion_rate ?? 0;
 
   const handleCopy = async () => {
     if (!referralCode) return;
@@ -47,21 +50,19 @@ export function ReferralCodeCard() {
           text: shareText,
         });
       } catch (err) {
-        // User cancelled or share failed
         if ((err as Error).name !== 'AbortError') {
           console.error('Share failed:', err);
         }
       }
     } else {
-      // Fallback to copy
       handleCopy();
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <Card className="p-4 animate-pulse">
-        <div className="h-16 bg-muted rounded" />
+        <div className="h-24 bg-muted rounded" />
       </Card>
     );
   }
@@ -111,8 +112,41 @@ export function ReferralCodeCard() {
           </div>
         </div>
 
+        {/* Stats - Real Data */}
+        <div className="grid grid-cols-3 gap-2 mt-3">
+          <div className="bg-background/50 rounded-lg p-2 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Users className="h-3 w-3 text-primary" />
+            </div>
+            <p className="text-lg font-bold text-primary">{totalInvited}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {language === 'ar' ? 'إجمالي الدعوات' : 'Total Invited'}
+            </p>
+          </div>
+          
+          <div className="bg-background/50 rounded-lg p-2 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Check className="h-3 w-3 text-success" />
+            </div>
+            <p className="text-lg font-bold text-success">{activeInvited}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {language === 'ar' ? 'نشط' : 'Active'}
+            </p>
+          </div>
+          
+          <div className="bg-background/50 rounded-lg p-2 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <TrendingUp className="h-3 w-3 text-warning" />
+            </div>
+            <p className="text-lg font-bold text-warning">{conversionRate}%</p>
+            <p className="text-[10px] text-muted-foreground">
+              {language === 'ar' ? 'معدل التحويل' : 'Conversion'}
+            </p>
+          </div>
+        </div>
+
         {/* Description */}
-        <p className="text-xs text-muted-foreground mt-2 text-center">
+        <p className="text-xs text-muted-foreground mt-3 text-center">
           {language === 'ar' 
             ? 'شارك هذا الكود لدعوة أصدقائك وبناء فريقك'
             : 'Share this code to invite friends and build your team'}

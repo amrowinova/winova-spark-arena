@@ -1295,6 +1295,10 @@ export type Database = {
         }
         Returns: Json
       }
+      assign_referral_auto: {
+        Args: { p_city?: string; p_country: string; p_new_user_id: string }
+        Returns: Json
+      }
       cast_free_vote: {
         Args: {
           p_contest_id: string
@@ -1325,6 +1329,10 @@ export type Database = {
         }
         Returns: Json
       }
+      find_active_leader_for_assignment: {
+        Args: { p_city?: string; p_country: string }
+        Returns: string
+      }
       generate_referral_code: { Args: never; Returns: string }
       generate_referral_code_v2: {
         Args: { p_country: string; p_username: string }
@@ -1352,6 +1360,7 @@ export type Database = {
           total_weeks: number
         }[]
       }
+      get_referral_stats: { Args: { p_user_id: string }; Returns: Json }
       get_team_hierarchy: {
         Args: { p_leader_id: string; p_max_depth?: number }
         Returns: {
@@ -1367,6 +1376,12 @@ export type Database = {
           weekly_active: boolean
         }[]
       }
+      get_team_level_breakdown: {
+        Args: { p_max_level?: number; p_user_id: string }
+        Returns: Json
+      }
+      get_team_ranking: { Args: { p_user_id: string }; Returns: Json }
+      get_team_stats: { Args: { p_user_id: string }; Returns: Json }
       get_wallet_history: {
         Args: {
           p_currency?: string
@@ -1490,6 +1505,10 @@ export type Database = {
           p_rated_id: string
           p_rating: number
         }
+        Returns: Json
+      }
+      process_referral_signup: {
+        Args: { p_new_user_id: string; p_referral_code: string }
         Returns: Json
       }
       record_spotlight_points: {
