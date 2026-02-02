@@ -22,7 +22,8 @@ import {
   P2PReputationCard, 
   ProfileEditSheet,
   UserWinsSection,
-  P2PRatingsSheet
+  P2PRatingsSheet,
+  FollowersSheet
 } from '@/components/profile';
 import type { UserWin, ContestWin, LuckyWin } from '@/components/profile/UserWinsSection';
 import { ProfileStatsSection } from '@/components/profile/ProfileStatsSection';
@@ -66,6 +67,8 @@ function ProfileContent() {
   const [editOpen, setEditOpen] = useState(false);
   const [ratingsOpen, setRatingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFollowersSheet, setShowFollowersSheet] = useState(false);
+  const [followersSheetTab, setFollowersSheetTab] = useState<'followers' | 'following'>('followers');
 
   // Real stats from database - start at zero
   const [stats, setStats] = useState<ProfileStats>({
@@ -339,25 +342,37 @@ function ProfileContent() {
               </Button>
             </div>
 
-            {/* Followers / Following - Real counts (currently zero) */}
+            {/* Followers / Following - Clickable */}
             <div className="mt-3 flex items-center gap-4">
-              <div className="text-center">
+              <button
+                onClick={() => {
+                  setFollowersSheetTab('followers');
+                  setShowFollowersSheet(true);
+                }}
+                className="text-center hover:opacity-80 transition-opacity"
+              >
                 <span className="text-lg font-bold text-foreground">
                   {stats.followers}
                 </span>
                 <span className="text-sm text-muted-foreground mx-1">
                   {isRTL ? 'متابِع' : 'Followers'}
                 </span>
-              </div>
+              </button>
               <div className="h-4 w-px bg-border" />
-              <div className="text-center">
+              <button
+                onClick={() => {
+                  setFollowersSheetTab('following');
+                  setShowFollowersSheet(true);
+                }}
+                className="text-center hover:opacity-80 transition-opacity"
+              >
                 <span className="text-lg font-bold text-foreground">
                   {stats.following}
                 </span>
                 <span className="text-sm text-muted-foreground mx-1">
                   {isRTL ? 'يتابع' : 'Following'}
                 </span>
-              </div>
+              </button>
             </div>
 
             {/* Country + City */}
@@ -456,6 +471,14 @@ function ProfileContent() {
           ratings={p2pRatings}
           positiveCount={p2pReputation.positiveCount}
           negativeCount={p2pReputation.negativeCount}
+        />
+
+        {/* Followers/Following Sheet */}
+        <FollowersSheet
+          open={showFollowersSheet}
+          onOpenChange={setShowFollowersSheet}
+          userId={authUser?.id || ''}
+          initialTab={followersSheetTab}
         />
       </div>
     </AppLayout>
