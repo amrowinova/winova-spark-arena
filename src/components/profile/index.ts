@@ -5,3 +5,4 @@ export { WinsHistoryCard } from './WinsHistoryCard';
 export { P2PReputationCard } from './P2PReputationCard';
 export { ProfileHeader } from './ProfileHeader';
 export { ProfileStatsSection } from './ProfileStatsSection';
+export { FollowersSheet } from './FollowersSheet';
