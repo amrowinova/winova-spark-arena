@@ -2,13 +2,21 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface TypingPayload {
+  userId: string;
+  isTyping: boolean;
+  userName?: string;
+}
+
 /**
  * Instant Typing Indicator - No Throttle, No Delay
  * Uses Supabase Broadcast for real-time typing status
+ * Broadcasts userName for display in chat list
  */
-export function useTypingIndicator(conversationId: string | null) {
+export function useTypingIndicator(conversationId: string | null, userName?: string) {
   const { user } = useAuth();
   const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [otherUserName, setOtherUserName] = useState<string | undefined>(undefined);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoStopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -24,7 +32,7 @@ export function useTypingIndicator(conversationId: string | null) {
       channelRef.current.send({
         type: 'broadcast',
         event: 'typing',
-        payload: { userId: user.id, isTyping: true },
+        payload: { userId: user.id, isTyping: true, userName } as TypingPayload,
       });
     }
 
@@ -35,7 +43,7 @@ export function useTypingIndicator(conversationId: string | null) {
     typingTimeoutRef.current = setTimeout(() => {
       stopTyping();
     }, 2000);
-  }, [conversationId, user]);
+  }, [conversationId, user, userName]);
 
   // Stop typing signal
   const stopTyping = useCallback(() => {
@@ -45,14 +53,14 @@ export function useTypingIndicator(conversationId: string | null) {
     channelRef.current.send({
       type: 'broadcast',
       event: 'typing',
-      payload: { userId: user.id, isTyping: false },
+      payload: { userId: user.id, isTyping: false, userName } as TypingPayload,
     });
     
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
     }
-  }, [user]);
+  }, [user, userName]);
 
   useEffect(() => {
     if (!conversationId || !user) return;
@@ -62,11 +70,12 @@ export function useTypingIndicator(conversationId: string | null) {
 
     channel
       .on('broadcast', { event: 'typing' }, (payload) => {
-        const data = payload.payload;
+        const data = payload.payload as TypingPayload;
         
         // Only track other user's typing
         if (data.userId !== user.id) {
           setOtherUserTyping(data.isTyping);
+          setOtherUserName(data.userName);
           
           // Auto-clear after 3 seconds if typing (fallback if stop missed)
           if (autoStopTimeoutRef.current) {
@@ -99,6 +108,7 @@ export function useTypingIndicator(conversationId: string | null) {
 
   return {
     otherUserTyping,
+    otherUserName,
     handleTyping,
     stopTyping,
   };

@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones, UserPlus, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones, UserPlus, Loader2, PenLine } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { useP2P, P2PChat, P2PMessage } from '@/contexts/P2PContext';
 import { useSupport } from '@/contexts/SupportContext';
 import { useDirectMessages, DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useUserSearch, SearchedUser } from '@/hooks/useUserSearch';
+import { useChatListPresence, useGlobalPresence } from '@/hooks/useChatListPresence';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { Receipt } from '@/contexts/TransactionContext';
@@ -54,6 +55,7 @@ interface Conversation {
   avatar: string;
   rank?: UserRank;
   isOnline?: boolean;
+  isTyping?: boolean;
   lastSeen?: string;
   lastMessage: string;
   time: string;
@@ -111,6 +113,18 @@ function ChatContent() {
   // User search hook for inline search
   const { results: userSearchResults, isSearching: isUserSearching, searchUsers, clearResults: clearUserSearch } = useUserSearch();
 
+  // Global presence tracking (who is online)
+  const { isUserOnline } = useGlobalPresence();
+
+  // Get all DM conversation IDs for typing tracking
+  const dmConversationIds = useMemo(() => 
+    dmConversations.map(c => c.id), 
+    [dmConversations]
+  );
+
+  // Track typing status for all conversations
+  const { getStatus: getTypingStatus } = useChatListPresence(dmConversationIds);
+
   const [selectedTab, setSelectedTab] = useState('dm');
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
   const [activeDMConversation, setActiveDMConversation] = useState<DMConversation | null>(null);
@@ -132,7 +146,6 @@ function ChatContent() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
   // Check if navigated from Help page to open support
   useEffect(() => {
     if (location.state?.openSupport) {
@@ -178,25 +191,31 @@ function ChatContent() {
     };
   });
 
-  // Convert real DM conversations from database
-  const realDMConversations: Conversation[] = dmConversations.map(conv => ({
-    id: `dm-${conv.id}`,
-    type: 'dm' as const,
-    name: conv.participantName,
-    username: conv.participantUsername,
-    avatar: conv.participantAvatar ? '👤' : '👤',
-    isOnline: false,
-    lastMessage: conv.lastMessage || (language === 'ar' ? 'ابدأ المحادثة' : 'Start chatting'),
-    time: conv.lastMessageAt 
-      ? new Date(conv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : '',
-    unread: conv.unreadCount,
-    messages: [],
-    pinnedMessages: [],
-    // Store the actual conversation ID for fetching
-    dmConversationId: conv.id,
-    dmParticipantId: conv.participantId,
-  } as Conversation & { dmConversationId: string; dmParticipantId: string }));
+  // Convert real DM conversations from database - with typing and online status
+  const realDMConversations: Conversation[] = dmConversations.map(conv => {
+    const typingStatus = getTypingStatus(conv.id);
+    const participantOnline = isUserOnline(conv.participantId);
+    
+    return {
+      id: `dm-${conv.id}`,
+      type: 'dm' as const,
+      name: conv.participantName,
+      username: conv.participantUsername,
+      avatar: conv.participantAvatar ? '👤' : '👤',
+      isOnline: participantOnline,
+      isTyping: typingStatus.isTyping,
+      lastMessage: conv.lastMessage || (language === 'ar' ? 'ابدأ المحادثة' : 'Start chatting'),
+      time: conv.lastMessageAt 
+        ? new Date(conv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '',
+      unread: conv.unreadCount,
+      messages: [],
+      pinnedMessages: [],
+      // Store the actual conversation ID for fetching
+      dmConversationId: conv.id,
+      dmParticipantId: conv.participantId,
+    } as Conversation & { dmConversationId: string; dmParticipantId: string; isTyping?: boolean };
+  });
 
   // Create support conversation for the list
   const lastSupportMessage = supportMessages[supportMessages.length - 1];
@@ -1154,8 +1173,15 @@ function ChatContent() {
                           ) : (
                             conv.avatar
                           )}
-                          {conv.isOnline && (
+                          {/* Online indicator - green dot */}
+                          {conv.isOnline && !conv.isTyping && (
                             <span className="absolute bottom-0 end-0 w-3 h-3 bg-success rounded-full border-2 border-card" />
+                          )}
+                          {/* Typing indicator on avatar */}
+                          {conv.isTyping && (
+                            <span className="absolute bottom-0 end-0 w-3.5 h-3.5 bg-primary rounded-full border-2 border-card flex items-center justify-center">
+                              <PenLine className="w-2 h-2 text-primary-foreground" />
+                            </span>
                           )}
                           {conv.unread > 0 && (
                             <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
@@ -1175,13 +1201,24 @@ function ChatContent() {
                                 </span>
                               )}
                             </div>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {conv.time}
-                            </span>
+                            {/* Hide time when typing */}
+                            {!conv.isTyping && (
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {conv.time}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {conv.lastMessage}
-                          </p>
+                          {/* Show typing or last message */}
+                          {conv.isTyping ? (
+                            <p className="text-sm text-primary truncate flex items-center gap-1.5 animate-pulse">
+                              <PenLine className="w-3 h-3" />
+                              {language === 'ar' ? 'يكتب الآن...' : 'Typing...'}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground truncate">
+                              {conv.lastMessage}
+                            </p>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
