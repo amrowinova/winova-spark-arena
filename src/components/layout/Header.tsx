@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Bell, Menu } from 'lucide-react';
+import { Bell, Menu, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useDMUnreadCount } from '@/hooks/useDMUnreadCount';
 import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,9 +21,13 @@ export function Header({ title }: HeaderProps) {
   const { t } = useTranslation();
   const { language, toggleLanguage } = useLanguage();
   const { user } = useUser();
-  const { unreadCount } = useNotifications();
+  const { unreadCount: notificationUnread } = useNotifications();
+  const { unreadCount: dmUnread } = useDMUnreadCount();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Combined unread count (notifications + DMs)
+  const totalUnread = notificationUnread + dmUnread;
 
   // Weekly rank (would come from backend)
   const weeklyRank = 47;
@@ -97,9 +102,9 @@ export function Header({ title }: HeaderProps) {
             onClick={handleNotificationsClick}
           >
             <Bell className="h-4 w-4" />
-            {unreadCount > 0 && (
+            {totalUnread > 0 && (
               <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {totalUnread > 9 ? '9+' : totalUnread}
               </span>
             )}
           </Button>
