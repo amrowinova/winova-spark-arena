@@ -1207,6 +1207,13 @@ export type Database = {
         Args: { p_country: string; p_username: string }
         Returns: string
       }
+      get_active_cycle_info: {
+        Args: never
+        Returns: {
+          cycle_id: string
+          week_number: number
+        }[]
+      }
       get_cycle_progress: {
         Args: { p_cycle_id?: string }
         Returns: {
@@ -1286,6 +1293,10 @@ export type Database = {
       mark_messages_delivered: {
         Args: { p_conversation_id: string; p_recipient_id: string }
         Returns: number
+      }
+      record_spotlight_points: {
+        Args: { p_points: number; p_source: string; p_user_id: string }
+        Returns: undefined
       }
       search_messages: {
         Args: {
