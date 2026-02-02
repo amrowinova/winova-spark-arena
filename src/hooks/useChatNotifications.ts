@@ -3,6 +3,33 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+// Notification sound - using a simple beep generated via Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Pleasant notification tone
+    oscillator.frequency.value = 830; // Hz
+    oscillator.type = 'sine';
+    
+    // Quick fade in/out for a soft sound
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.2);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+  } catch (e) {
+    // Audio not supported or blocked
+    console.log('Could not play notification sound:', e);
+  }
+};
+
 interface NewMessagePayload {
   id: string;
   conversation_id: string;
@@ -90,6 +117,9 @@ export function useChatNotifications(options: UseChatNotificationsOptions = {}) 
             return;
           }
           
+          // Play notification sound
+          playNotificationSound();
+          
           // Show toast notification
           const truncatedContent = newMsg.content.length > 60 
             ? newMsg.content.substring(0, 60) + '...' 
@@ -101,7 +131,6 @@ export function useChatNotifications(options: UseChatNotificationsOptions = {}) 
             action: {
               label: 'عرض',
               onClick: () => {
-                // Navigate to chat - this will be handled by the app
                 window.dispatchEvent(new CustomEvent('open-dm-conversation', {
                   detail: { conversationId: newMsg.conversation_id }
                 }));
