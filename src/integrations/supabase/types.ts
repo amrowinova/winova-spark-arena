@@ -1207,6 +1207,21 @@ export type Database = {
         Args: { p_country: string; p_username: string }
         Returns: string
       }
+      get_cycle_progress: {
+        Args: { p_cycle_id?: string }
+        Returns: {
+          current_day: number
+          current_week: number
+          cycle_id: string
+          cycle_number: number
+          days_remaining: number
+          end_date: string
+          progress_percentage: number
+          start_date: string
+          total_days: number
+          total_weeks: number
+        }[]
+      }
       get_team_hierarchy: {
         Args: { p_leader_id: string; p_max_depth?: number }
         Returns: {
@@ -1245,6 +1260,14 @@ export type Database = {
           metadata: Json
           reference_id: string
           reference_type: string
+        }[]
+      }
+      get_weekly_points_chart: {
+        Args: { p_cycle_id: string; p_user_id: string }
+        Returns: {
+          day_of_week: number
+          points_date: string
+          total_points: number
         }[]
       }
       has_role: {

@@ -7,5 +7,7 @@ export { HowToEarnPointsSheet } from './HowToEarnPointsSheet';
 export { WeeklyPerformanceCard } from './WeeklyPerformanceCard';
 export { NovaLeaderboard } from './NovaLeaderboard';
 
-// Hook for fetching Spotlight data
+// Hooks for fetching Spotlight data
 export { useSpotlight } from '@/hooks/useSpotlight';
+export { useCycleProgress } from '@/hooks/useCycleProgress';
+export { useWeeklyPointsChart } from '@/hooks/useWeeklyPointsChart';
