@@ -154,6 +154,18 @@ function ProfileContent() {
           .gt('amount', 0)
           .order('created_at', { ascending: false });
 
+        // Fetch followers count (people following this user)
+        const { count: followersCount } = await supabase
+          .from('follows')
+          .select('id', { count: 'exact', head: true })
+          .eq('following_id', authUser.id);
+
+        // Fetch following count (people this user follows)
+        const { count: followingCount } = await supabase
+          .from('follows')
+          .select('id', { count: 'exact', head: true })
+          .eq('follower_id', authUser.id);
+
         // Set stats
         setStats({
           contests: contestCount || 0,
@@ -161,8 +173,8 @@ function ProfileContent() {
           votesGiven: votesGivenCount || 0,
           votesReceived: votesReceivedCount || 0,
           luckyWins: luckyWinsData?.length || 0,
-          followers: 0, // Not implemented yet
-          following: 0, // Not implemented yet
+          followers: followersCount || 0,
+          following: followingCount || 0,
         });
 
         // Build wins array

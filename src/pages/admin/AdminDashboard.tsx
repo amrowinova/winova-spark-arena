@@ -16,7 +16,8 @@ import {
   Settings,
   BarChart3,
   RefreshCcw,
-  Crown
+  Crown,
+  UserPlus
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +31,7 @@ interface DashboardStats {
   disputedOrders: number;
   openTickets: number;
   activeContests: number;
+  totalFollows: number;
 }
 
 export default function AdminDashboard() {
@@ -45,6 +47,7 @@ export default function AdminDashboard() {
     disputedOrders: 0,
     openTickets: 0,
     activeContests: 0,
+    totalFollows: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -58,12 +61,14 @@ export default function AdminDashboard() {
       ordersResult,
       ticketsResult,
       contestsResult,
+      followsResult,
     ] = await Promise.all([
       supabase.from('profiles').select('id, weekly_active', { count: 'exact' }),
       supabase.from('wallets').select('nova_balance, aura_balance'),
       supabase.from('p2p_orders').select('status', { count: 'exact' }),
       supabase.from('support_tickets').select('status', { count: 'exact' }).eq('status', 'open'),
       supabase.from('contests').select('status', { count: 'exact' }).eq('status', 'active'),
+      supabase.from('follows').select('id', { count: 'exact', head: true }),
     ]);
 
     // Calculate stats
@@ -80,6 +85,7 @@ export default function AdminDashboard() {
 
     const openTickets = ticketsResult.count || 0;
     const activeContests = contestsResult.count || 0;
+    const totalFollows = followsResult.count || 0;
 
     setStats({
       totalUsers,
@@ -90,6 +96,7 @@ export default function AdminDashboard() {
       disputedOrders,
       openTickets,
       activeContests,
+      totalFollows,
     });
 
     setIsLoading(false);
@@ -199,6 +206,26 @@ export default function AdminDashboard() {
                   {isRTL ? 'تذاكر مفتوحة' : 'Open Tickets'}
                 </p>
               </div>
+            </div>
+          </Card>
+
+          {/* Follows Card */}
+          <Card className="p-4 col-span-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center">
+                <UserPlus className="w-5 h-5 text-pink-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{formatNumber(stats.totalFollows)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isRTL ? 'إجمالي المتابعات' : 'Total Follows'}
+                </p>
+              </div>
+            </div>
+            <div className="mt-2">
+              <Badge variant="secondary" className="text-[10px]">
+                {isRTL ? 'علاقات المتابعة بين المستخدمين' : 'User follow relationships'}
+              </Badge>
             </div>
           </Card>
         </div>

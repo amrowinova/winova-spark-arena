@@ -18,7 +18,10 @@ import {
   ChevronLeft,
   MessageSquare,
   Share2,
-  Loader2
+  Loader2,
+  UserPlus,
+  UserMinus,
+  Users
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -34,6 +37,7 @@ import { UserWinsSection, type ContestWin, type LuckyWin, type UserWin } from '@
 import { getCountryFlag } from '@/lib/countryFlags';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useFollows } from '@/hooks/useFollows';
 
 // Real profile data type - from database
 interface RealProfileData {
@@ -87,6 +91,15 @@ export default function PublicProfile() {
 
   // Check if viewing own profile
   const isOwnProfile = currentUser?.id === userId;
+
+  // Follow system
+  const { 
+    followersCount, 
+    followingCount, 
+    isFollowing, 
+    isActionLoading: isFollowLoading,
+    toggleFollow 
+  } = useFollows(userId);
 
   // Fetch real profile data
   useEffect(() => {
@@ -379,6 +392,55 @@ export default function PublicProfile() {
             <span className="text-muted-foreground mt-1">
               @{profile.username}
             </span>
+
+            {/* Followers / Following Stats */}
+            <div className="mt-3 flex items-center gap-4">
+              <div className="text-center">
+                <span className="text-lg font-bold text-foreground">
+                  {followersCount}
+                </span>
+                <span className="text-sm text-muted-foreground mx-1">
+                  {language === 'ar' ? 'متابِع' : 'Followers'}
+                </span>
+              </div>
+              <div className="h-4 w-px bg-border" />
+              <div className="text-center">
+                <span className="text-lg font-bold text-foreground">
+                  {followingCount}
+                </span>
+                <span className="text-sm text-muted-foreground mx-1">
+                  {language === 'ar' ? 'يتابع' : 'Following'}
+                </span>
+              </div>
+            </div>
+
+            {/* Follow Button - Only for other users */}
+            {!isOwnProfile && currentUser && (
+              <Button
+                variant={isFollowing ? "outline" : "default"}
+                size="sm"
+                className={cn(
+                  "mt-3 gap-2",
+                  isFollowing && "border-primary/50"
+                )}
+                onClick={toggleFollow}
+                disabled={isFollowLoading}
+              >
+                {isFollowLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isFollowing ? (
+                  <>
+                    <UserMinus className="h-4 w-4" />
+                    {language === 'ar' ? 'إلغاء المتابعة' : 'Unfollow'}
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    {language === 'ar' ? 'متابعة' : 'Follow'}
+                  </>
+                )}
+              </Button>
+            )}
 
             {/* Country / City */}
             {(profile.country || profile.city) && (
