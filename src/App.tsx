@@ -14,7 +14,9 @@ import { SupportProvider } from "@/contexts/SupportContext";
 import { InlineBanner } from "@/components/common/InlineBanner";
 import { GlobalAuthGuard } from "@/components/auth/GlobalAuthGuard";
 import { ProfileEnsureWrapper } from "@/components/auth/ProfileEnsureWrapper";
+import { ChatNotificationHandler } from "@/components/chat/ChatNotificationHandler";
 import { AuthGuard, SupportGuard, AdminGuard } from "@/components/auth";
+import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import "@/lib/i18n/index";
 
@@ -76,7 +78,9 @@ const App = () => (
                         <BrowserRouter>
                           <GlobalAuthGuard />
                           <ProfileEnsureWrapper />
+                          <ChatNotificationHandler />
                           <InlineBanner />
+                          <Toaster position="top-center" richColors />
                           <Routes>
                             {/* Public routes */}
                             <Route path="/" element={<Index />} />

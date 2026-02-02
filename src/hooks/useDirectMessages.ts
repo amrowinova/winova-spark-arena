@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -35,8 +35,9 @@ export function useDirectMessages() {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [messages, setMessages] = useState<Record<string, DMMessage[]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const activeConversationRef = useRef<string | null>(null);
 
-  // Fetch all conversations
+  // Fetch all conversations with optimized queries
   const fetchConversations = useCallback(async () => {
     if (!user) return;
 
@@ -49,7 +50,20 @@ export function useDirectMessages() {
 
       if (error) throw error;
 
-      // Get profile data for each conversation partner
+      // Get all partner IDs for batch profile fetch
+      const partnerIds = (data || []).map(conv => 
+        conv.participant1_id === user.id ? conv.participant2_id : conv.participant1_id
+      );
+
+      // Batch fetch profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, name, username, avatar_url, country')
+        .in('user_id', partnerIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      // Build conversations with profiles
       const conversationsWithProfiles: DMConversation[] = [];
       
       for (const conv of data || []) {
@@ -57,11 +71,7 @@ export function useDirectMessages() {
           ? conv.participant2_id 
           : conv.participant1_id;
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name, username, avatar_url, country')
-          .eq('user_id', partnerId)
-          .single();
+        const profile = profileMap.get(partnerId);
 
         // Get last message
         const { data: lastMsg } = await supabase
@@ -223,6 +233,27 @@ export function useDirectMessages() {
     }
   }, [user, fetchMessages, fetchConversations]);
 
+  // Set active conversation for read tracking
+  const setActiveConversation = useCallback((conversationId: string | null) => {
+    activeConversationRef.current = conversationId;
+    
+    // Mark as read when opening conversation
+    if (conversationId && user) {
+      supabase
+        .from('direct_messages')
+        .update({ is_read: true })
+        .eq('conversation_id', conversationId)
+        .neq('sender_id', user.id)
+        .eq('is_read', false)
+        .then(() => {
+          // Update local state
+          setConversations(prev => 
+            prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
+          );
+        });
+    }
+  }, [user]);
+
   // Subscribe to realtime updates
   useEffect(() => {
     if (!user) return;
@@ -230,7 +261,7 @@ export function useDirectMessages() {
     fetchConversations();
 
     const channel = supabase
-      .channel('dm-updates')
+      .channel('dm-updates-v2')
       .on(
         'postgres_changes',
         {
@@ -238,12 +269,55 @@ export function useDirectMessages() {
           schema: 'public',
           table: 'direct_messages',
         },
-        (payload) => {
+        async (payload) => {
           const newMsg = payload.new as any;
-          // Refresh if we're in this conversation
-          if (messages[newMsg.conversation_id]) {
+          
+          // Check if we're in this conversation
+          const isActiveConv = activeConversationRef.current === newMsg.conversation_id;
+          
+          // Refetch messages if we're in this conversation
+          if (messages[newMsg.conversation_id] || isActiveConv) {
             fetchMessages(newMsg.conversation_id);
           }
+          
+          // If it's a new message from someone else and we're viewing it, mark as read
+          if (isActiveConv && newMsg.sender_id !== user.id) {
+            await supabase
+              .from('direct_messages')
+              .update({ is_read: true })
+              .eq('id', newMsg.id);
+          }
+          
+          // Always refetch conversations to update last message and unread
+          fetchConversations();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'direct_messages',
+        },
+        (payload) => {
+          const updatedMsg = payload.new as any;
+          
+          // Update message in local state
+          setMessages(prev => {
+            const convMessages = prev[updatedMsg.conversation_id];
+            if (!convMessages) return prev;
+            
+            return {
+              ...prev,
+              [updatedMsg.conversation_id]: convMessages.map(m => 
+                m.id === updatedMsg.id 
+                  ? { ...m, isRead: updatedMsg.is_read }
+                  : m
+              ),
+            };
+          });
+          
+          // Refetch conversations to update unread count
           fetchConversations();
         }
       )
@@ -273,5 +347,6 @@ export function useDirectMessages() {
     fetchMessages,
     sendMessage,
     getOrCreateConversation,
+    setActiveConversation,
   };
 }

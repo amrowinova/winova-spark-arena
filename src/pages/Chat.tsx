@@ -21,6 +21,8 @@ import { Receipt } from '@/contexts/TransactionContext';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { TeamChatHeader } from '@/components/chat/TeamChatHeader';
 import { MessageBubble, ChatMessage } from '@/components/chat/MessageBubble';
+import { DMMessageBubble, DMMessageData } from '@/components/chat/DMMessageBubble';
+import { MessageInfoSheet } from '@/components/chat/MessageInfoSheet';
 import { SystemMessageBubble, SystemMessageData } from '@/components/chat/SystemMessageBubble';
 import { ForwardDialog } from '@/components/chat/ForwardDialog';
 import { ReplyBar } from '@/components/chat/ReplyBar';
@@ -102,6 +104,7 @@ function ChatContent() {
     fetchMessages: fetchDMMessages,
     sendMessage: sendDMMessage,
     getOrCreateConversation,
+    setActiveConversation: setActiveDMConversationId,
   } = useDirectMessages();
   
   // User search hook for inline search
@@ -117,7 +120,10 @@ function ChatContent() {
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [replyToDM, setReplyToDM] = useState<DMMessageData | null>(null);
   const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(null);
+  const [forwardDMMessage, setForwardDMMessage] = useState<DMMessageData | null>(null);
+  const [messageInfoMessage, setMessageInfoMessage] = useState<DMMessageData | null>(null);
   const [teamInfoOpen, setTeamInfoOpen] = useState(false);
   const [showP2PDetails, setShowP2PDetails] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
@@ -501,6 +507,7 @@ function ChatContent() {
       const dmConv = dmConversations.find(c => c.id === conv.dmConversationId);
       if (dmConv) {
         setActiveDMConversation(dmConv);
+        setActiveDMConversationId(dmConv.id); // Mark conversation as active for read tracking
         fetchDMMessages(dmConv.id);
         setActiveChat(null);
         setActiveP2PChat(null);
@@ -518,8 +525,10 @@ function ChatContent() {
     setActiveChat(null);
     setActiveP2PChat(null);
     setActiveDMConversation(null);
+    setActiveDMConversationId(null); // Clear active conversation tracking
     setShowP2PDetails(false);
     setShowSupportChat(false);
+    setReplyToDM(null);
   };
 
   // Handle user selection from search (create/open DM)
@@ -579,6 +588,21 @@ function ChatContent() {
   if (activeDMConversation) {
     const conversationMessages = dmMessages[activeDMConversation.id] || [];
     
+    // Convert DMMessage to DMMessageData format for the new component
+    const formattedMessages: DMMessageData[] = conversationMessages.map(msg => ({
+      id: msg.id,
+      conversationId: msg.conversationId,
+      senderId: msg.senderId,
+      senderName: msg.senderName,
+      content: msg.content,
+      messageType: msg.messageType,
+      isRead: msg.isRead,
+      createdAt: msg.createdAt,
+      isMine: msg.isMine,
+      transferAmount: msg.transferAmount,
+      replyTo: replyToDM?.id === msg.id ? undefined : undefined, // Can be extended for reply chains
+    }));
+    
     return (
       <AppLayout title={activeDMConversation.participantName} showNav={false} showHeader={false}>
         <div className="flex flex-col h-screen">
@@ -592,43 +616,40 @@ function ChatContent() {
             onTransfer={() => setTransferDialogOpen(true)}
           />
 
+          {/* Reply bar */}
+          {replyToDM && (
+            <ReplyBar 
+              replyTo={{ sender: replyToDM.senderName, content: replyToDM.content }}
+              onCancel={() => setReplyToDM(null)}
+            />
+          )}
+
           {/* Messages */}
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-2">
-              {conversationMessages.length === 0 ? (
+              {formattedMessages.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   {language === 'ar' ? 'ابدأ المحادثة' : 'Start the conversation'}
                 </div>
               ) : (
-                conversationMessages.map((msg) => (
-                  <motion.div
+                formattedMessages.map((msg) => (
+                  <DMMessageBubble
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'} mb-2`}
-                  >
-                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl ${
-                      msg.isMine 
-                        ? 'bg-primary text-primary-foreground rounded-br-sm' 
-                        : 'bg-muted rounded-bl-sm'
-                    }`}>
-                      {!msg.isMine && (
-                        <p className="text-xs font-medium mb-1 opacity-70">{msg.senderName}</p>
-                      )}
-                      {msg.messageType === 'transfer' && msg.transferAmount ? (
-                        <div className="bg-success/20 rounded-lg p-2 mb-1">
-                          <p className="text-sm font-medium">
-                            💸 {language === 'ar' ? 'تحويل Nova' : 'Nova Transfer'}
-                          </p>
-                          <p className="text-lg font-bold">{msg.transferAmount} И</p>
-                        </div>
-                      ) : null}
-                      <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                      <span className="text-[10px] opacity-60 block text-end mt-1">
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  </motion.div>
+                    message={msg}
+                    showReadReceipts={true}
+                    isDelivered={true}
+                    onReply={(m) => setReplyToDM(m)}
+                    onForward={(m) => setForwardDMMessage(m)}
+                    onCopy={(content) => {
+                      navigator.clipboard.writeText(content);
+                      showInfo(language === 'ar' ? 'تم النسخ' : 'Copied');
+                    }}
+                    onInfo={(m) => setMessageInfoMessage(m)}
+                    onReact={(messageId, emoji) => {
+                      // Reactions can be implemented later with database support
+                      showInfo(`${emoji} ${language === 'ar' ? 'تفاعل' : 'reacted'}`);
+                    }}
+                  />
                 ))
               )}
               <div ref={messagesEndRef} />
@@ -647,6 +668,7 @@ function ChatContent() {
                   if (e.key === 'Enter' && message.trim()) {
                     sendDMMessage(activeDMConversation.id, message);
                     setMessage('');
+                    setReplyToDM(null);
                   }
                 }}
               />
@@ -656,6 +678,7 @@ function ChatContent() {
                   if (message.trim()) {
                     sendDMMessage(activeDMConversation.id, message);
                     setMessage('');
+                    setReplyToDM(null);
                   }
                 }} 
                 disabled={!message.trim()}
@@ -673,7 +696,6 @@ function ChatContent() {
             recipientName={activeDMConversation.participantName}
             recipientUsername={activeDMConversation.participantUsername}
             onTransferComplete={(receipt) => {
-              // Send a transfer message in the chat
               sendDMMessage(
                 activeDMConversation.id, 
                 language === 'ar' 
@@ -683,6 +705,13 @@ function ChatContent() {
                 activeDMConversation.participantId
               );
             }}
+          />
+
+          {/* Message Info Sheet */}
+          <MessageInfoSheet
+            open={!!messageInfoMessage}
+            onOpenChange={(open) => !open && setMessageInfoMessage(null)}
+            message={messageInfoMessage}
           />
         </div>
       </AppLayout>

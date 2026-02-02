@@ -9,10 +9,12 @@ import { useAuth } from '@/contexts/AuthContext';
 export function useDMUnreadCount() {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadByConversation, setUnreadByConversation] = useState<Record<string, number>>({});
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user) {
       setUnreadCount(0);
+      setUnreadByConversation({});
       return;
     }
 
@@ -25,22 +27,33 @@ export function useDMUnreadCount() {
 
       if (convError || !conversations?.length) {
         setUnreadCount(0);
+        setUnreadByConversation({});
         return;
       }
 
       const conversationIds = conversations.map(c => c.id);
 
-      // Count unread messages in those conversations (not sent by me)
-      const { count, error } = await supabase
-        .from('direct_messages')
-        .select('id', { count: 'exact', head: true })
-        .in('conversation_id', conversationIds)
-        .eq('is_read', false)
-        .neq('sender_id', user.id);
+      // Get unread counts per conversation
+      const unreadMap: Record<string, number> = {};
+      let total = 0;
 
-      if (!error) {
-        setUnreadCount(count || 0);
+      for (const convId of conversationIds) {
+        const { count } = await supabase
+          .from('direct_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('conversation_id', convId)
+          .eq('is_read', false)
+          .neq('sender_id', user.id);
+        
+        const unread = count || 0;
+        if (unread > 0) {
+          unreadMap[convId] = unread;
+          total += unread;
+        }
       }
+
+      setUnreadCount(total);
+      setUnreadByConversation(unreadMap);
     } catch (err) {
       console.error('Error fetching unread count:', err);
     }
@@ -54,16 +67,35 @@ export function useDMUnreadCount() {
 
     // Subscribe to realtime updates on direct_messages
     const channel = supabase
-      .channel('dm-unread-count')
+      .channel('dm-unread-count-v2')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+        },
+        (payload) => {
+          const newMsg = payload.new as any;
+          // Only count if it's not my message
+          if (newMsg.sender_id !== user.id && !newMsg.is_read) {
+            setUnreadCount(prev => prev + 1);
+            setUnreadByConversation(prev => ({
+              ...prev,
+              [newMsg.conversation_id]: (prev[newMsg.conversation_id] || 0) + 1
+            }));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'direct_messages',
         },
         () => {
-          // Refetch on any message change
+          // Refetch on any update (read status changes)
           fetchUnreadCount();
         }
       )
@@ -74,5 +106,9 @@ export function useDMUnreadCount() {
     };
   }, [user, fetchUnreadCount]);
 
-  return { unreadCount, refetch: fetchUnreadCount };
+  return { 
+    unreadCount, 
+    unreadByConversation,
+    refetch: fetchUnreadCount 
+  };
 }
