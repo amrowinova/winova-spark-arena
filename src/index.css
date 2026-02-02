@@ -369,4 +369,14 @@
   .safe-top {
     padding-top: env(safe-area-inset-top, 0);
   }
+
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+  }
+
+  /* Chat scroll container that accounts for fixed input */
+  .chat-messages-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 }

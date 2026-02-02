@@ -22,6 +22,7 @@ import { ChatHeader } from '@/components/chat/ChatHeader';
 import { TeamChatHeader } from '@/components/chat/TeamChatHeader';
 import { MessageBubble, ChatMessage } from '@/components/chat/MessageBubble';
 import { DMMessageBubble, DMMessageData } from '@/components/chat/DMMessageBubble';
+import { DMChatView } from '@/components/chat/DMChatView';
 import { MessageInfoSheet } from '@/components/chat/MessageInfoSheet';
 import { SystemMessageBubble, SystemMessageData } from '@/components/chat/SystemMessageBubble';
 import { ForwardDialog } from '@/components/chat/ForwardDialog';
@@ -584,136 +585,30 @@ function ChatContent() {
     );
   }
 
-  // Active DM Conversation View (real database DM)
+  // Active DM Conversation View (real database DM) - Use new DMChatView component
   if (activeDMConversation) {
     const conversationMessages = dmMessages[activeDMConversation.id] || [];
     
-    // Convert DMMessage to DMMessageData format for the new component
-    const formattedMessages: DMMessageData[] = conversationMessages.map(msg => ({
-      id: msg.id,
-      conversationId: msg.conversationId,
-      senderId: msg.senderId,
-      senderName: msg.senderName,
-      content: msg.content,
-      messageType: msg.messageType,
-      isRead: msg.isRead,
-      createdAt: msg.createdAt,
-      isMine: msg.isMine,
-      transferAmount: msg.transferAmount,
-      replyTo: replyToDM?.id === msg.id ? undefined : undefined, // Can be extended for reply chains
-    }));
+    const handleForwardMessage = (content: string, recipientIds: string[]) => {
+      // Forward the message to selected recipients
+      recipientIds.forEach(async (recipientId) => {
+        const convId = await getOrCreateConversation(recipientId);
+        if (convId) {
+          // Mark as forwarded in the message
+          sendDMMessage(convId, content);
+        }
+      });
+    };
     
     return (
       <AppLayout title={activeDMConversation.participantName} showNav={false} showHeader={false}>
-        <div className="flex flex-col h-screen">
-          {/* DM Chat Header */}
-          <ChatHeader
-            name={activeDMConversation.participantName}
-            username={activeDMConversation.participantUsername}
-            avatar="👤"
-            isOnline={false}
-            onBack={handleBackFromChat}
-            onTransfer={() => setTransferDialogOpen(true)}
-          />
-
-          {/* Reply bar */}
-          {replyToDM && (
-            <ReplyBar 
-              replyTo={{ sender: replyToDM.senderName, content: replyToDM.content }}
-              onCancel={() => setReplyToDM(null)}
-            />
-          )}
-
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-2">
-              {formattedMessages.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  {language === 'ar' ? 'ابدأ المحادثة' : 'Start the conversation'}
-                </div>
-              ) : (
-                formattedMessages.map((msg) => (
-                  <DMMessageBubble
-                    key={msg.id}
-                    message={msg}
-                    showReadReceipts={true}
-                    isDelivered={true}
-                    onReply={(m) => setReplyToDM(m)}
-                    onForward={(m) => setForwardDMMessage(m)}
-                    onCopy={(content) => {
-                      navigator.clipboard.writeText(content);
-                      showInfo(language === 'ar' ? 'تم النسخ' : 'Copied');
-                    }}
-                    onInfo={(m) => setMessageInfoMessage(m)}
-                    onReact={(messageId, emoji) => {
-                      // Reactions can be implemented later with database support
-                      showInfo(`${emoji} ${language === 'ar' ? 'تفاعل' : 'reacted'}`);
-                    }}
-                  />
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-
-          {/* Input */}
-          <div className="p-4 border-t border-border bg-card safe-bottom">
-            <div className="flex items-center gap-2">
-              <Input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={language === 'ar' ? 'اكتب رسالة...' : 'Type a message...'}
-                className="flex-1"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && message.trim()) {
-                    sendDMMessage(activeDMConversation.id, message);
-                    setMessage('');
-                    setReplyToDM(null);
-                  }
-                }}
-              />
-              <Button 
-                size="icon" 
-                onClick={() => {
-                  if (message.trim()) {
-                    sendDMMessage(activeDMConversation.id, message);
-                    setMessage('');
-                    setReplyToDM(null);
-                  }
-                }} 
-                disabled={!message.trim()}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Transfer Dialog */}
-          <TransferNovaDialog 
-            open={transferDialogOpen}
-            onClose={() => setTransferDialogOpen(false)}
-            recipientId={activeDMConversation.participantId}
-            recipientName={activeDMConversation.participantName}
-            recipientUsername={activeDMConversation.participantUsername}
-            onTransferComplete={(receipt) => {
-              sendDMMessage(
-                activeDMConversation.id, 
-                language === 'ar' 
-                  ? `تم تحويل ${receipt.amount} Nova` 
-                  : `Transferred ${receipt.amount} Nova`,
-                receipt.amount,
-                activeDMConversation.participantId
-              );
-            }}
-          />
-
-          {/* Message Info Sheet */}
-          <MessageInfoSheet
-            open={!!messageInfoMessage}
-            onOpenChange={(open) => !open && setMessageInfoMessage(null)}
-            message={messageInfoMessage}
-          />
-        </div>
+        <DMChatView
+          conversation={activeDMConversation}
+          messages={conversationMessages}
+          onBack={handleBackFromChat}
+          onSendMessage={sendDMMessage}
+          onForwardMessage={handleForwardMessage}
+        />
       </AppLayout>
     );
   }
