@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Loader2 } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getPlatformUserById } from '@/lib/platformUsers';
+import { useSpotlight } from '@/hooks/useSpotlight';
 import {
   CycleProgressCard,
   UserPointsCard,
@@ -16,88 +16,31 @@ import {
   WeeklyPerformanceCard,
 } from '@/components/spotlight';
 
-
-// Mock spotlight data
-const spotlightData = {
-  // Cycle info
-  currentDay: 30,
-  totalDays: 98,
-  currentWeek: 5,
-  totalWeeks: 14,
-
-  // User points
-  userDailyPoints: 45,
-  userCyclePoints: 1250,
-  userRankPosition: 3,
-  totalInRank: 156,
-
-  // Weekly performance data (14 weeks)
-  weeklyPerformance: [
-    { week: 1, points: 180 },
-    { week: 2, points: 220 },
-    { week: 3, points: 195 },
-    { week: 4, points: 280 },
-    { week: 5, points: 375 }, // Current week
-    { week: 6, points: 0 },
-    { week: 7, points: 0 },
-    { week: 8, points: 0 },
-    { week: 9, points: 0 },
-    { week: 10, points: 0 },
-    { week: 11, points: 0 },
-    { week: 12, points: 0 },
-    { week: 13, points: 0 },
-    { week: 14, points: 0 },
-  ],
-
-  // Daily pool and winners (today - shown after announcement)
-  dailyPool: 800,
-  dailyWinners: [
-    { 
-      id: '5', 
-      name: getPlatformUserById('5')?.nameAr || 'فاطمة سعيد', 
-      prize: 520, 
-      percentage: 65 
-    },
-    { 
-      id: '6', 
-      name: getPlatformUserById('6')?.nameAr || 'عمر أحمد', 
-      prize: 280, 
-      percentage: 35 
-    },
-  ],
-
-  // Yesterday's winners (shown before today's announcement)
-  yesterdayPool: 720,
-  yesterdayWinners: [
-    { 
-      id: '4', 
-      name: getPlatformUserById('4')?.nameAr || 'خالد محمد', 
-      prize: 468, 
-      percentage: 65 
-    },
-    { 
-      id: '2', 
-      name: getPlatformUserById('2')?.nameAr || 'سارة أحمد', 
-      prize: 252, 
-      percentage: 35 
-    },
-  ],
-
-  // Next draw time (end of today)
-  nextDrawTime: (() => {
-    const now = new Date();
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
-    return endOfDay;
-  })(),
-
-};
-
 function SpotlightContent() {
   const { user } = useUser();
   const { language } = useLanguage();
   const isRTL = language === 'ar';
   const [showEarnPointsSheet, setShowEarnPointsSheet] = useState(false);
+
+  // Use real data from database
+  const spotlightData = useSpotlight();
+
+  if (spotlightData.loading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader title={isRTL ? 'نقاط المحظوظين' : 'Lucky Points'} />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">
+              {isRTL ? 'جاري التحميل...' : 'Loading...'}
+            </p>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
