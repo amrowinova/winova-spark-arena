@@ -125,13 +125,15 @@ export default function ContestsPage() {
   // Fetch real contest data
   const fetchContestData = useCallback(async () => {
     try {
-      // Fetch active or most recent completed contest
-      const statusFilter = isResults ? ['completed', 'active'] : ['active'];
-      
+      // Fetch today's contest (KSA), or (before 10 AM KSA) fall back to the most recent previous contest.
+      // IMPORTANT: We do NOT depend on contests.status for join eligibility.
+      const ksaToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+
       const { data: contestData, error: contestError } = await supabase
         .from('contests')
         .select('*')
-        .in('status', statusFilter)
+        .lte('contest_date', ksaToday)
+        .order('contest_date', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -147,7 +149,28 @@ export default function ContestsPage() {
           .eq('contest_id', contestData.id)
           .order('votes_received', { ascending: false });
 
-        if (!entriesError && entriesData && entriesData.length > 0) {
+        if (entriesError) {
+          console.error('Error fetching contest entries:', entriesError);
+          setParticipants([]);
+          setWinners([]);
+          setHasJoined(false);
+          setUserRank(0);
+          setUserVotes(0);
+          setFreeVoteUsed(false);
+          return;
+        }
+
+        if (!entriesData || entriesData.length === 0) {
+          setParticipants([]);
+          setWinners([]);
+          setHasJoined(false);
+          setUserRank(0);
+          setUserVotes(0);
+          setFreeVoteUsed(false);
+          return;
+        }
+
+        if (entriesData && entriesData.length > 0) {
           const userIds = entriesData.map(e => e.user_id);
           
           const { data: profilesData } = await supabase
@@ -203,6 +226,16 @@ export default function ContestsPage() {
             }
           }
         }
+      } else {
+        // Strict zero-state: never keep stale UI when there is no real contest record.
+        setActiveContestId(null);
+        setPrizePool(0);
+        setParticipants([]);
+        setWinners([]);
+        setHasJoined(false);
+        setUserRank(0);
+        setUserVotes(0);
+        setFreeVoteUsed(false);
       }
     } catch (err) {
       console.error('Error fetching contest data:', err);
@@ -275,7 +308,7 @@ export default function ContestsPage() {
     }
     // Pre-check 2: real active contest exists
     if (!activeContestId) {
-      showError(language === 'ar' ? 'لا توجد مسابقة نشطة حالياً' : 'No active contest currently');
+      showError(language === 'ar' ? 'لا توجد مسابقة لليوم' : 'No contest for today');
       return;
     }
     // Pre-check 3: within join window (KSA timing)
@@ -296,7 +329,7 @@ export default function ContestsPage() {
     }
 
     if (!authUser || !activeContestId) {
-      showError(language === 'ar' ? 'لا توجد مسابقة نشطة' : 'No active contest');
+      showError(language === 'ar' ? 'لا توجد مسابقة لليوم' : 'No contest for today');
       setJoinDialogOpen(false);
       return;
     }

@@ -100,10 +100,11 @@ export default function HomePage() {
   // Fetch real contest data
   const fetchContestData = useCallback(async () => {
     try {
+      const ksaToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
       const { data: contestData } = await supabase
         .from('contests')
         .select('id, prize_pool, current_participants')
-        .eq('status', 'active')
+        .eq('contest_date', ksaToday)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -146,14 +147,19 @@ export default function HomePage() {
       return;
     }
 
-     // Pre-payment verification: don't even open the payment dialog unless contest + timing are valid.
-    if (!timing.canJoin) {
-      showError(language === 'ar' ? 'لا توجد مسابقة نشطة حالياً' : 'No active contest currently');
+    // Must have a real contest for today
+    if (!activeContestId) {
+      showError(language === 'ar' ? 'لا توجد مسابقة لليوم' : 'No contest for today');
       return;
     }
 
-    if (!activeContestId) {
-      showError(language === 'ar' ? 'لا توجد مسابقة نشطة' : 'No active contest');
+    // Join eligibility is time-based only (10:00–18:00 KSA)
+    if (!timing.canJoin) {
+      showError(
+        language === 'ar'
+          ? 'التسجيل متاح من 10:00 إلى 18:00 بتوقيت السعودية'
+          : 'Registration is open 10:00–18:00 (KSA)'
+      );
       return;
     }
 
@@ -162,7 +168,7 @@ export default function HomePage() {
 
   const confirmJoin = async () => {
     if (!authUser || !activeContestId) {
-      showError(language === 'ar' ? 'لا توجد مسابقة نشطة' : 'No active contest');
+      showError(language === 'ar' ? 'لا توجد مسابقة لليوم' : 'No contest for today');
       return;
     }
 
@@ -338,6 +344,7 @@ export default function HomePage() {
             entryFee={entryFee}
             hasJoined={hasJoined}
             onJoin={handleJoinContest}
+            contestAvailable={!!activeContestId}
           />
         </motion.div>
 
