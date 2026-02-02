@@ -26,6 +26,7 @@ interface ChatHeaderProps {
     trades: number;
     rating: number;
   };
+  isTyping?: boolean;
   onBack: () => void;
   onTransfer: () => void;
   onViewProfile?: () => void;
@@ -42,6 +43,7 @@ export function ChatHeader({
   country,
   engagementStatus = 'none',
   p2pStats,
+  isTyping = false,
   onBack,
   onTransfer,
   onViewProfile,
@@ -51,6 +53,9 @@ export function ChatHeader({
   const [isStarred, setIsStarred] = useState(false);
 
   const getStatusText = () => {
+    if (isTyping) {
+      return language === 'ar' ? 'يكتب الآن...' : 'typing...';
+    }
     if (isOnline) {
       return language === 'ar' ? 'متصل الآن' : 'Online';
     }
@@ -110,7 +115,7 @@ export function ChatHeader({
             {getStatusText() && (
               <>
                 <span className="text-muted-foreground">•</span>
-                <span className={`text-xs ${isOnline ? 'text-success' : 'text-muted-foreground'}`}>
+                <span className={`text-xs ${isTyping ? 'text-primary animate-pulse' : isOnline ? 'text-success' : 'text-muted-foreground'}`}>
                   {getStatusText()}
                 </span>
               </>
