@@ -309,6 +309,61 @@ export type Database = {
         }
         Relationships: []
       }
+      p2p_dispute_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          order_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id?: string
+          order_id: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          order_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "p2p_dispute_files_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "p2p_dispute_files_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "p2p_dispute_files_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       p2p_messages: {
         Row: {
           content: string
@@ -374,6 +429,8 @@ export type Database = {
           creator_id: string
           exchange_rate: number
           executor_id: string | null
+          expires_at: string | null
+          extension_count: number | null
           id: string
           local_amount: number
           matched_at: string | null
@@ -393,6 +450,8 @@ export type Database = {
           creator_id: string
           exchange_rate: number
           executor_id?: string | null
+          expires_at?: string | null
+          extension_count?: number | null
           id?: string
           local_amount: number
           matched_at?: string | null
@@ -412,6 +471,8 @@ export type Database = {
           creator_id?: string
           exchange_rate?: number
           executor_id?: string | null
+          expires_at?: string | null
+          extension_count?: number | null
           id?: string
           local_amount?: number
           matched_at?: string | null
@@ -428,6 +489,58 @@ export type Database = {
             columns: ["payment_method_id"]
             isOneToOne: false
             referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      p2p_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          rated_id: string
+          rater_id: string
+          rating: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          rated_id: string
+          rater_id: string
+          rating: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          rated_id?: string
+          rater_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "p2p_ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "p2p_ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "p2p_ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1132,6 +1245,16 @@ export type Database = {
           },
         ]
       }
+      p2p_user_reputation: {
+        Row: {
+          negative_ratings: number | null
+          positive_ratings: number | null
+          reputation_score: number | null
+          total_trades: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       profiles_search: {
         Row: {
           avatar_url: string | null
@@ -1338,6 +1461,10 @@ export type Database = {
         }
         Returns: Json
       }
+      p2p_extend_time: {
+        Args: { p_minutes?: number; p_order_id: string }
+        Returns: Json
+      }
       p2p_open_dispute: {
         Args: { p_order_id: string; p_reason: string; p_user_id: string }
         Returns: Json
@@ -1346,12 +1473,23 @@ export type Database = {
         Args: { p_order_id: string; p_user_id: string }
         Returns: Json
       }
-      p2p_relist_order: {
-        Args: { p_order_id: string; p_reason?: string; p_user_id: string }
-        Returns: Json
-      }
+      p2p_relist_order:
+        | { Args: { p_order_id: string; p_reason?: string }; Returns: Json }
+        | {
+            Args: { p_order_id: string; p_reason?: string; p_user_id: string }
+            Returns: Json
+          }
       p2p_resolve_dispute: {
         Args: { p_order_id: string; p_resolution: string; p_staff_id: string }
+        Returns: Json
+      }
+      p2p_submit_rating: {
+        Args: {
+          p_comment?: string
+          p_order_id: string
+          p_rated_id: string
+          p_rating: number
+        }
         Returns: Json
       }
       record_spotlight_points: {
