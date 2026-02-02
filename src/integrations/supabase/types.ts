@@ -123,6 +123,7 @@ export type Database = {
       }
       contests: {
         Row: {
+          contest_date: string
           created_at: string
           current_participants: number
           description: string | null
@@ -138,6 +139,7 @@ export type Database = {
           title_ar: string | null
         }
         Insert: {
+          contest_date: string
           created_at?: string
           current_participants?: number
           description?: string | null
@@ -153,6 +155,7 @@ export type Database = {
           title_ar?: string | null
         }
         Update: {
+          contest_date?: string
           created_at?: string
           current_participants?: number
           description?: string | null
