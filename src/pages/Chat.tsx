@@ -146,10 +146,21 @@ function ChatContent() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  // Check if navigated from Help page to open support
+  // Track pending user ID to open DM with (from PublicProfile)
+  const pendingOpenDmWithRef = useRef<string | null>(null);
+  
+  // Check if navigated from Help page to open support, or from PublicProfile to open DM
   useEffect(() => {
     if (location.state?.openSupport) {
       setShowSupportChat(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+    
+    // Handle openDmWith from PublicProfile navigation
+    if (location.state?.openDmWith) {
+      const targetUserId = location.state.openDmWith;
+      pendingOpenDmWithRef.current = targetUserId;
       // Clear the state to prevent reopening on refresh
       window.history.replaceState({}, document.title);
     }
@@ -204,6 +215,42 @@ function ChatContent() {
       openConversationById(pendingConversationIdRef.current);
     }
   }, [dmConversations, openConversationById]);
+
+  // Handle opening DM with a specific user (from PublicProfile)
+  useEffect(() => {
+    const openDmWithUser = async () => {
+      const targetUserId = pendingOpenDmWithRef.current;
+      if (!targetUserId || dmLoading) return;
+      
+      // Check if conversation already exists with this user
+      const existingConv = dmConversations.find(c => c.participantId === targetUserId);
+      
+      if (existingConv) {
+        // Open existing conversation
+        setSelectedTab('dm');
+        setActiveDMConversation(existingConv);
+        setActiveDMConversationId(existingConv.id);
+        fetchDMMessages(existingConv.id);
+        setActiveChat(null);
+        setActiveP2PChat(null);
+        setShowSupportChat(false);
+      } else {
+        // Create new conversation
+        const newConvId = await getOrCreateConversation(targetUserId);
+        if (newConvId) {
+          // Wait a bit for the conversation to appear in the list
+          pendingConversationIdRef.current = newConvId;
+        }
+      }
+      
+      // Clear the pending user ID
+      pendingOpenDmWithRef.current = null;
+    };
+    
+    if (pendingOpenDmWithRef.current && !dmLoading) {
+      openDmWithUser();
+    }
+  }, [dmConversations, dmLoading, getOrCreateConversation, fetchDMMessages, setActiveDMConversationId, setActiveP2PChat]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
