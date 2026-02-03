@@ -3,16 +3,51 @@ import { supabase } from '@/integrations/supabase/client';
 interface ReferralResult {
   success: boolean;
   error?: string;
-  referrer_id?: string;
-  assigned?: boolean;
-  leader_id?: string;
+  upline_user_id?: string;
+  upline_profile_id?: string;
   reason?: string;
+  already_assigned?: boolean;
 }
 
 /**
- * Process referral code signup
- * Called when user signs up with a referral code
- * Uses atomic RPC - no direct table updates
+ * Main unified function for auto-assigning upline during signup
+ * Uses priority: Referral Code → District → City → Country → Global → System Root
+ * 
+ * IMPORTANT: This function is NON-BLOCKING and will NEVER fail signup
+ */
+export async function assignUplineOnSignup(
+  userId: string,
+  country: string,
+  city: string,
+  district?: string | null,
+  referralCode?: string | null
+): Promise<ReferralResult> {
+  try {
+    const { data, error } = await supabase.rpc('assign_upline_auto', {
+      p_new_user_id: userId,
+      p_country: country,
+      p_city: city,
+      p_district: district || null,
+      p_referral_code: referralCode?.toUpperCase().trim() || null
+    });
+
+    if (error) {
+      console.error('Error in assign_upline_auto RPC:', error);
+      // Don't fail - just log
+      return { success: false, error: error.message };
+    }
+    
+    return data as unknown as ReferralResult;
+  } catch (err) {
+    console.error('Error assigning upline:', err);
+    // NEVER fail signup due to referral logic
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Legacy wrapper - calls the new unified function
+ * Kept for backward compatibility
  */
 export async function processReferralSignup(
   userId: string,
@@ -24,70 +59,58 @@ export async function processReferralSignup(
       p_referral_code: referralCode.toUpperCase().trim()
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error processing referral:', error);
+      return { success: false, error: error.message };
+    }
+    
     return data as unknown as ReferralResult;
   } catch (err) {
     console.error('Error processing referral:', err);
-    return {
-      success: false,
-      error: (err as Error).message
-    };
+    return { success: false, error: (err as Error).message };
   }
 }
 
 /**
- * Auto-assign referral when no code is provided
- * Uses priority: City → Country → Global → Any Active User
- * Called when user signs up without a referral code
+ * Legacy wrapper - kept for backward compatibility
+ * @deprecated Use assignUplineOnSignup instead
  */
 export async function autoAssignReferral(
   userId: string,
   country: string,
   city?: string
 ): Promise<ReferralResult> {
-  try {
-    const { data, error } = await supabase.rpc('assign_referral_auto', {
-      p_new_user_id: userId,
-      p_country: country,
-      p_city: city || null
-    });
-
-    if (error) throw error;
-    return data as unknown as ReferralResult;
-  } catch (err) {
-    console.error('Error auto-assigning referral:', err);
-    return {
-      success: false,
-      error: (err as Error).message
-    };
-  }
+  return assignUplineOnSignup(userId, country, city || '', null, null);
 }
 
 /**
  * Main handler for referral during signup
- * Automatically chooses between code-based and auto-assignment
+ * Automatically uses the new unified assign_upline_auto function
  * 
  * Flow:
- * 1. If referral code provided → use process_referral_signup RPC
- * 2. If no code → use assign_referral_auto RPC with priority logic:
- *    - Same city (if provided)
+ * 1. If referral code provided → Priority 1
+ * 2. If no code → Auto-assign using geographic priority:
+ *    - Same district (if provided)
+ *    - Same city
  *    - Same country
  *    - Global active leaders
- *    - Any active user
+ *    - Any user
+ *    - System root (fallback)
  */
 export async function handleReferralOnSignup(
   userId: string,
   referralCode: string | null,
   country: string,
-  city?: string
+  city?: string,
+  district?: string
 ): Promise<ReferralResult> {
-  if (referralCode && referralCode.trim()) {
-    // User provided a referral code
-    return processReferralSignup(userId, referralCode);
-  } else {
-    // No referral code - auto-assign to most active leader
-    return autoAssignReferral(userId, country, city);
-  }
+  return assignUplineOnSignup(
+    userId,
+    country,
+    city || '',
+    district || null,
+    referralCode || null
+  );
 }
 
 /**

@@ -596,6 +596,7 @@ export type Database = {
           country: string
           created_at: string
           current_week: number
+          district: string | null
           engagement_status: Database["public"]["Enums"]["engagement_status"]
           has_joined_with_nova: boolean
           id: string
@@ -620,6 +621,7 @@ export type Database = {
           country?: string
           created_at?: string
           current_week?: number
+          district?: string | null
           engagement_status?: Database["public"]["Enums"]["engagement_status"]
           has_joined_with_nova?: boolean
           id?: string
@@ -644,6 +646,7 @@ export type Database = {
           country?: string
           created_at?: string
           current_week?: number
+          district?: string | null
           engagement_status?: Database["public"]["Enums"]["engagement_status"]
           has_joined_with_nova?: boolean
           id?: string
@@ -1297,6 +1300,16 @@ export type Database = {
       }
       assign_referral_auto: {
         Args: { p_city?: string; p_country: string; p_new_user_id: string }
+        Returns: Json
+      }
+      assign_upline_auto: {
+        Args: {
+          p_city: string
+          p_country: string
+          p_district?: string
+          p_new_user_id: string
+          p_referral_code?: string
+        }
         Returns: Json
       }
       cast_free_vote: {
