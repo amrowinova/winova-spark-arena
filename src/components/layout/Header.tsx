@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Bell, Menu, MessageCircle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Bell, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useDMUnreadCount } from '@/hooks/useDMUnreadCount';
+import { useContestEngagement } from '@/hooks/useContestEngagement';
 import { Button } from '@/components/ui/button';
 import { RankBadge } from '@/components/common/RankBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,19 +18,16 @@ interface HeaderProps {
 }
 
 export function Header({ title }: HeaderProps) {
-  const { t } = useTranslation();
-  const { language, toggleLanguage } = useLanguage();
+  const { language } = useLanguage();
   const { user } = useUser();
   const { unreadCount: notificationUnread } = useNotifications();
   const { unreadCount: dmUnread } = useDMUnreadCount();
+  const { hasJoinedToday, hasVotedToday } = useContestEngagement();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Combined unread count (notifications + DMs)
   const totalUnread = notificationUnread + dmUnread;
-
-  // Weekly rank (would come from backend)
-  const weeklyRank = 47;
 
   const handleAvatarClick = () => {
     navigate('/profile');
@@ -71,22 +68,18 @@ export function Header({ title }: HeaderProps) {
                 <RankBadge rank={user.rank} size="sm" />
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                {/* Contest Engagement Status */}
+                {/* Contest Engagement Status - Real data from DB */}
                 <span className={`text-[10px] font-medium flex items-center gap-0.5 ${
-                  user.engagementStatus === 'both' || user.engagementStatus === 'contest' 
-                    ? 'text-green-600' 
-                    : 'text-destructive'
+                  hasJoinedToday ? 'text-green-600' : 'text-destructive'
                 }`}>
-                  {user.engagementStatus === 'both' || user.engagementStatus === 'contest' ? '✓' : '✗'}
+                  {hasJoinedToday ? '✓' : '✗'}
                   <span>{language === 'ar' ? 'مسابقة' : 'Contest'}</span>
                 </span>
-                {/* Vote Engagement Status */}
+                {/* Vote Engagement Status - Real data from DB */}
                 <span className={`text-[10px] font-medium flex items-center gap-0.5 ${
-                  user.engagementStatus === 'both' || user.engagementStatus === 'vote' 
-                    ? 'text-green-600' 
-                    : 'text-destructive'
+                  hasVotedToday ? 'text-green-600' : 'text-destructive'
                 }`}>
-                  {user.engagementStatus === 'both' || user.engagementStatus === 'vote' ? '✓' : '✗'}
+                  {hasVotedToday ? '✓' : '✗'}
                   <span>{language === 'ar' ? 'تصويت' : 'Vote'}</span>
                 </span>
               </div>
