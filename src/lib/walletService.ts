@@ -2,7 +2,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface TransferResult {
   success: boolean;
+  /** Human-readable message returned by backend or transport layer */
   error?: string;
+  /** Machine-readable error code (best-effort) */
+  errorCode?: string;
   senderLedgerId?: string;
   recipientLedgerId?: string;
   senderBalanceAfter?: number;
@@ -63,11 +66,13 @@ export async function executeTransfer(
 
     if (error) {
       console.error('Transfer RPC error:', error);
-      // Handle specific Supabase errors
-      if (error.message.includes('permission denied')) {
-        return { success: false, error: 'Permission denied. Please try again.' };
-      }
-      return { success: false, error: error.message };
+      // IMPORTANT: Return the real backend/transport message (no masking)
+      const fullMessage = [error.message, (error as any).details].filter(Boolean).join(' | ');
+      return {
+        success: false,
+        error: fullMessage || 'Transfer failed',
+        errorCode: (error as any).code || 'RPC_ERROR',
+      };
     }
 
     const result = data as {
@@ -90,7 +95,11 @@ export async function executeTransfer(
         available: result.available_balance,
         requested: result.requested_amount
       });
-      return { success: false, error: result.error || 'Transfer failed' };
+      return {
+        success: false,
+        error: result.error || 'Transfer failed',
+        errorCode: result.error_code || 'TRANSFER_FAILED',
+      };
     }
 
     return {
@@ -102,7 +111,12 @@ export async function executeTransfer(
     };
   } catch (err) {
     console.error('Transfer error:', err);
-    return { success: false, error: 'Network error. Please check your connection.' };
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      success: false,
+      error: message || 'Transfer failed',
+      errorCode: 'NETWORK_ERROR',
+    };
   }
 }
 

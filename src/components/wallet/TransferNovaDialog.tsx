@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Send, User, AlertCircle, MapPin, Check, Lock, Loader2, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +66,25 @@ export function TransferNovaDialog({
   const [showReceipt, setShowReceipt] = useState(false);
   const [generatedReceipt, setGeneratedReceipt] = useState<Receipt | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Hard guard against double-submit (state updates are async)
+  const inFlightRef = useRef(false);
+  const requestIdRef = useRef<string | null>(null);
+
+  const uuidV4 = useCallback((): string => {
+    // Browser-native if available
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+
+    // Fallback (still a valid UUID v4) using getRandomValues
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }, []);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<RecipientLookupResult[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -157,15 +176,17 @@ export function TransferNovaDialog({
 
   // Execute transfer
   const handleTransfer = async () => {
-    // Prevent double submit
-    if (isLoading) return;
+    // Prevent double submit (even if isLoading hasn't updated yet)
+    if (inFlightRef.current) return;
     
     if (!canTransfer || !confirmedRecipient?.userId || isWalletFrozen || !authUser) {
       showError(language === 'ar' ? 'لا يمكن إتمام التحويل' : 'Cannot complete transfer');
       return;
     }
 
+    inFlightRef.current = true;
     setIsLoading(true);
+    requestIdRef.current = uuidV4();
 
     try {
       // Execute atomic transfer via database RPC
@@ -175,43 +196,38 @@ export function TransferNovaDialog({
         novaAmount,
         'nova',
         'dm_transfer',
-        undefined,
+        requestIdRef.current,
         note || (language === 'ar' ? 'تحويل Nova' : 'Nova Transfer'),
         note || 'تحويل Nova'
       );
 
       if (!result.success) {
-        // Show exact backend error message
-        const errorMessages: Record<string, { en: string; ar: string }> = {
-          'Insufficient balance': { en: 'Insufficient balance', ar: 'رصيد غير كافي' },
-          'Your wallet is frozen': { en: 'Your wallet is frozen', ar: 'محفظتك مجمّدة' },
-          'Recipient wallet is frozen': { en: 'Recipient wallet is frozen', ar: 'محفظة المستلم مجمّدة' },
-          'Sender wallet not found': { en: 'Wallet not found', ar: 'المحفظة غير موجودة' },
-          'Recipient wallet not found': { en: 'Recipient wallet not found', ar: 'محفظة المستلم غير موجودة' },
-          'Authentication required': { en: 'Please sign in again', ar: 'الرجاء تسجيل الدخول مرة أخرى' },
-          'You can only transfer from your own wallet': { en: 'Unauthorized transfer', ar: 'تحويل غير مصرح' },
-          'Cannot transfer to yourself': { en: 'Cannot transfer to yourself', ar: 'لا يمكن التحويل لنفسك' },
-          'Amount must be positive': { en: 'Amount must be positive', ar: 'المبلغ يجب أن يكون موجباً' },
-          'Permission denied. Please try again.': { en: 'Permission denied. Please try again.', ar: 'غير مصرح. حاول مرة أخرى.' },
-        };
-        
-        const msg = errorMessages[result.error || ''] || { 
-          en: result.error || 'Transfer failed', 
-          ar: result.error || 'فشل التحويل' 
-        };
-        showError(language === 'ar' ? msg.ar : msg.en);
-        setIsLoading(false);
+        // Show the exact backend error message (no translation / no generalization)
+        const backendMsg = result.error || 'Transfer failed';
+        const withCode = result.errorCode ? `${backendMsg} (${result.errorCode})` : backendMsg;
+        showError(withCode);
         return;
       }
 
       // Send system message in DM
-      const conversationId = await getOrCreateConversation(confirmedRecipient.userId);
-      if (conversationId) {
-        const systemMessage = language === 'ar'
-          ? `💸 قام ${user.name} بتحويل И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`
-          : `💸 ${user.name} sent И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`;
-        
-        await sendMessage(conversationId, systemMessage, novaAmount, confirmedRecipient.userId);
+      // IMPORTANT: DM sync failures must NOT be treated as transfer failures.
+      try {
+        const conversationId = await getOrCreateConversation(confirmedRecipient.userId);
+        if (conversationId) {
+          const systemMessage = language === 'ar'
+            ? `💸 قام ${user.name} بتحويل И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`
+            : `💸 ${user.name} sent И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`;
+
+          await sendMessage(conversationId, systemMessage, novaAmount, confirmedRecipient.userId);
+        }
+      } catch (dmErr) {
+        console.error('Transfer succeeded but DM message failed:', dmErr);
+        const msg = dmErr instanceof Error ? dmErr.message : String(dmErr);
+        showError(
+          language === 'ar'
+            ? `تم التحويل بنجاح، لكن فشل إرسال رسالة التوثيق: ${msg}`
+            : `Transfer completed, but audit message failed: ${msg}`
+        );
       }
 
       // Refetch wallet to get updated balance
@@ -248,9 +264,12 @@ export function TransferNovaDialog({
       }
     } catch (err) {
       console.error('Transfer error:', err);
-      showError(language === 'ar' ? 'حدث خطأ في التحويل' : 'Transfer failed');
+      const msg = err instanceof Error ? err.message : String(err);
+      showError(msg || (language === 'ar' ? 'فشل التحويل' : 'Transfer failed'));
     } finally {
       setIsLoading(false);
+      inFlightRef.current = false;
+      requestIdRef.current = null;
     }
   };
 
@@ -555,7 +574,7 @@ export function TransferNovaDialog({
                   </Button>
                   <Button
                     className="flex-1 h-12 bg-nova hover:bg-nova/90 text-nova-foreground font-bold"
-                    disabled={isLoading}
+                    disabled={isLoading || !canTransfer}
                     onClick={handleTransfer}
                   >
                     {isLoading ? (
