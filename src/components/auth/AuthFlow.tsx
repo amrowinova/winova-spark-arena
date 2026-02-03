@@ -105,8 +105,8 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     // Trigger success callback
     onAuthSuccess?.();
 
-    // Enter app
-    navigate('/app', { replace: true });
+    // Enter app - navigate to root (/)
+    navigate('/', { replace: true });
     
     // Show welcome toast
     toast({
@@ -131,8 +131,8 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     // Trigger callback
     onAuthSuccess?.();
 
-    // Enter app
-    navigate('/app', { replace: true });
+    // Enter app - navigate to root (/)
+    navigate('/', { replace: true });
   }, [markAuthComplete, onAuthSuccess, isRTL, navigate]);
 
   // Login flow: email → OTP → success
