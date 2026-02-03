@@ -209,26 +209,23 @@ export function TransferNovaDialog({
         return;
       }
 
-      // Send system message in DM
-      // IMPORTANT: DM sync failures must NOT be treated as transfer failures.
-      try {
-        const conversationId = await getOrCreateConversation(confirmedRecipient.userId);
-        if (conversationId) {
-          const systemMessage = language === 'ar'
-            ? `💸 قام ${user.name} بتحويل И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`
-            : `💸 ${user.name} sent И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`;
+      // Send system message in DM (fire-and-forget - never block success)
+      // CRITICAL: DM sync is a side-effect. Transfer is already in ledger.
+      (async () => {
+        try {
+          const conversationId = await getOrCreateConversation(confirmedRecipient.userId);
+          if (conversationId) {
+            const systemMessage = language === 'ar'
+              ? `💸 قام ${user.name} بتحويل И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`
+              : `💸 ${user.name} sent И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`;
 
-          await sendMessage(conversationId, systemMessage, novaAmount, confirmedRecipient.userId);
+            await sendMessage(conversationId, systemMessage, novaAmount, confirmedRecipient.userId);
+          }
+        } catch (dmErr) {
+          // Silent log - never show error to user for DM failures
+          console.warn('[TransferNovaDialog] DM sync failed (transfer succeeded):', dmErr);
         }
-      } catch (dmErr) {
-        console.error('Transfer succeeded but DM message failed:', dmErr);
-        const msg = dmErr instanceof Error ? dmErr.message : String(dmErr);
-        showError(
-          language === 'ar'
-            ? `تم التحويل بنجاح، لكن فشل إرسال رسالة التوثيق: ${msg}`
-            : `Transfer completed, but audit message failed: ${msg}`
-        );
-      }
+      })();
 
       // Refetch wallet to get updated balance
       await refetchWallet();
