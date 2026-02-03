@@ -10,6 +10,7 @@ import { WarningCard } from '@/components/team/WarningCard';
 import { ReferralCodeCard } from '@/components/team/ReferralCodeCard';
 import { TeamRankingCard } from '@/components/team/TeamRankingCard';
 import { TeamLevelBreakdown } from '@/components/team/TeamLevelBreakdown';
+import { DirectLeaderCard } from '@/components/team/DirectLeaderCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTeamHierarchy } from '@/hooks/useTeamHierarchy';
 import { useTeamStats } from '@/hooks/useTeamStats';
@@ -18,7 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, ChevronRight, Loader2, UserCheck, UserX, BarChart3 } from 'lucide-react';
+import { Users, ChevronRight, Loader2, UserCheck, UserX } from 'lucide-react';
 
 type ViewLevel = 'overview' | 'direct' | 'indirect';
 
@@ -218,6 +219,9 @@ function TeamContent() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4 mt-0">
+            {/* My Direct Leader Card - NEW */}
+            <DirectLeaderCard />
+            
             {/* User Identity Card */}
             <UserIdentityCard />
 

@@ -1373,6 +1373,7 @@ export type Database = {
           total_weeks: number
         }[]
       }
+      get_my_direct_leader: { Args: { p_user_id: string }; Returns: Json }
       get_referral_stats: { Args: { p_user_id: string }; Returns: Json }
       get_team_hierarchy: {
         Args: { p_leader_id: string; p_max_depth?: number }
