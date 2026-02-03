@@ -17,6 +17,7 @@ import {
 import { ArrowLeft, ArrowRight, User, MapPin, Gift, Lock, Info, CheckCircle2 } from 'lucide-react';
 import { locationData, getCitiesByCountry, getDistrictsByCity, type City, type District } from '@/lib/locationData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AssignedLeaderDialog } from './AssignedLeaderDialog';
 
 interface ProfileCompletionScreenProps {
   email: string;
@@ -28,6 +29,14 @@ interface Referrer {
   name: string;
   avatar_url: string | null;
   id: string;
+}
+
+interface AssignedLeader {
+  name: string;
+  username: string;
+  rank: string;
+  avatar_url?: string | null;
+  reason: string;
 }
 
 export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCompletionScreenProps) {
@@ -58,6 +67,10 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Leader assignment state
+  const [assignedLeader, setAssignedLeader] = useState<AssignedLeader | null>(null);
+  const [showLeaderDialog, setShowLeaderDialog] = useState(false);
 
   // Update cities when country changes
   useEffect(() => {
@@ -161,10 +174,23 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
       // Generate username from name
       const username = fullName.toLowerCase().replace(/\s+/g, '_') + '_' + Math.random().toString(36).substr(2, 4);
       
-      // Sign up the user with password
-      const { error: signUpError } = await signUp(email, password, {
+      // Get country/city/district names
+      const countryData = locationData.find(c => c.code === country);
+      const cityData = availableCities.find(c => c.code === city);
+      const districtData = availableDistricts.find(d => d.code === area);
+      
+      const countryName = countryData?.name || country || 'Saudi Arabia';
+      const cityName = cityData?.name || city || '';
+      const districtName = districtData?.name || area || '';
+      
+      // Sign up the user with password - include location + referral in metadata
+      const { data: signUpData, error: signUpError } = await signUp(email, password, {
         name: fullName,
         username,
+        country: countryName,
+        city: cityName,
+        district: districtName,
+        referral_code: referralCode || null,
       });
 
       if (signUpError) {
@@ -173,26 +199,48 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
         return;
       }
 
-      // Update profile with additional data if user exists
-      if (user) {
-        const countryData = locationData.find(c => c.code === country);
-        const cityData = availableCities.find(c => c.code === city);
-        
-        await supabase.from('profiles').update({
-          name: fullName,
-          username,
-          country: countryData?.name || country,
-          city: cityData?.name || city,
-          referred_by: referrer?.id || null,
-        }).eq('user_id', user.id);
+      // If signup succeeded, we need to call assign_upline_auto to ensure proper team linking
+      // The trigger should do this, but we call it explicitly to get the leader info for display
+      const newUserId = signUpData?.user?.id;
+      
+      if (newUserId) {
+        // Call assign_upline_auto to get leader info (also ensures team link is created)
+        const { data: assignResult } = await supabase.rpc('assign_upline_auto', {
+          p_new_user_id: newUserId,
+          p_country: countryName,
+          p_city: cityName,
+          p_district: districtName,
+          p_referral_code: referralCode || null
+        });
+
+        // If we got a leader back (either from referral or auto-assignment), show the dialog
+        if (assignResult && (assignResult as any).success) {
+          const leaderInfo = assignResult as any;
+          setAssignedLeader({
+            name: leaderInfo.upline_name || 'Leader',
+            username: leaderInfo.upline_username || 'leader',
+            rank: leaderInfo.upline_rank || 'subscriber',
+            avatar_url: leaderInfo.upline_avatar_url,
+            reason: leaderInfo.reason || 'fallback_any_user'
+          });
+          setShowLeaderDialog(true);
+          setIsLoading(false);
+          return; // Don't call onComplete yet - wait for dialog
+        }
       }
 
       onComplete();
     } catch (err) {
+      console.error('Signup error:', err);
       setError(isRTL ? 'حدث خطأ غير متوقع' : 'An unexpected error occurred');
     }
     
     setIsLoading(false);
+  };
+  
+  const handleLeaderDialogClose = () => {
+    setShowLeaderDialog(false);
+    onComplete();
   };
 
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
@@ -481,6 +529,13 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
             : (isRTL ? 'إنشاء الحساب' : 'Create Account')}
         </Button>
       </motion.form>
+      
+      {/* Assigned Leader Dialog */}
+      <AssignedLeaderDialog 
+        open={showLeaderDialog}
+        onClose={handleLeaderDialogClose}
+        leader={assignedLeader}
+      />
     </div>
   );
 }

@@ -5,8 +5,13 @@ interface ReferralResult {
   error?: string;
   upline_user_id?: string;
   upline_profile_id?: string;
+  upline_name?: string;
+  upline_username?: string;
+  upline_rank?: string;
+  upline_avatar_url?: string | null;
   reason?: string;
   already_assigned?: boolean;
+  team_link_created?: boolean;
 }
 
 /**
@@ -14,6 +19,7 @@ interface ReferralResult {
  * Uses priority: Referral Code → District → City → Country → Global → System Root
  * 
  * IMPORTANT: This function is NON-BLOCKING and will NEVER fail signup
+ * Returns full leader info for display in UI
  */
 export async function assignUplineOnSignup(
   userId: string,
