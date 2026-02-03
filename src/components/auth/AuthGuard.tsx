@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRequired } from '@/contexts/AuthRequiredContext';
 import { useEffect, ReactNode, useRef, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
@@ -9,8 +10,10 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, lastAuthEvent } = useAuth();
   const { showAuthRequired, isAuthTransitioning, authFlowOpen } = useAuthRequired();
+  const navigate = useNavigate();
+  const location = useLocation();
   const hasShownModalRef = useRef(false);
   const mountedRef = useRef(false);
   const initialLoadCompletedRef = useRef(false);
@@ -23,13 +26,21 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
     };
   }, []);
 
+  // Handle sign out - redirect to home immediately
+  useEffect(() => {
+    if (lastAuthEvent === 'SIGNED_OUT' && requireAuth) {
+      // User just signed out from a protected route - redirect to home
+      navigate('/', { replace: true });
+    }
+  }, [lastAuthEvent, requireAuth, navigate]);
+
   // Mark initial load as complete after first auth check
   useEffect(() => {
     if (!isLoading && !initialLoadCompletedRef.current) {
-      // Add a small delay before allowing modal to show
+      // Reduced delay for faster response
       const timer = setTimeout(() => {
         initialLoadCompletedRef.current = true;
-      }, 1000);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [isLoading]);
@@ -42,15 +53,6 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
   }, [user]);
 
   const checkAndShowModal = useCallback(() => {
-    // Only show modal if ALL these conditions are true:
-    // 1. Component is mounted
-    // 2. Not loading
-    // 3. Auth is required
-    // 4. No user
-    // 5. Not in auth transition
-    // 6. Auth flow is not open
-    // 7. Haven't shown modal yet in this session
-    // 8. Initial load has completed
     const shouldShowModal = 
       mountedRef.current &&
       !isLoading && 
@@ -69,14 +71,14 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
 
   useEffect(() => {
     if (!isLoading && !user && !isAuthTransitioning && !authFlowOpen && initialLoadCompletedRef.current) {
-      // Add a delay to ensure auth state is fully propagated
-      const timer = setTimeout(checkAndShowModal, 500);
+      // Reduced delay
+      const timer = setTimeout(checkAndShowModal, 200);
       return () => clearTimeout(timer);
     }
   }, [user, isLoading, isAuthTransitioning, authFlowOpen, checkAndShowModal]);
 
-  // Show loading during initial auth check or during transition
-  if (isLoading || isAuthTransitioning) {
+  // Show loading during initial auth check (short period)
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -92,8 +94,13 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
     return <>{children}</>;
   }
 
-  // No user and auth required - show loading while modal appears
+  // No user and auth required - redirect happening or modal showing
   if (requireAuth && !user) {
+    // Don't show blocking loader if transitioning - the redirect will handle it
+    if (isAuthTransitioning) {
+      return null;
+    }
+    
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-3">
