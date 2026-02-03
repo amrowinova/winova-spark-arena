@@ -37,6 +37,19 @@ export async function executeTransfer(
   descriptionAr?: string
 ): Promise<TransferResult> {
   try {
+    // Validate inputs before calling RPC
+    if (!senderId || !recipientId) {
+      return { success: false, error: 'Missing sender or recipient ID' };
+    }
+    
+    if (amount <= 0) {
+      return { success: false, error: 'Amount must be positive' };
+    }
+
+    if (senderId === recipientId) {
+      return { success: false, error: 'Cannot transfer to yourself' };
+    }
+
     const { data, error } = await supabase.rpc('execute_transfer', {
       p_sender_id: senderId,
       p_recipient_id: recipientId,
@@ -50,19 +63,33 @@ export async function executeTransfer(
 
     if (error) {
       console.error('Transfer RPC error:', error);
+      // Handle specific Supabase errors
+      if (error.message.includes('permission denied')) {
+        return { success: false, error: 'Permission denied. Please try again.' };
+      }
       return { success: false, error: error.message };
     }
 
     const result = data as {
       success: boolean;
       error?: string;
+      error_code?: string;
       sender_ledger_id?: string;
       recipient_ledger_id?: string;
       sender_balance_after?: number;
       recipient_balance_after?: number;
+      available_balance?: number;
+      requested_amount?: number;
     };
 
     if (!result.success) {
+      // Log detailed error for debugging
+      console.error('Transfer failed:', {
+        error: result.error,
+        error_code: result.error_code,
+        available: result.available_balance,
+        requested: result.requested_amount
+      });
       return { success: false, error: result.error || 'Transfer failed' };
     }
 
@@ -75,7 +102,7 @@ export async function executeTransfer(
     };
   } catch (err) {
     console.error('Transfer error:', err);
-    return { success: false, error: 'Network error' };
+    return { success: false, error: 'Network error. Please check your connection.' };
   }
 }
 

@@ -157,12 +157,18 @@ export function TransferNovaDialog({
 
   // Execute transfer
   const handleTransfer = async () => {
-    if (!canTransfer || !confirmedRecipient?.userId || isWalletFrozen || !authUser) return;
+    // Prevent double submit
+    if (isLoading) return;
+    
+    if (!canTransfer || !confirmedRecipient?.userId || isWalletFrozen || !authUser) {
+      showError(language === 'ar' ? 'لا يمكن إتمام التحويل' : 'Cannot complete transfer');
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      // Execute atomic transfer via database function
+      // Execute atomic transfer via database RPC
       const result = await executeTransfer(
         authUser.id,
         confirmedRecipient.userId,
@@ -175,15 +181,24 @@ export function TransferNovaDialog({
       );
 
       if (!result.success) {
+        // Show exact backend error message
         const errorMessages: Record<string, { en: string; ar: string }> = {
           'Insufficient balance': { en: 'Insufficient balance', ar: 'رصيد غير كافي' },
-          'Sender wallet is frozen': { en: 'Your wallet is frozen', ar: 'محفظتك مجمّدة' },
+          'Your wallet is frozen': { en: 'Your wallet is frozen', ar: 'محفظتك مجمّدة' },
           'Recipient wallet is frozen': { en: 'Recipient wallet is frozen', ar: 'محفظة المستلم مجمّدة' },
           'Sender wallet not found': { en: 'Wallet not found', ar: 'المحفظة غير موجودة' },
           'Recipient wallet not found': { en: 'Recipient wallet not found', ar: 'محفظة المستلم غير موجودة' },
+          'Authentication required': { en: 'Please sign in again', ar: 'الرجاء تسجيل الدخول مرة أخرى' },
+          'You can only transfer from your own wallet': { en: 'Unauthorized transfer', ar: 'تحويل غير مصرح' },
+          'Cannot transfer to yourself': { en: 'Cannot transfer to yourself', ar: 'لا يمكن التحويل لنفسك' },
+          'Amount must be positive': { en: 'Amount must be positive', ar: 'المبلغ يجب أن يكون موجباً' },
+          'Permission denied. Please try again.': { en: 'Permission denied. Please try again.', ar: 'غير مصرح. حاول مرة أخرى.' },
         };
         
-        const msg = errorMessages[result.error || ''] || { en: result.error || 'Transfer failed', ar: 'فشل التحويل' };
+        const msg = errorMessages[result.error || ''] || { 
+          en: result.error || 'Transfer failed', 
+          ar: result.error || 'فشل التحويل' 
+        };
         showError(language === 'ar' ? msg.ar : msg.en);
         setIsLoading(false);
         return;
