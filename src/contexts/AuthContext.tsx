@@ -6,7 +6,12 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<{ error: Error | null }>;
+  lastAuthEvent: string | null;
+  signUp: (
+    email: string,
+    password: string,
+    metadata?: Record<string, unknown>
+  ) => Promise<{ data: { user: User | null; session: Session | null } | null; error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithOtp: (email: string) => Promise<{ error: Error | null }>;
   verifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
@@ -22,11 +27,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastAuthEvent, setLastAuthEvent] = useState<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        setLastAuthEvent(event);
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
@@ -49,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     metadata?: Record<string, unknown>
   ) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -57,9 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: metadata,
         },
       });
-      return { error: error as Error | null };
+      return {
+        data: data ? { user: data.user ?? null, session: data.session ?? null } : null,
+        error: error as Error | null,
+      };
     } catch (error) {
-      return { error: error as Error };
+      return { data: null, error: error as Error };
     }
   };
 
@@ -153,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         isLoading,
+        lastAuthEvent,
         signUp,
         signIn,
         signInWithOtp,
