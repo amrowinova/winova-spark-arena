@@ -75,7 +75,7 @@ export function DirectLeaderCard() {
   };
 
   const handleViewProfile = () => {
-    navigate(`/profile/${leader.username}`);
+    navigate(`/user/${leader.username}`);
   };
 
   return (
