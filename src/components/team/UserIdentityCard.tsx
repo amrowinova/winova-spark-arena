@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
-import { Hash, TrendingUp, Users, AtSign } from 'lucide-react';
+import { Hash, TrendingUp, Users, AtSign, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { RankBadge } from '@/components/common/RankBadge';
 import { ProgressRing } from '@/components/common/ProgressRing';
 import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useRankBasedData } from '@/hooks/useRankBasedData';
+import { useTeamStats } from '@/hooks/useTeamStats';
 import { useProfile } from '@/hooks/useProfile';
 
 interface UserIdentityCardProps {
@@ -17,11 +17,43 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
   const { profile } = useProfile();
   const { language } = useLanguage();
   
-  // Use override rank for dev testing, otherwise use actual user rank
-  const displayRank = rankOverride ?? user.rank;
-  const rankData = useRankBasedData(displayRank);
+  // Get REAL data from database
+  const {
+    totalCount,
+    userActiveWeeks,
+    currentWeek,
+    totalWeeks,
+    ranking,
+    loading
+  } = useTeamStats();
 
-  const activityPercent = Math.round((rankData.activeWeeks / rankData.currentWeek) * 100);
+  // Use override rank for dev testing, otherwise use actual user rank from DB
+  const displayRank = rankOverride ?? (profile?.rank as UserRank) ?? user.rank;
+  
+  // Calculate activity from REAL data
+  const activityPercent = currentWeek > 0 
+    ? Math.round((userActiveWeeks / currentWeek) * 100) 
+    : 0;
+
+  // Use real ranking from DB, show "-" if not available
+  const weeklyRank = ranking?.country_rank ?? null;
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Card className="overflow-hidden border-0 shadow-lg">
+          <div className="bg-gradient-to-br from-muted-foreground/90 to-muted-foreground/70 p-5">
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -59,9 +91,9 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
             </ProgressRing>
           </div>
 
-          {/* Stats Row */}
+          {/* Stats Row - ALL FROM REAL DATABASE */}
           <div className="grid grid-cols-3 gap-3 mt-4">
-            {/* Rank - Enhanced visibility with light badge */}
+            {/* Rank - Real from DB */}
             <div className="bg-white/95 rounded-lg p-2 text-center shadow-sm">
               <div className="flex items-center justify-center gap-1 text-muted-foreground">
                 <Hash className="h-3 w-3" />
@@ -69,9 +101,12 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
                   {language === 'ar' ? 'الترتيب' : 'Rank'}
                 </span>
               </div>
-              <p className="text-primary text-lg font-bold">#{rankData.weeklyRank}</p>
+              <p className="text-primary text-lg font-bold">
+                {weeklyRank ? `#${weeklyRank}` : '-'}
+              </p>
             </div>
             
+            {/* Activity - Real from DB */}
             <div className="bg-white/20 rounded-lg p-2 text-center">
               <div className="flex items-center justify-center gap-1 text-white/70">
                 <TrendingUp className="h-3 w-3" />
@@ -80,10 +115,11 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
                 </span>
               </div>
               <p className="text-white text-lg font-bold">
-                {rankData.activeWeeks}/{rankData.totalWeeks}
+                {userActiveWeeks}/{totalWeeks}
               </p>
             </div>
             
+            {/* Team Size - Real from DB */}
             <div className="bg-white/20 rounded-lg p-2 text-center">
               <div className="flex items-center justify-center gap-1 text-white/70">
                 <Users className="h-3 w-3" />
@@ -91,7 +127,7 @@ export function UserIdentityCard({ rankOverride }: UserIdentityCardProps) {
                   {language === 'ar' ? 'الفريق' : 'Team'}
                 </span>
               </div>
-              <p className="text-white text-lg font-bold">{rankData.teamSize}</p>
+              <p className="text-white text-lg font-bold">{totalCount}</p>
             </div>
           </div>
         </div>

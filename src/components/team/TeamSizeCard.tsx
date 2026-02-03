@@ -1,23 +1,35 @@
 import { motion } from 'framer-motion';
-import { Users, UserPlus, UsersRound } from 'lucide-react';
+import { Users, UserPlus, UsersRound, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { useUser, UserRank } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useRankBasedData } from '@/hooks/useRankBasedData';
+import { useTeamStats } from '@/hooks/useTeamStats';
 
 interface TeamSizeCardProps {
   onDirectClick?: () => void;
   onIndirectClick?: () => void;
-  rankOverride?: UserRank | null;
 }
 
-export function TeamSizeCard({ onDirectClick, onIndirectClick, rankOverride }: TeamSizeCardProps) {
-  const { user } = useUser();
+export function TeamSizeCard({ onDirectClick, onIndirectClick }: TeamSizeCardProps) {
   const { language } = useLanguage();
   
-  // Use override rank for dev testing, otherwise use actual user rank
-  const displayRank = rankOverride ?? user.rank;
-  const rankData = useRankBasedData(displayRank);
+  // Get ALL data from database - NO MOCK DATA
+  const { directCount, indirectCount, totalCount, loading } = useTeamStats();
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <Card className="p-4">
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </Card>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -37,7 +49,7 @@ export function TeamSizeCard({ onDirectClick, onIndirectClick, rankOverride }: T
           {/* Total */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-center">
             <Users className="h-5 w-5 mx-auto mb-1 text-primary" />
-            <p className="text-2xl font-bold text-primary">{rankData.teamSize}</p>
+            <p className="text-2xl font-bold text-primary">{totalCount}</p>
             <p className="text-[10px] text-muted-foreground">
               {language === 'ar' ? 'الإجمالي' : 'Total'}
             </p>
@@ -51,7 +63,7 @@ export function TeamSizeCard({ onDirectClick, onIndirectClick, rankOverride }: T
             onClick={onDirectClick}
           >
             <UserPlus className="h-5 w-5 mx-auto mb-1 text-success" />
-            <p className="text-2xl font-bold text-success">{rankData.directTeam}</p>
+            <p className="text-2xl font-bold text-success">{directCount}</p>
             <p className="text-[10px] text-muted-foreground">
               {language === 'ar' ? 'مباشر' : 'Direct'}
             </p>
@@ -65,7 +77,7 @@ export function TeamSizeCard({ onDirectClick, onIndirectClick, rankOverride }: T
             onClick={onIndirectClick}
           >
             <UsersRound className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-            <p className="text-2xl font-bold">{rankData.indirectTeam}</p>
+            <p className="text-2xl font-bold">{indirectCount}</p>
             <p className="text-[10px] text-muted-foreground">
               {language === 'ar' ? 'غير مباشر' : 'Indirect'}
             </p>
