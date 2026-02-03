@@ -1059,7 +1059,9 @@ export default function ContestsPage() {
                         contestant={participant}
                         index={index}
                         onVote={handleVote}
-                        canVote={hasJoined && timing.canVote}
+                        // TEMP: Allow voting for ANY logged-in user during Stage 1 for testing
+                        // Was: canVote={hasJoined && timing.canVote}
+                        canVote={!!authUser && timing.canVote}
                         votesExhausted={votesExhausted}
                       />
                     ) : (
@@ -1067,7 +1069,9 @@ export default function ContestsPage() {
                         contestant={participant}
                         index={index}
                         onVote={handleVote}
-                        canVote={userQualified && hasJoined && timing.canVote}
+                        // TEMP: Allow voting for ANY logged-in user in Final for testing
+                        // Was: canVote={userQualified && hasJoined && timing.canVote}
+                        canVote={!!authUser && timing.canVote}
                         votesExhausted={votesExhausted}
                       />
                     )}

@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
-import { Crown, Target, Rocket, Lock } from 'lucide-react';
+import { Crown, Target, Rocket, Lock, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getCountryFlag } from '@/lib/countryFlags';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Contestant {
   id: string;
@@ -42,8 +44,10 @@ export function FinalContestantCard({
   votesExhausted = false 
 }: FinalContestantCardProps) {
   const { language } = useLanguage();
+  const { user: authUser } = useAuth();
   const navigate = useNavigate();
   const isRTL = language === 'ar';
+  const isLoggedIn = !!authUser;
   
   const isTop5 = contestant.rank <= 5;
   const isTop3 = contestant.rank <= 3;
@@ -121,8 +125,8 @@ export function FinalContestantCard({
               )}
             </div>
             
-            {/* Vote Button */}
-            {canVote && (
+            {/* Vote Button - TEMP: Show for all, with tooltip if not logged in */}
+            {canVote ? (
               votesExhausted ? (
                 <div className="shrink-0 flex flex-col items-center">
                   <Button 
@@ -145,7 +149,27 @@ export function FinalContestantCard({
                   {isRTL ? 'صوّت' : 'Vote'}
                 </Button>
               )
-            )}
+            ) : !isLoggedIn ? (
+              // Show login required tooltip
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="shrink-0 text-xs h-8 px-3 opacity-60"
+                      disabled
+                    >
+                      <LogIn className="h-3 w-3 me-1" />
+                      {isRTL ? 'صوّت' : 'Vote'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isRTL ? 'سجّل دخولك للتصويت' : 'Login to vote'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : null}
           </div>
 
           {/* Prize Info for Top 5 */}
