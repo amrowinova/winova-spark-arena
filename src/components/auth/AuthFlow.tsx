@@ -35,6 +35,45 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   const isRTL = language === 'ar';
   const navigate = useNavigate();
 
+  const handleClose = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
+
+  const handleAuthComplete = useCallback(async () => {
+    // Mark auth as complete FIRST to prevent any modals from showing
+    markAuthComplete();
+    
+    // Trigger callback first (this will close the flow properly)
+    onAuthSuccess?.();
+
+    // Always enter the app after successful sign-in
+    navigate('/', { replace: true });
+    
+    // Get user profile to get the name
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', sessionData.session.user.id)
+          .single();
+        
+        const userName = profile?.name || sessionData.session.user.user_metadata?.name || 'User';
+        
+        // Show welcome notification
+        toast({
+          title: isRTL ? 'مرحباً بعودتك! 👋' : 'Welcome back! 👋',
+          description: isRTL 
+            ? `أهلاً ${userName}` 
+            : `Hello ${userName}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile for welcome message:', error);
+    }
+  }, [isRTL, markAuthComplete, onAuthSuccess, navigate]);
+
   // Reset screen when modal opens
   useEffect(() => {
     if (open) {
@@ -51,51 +90,12 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     }
   }, [user, session, open, handleAuthComplete]);
 
-  // Extra safety: on SIGNED_IN, force navigation to app home
+  // Extra safety: on SIGNED_IN, force navigation to home
   useEffect(() => {
-    if (lastAuthEvent === 'SIGNED_IN') {
-      navigate('/app', { replace: true });
+    if (lastAuthEvent === 'SIGNED_IN' && open) {
+      handleAuthComplete();
     }
-  }, [lastAuthEvent, navigate]);
-
-  const handleClose = useCallback(() => {
-    onOpenChange(false);
-  }, [onOpenChange]);
-
-  const handleAuthComplete = useCallback(async () => {
-    // Mark auth as complete FIRST to prevent any modals from showing
-    markAuthComplete();
-    
-    // Trigger callback first (this will close the flow properly)
-    onAuthSuccess?.();
-
-    // Always enter the app after successful sign-in
-    navigate('/app', { replace: true });
-    
-    // Get user profile to get the name
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (session?.session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('user_id', session.session.user.id)
-          .single();
-        
-        const userName = profile?.name || session.session.user.user_metadata?.name || 'User';
-        
-        // Show welcome notification
-        toast({
-          title: isRTL ? 'مرحباً بعودتك! 👋' : 'Welcome back! 👋',
-          description: isRTL 
-            ? `أهلاً ${userName}` 
-            : `Hello ${userName}`,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching profile for welcome message:', error);
-    }
-  }, [isRTL, markAuthComplete, onAuthSuccess]);
+  }, [lastAuthEvent, open, handleAuthComplete]);
 
   // Login success handler (for password login)
   const handleLoginSuccess = useCallback(async () => {
