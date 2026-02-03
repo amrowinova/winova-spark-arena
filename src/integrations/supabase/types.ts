@@ -1319,7 +1319,7 @@ export type Database = {
       execute_transfer: {
         Args: {
           p_amount: number
-          p_currency: Database["public"]["Enums"]["currency_type"]
+          p_currency?: Database["public"]["Enums"]["currency_type"]
           p_description?: string
           p_description_ar?: string
           p_recipient_id: string
