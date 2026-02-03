@@ -5,8 +5,8 @@
  * Daily Schedule (KSA Time):
  * - 10:00 AM: Contest opens, join window starts
  * - 02:00 PM: Stage 1 starts (qualifying)
- * - 06:00 PM: Join window closes
- * - 08:00 PM: Stage 1 ends, Final stage starts
+ * - 08:00 PM: Join window closes + Stage 1 ends, Final stage starts
+ *   ⚠️ TEMP: Join window extended to 20:00 for testing (was 18:00)
  * - 10:00 PM: Contest ends, winners announced
  * - 10:00 PM → 10:00 AM next day: Results display (read-only)
  */
@@ -66,7 +66,8 @@ export function getContestTiming(): ContestTimingInfo {
 
   const joinOpenWallMs = todayWallMs + 10 * HOUR;
   const stage1StartWallMs = todayWallMs + 14 * HOUR;
-  const joinCloseWallMs = todayWallMs + 18 * HOUR;
+  // TEMP: Extended to 20:00 KSA for testing (was 18 * HOUR)
+  const joinCloseWallMs = todayWallMs + 20 * HOUR;
   const stage1EndWallMs = todayWallMs + 20 * HOUR;
   const finalStartWallMs = todayWallMs + 20 * HOUR;
   const finalEndWallMs = todayWallMs + 22 * HOUR;
