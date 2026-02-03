@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRequired } from '@/contexts/AuthRequiredContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import {
   Sheet,
   SheetContent,
@@ -29,9 +30,10 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   const [currentScreen, setCurrentScreen] = useState<AuthScreen>(initialScreen || 'landing');
   const [email, setEmail] = useState('');
   const { language } = useLanguage();
-  const { user } = useAuth();
+  const { user, session, lastAuthEvent } = useAuth();
   const { markAuthComplete } = useAuthRequired();
   const isRTL = language === 'ar';
+  const navigate = useNavigate();
 
   // Reset screen when modal opens
   useEffect(() => {
@@ -43,11 +45,18 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
 
   // Watch for auth state changes to auto-close and redirect
   useEffect(() => {
-    if (user && open) {
+    if ((user || session) && open) {
       // User is authenticated, close modal and show welcome message
       handleAuthComplete();
     }
-  }, [user, open]);
+  }, [user, session, open, handleAuthComplete]);
+
+  // Extra safety: on SIGNED_IN, force navigation to app home
+  useEffect(() => {
+    if (lastAuthEvent === 'SIGNED_IN') {
+      navigate('/app', { replace: true });
+    }
+  }, [lastAuthEvent, navigate]);
 
   const handleClose = useCallback(() => {
     onOpenChange(false);
@@ -59,6 +68,9 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     
     // Trigger callback first (this will close the flow properly)
     onAuthSuccess?.();
+
+    // Always enter the app after successful sign-in
+    navigate('/app', { replace: true });
     
     // Get user profile to get the name
     try {
@@ -92,13 +104,16 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     
     // Trigger success callback
     onAuthSuccess?.();
+
+    // Enter app
+    navigate('/app', { replace: true });
     
     // Show welcome toast
     toast({
       title: isRTL ? 'مرحباً بعودتك! 👋' : 'Welcome back! 👋',
       description: isRTL ? 'تم تسجيل الدخول بنجاح' : 'Signed in successfully',
     });
-  }, [markAuthComplete, onAuthSuccess, isRTL]);
+  }, [markAuthComplete, onAuthSuccess, isRTL, navigate]);
 
   // Signup success handler (for password signup with name)
   const handleSignupSuccess = useCallback((name: string) => {
@@ -115,7 +130,10 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     
     // Trigger callback
     onAuthSuccess?.();
-  }, [markAuthComplete, onAuthSuccess, isRTL]);
+
+    // Enter app
+    navigate('/app', { replace: true });
+  }, [markAuthComplete, onAuthSuccess, isRTL, navigate]);
 
   // Login flow: email → OTP → success
   const handleLoginSendOTP = (userEmail: string) => {
