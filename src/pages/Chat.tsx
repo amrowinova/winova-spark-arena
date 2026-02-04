@@ -33,7 +33,7 @@ import { TeamInfoSheet, TeamChatMember } from '@/components/chat/TeamInfoSheet';
 import { ChatSearchResults, ConversationResult, UserResult } from '@/components/chat/ChatSearchResults';
 import { SupportChatView } from '@/components/chat/SupportChatView';
 import { UserSearchSheet } from '@/components/chat/UserSearchSheet';
-import { AIControlRoomView } from '@/components/chat/AIControlRoomView';
+import { AIRoomView } from '@/components/chat/AIRoomView';
 import { RankBadge } from '@/components/common/RankBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCountryFlag } from '@/lib/countryFlags';
@@ -751,8 +751,8 @@ function ChatContent() {
   // AI Control Room View
   if (showAIControlRoom) {
     return (
-      <AppLayout title={language === 'ar' ? 'غرفة تحكم AI' : 'AI Control Room'} showNav={false} showHeader={false}>
-        <AIControlRoomView onBack={() => setShowAIControlRoom(false)} />
+      <AppLayout title={language === 'ar' ? 'الفريق الهندسي' : 'Engineering Team'} showNav={false} showHeader={false}>
+        <AIRoomView onBack={() => setShowAIControlRoom(false)} />
       </AppLayout>
     );
   }
