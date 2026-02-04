@@ -34,8 +34,9 @@ Deno.serve(async (req) => {
     const { question } = await req.json();
     if (!question) throw new Error('Question is required');
 
-    const apiKey = Deno.env.get('AI_GATEWAY_API_KEY');
-    if (!apiKey) throw new Error('AI_GATEWAY_API_KEY not configured');
+    // Use LOVABLE_API_KEY (auto-provisioned) or fallback to AI_GATEWAY_API_KEY
+    const apiKey = Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('AI_GATEWAY_API_KEY');
+    if (!apiKey) throw new Error('LOVABLE_API_KEY not configured');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
