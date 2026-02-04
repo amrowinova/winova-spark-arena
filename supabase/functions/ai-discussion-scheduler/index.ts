@@ -5,103 +5,107 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple agent prompts - Short, focused analysis
-const AGENT_PROMPTS: Record<string, string> = {
-  system_architect: `أنت مهندس النظام. تحلل البنية العامة والـ Technical Debt. 
-⚠️ ردك: جملة أو جملتين فقط. مشكلة محددة + سبب + حل مقترح.`,
-
-  backend_core_engineer: `أنت مهندس Backend. تحلل RPCs وEdge Functions والـ Atomicity.
-⚠️ ردك: جملة أو جملتين فقط. مشكلة محددة + كود مختصر إن لزم.`,
-
-  database_integrity_engineer: `أنت مهندس قاعدة البيانات. تحلل Schema وRLS وData Integrity.
-⚠️ ردك: جملة أو جملتين فقط. مشكلة محددة في الجدول أو السياسة.`,
-
-  security_fraud_engineer: `أنت مهندس الأمان. تحلل الثغرات والـ RLS والـ Auth flows.
-⚠️ ردك: جملة أو جملتين فقط. ثغرة محددة + خطورتها.`,
-
-  wallet_p2p_engineer: `أنت مهندس المحفظة وP2P. تحلل الأرصدة والـ Escrow والـ Ledger.
-⚠️ ردك: جملة أو جملتين فقط. مشكلة مالية محددة.`,
-
-  frontend_systems_engineer: `أنت مهندس أنظمة الواجهة. تحلل State وSync والـ Cache.
-⚠️ ردك: جملة أو جملتين فقط. مشكلة تزامن محددة.`,
-
-  admin_panel_engineer: `أنت مهندس لوحة التحكم. تحلل Audit logs وAdmin workflows.
-⚠️ ردك: جملة أو جملتين فقط. مشكلة في العمليات الإدارية.`,
-
-  challenger_ai: `أنت الناقد. تتحدى كل اقتراح وتبحث عن الثغرات.
-⚠️ ردك: جملة واحدة فقط. سؤال أو نقد مباشر.`,
-
-  // Screen Owners - Focus on their screen
-  screen_home_owner: `أنت مالك شاشة الرئيسية. تراقب ActiveUsers والRankings والCards.
-⚠️ ردك: جملة أو جملتين. مشكلة في الشاشة + علاقتها بالBackend.`,
-
-  screen_wallet_owner: `أنت مالك شاشة المحفظة. تراقب الأرصدة والTransactions.
-⚠️ ردك: جملة أو جملتين. مشكلة في عرض البيانات المالية.`,
-
-  screen_p2p_owner: `أنت مالك شاشة P2P. تراقب الطلبات والفلترة والأسعار.
-⚠️ ردك: جملة أو جملتين. مشكلة في الماركت.`,
-
-  screen_p2p_chat_owner: `أنت مالك شاشة P2P Chat. تراقب Steps والTimer والDisputes.
-⚠️ ردك: جملة أو جملتين. مشكلة في flow الصفقة.`,
-
-  screen_dm_chat_owner: `أنت مالك شاشة المحادثات. تراقب Messages والDelivery والTyping.
-⚠️ ردك: جملة أو جملتين. مشكلة في الرسائل.`,
-
-  screen_contests_owner: `أنت مالك شاشة المسابقات. تراقب Entry والVoting والPrizes.
-⚠️ ردك: جملة أو جملتين. مشكلة في المسابقات.`,
-
-  screen_profile_owner: `أنت مالك شاشة البروفايل. تراقب Stats والFollowers والReputation.
-⚠️ ردك: جملة أو جملتين. مشكلة في بيانات المستخدم.`,
-
-  screen_team_owner: `أنت مالك شاشة الفريق. تراقب Hierarchy والReferrals والActivity.
-⚠️ ردك: جملة أو جملتين. مشكلة في بنية الفريق.`,
-
-  screen_admin_owner: `أنت مالك لوحة التحكم. تراقب Admin actions والAudit.
-⚠️ ردك: جملة أو جملتين. مشكلة في الإدارة.`,
-};
-
-// Topics for 24/7 analysis
-const ANALYSIS_TOPICS = [
-  { id: 'db', agents: ['database_integrity_engineer', 'security_fraud_engineer'], prompt: 'راجع schema وRLS policies' },
-  { id: 'wallet', agents: ['wallet_p2p_engineer', 'database_integrity_engineer'], prompt: 'راجع تطابق wallet_ledger مع balances' },
-  { id: 'p2p', agents: ['wallet_p2p_engineer', 'screen_p2p_owner'], prompt: 'راجع state machine وescrow' },
-  { id: 'security', agents: ['security_fraud_engineer', 'backend_core_engineer'], prompt: 'ابحث عن ثغرات أمنية' },
-  { id: 'frontend', agents: ['frontend_systems_engineer', 'screen_wallet_owner'], prompt: 'راجع تزامن الواجهة مع Backend' },
-  { id: 'chat', agents: ['screen_dm_chat_owner', 'backend_core_engineer'], prompt: 'راجع realtime وdelivery' },
-  { id: 'contests', agents: ['screen_contests_owner', 'wallet_p2p_engineer'], prompt: 'راجع voting وprize distribution' },
-  { id: 'team', agents: ['screen_team_owner', 'database_integrity_engineer'], prompt: 'راجع referral chain وhierarchy' },
+// Full monitoring topics - each triggers specific agents
+const MONITORING_TOPICS = [
+  {
+    id: 'wallet_integrity',
+    topic: 'تحقق من تطابق wallet_ledger مع balances في wallets',
+    topicEn: 'Verify wallet_ledger matches wallet balances',
+    agents: ['database_integrity_engineer', 'wallet_p2p_engineer', 'security_fraud_engineer', 'challenger_ai'],
+  },
+  {
+    id: 'p2p_state_machine',
+    topic: 'راجع P2P orders: أي طلبات stuck في awaiting_payment أكثر من ساعة؟',
+    topicEn: 'Check P2P orders stuck in awaiting_payment for over an hour',
+    agents: ['wallet_p2p_engineer', 'backend_core_engineer', 'challenger_ai'],
+  },
+  {
+    id: 'rls_policies',
+    topic: 'تحقق من RLS policies: هل هناك جداول بدون حماية كافية؟',
+    topicEn: 'Audit RLS policies for insufficient protection',
+    agents: ['security_fraud_engineer', 'database_integrity_engineer', 'challenger_ai'],
+  },
+  {
+    id: 'realtime_sync',
+    topic: 'راجع تزامن Realtime: هل الرسائل تصل بشكل صحيح؟',
+    topicEn: 'Check realtime sync for message delivery',
+    agents: ['frontend_systems_engineer', 'backend_core_engineer', 'challenger_ai'],
+  },
+  {
+    id: 'escrow_consistency',
+    topic: 'تحقق من Escrow: هل الأموال المحجوزة تتطابق مع الطلبات النشطة؟',
+    topicEn: 'Verify escrow funds match active orders',
+    agents: ['wallet_p2p_engineer', 'database_integrity_engineer', 'security_fraud_engineer', 'challenger_ai'],
+  },
+  {
+    id: 'auth_flow',
+    topic: 'راجع auth flow: أي مشاكل في تسجيل الدخول أو profiles؟',
+    topicEn: 'Audit authentication flow and profile creation',
+    agents: ['backend_core_engineer', 'security_fraud_engineer', 'challenger_ai'],
+  },
+  {
+    id: 'contests_voting',
+    topic: 'راجع نظام المسابقات: هل التصويت والجوائز تعمل بشكل صحيح؟',
+    topicEn: 'Check contests voting and prize distribution',
+    agents: ['backend_core_engineer', 'wallet_p2p_engineer', 'database_integrity_engineer', 'challenger_ai'],
+  },
+  {
+    id: 'team_hierarchy',
+    topic: 'تحقق من سلسلة الإحالات: هل team_members تعكس الهيكل الصحيح؟',
+    topicEn: 'Verify referral chain and team hierarchy',
+    agents: ['database_integrity_engineer', 'backend_core_engineer', 'challenger_ai'],
+  },
 ];
 
-async function generateShortResponse(apiKey: string, agentRole: string, topic: string): Promise<string> {
-  const prompt = AGENT_PROMPTS[agentRole] || 'أنت مهندس WINOVA. ردك: جملة واحدة فقط.';
-  
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: prompt },
-        { role: 'user', content: `موضوع التحليل: ${topic}\n\nحلل واكتب رسالة قصيرة جداً (جملة أو جملتين كحد أقصى).` },
-      ],
-      max_tokens: 150,
-      temperature: 0.7,
-    }),
-  });
+const AGENT_CONFIGS: Record<string, { name: string; nameAr: string; prompt: string }> = {
+  system_architect: {
+    name: 'System Architect',
+    nameAr: 'مهندس النظام',
+    prompt: 'تحلل البنية العامة والـ dependencies. رد بـ 1-2 جمل محددة.'
+  },
+  backend_core_engineer: {
+    name: 'Backend Engineer',
+    nameAr: 'مهندس Backend',
+    prompt: 'تحلل RPCs و Edge Functions. ابحث عن bugs و race conditions. رد بـ 1-2 جمل.'
+  },
+  database_integrity_engineer: {
+    name: 'Database Engineer',
+    nameAr: 'مهندس DB',
+    prompt: 'تحلل Schema و Data consistency. ابحث عن anomalies. رد بـ 1-2 جمل.'
+  },
+  security_fraud_engineer: {
+    name: 'Security Engineer',
+    nameAr: 'مهندس الأمان',
+    prompt: 'تحلل الثغرات الأمنية و RLS. ابحث عن vulnerabilities. رد بـ 1-2 جمل.'
+  },
+  wallet_p2p_engineer: {
+    name: 'Wallet Engineer',
+    nameAr: 'مهندس المحفظة',
+    prompt: 'تحلل الأرصدة و P2P logic. ابحث عن balance mismatches. رد بـ 1-2 جمل.'
+  },
+  frontend_systems_engineer: {
+    name: 'Frontend Engineer',
+    nameAr: 'مهندس Frontend',
+    prompt: 'تحلل State و Sync. ابحث عن UI/Backend mismatch. رد بـ 1-2 جمل.'
+  },
+  admin_panel_engineer: {
+    name: 'Admin Engineer',
+    nameAr: 'مهندس Admin',
+    prompt: 'تحلل Admin workflows و Audit logs. رد بـ 1-2 جمل.'
+  },
+  challenger_ai: {
+    name: 'Challenger',
+    nameAr: 'الناقد',
+    prompt: 'تحدّ كل شيء. اسأل سؤال نقدي واحد. ابحث عن ما قد يفشل.'
+  },
+};
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || 'لم أجد مشكلة حالياً.';
-}
-
-function getMessageCategory(content: string): string {
-  const lower = content.toLowerCase();
-  if (lower.includes('خطير') || lower.includes('critical') || lower.includes('ثغرة')) return 'critical';
-  if (lower.includes('تحذير') || lower.includes('warning') || lower.includes('مشكلة')) return 'warning';
-  if (lower.includes('اقتراح') || lower.includes('يمكن') || lower.includes('suggest')) return 'info';
-  if (lower.includes('✅') || lower.includes('سليم') || lower.includes('صحيح')) return 'success';
+function getCategory(content: string): string {
+  const c = content.toLowerCase();
+  if (c.includes('خطير') || c.includes('critical') || c.includes('ثغرة')) return 'critical';
+  if (c.includes('تحذير') || c.includes('warning') || c.includes('مشكلة')) return 'warning';
+  if (c.includes('اقتراح') || c.includes('يمكن') || c.includes('?')) return 'info';
+  if (c.includes('سليم') || c.includes('✅')) return 'success';
   return 'discussion';
 }
 
@@ -111,61 +115,125 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Use LOVABLE_API_KEY (auto-provisioned) or fallback
     const apiKey = Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('AI_GATEWAY_API_KEY');
-    if (!apiKey) throw new Error('LOVABLE_API_KEY not configured');
+    if (!apiKey) throw new Error('AI API key not configured');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get active agents
-    const { data: agents } = await supabase
-      .from('ai_agents')
-      .select('*')
-      .eq('is_active', true);
-
-    if (!agents || agents.length === 0) {
+    // Get all active agents
+    const { data: agents } = await supabase.from('ai_agents').select('*').eq('is_active', true);
+    if (!agents?.length) {
       return new Response(JSON.stringify({ success: true, message: 'No active agents' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Pick random topic for this cycle
-    const topic = ANALYSIS_TOPICS[Math.floor(Math.random() * ANALYSIS_TOPICS.length)];
+    const agentMap: Record<string, any> = {};
+    agents.forEach(a => { agentMap[a.agent_role] = a; });
+
+    // Pick random topic
+    const topic = MONITORING_TOPICS[Math.floor(Math.random() * MONITORING_TOPICS.length)];
     
-    // Get agents for this topic
-    const relevantAgents = agents.filter(a => topic.agents.includes(a.agent_role));
+    console.log(`Starting monitoring cycle: ${topic.id}`);
+
+    // Get previous context
+    const { data: recentMessages } = await supabase
+      .from('ai_chat_room')
+      .select('content')
+      .order('created_at', { ascending: false })
+      .limit(3);
     
-    // Add challenger if not already included
-    const challenger = agents.find(a => a.agent_role === 'challenger_ai');
-    if (challenger && !relevantAgents.find(a => a.id === challenger.id)) {
-      relevantAgents.push(challenger);
+    const previousContext = recentMessages?.map(m => m.content).join('\n') || '';
+
+    // Generate responses from topic's agents (including Challenger)
+    const responses: { agentRole: string; content: string }[] = [];
+    
+    for (const role of topic.agents) {
+      const agent = agentMap[role];
+      if (!agent) continue;
+
+      const config = AGENT_CONFIGS[role];
+      if (!config) continue;
+
+      // Build context from previous responses in this cycle
+      const previousResponses = responses.map(r => 
+        `${AGENT_CONFIGS[r.agentRole]?.nameAr}: ${r.content}`
+      ).join('\n');
+
+      try {
+        console.log(`Generating from ${role}...`);
+
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              {
+                role: 'system',
+                content: `أنت ${config.nameAr} في فريق WINOVA الهندسي.
+${config.prompt}
+
+سياق سابق:
+${previousContext}
+
+${previousResponses ? `ردود زملائك:\n${previousResponses}` : ''}
+
+⚠️ قاعدة صارمة: رد بـ 1-2 جمل فقط. كن تقنياً ومحدداً.`
+              },
+              {
+                role: 'user',
+                content: `موضوع المراقبة: ${topic.topic}\n\nحلل هذا الموضوع من منظورك كـ ${config.nameAr}.`
+              },
+            ],
+            max_tokens: 150,
+            temperature: role === 'challenger_ai' ? 0.9 : 0.7,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error(`API error for ${role}:`, response.status);
+          continue;
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content?.trim();
+        
+        if (!content) continue;
+
+        // Save to database
+        await supabase.from('ai_chat_room').insert({
+          agent_id: agent.id,
+          content,
+          content_ar: content,
+          message_type: 'monitoring',
+          message_category: getCategory(content),
+          is_summary: false,
+        });
+
+        responses.push({ agentRole: role, content });
+        console.log(`Response saved from ${role}`);
+
+        // Delay 10 seconds between agents for natural flow
+        if (role !== topic.agents[topic.agents.length - 1]) {
+          await new Promise(r => setTimeout(r, 10000));
+        }
+
+      } catch (err) {
+        console.error(`Error for ${role}:`, err);
+      }
     }
 
-    // Generate and save messages (one per agent, short)
-    for (const agent of relevantAgents.slice(0, 3)) {
-      // Small delay between agents
-      await new Promise(r => setTimeout(r, 3000));
-      
-      const content = await generateShortResponse(apiKey, agent.agent_role, topic.prompt);
-      const category = getMessageCategory(content);
-      
-      // Insert message directly into chat room
-      await supabase.from('ai_chat_room').insert({
-        agent_id: agent.id,
-        content: content,
-        content_ar: content,
-        message_type: 'analysis',
-        message_category: category,
-        is_summary: false,
-      });
-    }
-
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       topic: topic.id,
-      agents: relevantAgents.slice(0, 3).map(a => a.agent_role),
+      agents: responses.map(r => r.agentRole),
+      count: responses.length,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
