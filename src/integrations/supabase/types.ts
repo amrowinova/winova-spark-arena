@@ -14,6 +14,187 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_agents: {
+        Row: {
+          agent_name: string
+          agent_name_ar: string
+          agent_role: Database["public"]["Enums"]["ai_agent_role"]
+          behavior_description: string | null
+          created_at: string
+          focus_areas: string[]
+          id: string
+          is_active: boolean
+          last_analysis_at: string | null
+          profile_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          agent_name: string
+          agent_name_ar: string
+          agent_role: Database["public"]["Enums"]["ai_agent_role"]
+          behavior_description?: string | null
+          created_at?: string
+          focus_areas?: string[]
+          id?: string
+          is_active?: boolean
+          last_analysis_at?: string | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          agent_name?: string
+          agent_name_ar?: string
+          agent_role?: Database["public"]["Enums"]["ai_agent_role"]
+          behavior_description?: string | null
+          created_at?: string
+          focus_areas?: string[]
+          id?: string
+          is_active?: boolean
+          last_analysis_at?: string | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["creator_profile_id"]
+          },
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["executor_profile_id"]
+          },
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_analysis_logs: {
+        Row: {
+          affected_area: string | null
+          agent_id: string
+          analysis_type: string
+          created_at: string
+          description: string
+          description_ar: string | null
+          id: string
+          metadata: Json | null
+          severity: string
+          status: string
+          suggested_fix: string | null
+          technical_reason: string | null
+          title: string
+          title_ar: string | null
+        }
+        Insert: {
+          affected_area?: string | null
+          agent_id: string
+          analysis_type: string
+          created_at?: string
+          description: string
+          description_ar?: string | null
+          id?: string
+          metadata?: Json | null
+          severity?: string
+          status?: string
+          suggested_fix?: string | null
+          technical_reason?: string | null
+          title: string
+          title_ar?: string | null
+        }
+        Update: {
+          affected_area?: string | null
+          agent_id?: string
+          analysis_type?: string
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          id?: string
+          metadata?: Json | null
+          severity?: string
+          status?: string
+          suggested_fix?: string | null
+          technical_reason?: string | null
+          title?: string
+          title_ar?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_analysis_logs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_chat_room: {
+        Row: {
+          agent_id: string
+          content: string
+          content_ar: string | null
+          created_at: string
+          id: string
+          message_type: string
+          metadata: Json | null
+          reply_to_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          content: string
+          content_ar?: string | null
+          created_at?: string
+          id?: string
+          message_type?: string
+          metadata?: Json | null
+          reply_to_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          content?: string
+          content_ar?: string | null
+          created_at?: string
+          id?: string
+          message_type?: string
+          metadata?: Json | null
+          reply_to_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_chat_room_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_chat_room_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "ai_chat_room"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -591,6 +772,7 @@ export type Database = {
         Row: {
           active_weeks: number
           activity_percentage: number
+          ai_role: string | null
           avatar_url: string | null
           city: string | null
           country: string
@@ -600,6 +782,7 @@ export type Database = {
           engagement_status: Database["public"]["Enums"]["engagement_status"]
           has_joined_with_nova: boolean
           id: string
+          is_ai: boolean
           last_seen_at: string | null
           name: string
           rank: Database["public"]["Enums"]["user_rank"]
@@ -616,6 +799,7 @@ export type Database = {
         Insert: {
           active_weeks?: number
           activity_percentage?: number
+          ai_role?: string | null
           avatar_url?: string | null
           city?: string | null
           country?: string
@@ -625,6 +809,7 @@ export type Database = {
           engagement_status?: Database["public"]["Enums"]["engagement_status"]
           has_joined_with_nova?: boolean
           id?: string
+          is_ai?: boolean
           last_seen_at?: string | null
           name: string
           rank?: Database["public"]["Enums"]["user_rank"]
@@ -641,6 +826,7 @@ export type Database = {
         Update: {
           active_weeks?: number
           activity_percentage?: number
+          ai_role?: string | null
           avatar_url?: string | null
           city?: string | null
           country?: string
@@ -650,6 +836,7 @@ export type Database = {
           engagement_status?: Database["public"]["Enums"]["engagement_status"]
           has_joined_with_nova?: boolean
           id?: string
+          is_ai?: boolean
           last_seen_at?: string | null
           name?: string
           rank?: Database["public"]["Enums"]["user_rank"]
@@ -1436,6 +1623,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_real_user: { Args: { p_user_id: string }; Returns: boolean }
       is_support_staff: { Args: { _user_id: string }; Returns: boolean }
       is_wallet_frozen: { Args: { _user_id: string }; Returns: boolean }
       join_contest: {
@@ -1549,6 +1737,13 @@ export type Database = {
       update_last_seen: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
+      ai_agent_role:
+        | "user_tester"
+        | "marketer_growth"
+        | "leader_team"
+        | "manager_stats"
+        | "backend_engineer"
+        | "system_architect"
       app_role: "admin" | "moderator" | "user" | "support"
       currency_type: "nova" | "aura"
       engagement_status: "both" | "contest" | "vote" | "none"
@@ -1716,6 +1911,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_agent_role: [
+        "user_tester",
+        "marketer_growth",
+        "leader_team",
+        "manager_stats",
+        "backend_engineer",
+        "system_architect",
+      ],
       app_role: ["admin", "moderator", "user", "support"],
       currency_type: ["nova", "aura"],
       engagement_status: ["both", "contest", "vote", "none"],
