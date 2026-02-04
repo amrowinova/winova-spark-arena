@@ -150,6 +150,7 @@ export type Database = {
       ai_chat_room: {
         Row: {
           agent_id: string
+          ai_session_id: string | null
           content: string
           content_ar: string | null
           created_at: string
@@ -162,6 +163,7 @@ export type Database = {
         }
         Insert: {
           agent_id: string
+          ai_session_id?: string | null
           content: string
           content_ar?: string | null
           created_at?: string
@@ -174,6 +176,7 @@ export type Database = {
         }
         Update: {
           agent_id?: string
+          ai_session_id?: string | null
           content?: string
           content_ar?: string | null
           created_at?: string
@@ -193,10 +196,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ai_chat_room_ai_session_id_fkey"
+            columns: ["ai_session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_discussion_sessions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ai_chat_room_reply_to_id_fkey"
             columns: ["reply_to_id"]
             isOneToOne: false
             referencedRelation: "ai_chat_room"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_chat_room_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "ai_control_room_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -1405,6 +1422,119 @@ export type Database = {
       }
     }
     Views: {
+      ai_control_room_findings: {
+        Row: {
+          affected_area: string | null
+          agent_id: string | null
+          agent_name: string | null
+          agent_name_ar: string | null
+          agent_role: Database["public"]["Enums"]["ai_agent_role"] | null
+          created_at: string | null
+          description: string | null
+          description_ar: string | null
+          id: string | null
+          message_category: string | null
+          profile_id: string | null
+          severity: string | null
+          status: string | null
+          suggested_fix: string | null
+          technical_reason: string | null
+          title: string | null
+          title_ar: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["creator_profile_id"]
+          },
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["executor_profile_id"]
+          },
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_search"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_analysis_logs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_control_room_messages: {
+        Row: {
+          agent_id: string | null
+          agent_name: string | null
+          agent_name_ar: string | null
+          agent_role: Database["public"]["Enums"]["ai_agent_role"] | null
+          content: string | null
+          content_ar: string | null
+          created_at: string | null
+          id: string | null
+          is_summary: boolean | null
+          message_category: string | null
+          message_type: string | null
+          metadata: Json | null
+          profile_id: string | null
+          session_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["creator_profile_id"]
+          },
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["executor_profile_id"]
+          },
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_search"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_chat_room_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       p2p_marketplace_orders: {
         Row: {
           country: string | null
@@ -1543,6 +1673,10 @@ export type Database = {
           p_referral_code?: string
         }
         Returns: Json
+      }
+      can_access_ai_control_room: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       cast_free_vote: {
         Args: {
