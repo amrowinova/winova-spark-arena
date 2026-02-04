@@ -158,6 +158,7 @@ export type Database = {
           id: string
           is_proposal: boolean | null
           is_summary: boolean | null
+          message_category: string | null
           message_type: string
           metadata: Json | null
           previous_context: string | null
@@ -175,6 +176,7 @@ export type Database = {
           id?: string
           is_proposal?: boolean | null
           is_summary?: boolean | null
+          message_category?: string | null
           message_type?: string
           metadata?: Json | null
           previous_context?: string | null
@@ -192,6 +194,7 @@ export type Database = {
           id?: string
           is_proposal?: boolean | null
           is_summary?: boolean | null
+          message_category?: string | null
           message_type?: string
           metadata?: Json | null
           previous_context?: string | null
