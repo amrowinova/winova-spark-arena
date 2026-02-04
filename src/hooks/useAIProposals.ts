@@ -21,6 +21,12 @@ export interface AIProposal {
   approvedAt: string | null;
   rejectedAt: string | null;
   createdAt: string;
+  // Level 3 Governance fields
+  riskLevel: 'high' | 'medium' | 'low' | null;
+  impactScope: string | null;
+  rollbackPlan: string | null;
+  codeSnippet: string | null;
+  estimatedEffort: 'small' | 'medium' | 'large' | null;
 }
 
 export function useAIProposals(status?: string) {
@@ -65,6 +71,12 @@ export function useAIProposals(status?: string) {
         approvedAt: p.approved_at,
         rejectedAt: p.rejected_at,
         createdAt: p.created_at,
+        // Level 3 Governance fields
+        riskLevel: p.risk_level as AIProposal['riskLevel'],
+        impactScope: p.impact_scope,
+        rollbackPlan: p.rollback_plan,
+        codeSnippet: p.code_snippet,
+        estimatedEffort: p.estimated_effort as AIProposal['estimatedEffort'],
       })) as AIProposal[];
     },
     enabled: !!user,

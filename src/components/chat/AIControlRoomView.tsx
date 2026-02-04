@@ -180,6 +180,18 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
         <TabsContent value="discussion" className="flex-1 overflow-hidden m-0">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-2">
+              {/* Level 3 Governance Banner */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 text-primary text-sm font-medium mb-1">
+                  🔒 Level 3 – Autonomous With Human Gate
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'ar' 
+                    ? 'الـ AI يراقب ويحلل ويقترح فقط. لا تنفيذ تلقائي. كل تغيير يحتاج موافقتك.'
+                    : 'AI monitors, analyzes, and suggests only. No auto-deploy. All changes require your approval.'}
+                </p>
+              </div>
+
               {/* Deliberate Mode Notice */}
               <div className="bg-info/10 border border-info/30 rounded-lg p-3 mb-4">
                 <div className="flex items-center gap-2 text-info text-sm">
@@ -306,6 +318,56 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
                       <p className="text-sm text-muted-foreground mb-3">
                         {language === 'ar' ? proposal.descriptionAr || proposal.description : proposal.description}
                       </p>
+                      
+                      {/* Level 3 Governance Details */}
+                      {(proposal.riskLevel || proposal.impactScope || proposal.rollbackPlan) && (
+                        <div className="bg-muted/50 rounded-lg p-3 mb-3 space-y-2">
+                          {proposal.riskLevel && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="font-medium text-muted-foreground">
+                                ⚠️ {language === 'ar' ? 'المخاطر:' : 'Risk:'}
+                              </span>
+                              <Badge 
+                                variant="outline" 
+                                className={`text-[10px] ${
+                                  proposal.riskLevel === 'high' ? 'text-destructive border-destructive/30' :
+                                  proposal.riskLevel === 'medium' ? 'text-warning border-warning/30' :
+                                  'text-success border-success/30'
+                                }`}
+                              >
+                                {proposal.riskLevel === 'high' ? '🔴' : proposal.riskLevel === 'medium' ? '🟡' : '🟢'}{' '}
+                                {proposal.riskLevel}
+                              </Badge>
+                            </div>
+                          )}
+                          {proposal.impactScope && (
+                            <div className="text-xs">
+                              <span className="font-medium text-muted-foreground">
+                                📍 {language === 'ar' ? 'نطاق التأثير:' : 'Impact:'}
+                              </span>{' '}
+                              <span className="text-foreground">{proposal.impactScope}</span>
+                            </div>
+                          )}
+                          {proposal.rollbackPlan && (
+                            <div className="text-xs">
+                              <span className="font-medium text-muted-foreground">
+                                ↩️ {language === 'ar' ? 'خطة التراجع:' : 'Rollback:'}
+                              </span>{' '}
+                              <span className="text-foreground">{proposal.rollbackPlan}</span>
+                            </div>
+                          )}
+                          {proposal.estimatedEffort && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="font-medium text-muted-foreground">
+                                ⏱️ {language === 'ar' ? 'الجهد:' : 'Effort:'}
+                              </span>
+                              <Badge variant="secondary" className="text-[10px]">
+                                {proposal.estimatedEffort}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">

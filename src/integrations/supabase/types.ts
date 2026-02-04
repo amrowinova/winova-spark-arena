@@ -234,9 +234,13 @@ export type Database = {
         Row: {
           action_items: Json | null
           completed_at: string | null
+          discussion_topic: string | null
+          discussion_topic_ar: string | null
+          findings_count: number | null
           id: string
           messages_count: number | null
           participants_count: number | null
+          proposals_generated: number | null
           started_at: string
           status: string
           summary: string | null
@@ -246,9 +250,13 @@ export type Database = {
         Insert: {
           action_items?: Json | null
           completed_at?: string | null
+          discussion_topic?: string | null
+          discussion_topic_ar?: string | null
+          findings_count?: number | null
           id?: string
           messages_count?: number | null
           participants_count?: number | null
+          proposals_generated?: number | null
           started_at?: string
           status?: string
           summary?: string | null
@@ -258,9 +266,13 @@ export type Database = {
         Update: {
           action_items?: Json | null
           completed_at?: string | null
+          discussion_topic?: string | null
+          discussion_topic_ar?: string | null
+          findings_count?: number | null
           id?: string
           messages_count?: number | null
           participants_count?: number | null
+          proposals_generated?: number | null
           started_at?: string
           status?: string
           summary?: string | null
@@ -314,14 +326,19 @@ export type Database = {
           affected_area: string | null
           approved_at: string | null
           approved_by: string | null
+          code_snippet: string | null
           created_at: string
           description: string
           description_ar: string | null
+          estimated_effort: string | null
           id: string
+          impact_scope: string | null
           priority: string
           proposal_type: string
           proposed_by: string | null
           rejected_at: string | null
+          risk_level: string | null
+          rollback_plan: string | null
           session_id: string | null
           status: string
           title: string
@@ -333,14 +350,19 @@ export type Database = {
           affected_area?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          code_snippet?: string | null
           created_at?: string
           description: string
           description_ar?: string | null
+          estimated_effort?: string | null
           id?: string
+          impact_scope?: string | null
           priority?: string
           proposal_type?: string
           proposed_by?: string | null
           rejected_at?: string | null
+          risk_level?: string | null
+          rollback_plan?: string | null
           session_id?: string | null
           status?: string
           title: string
@@ -352,14 +374,19 @@ export type Database = {
           affected_area?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          code_snippet?: string | null
           created_at?: string
           description?: string
           description_ar?: string | null
+          estimated_effort?: string | null
           id?: string
+          impact_scope?: string | null
           priority?: string
           proposal_type?: string
           proposed_by?: string | null
           rejected_at?: string | null
+          risk_level?: string | null
+          rollback_plan?: string | null
           session_id?: string | null
           status?: string
           title?: string
