@@ -156,11 +156,14 @@ export type Database = {
           created_at: string
           human_sender_id: string | null
           id: string
+          is_proposal: boolean | null
           is_summary: boolean | null
           message_type: string
           metadata: Json | null
+          previous_context: string | null
           reply_to_id: string | null
           session_id: string | null
+          turn_order: number | null
         }
         Insert: {
           agent_id: string
@@ -170,11 +173,14 @@ export type Database = {
           created_at?: string
           human_sender_id?: string | null
           id?: string
+          is_proposal?: boolean | null
           is_summary?: boolean | null
           message_type?: string
           metadata?: Json | null
+          previous_context?: string | null
           reply_to_id?: string | null
           session_id?: string | null
+          turn_order?: number | null
         }
         Update: {
           agent_id?: string
@@ -184,11 +190,14 @@ export type Database = {
           created_at?: string
           human_sender_id?: string | null
           id?: string
+          is_proposal?: boolean | null
           is_summary?: boolean | null
           message_type?: string
           metadata?: Json | null
+          previous_context?: string | null
           reply_to_id?: string | null
           session_id?: string | null
+          turn_order?: number | null
         }
         Relationships: [
           {
@@ -262,36 +271,117 @@ export type Database = {
       }
       ai_human_sessions: {
         Row: {
+          agents_order: Json | null
           asked_by: string
           completed_at: string | null
           created_at: string
           id: string
           question: string
+          response_mode: string | null
           status: string
           summary: string | null
           summary_ar: string | null
         }
         Insert: {
+          agents_order?: Json | null
           asked_by: string
           completed_at?: string | null
           created_at?: string
           id?: string
           question: string
+          response_mode?: string | null
           status?: string
           summary?: string | null
           summary_ar?: string | null
         }
         Update: {
+          agents_order?: Json | null
           asked_by?: string
           completed_at?: string | null
           created_at?: string
           id?: string
           question?: string
+          response_mode?: string | null
           status?: string
           summary?: string | null
           summary_ar?: string | null
         }
         Relationships: []
+      }
+      ai_proposals: {
+        Row: {
+          admin_notes: string | null
+          affected_area: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string
+          description_ar: string | null
+          id: string
+          priority: string
+          proposal_type: string
+          proposed_by: string | null
+          rejected_at: string | null
+          session_id: string | null
+          status: string
+          title: string
+          title_ar: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          affected_area?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description: string
+          description_ar?: string | null
+          id?: string
+          priority?: string
+          proposal_type?: string
+          proposed_by?: string | null
+          rejected_at?: string | null
+          session_id?: string | null
+          status?: string
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          affected_area?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          id?: string
+          priority?: string
+          proposal_type?: string
+          proposed_by?: string | null
+          rejected_at?: string | null
+          session_id?: string | null
+          status?: string
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_proposals_proposed_by_fkey"
+            columns: ["proposed_by"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_proposals_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_human_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       app_settings: {
         Row: {
@@ -1966,6 +2056,10 @@ export type Database = {
         | "power_user"
         | "contest_judge"
         | "p2p_moderator"
+        | "android_engineer"
+        | "ios_engineer"
+        | "web_engineer"
+        | "challenger_ai"
       app_role: "admin" | "moderator" | "user" | "support"
       currency_type: "nova" | "aura"
       engagement_status: "both" | "contest" | "vote" | "none"
@@ -2146,6 +2240,10 @@ export const Constants = {
         "power_user",
         "contest_judge",
         "p2p_moderator",
+        "android_engineer",
+        "ios_engineer",
+        "web_engineer",
+        "challenger_ai",
       ],
       app_role: ["admin", "moderator", "user", "support"],
       currency_type: ["nova", "aura"],

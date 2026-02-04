@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Info, CheckCircle, MessageCircle, User } from 'lucide-react';
+import { AlertTriangle, Info, CheckCircle, MessageCircle, User, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   AIControlRoomMessage as AIMessage, 
@@ -12,13 +14,19 @@ import {
 } from '@/hooks/useAIControlRoom';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
 
 interface AIControlRoomMessageProps {
   message: (AIMessage & { type: 'message' }) | (AIControlRoomFinding & { type: 'finding'; content: string; contentAr: string | null });
 }
 
+const MAX_COLLAPSED_LENGTH = 300;
+
 export function AIControlRoomMessageBubble({ message }: AIControlRoomMessageProps) {
   const { language } = useLanguage();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   
   const isHumanQuestion = message.messageCategory === 'human' || 
     (message.type === 'message' && message.messageType === 'human_question');
@@ -45,6 +53,31 @@ export function AIControlRoomMessageBubble({ message }: AIControlRoomMessageProp
     { locale: language === 'ar' ? ar : enUS }
   );
 
+  // Check if content is long enough to need expansion
+  const needsExpansion = content.length > MAX_COLLAPSED_LENGTH;
+  const displayContent = needsExpansion && !expanded 
+    ? content.slice(0, MAX_COLLAPSED_LENGTH) + '...' 
+    : content;
+
+  // Copy handler
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      toast({
+        title: language === 'ar' ? 'تم النسخ' : 'Copied',
+        description: language === 'ar' ? 'تم نسخ النص' : 'Text copied to clipboard',
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' ? 'فشل في النسخ' : 'Failed to copy',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Get icon based on category
   const getCategoryIcon = () => {
     switch (message.messageCategory) {
@@ -67,7 +100,7 @@ export function AIControlRoomMessageBubble({ message }: AIControlRoomMessageProp
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex gap-3 py-2"
+      className="flex gap-3 py-2 group"
     >
       {/* Avatar */}
       <Avatar className={`h-9 w-9 shrink-0 border-2 ${isHumanQuestion ? 'border-primary/40' : 'border-primary/20'}`}>
@@ -78,7 +111,7 @@ export function AIControlRoomMessageBubble({ message }: AIControlRoomMessageProp
 
       {/* Message Content */}
       <div className="flex-1 min-w-0">
-        {/* Header: Agent Name + Time */}
+        {/* Header: Agent Name + Time + Copy Button */}
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <span className="font-semibold text-sm text-foreground">
             {emoji} {agentName}
@@ -95,6 +128,20 @@ export function AIControlRoomMessageBubble({ message }: AIControlRoomMessageProp
             <span className="me-1">{categoryBadge.emoji}</span>
             {categoryBadge.label}
           </Badge>
+
+          {/* Copy Button - Always visible on mobile, hover on desktop */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity ms-auto"
+            onClick={handleCopy}
+          >
+            {copied ? (
+              <Check className="h-3.5 w-3.5 text-success" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+          </Button>
         </div>
 
         {/* Finding Title (if it's a finding) */}
@@ -107,8 +154,30 @@ export function AIControlRoomMessageBubble({ message }: AIControlRoomMessageProp
         {/* Message Body */}
         <div className={`rounded-xl p-3 border ${categoryColorClass} bg-opacity-50`}>
           <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
-            {content}
+            {displayContent}
           </p>
+          
+          {/* Expand/Collapse Button */}
+          {needsExpansion && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2 h-7 text-xs px-2"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? (
+                <>
+                  <ChevronUp className="h-3 w-3 me-1" />
+                  {language === 'ar' ? 'عرض أقل' : 'Show less'}
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3 me-1" />
+                  {language === 'ar' ? 'عرض كامل الرد' : 'Show full response'}
+                </>
+              )}
+            </Button>
+          )}
           
           {/* Technical Details for Findings */}
           {message.type === 'finding' && message.technicalReason && (

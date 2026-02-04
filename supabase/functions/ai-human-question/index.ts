@@ -19,6 +19,62 @@ const AGENT_KEYWORDS: Record<string, string[]> = {
   p2p_moderator: ['p2p', 'تداول', 'نزاع', 'dispute', 'طلب'],
   contest_judge: ['contest', 'مسابقة', 'تصويت', 'vote', 'فائز'],
   power_user: ['feature', 'ميزة', 'استخدام', 'usage', 'أداء'],
+  android_engineer: ['android', 'أندرويد', 'mobile', 'موبايل', 'kotlin', 'app'],
+  ios_engineer: ['ios', 'آيفون', 'apple', 'swift', 'iphone'],
+  web_engineer: ['web', 'ويب', 'react', 'frontend', 'واجهة', 'seo', 'performance'],
+  challenger_ai: ['تحدي', 'challenge', 'نقد', 'critique', 'ضعف', 'weakness'],
+};
+
+// Agent-specific prompts for turn-based discussion
+const AGENT_DISCUSSION_PROMPTS: Record<string, string> = {
+  backend_engineer: `أنت مهندس Backend خبير. ركز على:
+- سلامة الـ schema والـ RPCs
+- الـ atomicity والأمان
+- race conditions محتملة
+- اقترح حلولاً تقنية محددة`,
+
+  system_architect: `أنت معماري نظام. ركز على:
+- قابلية التوسع
+- البنية العامة
+- مخاطر طويلة المدى
+- التكامل بين المكونات`,
+
+  fraud_analyst: `أنت محلل احتيال. ابحث عن:
+- ثغرات أمنية محتملة
+- سيناريوهات إساءة الاستخدام
+- multi-accounting
+- اقترح آليات حماية`,
+
+  qa_breaker: `أنت مختبر QA متخصص في كسر السيناريوهات. ابحث عن:
+- edge cases غير معالجة
+- مدخلات غريبة
+- race conditions
+- سيناريوهات فشل`,
+
+  android_engineer: `أنت مهندس Android. حلل من منظور:
+- تجربة المستخدم على الموبايل
+- الأداء والذاكرة
+- توافق الإصدارات
+- أفضل ممارسات Material Design`,
+
+  ios_engineer: `أنت مهندس iOS. راجع حسب:
+- Apple Human Interface Guidelines
+- أداء iOS
+- توافق الأجهزة
+- متطلبات App Store`,
+
+  web_engineer: `أنت مهندس Web متخصص. ركز على:
+- أداء React/TypeScript
+- SEO والـ accessibility
+- تجربة المستخدم على الويب
+- أفضل ممارسات PWA`,
+
+  challenger_ai: `أنت "المتحدي" - دورك هو:
+- تحدي كل الحلول المقترحة
+- طرح أسئلة استفزازية بناءة
+- كشف نقاط الضعف في التفكير
+- طرح سيناريوهات "ماذا لو"
+- لا توافق بسهولة، ابحث عن الثغرات`,
 };
 
 function selectRelevantAgents(question: string, allAgents: any[]): any[] {
@@ -37,26 +93,44 @@ function selectRelevantAgents(question: string, allAgents: any[]): any[] {
     scores.set(agent.id, score);
   }
   
-  // Sort by score and take top 4, or at least 2 if no matches
+  // Sort by score and take top 5
   const sorted = allAgents.sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
   const withScores = sorted.filter(a => (scores.get(a.id) || 0) > 0);
   
-  if (withScores.length >= 2) {
-    return withScores.slice(0, 4);
+  if (withScores.length >= 3) {
+    // Always include challenger for critical thinking
+    const challenger = allAgents.find(a => a.agent_role === 'challenger_ai');
+    const result = withScores.slice(0, 4);
+    if (challenger && !result.find(a => a.id === challenger.id)) {
+      result.push(challenger);
+    }
+    return result.slice(0, 5);
   }
   
-  // Default: backend engineer + system architect + 2 random
-  const defaults = ['backend_engineer', 'system_architect'];
-  const defaultAgents = allAgents.filter(a => defaults.includes(a.agent_role));
-  const others = allAgents.filter(a => !defaults.includes(a.agent_role)).slice(0, 2);
-  return [...defaultAgents, ...others];
+  // Default: backend + architect + web + challenger
+  const defaults = ['backend_engineer', 'system_architect', 'web_engineer', 'challenger_ai'];
+  return allAgents.filter(a => defaults.includes(a.agent_role));
+}
+
+// Delay function for deliberate mode
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function generateAgentResponse(
   apiKey: string,
   agent: any,
-  question: string
+  question: string,
+  previousResponses: string[],
+  turnNumber: number
 ): Promise<string> {
+  const agentPrompt = AGENT_DISCUSSION_PROMPTS[agent.agent_role] || 
+    `أنت ${agent.agent_name_ar}. أجب من منظور دورك بدقة.`;
+
+  const previousContext = previousResponses.length > 0
+    ? `\n\nردود الزملاء السابقة:\n${previousResponses.join('\n\n---\n\n')}\n\nالآن دورك للرد. خذ بعين الاعتبار ما قاله الآخرون، لا تكرر، وأضف قيمة جديدة.`
+    : '';
+
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -68,22 +142,26 @@ async function generateAgentResponse(
       messages: [
         {
           role: 'system',
-          content: `أنت ${agent.agent_name_ar} في فريق WINOVA الداخلي.
-دورك: ${agent.agent_role}
-مجالات تركيزك: ${agent.focus_areas?.join('، ') || 'عام'}
+          content: `أنت ${agent.agent_name_ar} في فريق WINOVA الهندسي.
+${agentPrompt}
 
-أجب على سؤال المدير من منظور دورك بدقة واختصار.
+📌 قواعد النقاش:
+- هذا نقاش هندسي عميق، ليس chat سريع
+- اقرأ ردود زملائك قبل الرد
+- لا تكرر ما قالوه، أضف زاوية جديدة
 - كن محدداً وعملياً
-- اقترح حلولاً قابلة للتنفيذ
+- اقترح حلولاً قابلة للتنفيذ فقط
+- أي تعديل تقترحه = اقتراح (Proposal) وليس قرار نهائي
+- التنفيذ يحتاج موافقة Admin
 - استخدم اللغة العربية فقط
-- لا تكرر ما قد يقوله غيرك`,
+${previousContext}`,
         },
         {
           role: 'user',
-          content: question,
+          content: `سؤال المدير: ${question}\n\nدورك الآن (المتحدث ${turnNumber + 1}):`,
         },
       ],
-      max_tokens: 400,
+      max_tokens: 600,
       temperature: 0.7,
     }),
   });
@@ -92,13 +170,13 @@ async function generateAgentResponse(
   return data.choices?.[0]?.message?.content || 'لم أتمكن من الرد.';
 }
 
-async function generateSummary(
+async function generateProposalSummary(
   apiKey: string,
   question: string,
   responses: Array<{ agent: string; response: string }>
-): Promise<string> {
+): Promise<{ summary: string; proposals: any[] }> {
   const responsesText = responses
-    .map(r => `${r.agent}:\n${r.response}`)
+    .map((r, i) => `[${i + 1}] ${r.agent}:\n${r.response}`)
     .join('\n\n---\n\n');
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -112,32 +190,56 @@ async function generateSummary(
       messages: [
         {
           role: 'system',
-          content: `أنت منسق فريق AI في WINOVA. لخص ردود الفريق على سؤال المدير.
+          content: `أنت منسق فريق AI في WINOVA. مهمتك:
+1. تلخيص نقاش الفريق الهندسي
+2. استخراج الاقتراحات (Proposals) القابلة للتنفيذ
+3. تصنيف كل اقتراح حسب الأولوية
 
 السؤال الأصلي: ${question}
 
-ردود الفريق:
+النقاش:
 ${responsesText}
 
-اكتب ملخصاً تنفيذياً يتضمن:
-1. النقاط الرئيسية المتفق عليها
-2. التوصيات العملية
-3. الخطوات التالية المقترحة
+أخرج JSON بالشكل التالي:
+{
+  "summary": "ملخص تنفيذي موجز...",
+  "proposals": [
+    {
+      "title": "عنوان الاقتراح",
+      "description": "وصف مختصر",
+      "priority": "critical|high|medium|low",
+      "area": "backend|frontend|security|ux|infrastructure",
+      "suggested_by": "اسم الوكيل"
+    }
+  ]
+}
 
-باللغة العربية فقط. كن موجزاً ومفيداً.`,
+⚠️ مهم: كل اقتراح يحتاج موافقة Admin قبل التنفيذ.
+باللغة العربية فقط.`,
         },
         {
           role: 'user',
-          content: 'لخص الردود.',
+          content: 'لخص النقاش واستخرج الاقتراحات.',
         },
       ],
-      max_tokens: 500,
+      max_tokens: 1000,
       temperature: 0.5,
     }),
   });
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || 'لم أتمكن من إنشاء الملخص.';
+  const content = data.choices?.[0]?.message?.content || '{}';
+  
+  try {
+    const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(jsonMatch?.[1] || jsonMatch?.[0] || '{}');
+    return {
+      summary: parsed.summary || 'لم أتمكن من إنشاء الملخص.',
+      proposals: parsed.proposals || []
+    };
+  } catch {
+    return { summary: content, proposals: [] };
+  }
 }
 
 Deno.serve(async (req) => {
@@ -193,13 +295,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create session
+    // Create session with sequential mode
     const { data: session, error: sessionError } = await supabase
       .from('ai_human_sessions')
       .insert({
         question,
         asked_by: user.id,
-        status: 'processing'
+        status: 'processing',
+        response_mode: 'sequential'
       })
       .select()
       .single();
@@ -216,6 +319,13 @@ Deno.serve(async (req) => {
 
     // Select relevant agents
     const selectedAgents = selectRelevantAgents(question, allAgents || []);
+    const agentsOrder = selectedAgents.map(a => a.id);
+
+    // Update session with agents order
+    await supabase
+      .from('ai_human_sessions')
+      .update({ agents_order: agentsOrder })
+      .eq('id', session.id);
 
     // Get a default agent for the human question message
     const systemArchitect = allAgents?.find(a => a.agent_role === 'system_architect');
@@ -229,31 +339,55 @@ Deno.serve(async (req) => {
       message_type: 'human_question',
       session_id: session.id,
       human_sender_id: user.id,
+      turn_order: 0,
     });
 
-    // Generate responses from each selected agent
+    // Generate responses SEQUENTIALLY with delay (Turn-based, Deliberate Mode)
     const responses: Array<{ agent: string; agentId: string; response: string }> = [];
+    const previousResponses: string[] = [];
     
-    for (const agent of selectedAgents) {
-      const response = await generateAgentResponse(lovableApiKey, agent, question);
+    for (let i = 0; i < selectedAgents.length; i++) {
+      const agent = selectedAgents[i];
+      
+      // Deliberate delay between responses (5-8 seconds)
+      if (i > 0) {
+        await delay(5000 + Math.random() * 3000);
+      }
+
+      // Generate response with context of previous responses
+      const response = await generateAgentResponse(
+        lovableApiKey, 
+        agent, 
+        question,
+        previousResponses,
+        i
+      );
+      
       responses.push({
         agent: agent.agent_name_ar,
         agentId: agent.id,
         response
       });
+      
+      previousResponses.push(`${agent.agent_name_ar}: ${response}`);
 
-      // Insert agent response
+      // Insert agent response with turn order
       await supabase.from('ai_chat_room').insert({
         agent_id: agent.id,
         content: response,
         content_ar: response,
         message_type: 'human_response',
         session_id: session.id,
+        turn_order: i + 1,
+        previous_context: previousResponses.slice(0, -1).join('\n---\n'),
       });
     }
 
-    // Generate summary
-    const summary = await generateSummary(
+    // Final delay before summary
+    await delay(3000);
+
+    // Generate summary with proposals
+    const { summary, proposals } = await generateProposalSummary(
       lovableApiKey,
       question,
       responses.map(r => ({ agent: r.agent, response: r.response }))
@@ -262,12 +396,35 @@ Deno.serve(async (req) => {
     // Insert summary
     await supabase.from('ai_chat_room').insert({
       agent_id: systemArchitect.id,
-      content: `📋 ملخص الفريق:\n\n${summary}`,
-      content_ar: `📋 ملخص الفريق:\n\n${summary}`,
+      content: `📋 ملخص الفريق:\n\n${summary}\n\n⚠️ جميع الاقتراحات تحتاج موافقة Admin قبل التنفيذ.`,
+      content_ar: `📋 ملخص الفريق:\n\n${summary}\n\n⚠️ جميع الاقتراحات تحتاج موافقة Admin قبل التنفيذ.`,
       message_type: 'summary',
       session_id: session.id,
       is_summary: true,
+      turn_order: selectedAgents.length + 1,
+      is_proposal: proposals.length > 0,
     });
+
+    // Insert proposals into ai_proposals table
+    for (const proposal of proposals) {
+      const proposingAgent = allAgents?.find(a => 
+        a.agent_name_ar === proposal.suggested_by || 
+        a.agent_name === proposal.suggested_by
+      );
+      
+      await supabase.from('ai_proposals').insert({
+        session_id: session.id,
+        title: proposal.title,
+        title_ar: proposal.title,
+        description: proposal.description,
+        description_ar: proposal.description,
+        proposal_type: 'enhancement',
+        priority: proposal.priority || 'medium',
+        affected_area: proposal.area,
+        proposed_by: proposingAgent?.id || systemArchitect.id,
+        status: 'pending',
+      });
+    }
 
     // Update session
     await supabase
@@ -284,6 +441,7 @@ Deno.serve(async (req) => {
         success: true,
         session_id: session.id,
         agents_responded: responses.length,
+        proposals_count: proposals.length,
         summary
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
