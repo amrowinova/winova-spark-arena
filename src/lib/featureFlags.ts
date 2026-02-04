@@ -20,7 +20,8 @@ export type FeatureFlag =
   | 'enhanced_p2p'
   | 'ai_control_room_v2'
   | 'dark_mode_only'
-  | 'rtl_optimizations';
+  | 'rtl_optimizations'
+  | 'chat_reliability_v1'; // NEW: Chat UX improvements
 
 interface FeatureFlagConfig {
   enabled: boolean;
@@ -71,6 +72,12 @@ const DEFAULT_FLAGS: Record<FeatureFlag, FeatureFlagConfig> = {
     enabled: true,
     description: 'RTL layout optimizations for Arabic',
     rolloutPercentage: 100,
+  },
+  chat_reliability_v1: {
+    enabled: true,
+    description: 'Chat UX improvements: copy button, expand long messages, progress indicators',
+    rolloutPercentage: 100,
+    enabledForAdmins: true,
   },
 };
 

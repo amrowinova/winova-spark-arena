@@ -4,10 +4,16 @@ import {
   Check,
   CheckCheck,
   CornerDownRight,
+  Copy,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { MessageReactions } from './MessageReactions';
 import { MessageActionMenu } from './MessageActionMenu';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { isFeatureEnabled } from '@/lib/featureFlags';
 
 export interface DMMessageData {
   id: string;
@@ -49,6 +55,9 @@ interface DMMessageBubbleProps {
   showReadReceipts?: boolean;
 }
 
+// Max chars before showing "Show more" button
+const MAX_MESSAGE_LENGTH = 300;
+
 export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
   function DMMessageBubble(
     {
@@ -67,10 +76,41 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
     ref
   ) {
     const { language } = useLanguage();
+    const { toast } = useToast();
     const [showActions, setShowActions] = useState(false);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [copied, setCopied] = useState(false);
     const longPressTimer = useRef<NodeJS.Timeout | null>(null);
     const bubbleRef = useRef<HTMLDivElement>(null);
+    
+    // Feature flag check
+    const chatReliabilityEnabled = isFeatureEnabled('chat_reliability_v1');
+    
+    // Check if message is long
+    const isLongMessage = message.content.length > MAX_MESSAGE_LENGTH;
+    const displayContent = isLongMessage && !isExpanded 
+      ? message.content.slice(0, MAX_MESSAGE_LENGTH) + '...'
+      : message.content;
+    
+    // Quick copy handler
+    const handleQuickCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(message.content);
+        setCopied(true);
+        toast({
+          title: language === 'ar' ? 'تم النسخ' : 'Copied',
+          description: language === 'ar' ? 'تم نسخ الرسالة' : 'Message copied',
+        });
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        toast({
+          title: language === 'ar' ? 'خطأ' : 'Error',
+          description: language === 'ar' ? 'فشل النسخ' : 'Failed to copy',
+          variant: 'destructive',
+        });
+      }
+    };
 
     // Long press detection
     const handleTouchStart = () => {
@@ -154,7 +194,7 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
         ref={ref || bubbleRef}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`relative flex ${message.isMine ? 'justify-end' : 'justify-start'} mb-1`}
+        className={`group relative flex ${message.isMine ? 'justify-end' : 'justify-start'} mb-1`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onContextMenu={handleContextMenu}
@@ -207,10 +247,54 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
               </div>
             ) : null}
 
-            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+            {/* Message content with expand/collapse for long messages */}
+            <p className="text-sm whitespace-pre-wrap break-words">{displayContent}</p>
+            
+            {/* Show more/less button for long messages */}
+            {chatReliabilityEnabled && isLongMessage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs px-2 mt-1 opacity-80 hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-3 w-3 me-1" />
+                    {language === 'ar' ? 'عرض أقل' : 'Show less'}
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3 w-3 me-1" />
+                    {language === 'ar' ? 'عرض المزيد' : 'Show more'}
+                  </>
+                )}
+              </Button>
+            )}
 
-            {/* Time and status */}
+            {/* Time, status, and quick copy */}
             <div className={`flex items-center gap-1 mt-1 ${message.isMine ? 'justify-end' : ''}`}>
+              {/* Quick copy button - visible on hover/tap */}
+              {chatReliabilityEnabled && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleQuickCopy();
+                  }}
+                >
+                  {copied ? (
+                    <Check className="h-3 w-3 text-success" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
+              )}
               <span className="text-[10px] opacity-60">
                 {new Date(message.createdAt).toLocaleTimeString([], {
                   hour: '2-digit',
