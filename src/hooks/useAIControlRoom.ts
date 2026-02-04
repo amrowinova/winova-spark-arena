@@ -28,6 +28,34 @@ export const AGENT_ROLE_CONFIG: Record<string, { emoji: string; layer: string; l
   
   // Challenger (Devil's Advocate)
   challenger_ai: { emoji: '👹', layer: 'Governance', layerAr: 'المعارض', color: 'text-rose-500' },
+
+  // ============ Screen-based AI Owners ============
+  // Home Screen
+  screen_home_owner: { emoji: '🏠', layer: 'Screen Owners', layerAr: 'مالكي الشاشات', color: 'text-indigo-500' },
+  
+  // Wallet Screen
+  screen_wallet_owner: { emoji: '💳', layer: 'Screen Owners', layerAr: 'مالكي الشاشات', color: 'text-amber-500' },
+  
+  // P2P Screen
+  screen_p2p_owner: { emoji: '🔄', layer: 'Screen Owners', layerAr: 'مالكي الشاشات', color: 'text-teal-500' },
+  
+  // P2P Chat Screen
+  screen_p2p_chat_owner: { emoji: '💬', layer: 'Screen Owners', layerAr: 'مالكي الشاشات', color: 'text-sky-500' },
+  
+  // DM Chat Screen
+  screen_dm_chat_owner: { emoji: '✉️', layer: 'Screen Owners', layerAr: 'مالكي الشاشات', color: 'text-violet-500' },
+  
+  // Contests Screen
+  screen_contests_owner: { emoji: '🏆', layer: 'Screen Owners', layerAr: 'مالكي الشاشات', color: 'text-yellow-600' },
+  
+  // Profile Screen
+  screen_profile_owner: { emoji: '👤', layer: 'Screen Owners', layerAr: 'مالكي الشاشات', color: 'text-pink-500' },
+  
+  // Team Screen
+  screen_team_owner: { emoji: '👥', layer: 'Screen Owners', layerAr: 'مالكي الشاشات', color: 'text-lime-500' },
+  
+  // Admin Panel Screen
+  screen_admin_owner: { emoji: '🔧', layer: 'Screen Owners', layerAr: 'مالكي الشاشات', color: 'text-slate-500' },
 };
 
 // Engineering Layers for grouping
@@ -40,6 +68,7 @@ export const AGENT_LAYERS = [
   { key: 'Frontend', ar: 'أنظمة الواجهة', icon: '🖥️' },
   { key: 'Admin', ar: 'لوحة التحكم', icon: '🎛️' },
   { key: 'Governance', ar: 'المعارض', icon: '👹' },
+  { key: 'Screen Owners', ar: 'مالكي الشاشات', icon: '📱' },
 ];
 
 export interface AIControlRoomMessage {

@@ -2101,6 +2101,15 @@ export type Database = {
         | "wallet_p2p_engineer"
         | "frontend_systems_engineer"
         | "admin_panel_engineer"
+        | "screen_home_owner"
+        | "screen_wallet_owner"
+        | "screen_p2p_owner"
+        | "screen_p2p_chat_owner"
+        | "screen_dm_chat_owner"
+        | "screen_contests_owner"
+        | "screen_profile_owner"
+        | "screen_team_owner"
+        | "screen_admin_owner"
       app_role: "admin" | "moderator" | "user" | "support"
       currency_type: "nova" | "aura"
       engagement_status: "both" | "contest" | "vote" | "none"
@@ -2299,6 +2308,15 @@ export const Constants = {
         "wallet_p2p_engineer",
         "frontend_systems_engineer",
         "admin_panel_engineer",
+        "screen_home_owner",
+        "screen_wallet_owner",
+        "screen_p2p_owner",
+        "screen_p2p_chat_owner",
+        "screen_dm_chat_owner",
+        "screen_contests_owner",
+        "screen_profile_owner",
+        "screen_team_owner",
+        "screen_admin_owner",
       ],
       app_role: ["admin", "moderator", "user", "support"],
       currency_type: ["nova", "aura"],
