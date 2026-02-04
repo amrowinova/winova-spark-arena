@@ -5,7 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // Simple Agent Config - Engineering Focus
 export const AGENT_CONFIG: Record<string, { emoji: string; layer: string; color: string }> = {
-  // Core Engineers
+  // Leader AI - The only one who talks to user
+  engineering_lead: { emoji: '🧠', layer: 'Leader', color: 'text-primary' },
+  
+  // Core Engineers (Background)
   system_architect: { emoji: '🏗️', layer: 'Core', color: 'text-purple-500' },
   backend_core_engineer: { emoji: '⚙️', layer: 'Core', color: 'text-blue-500' },
   database_integrity_engineer: { emoji: '🗄️', layer: 'Core', color: 'text-emerald-500' },
@@ -15,7 +18,7 @@ export const AGENT_CONFIG: Record<string, { emoji: string; layer: string; color:
   admin_panel_engineer: { emoji: '🎛️', layer: 'Core', color: 'text-orange-500' },
   challenger_ai: { emoji: '👹', layer: 'Core', color: 'text-rose-500' },
   
-  // Screen Owners
+  // Screen Owners (Background)
   screen_home_owner: { emoji: '🏠', layer: 'Screen', color: 'text-indigo-500' },
   screen_wallet_owner: { emoji: '💳', layer: 'Screen', color: 'text-amber-500' },
   screen_p2p_owner: { emoji: '🔄', layer: 'Screen', color: 'text-teal-500' },
@@ -35,7 +38,7 @@ export interface AIMessage {
   agentRole: string;
   content: string;
   contentAr: string | null;
-  messageCategory: 'warning' | 'info' | 'critical' | 'success' | 'discussion' | 'human';
+  messageCategory: 'warning' | 'info' | 'critical' | 'success' | 'discussion' | 'human' | 'leader_response';
   createdAt: string;
   isHuman: boolean;
 }
@@ -56,6 +59,8 @@ export function getCategoryStyle(category: string): { bg: string; border: string
       return { bg: 'bg-success/10', border: 'border-success/30', text: 'text-success' };
     case 'human':
       return { bg: 'bg-primary/10', border: 'border-primary/30', text: 'text-primary' };
+    case 'leader_response':
+      return { bg: 'bg-primary/15', border: 'border-primary/40', text: 'text-primary' };
     default:
       return { bg: 'bg-muted', border: 'border-border', text: 'text-muted-foreground' };
   }

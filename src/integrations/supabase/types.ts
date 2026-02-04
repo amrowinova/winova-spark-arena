@@ -2113,6 +2113,7 @@ export type Database = {
         | "screen_profile_owner"
         | "screen_team_owner"
         | "screen_admin_owner"
+        | "engineering_lead"
       app_role: "admin" | "moderator" | "user" | "support"
       currency_type: "nova" | "aura"
       engagement_status: "both" | "contest" | "vote" | "none"
@@ -2320,6 +2321,7 @@ export const Constants = {
         "screen_profile_owner",
         "screen_team_owner",
         "screen_admin_owner",
+        "engineering_lead",
       ],
       app_role: ["admin", "moderator", "user", "support"],
       currency_type: ["nova", "aura"],
