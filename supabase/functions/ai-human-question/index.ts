@@ -5,76 +5,269 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Agent selection based on question context
+// Agent selection based on question context - Full Engineering Organization
 const AGENT_KEYWORDS: Record<string, string[]> = {
+  // Core Infrastructure Layer
+  system_sentinel: ['monitoring', 'مراقبة', 'health', 'صحة', 'alert', 'تنبيه', 'crash', 'انهيار', 'uptime', 'logs', 'سجلات'],
   backend_engineer: ['backend', 'api', 'rpc', 'trigger', 'database', 'قاعدة', 'بيانات', 'خطأ', 'error', 'bug'],
-  system_architect: ['architecture', 'scale', 'design', 'بنية', 'توسع', 'تصميم', 'نظام'],
-  fraud_analyst: ['fraud', 'احتيال', 'أمان', 'security', 'ثغرة', 'hack'],
-  qa_breaker: ['test', 'اختبار', 'سيناريو', 'edge case', 'كسر'],
-  user_tester: ['ui', 'ux', 'تجربة', 'مستخدم', 'واجهة', 'user'],
-  marketer_growth: ['growth', 'نمو', 'إحالة', 'referral', 'تسويق'],
-  leader_team: ['team', 'فريق', 'هيكل', 'structure', 'مستوى'],
-  manager_stats: ['stats', 'إحصائيات', 'أرقام', 'dashboard', 'لوحة'],
-  support_agent: ['support', 'دعم', 'تذكرة', 'ticket', 'شكوى'],
-  p2p_moderator: ['p2p', 'تداول', 'نزاع', 'dispute', 'طلب'],
-  contest_judge: ['contest', 'مسابقة', 'تصويت', 'vote', 'فائز'],
-  power_user: ['feature', 'ميزة', 'استخدام', 'usage', 'أداء'],
-  android_engineer: ['android', 'أندرويد', 'mobile', 'موبايل', 'kotlin', 'app'],
-  ios_engineer: ['ios', 'آيفون', 'apple', 'swift', 'iphone'],
-  web_engineer: ['web', 'ويب', 'react', 'frontend', 'واجهة', 'seo', 'performance'],
-  challenger_ai: ['تحدي', 'challenge', 'نقد', 'critique', 'ضعف', 'weakness'],
+  system_architect: ['architecture', 'scale', 'design', 'بنية', 'توسع', 'تصميم', 'نظام', 'infrastructure'],
+  
+  // Quality & Testing Layer
+  chaos_engineer: ['stress', 'ضغط', 'load', 'حمل', 'failure', 'فشل', 'resilience', 'مرونة', 'chaos', 'breaking'],
+  qa_breaker: ['test', 'اختبار', 'سيناريو', 'edge case', 'كسر', 'regression', 'انحدار'],
+  
+  // Implementation Layer
+  implementation_engineer: ['code', 'كود', 'patch', 'تصحيح', 'sql', 'rpc', 'migration', 'هجرة', 'fix', 'إصلاح', 'implement', 'تنفيذ'],
+  
+  // Product & UX Layer
+  product_owner: ['ux', 'تجربة', 'user journey', 'رحلة', 'retention', 'استبقاء', 'simplicity', 'بساطة', 'trust', 'ثقة', 'conversion', 'تحويل'],
+  user_tester: ['ui', 'واجهة', 'مستخدم', 'user', 'usability', 'سهولة'],
+  
+  // Platform Specialists
+  android_engineer: ['android', 'أندرويد', 'mobile', 'موبايل', 'kotlin', 'app', 'تطبيق', 'google play'],
+  ios_engineer: ['ios', 'آيفون', 'apple', 'swift', 'iphone', 'app store'],
+  web_engineer: ['web', 'ويب', 'react', 'frontend', 'واجهة', 'seo', 'browser', 'متصفح', 'responsive'],
+  
+  // Domain Experts
+  fintech_specialist: ['payment', 'دفع', 'wallet', 'محفظة', 'escrow', 'ضمان', 'ledger', 'سجل', 'transaction', 'معاملة', 'nova', 'aura', 'balance', 'رصيد'],
+  integrations_specialist: ['otp', 'sms', 'رسالة', 'push', 'إشعار', 'webhook', 'api', 'integration', 'تكامل', 'oauth', 'third-party'],
+  security_specialist: ['security', 'أمان', 'rls', 'auth', 'مصادقة', 'permission', 'صلاحية', 'vulnerability', 'ثغرة', 'attack', 'هجوم', 'injection'],
+  fraud_analyst: ['fraud', 'احتيال', 'suspicious', 'مشبوه', 'abuse', 'إساءة', 'multi-account', 'manipulation'],
+  
+  // Growth & Business
+  growth_analyst: ['growth', 'نمو', 'metrics', 'مقاييس', 'funnel', 'قمع', 'cohort', 'retention', 'ab test', 'kpi'],
+  marketer_growth: ['marketing', 'تسويق', 'referral', 'إحالة', 'viral', 'انتشار', 'acquisition'],
+  
+  // Operations
+  p2p_moderator: ['p2p', 'تداول', 'نزاع', 'dispute', 'طلب', 'order', 'buyer', 'seller'],
+  support_agent: ['support', 'دعم', 'تذكرة', 'ticket', 'شكوى', 'complaint', 'help'],
+  
+  // Governance
+  challenger_ai: ['تحدي', 'challenge', 'نقد', 'critique', 'ضعف', 'weakness', 'disagree', 'اعتراض', 'risk', 'مخاطر'],
 };
 
-// Agent-specific prompts for turn-based discussion
+// Agent-specific prompts for turn-based discussion - Full Engineering Organization
 const AGENT_DISCUSSION_PROMPTS: Record<string, string> = {
-  backend_engineer: `أنت مهندس Backend خبير. ركز على:
-- سلامة الـ schema والـ RPCs
-- الـ atomicity والأمان
-- race conditions محتملة
-- اقترح حلولاً تقنية محددة`,
+  // === CORE INFRASTRUCTURE LAYER ===
+  system_sentinel: `أنت "الحارس الذكي" - نظام المراقبة المستمرة:
+🔍 مهامك الأساسية:
+- مراقبة صحة جميع الأنظمة (RPCs, Triggers, Wallets, P2P)
+- اكتشاف الأخطاء والتحذيرات من السجلات
+- تحليل أنماط الفشل والتدهور في الأداء
+- تتبع crashes المحتملة على الموبايل
+📊 أنتج: تقارير صحة + تنبيهات مبكرة + اقتراحات وقائية`,
 
-  system_architect: `أنت معماري نظام. ركز على:
-- قابلية التوسع
-- البنية العامة
-- مخاطر طويلة المدى
-- التكامل بين المكونات`,
+  backend_engineer: `أنت مهندس Backend خبير 15+ سنة:
+🔧 تخصصاتك:
+- سلامة الـ schema والـ RPCs والـ atomicity
+- اكتشاف race conditions وdeadlocks
+- تحسين الـ queries والـ indexes
+- ضمان transactional integrity
+💡 أنتج: تحليل تقني عميق + حلول SQL/RPC محددة`,
 
-  fraud_analyst: `أنت محلل احتيال. ابحث عن:
-- ثغرات أمنية محتملة
-- سيناريوهات إساءة الاستخدام
-- multi-accounting
-- اقترح آليات حماية`,
+  system_architect: `أنت معماري نظم (Principal Architect):
+🏗️ تركيزك:
+- البنية العامة وقابلية التوسع (Scalability)
+- تقييم الـ Technical Debt
+- مخاطر طويلة المدى على الـ Infrastructure
+- التكامل بين المكونات والـ Microservices
+📐 أنتج: رؤية معمارية + توصيات هيكلية`,
 
-  qa_breaker: `أنت مختبر QA متخصص في كسر السيناريوهات. ابحث عن:
-- edge cases غير معالجة
-- مدخلات غريبة
-- race conditions
-- سيناريوهات فشل`,
+  // === QUALITY & TESTING LAYER ===
+  chaos_engineer: `أنت "مهندس الفوضى" - متخصص في كسر الأنظمة:
+💥 مهامك:
+- محاكاة سيناريوهات الفشل الكارثي
+- اختبارات الضغط والحمل العالي
+- اكتشاف نقاط الانهيار قبل المستخدمين
+- سيناريوهات "ماذا لو" المتطرفة
+🔥 أنتج: سيناريوهات اختبار + نقاط ضعف + خطط طوارئ`,
 
-  android_engineer: `أنت مهندس Android. حلل من منظور:
-- تجربة المستخدم على الموبايل
-- الأداء والذاكرة
-- توافق الإصدارات
-- أفضل ممارسات Material Design`,
+  qa_breaker: `أنت مختبر QA متخصص في كسر السيناريوهات:
+🧪 ابحث عن:
+- Edge cases غير معالجة
+- مدخلات غريبة وغير متوقعة
+- Race conditions وtiming issues
+- سيناريوهات فشل متسلسلة
+🐛 أنتج: قائمة bugs محتملة + سيناريوهات اختبار`,
 
-  ios_engineer: `أنت مهندس iOS. راجع حسب:
+  // === IMPLEMENTATION LAYER ===
+  implementation_engineer: `أنت "مهندس التنفيذ" - متخصص في توليد الكود:
+⚙️ مهامك:
+- تحويل الاقتراحات إلى كود جاهز للتنفيذ
+- كتابة SQL migrations, RPCs, Edge Functions
+- توليد TypeScript types ومكونات React
+- توثيق كل تغيير بوضوح
+📦 أنتج: Code Snippets + SQL + Rollback Plan
+⚠️ تذكير: الكود للمراجعة فقط - لا تنفيذ تلقائي!`,
+
+  // === PRODUCT & UX LAYER ===
+  product_owner: `أنت "مالك المنتج" - خبير UX وسلوك المستخدم:
+👤 تركيزك:
+- تجربة المستخدم وسهولة الاستخدام
+- علم النفس السلوكي والتحفيز
+- بناء الثقة والمصداقية
+- البساطة vs التعقيد
+- معدلات التحويل والاستبقاء
+💡 أنتج: تحليل UX + توصيات سلوكية + تحسينات`,
+
+  user_tester: `أنت مختبر تجربة المستخدم:
+🎯 ركز على:
+- سهولة التنقل والفهم
+- وضوح الرسائل والتعليمات
+- سرعة إنجاز المهام
+- نقاط الإحباط المحتملة
+📱 أنتج: ملاحظات UX + اقتراحات تحسين`,
+
+  // === PLATFORM SPECIALISTS ===
+  android_engineer: `أنت مهندس Android خبير (10+ سنة):
+📱 تخصصاتك:
+- Material Design 3 وأفضل الممارسات
+- تحسين الأداء والذاكرة
+- توافق الإصدارات (API 21-34)
+- Lifecycle management وBackground processing
+- Google Play policies
+🤖 أنتج: تحليل Android + تحسينات + توافقية`,
+
+  ios_engineer: `أنت مهندس iOS خبير (10+ سنة):
+🍎 تخصصاتك:
 - Apple Human Interface Guidelines
-- أداء iOS
-- توافق الأجهزة
-- متطلبات App Store`,
+- SwiftUI/UIKit best practices
+- أداء iOS وتوافق الأجهزة
+- App Store Review Guidelines
+- Privacy requirements
+📱 أنتج: تحليل iOS + تحسينات + متطلبات Apple`,
 
-  web_engineer: `أنت مهندس Web متخصص. ركز على:
-- أداء React/TypeScript
-- SEO والـ accessibility
-- تجربة المستخدم على الويب
-- أفضل ممارسات PWA`,
+  web_engineer: `أنت مهندس Web متخصص (React/TypeScript):
+🌐 تخصصاتك:
+- أداء React وState Management
+- SEO وCore Web Vitals
+- Accessibility (WCAG 2.1)
+- Responsive Design وPWA
+- Browser compatibility
+💻 أنتج: تحليل Web + تحسينات أداء + SEO`,
 
-  challenger_ai: `أنت "المتحدي" - دورك هو:
-- تحدي كل الحلول المقترحة
+  // === DOMAIN EXPERTS ===
+  fintech_specialist: `أنت "خبير المالية الرقمية" (FinTech Architect):
+💰 تخصصاتك:
+- أنظمة الدفع والـ Escrow
+- سلامة الـ Ledger والـ Double-entry
+- Atomicity في المعاملات المالية
+- Reconciliation والتدقيق
+- Compliance والتنظيمات المالية
+🏦 أنتج: تحليل مالي + ضمانات + compliance`,
+
+  integrations_specialist: `أنت "خبير التكاملات" (Integration Architect):
+🔌 تخصصاتك:
+- OTP providers (Twilio, Firebase)
+- SMS gateways والتكلفة
+- Push notifications (FCM, APNs)
+- Webhooks وevent-driven architecture
+- OAuth وThird-party APIs
+🔗 أنتج: تحليل تكاملات + موثوقية + fallbacks`,
+
+  security_specialist: `أنت "خبير الأمن السيبراني" (Security Architect):
+🔒 تخصصاتك:
+- RLS policies وAuthorization
+- Authentication flows وSession management
+- Privilege escalation وInjection attacks
+- Vulnerability assessment
+- Penetration testing mindset
+🛡️ أنتج: تحليل أمني + ثغرات + تصحيحات`,
+
+  fraud_analyst: `أنت محلل احتيال متخصص:
+🕵️ ابحث عن:
+- أنماط الاحتيال والتلاعب
+- Multi-accounting وsybil attacks
+- إساءة استخدام العروض والمكافآت
+- غسيل الأموال والتحويلات المشبوهة
+⚠️ أنتج: مخاطر احتيال + قواعد حماية + تنبيهات`,
+
+  // === GROWTH & BUSINESS ===
+  growth_analyst: `أنت "محلل النمو" (Growth Data Scientist):
+📈 تخصصاتك:
+- تحليل Funnels ومعدلات التحويل
+- Cohort analysis وRetention curves
+- A/B testing وExperimentation
+- KPIs وNorth Star Metrics
+- Unit economics
+📊 أنتج: تحليل بيانات + فرص نمو + تجارب`,
+
+  marketer_growth: `أنت خبير Growth Marketing:
+🚀 ركز على:
+- استراتيجيات الاستحواذ
+- برامج الإحالة والـ Viral loops
+- تحسين معدلات التفعيل
+- Retention strategies
+📣 أنتج: استراتيجيات نمو + حملات + قنوات`,
+
+  // === OPERATIONS ===
+  p2p_moderator: `أنت مشرف P2P متخصص:
+🤝 مهامك:
+- مراجعة النزاعات والشكاوى
+- تحليل سلوك البائعين والمشترين
+- ضمان عدالة الإجراءات
+- تحسين تجربة التداول
+⚖️ أنتج: تحليل P2P + قرارات + تحسينات`,
+
+  support_agent: `أنت خبير دعم فني:
+🎧 ركز على:
+- فهم مشاكل المستخدمين
+- تحسين تجربة الدعم
+- تقليل وقت الحل
+- أتمتة الردود الشائعة
+💬 أنتج: تحليل دعم + تحسينات + FAQs`,
+
+  // === GOVERNANCE ===
+  challenger_ai: `أنت "المتحدي" (Devil's Advocate) - دورك حرج:
+👹 مهمتك الأساسية:
+- تحدي كل الحلول المقترحة بقوة
 - طرح أسئلة استفزازية بناءة
-- كشف نقاط الضعف في التفكير
-- طرح سيناريوهات "ماذا لو"
-- لا توافق بسهولة، ابحث عن الثغرات`,
+- كشف نقاط الضعف في تفكير الفريق
+- طرح سيناريوهات "ماذا لو" المتطرفة
+- البحث عن الثغرات والافتراضات الخاطئة
+❌ لا توافق بسهولة أبداً
+🔍 أنتج: نقد بناء + مخاطر مخفية + أسئلة صعبة`,
+};
+
+// Agent layer priorities for smart selection
+const AGENT_LAYERS: Record<string, number> = {
+  // Core Infrastructure (highest priority for technical questions)
+  system_sentinel: 1,
+  backend_engineer: 1,
+  system_architect: 1,
+  
+  // Quality & Testing
+  chaos_engineer: 2,
+  qa_breaker: 2,
+  
+  // Implementation
+  implementation_engineer: 2,
+  
+  // Product & UX
+  product_owner: 3,
+  user_tester: 3,
+  
+  // Platform Specialists
+  android_engineer: 3,
+  ios_engineer: 3,
+  web_engineer: 3,
+  
+  // Domain Experts
+  fintech_specialist: 2,
+  integrations_specialist: 3,
+  security_specialist: 2,
+  fraud_analyst: 2,
+  
+  // Growth & Business
+  growth_analyst: 3,
+  marketer_growth: 4,
+  
+  // Operations
+  p2p_moderator: 3,
+  support_agent: 4,
+  
+  // Governance (always included)
+  challenger_ai: 0,
 };
 
 function selectRelevantAgents(question: string, allAgents: any[]): any[] {
@@ -87,29 +280,46 @@ function selectRelevantAgents(question: string, allAgents: any[]): any[] {
     let score = 0;
     for (const keyword of keywords) {
       if (questionLower.includes(keyword.toLowerCase())) {
-        score += 1;
+        score += 2; // Base score for keyword match
       }
+    }
+    // Boost score based on layer priority (lower layer = higher boost)
+    const layerPriority = AGENT_LAYERS[agent.agent_role] || 5;
+    if (score > 0) {
+      score += (5 - layerPriority);
     }
     scores.set(agent.id, score);
   }
   
-  // Sort by score and take top 5
-  const sorted = allAgents.sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
+  // Sort by score
+  const sorted = [...allAgents].sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
   const withScores = sorted.filter(a => (scores.get(a.id) || 0) > 0);
   
+  // Build expert panel
+  const result: any[] = [];
+  
   if (withScores.length >= 3) {
-    // Always include challenger for critical thinking
-    const challenger = allAgents.find(a => a.agent_role === 'challenger_ai');
-    const result = withScores.slice(0, 4);
-    if (challenger && !result.find(a => a.id === challenger.id)) {
-      result.push(challenger);
-    }
-    return result.slice(0, 5);
+    // Take top 5 relevant agents
+    result.push(...withScores.slice(0, 5));
+  } else {
+    // Default panel: sentinel + backend + architect + implementation + product
+    const defaults = ['system_sentinel', 'backend_engineer', 'system_architect', 'implementation_engineer', 'product_owner'];
+    result.push(...allAgents.filter(a => defaults.includes(a.agent_role)));
   }
   
-  // Default: backend + architect + web + challenger
-  const defaults = ['backend_engineer', 'system_architect', 'web_engineer', 'challenger_ai'];
-  return allAgents.filter(a => defaults.includes(a.agent_role));
+  // Always include challenger for critical thinking (if not already included)
+  const challenger = allAgents.find(a => a.agent_role === 'challenger_ai');
+  if (challenger && !result.find(a => a.id === challenger.id)) {
+    result.push(challenger);
+  }
+  
+  // Always include implementation engineer for code proposals (if not already included)
+  const implementer = allAgents.find(a => a.agent_role === 'implementation_engineer');
+  if (implementer && !result.find(a => a.id === implementer.id)) {
+    result.push(implementer);
+  }
+  
+  return result.slice(0, 7); // Max 7 agents for deep discussion
 }
 
 // Delay function for deliberate mode

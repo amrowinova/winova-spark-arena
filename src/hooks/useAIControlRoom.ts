@@ -3,6 +3,64 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Agent role display configuration - Full Engineering Organization
+export const AGENT_ROLE_CONFIG: Record<string, { emoji: string; layer: string; layerAr: string; color: string }> = {
+  // Core Infrastructure Layer
+  system_sentinel: { emoji: '🛡️', layer: 'Core Infrastructure', layerAr: 'البنية التحتية', color: 'text-red-500' },
+  backend_engineer: { emoji: '⚙️', layer: 'Core Infrastructure', layerAr: 'البنية التحتية', color: 'text-blue-500' },
+  system_architect: { emoji: '🏗️', layer: 'Core Infrastructure', layerAr: 'البنية التحتية', color: 'text-purple-500' },
+  
+  // Quality & Testing Layer
+  chaos_engineer: { emoji: '💥', layer: 'Quality & Testing', layerAr: 'الجودة والاختبار', color: 'text-orange-500' },
+  qa_breaker: { emoji: '🧪', layer: 'Quality & Testing', layerAr: 'الجودة والاختبار', color: 'text-yellow-500' },
+  
+  // Implementation Layer
+  implementation_engineer: { emoji: '🔧', layer: 'Implementation', layerAr: 'التنفيذ', color: 'text-emerald-500' },
+  
+  // Product & UX Layer
+  product_owner: { emoji: '👤', layer: 'Product & UX', layerAr: 'المنتج والتجربة', color: 'text-pink-500' },
+  user_tester: { emoji: '🎯', layer: 'Product & UX', layerAr: 'المنتج والتجربة', color: 'text-cyan-500' },
+  
+  // Platform Specialists
+  android_engineer: { emoji: '🤖', layer: 'Platform Specialists', layerAr: 'متخصصو المنصات', color: 'text-green-500' },
+  ios_engineer: { emoji: '🍎', layer: 'Platform Specialists', layerAr: 'متخصصو المنصات', color: 'text-gray-400' },
+  web_engineer: { emoji: '🌐', layer: 'Platform Specialists', layerAr: 'متخصصو المنصات', color: 'text-blue-400' },
+  
+  // Domain Experts
+  fintech_specialist: { emoji: '💰', layer: 'Domain Experts', layerAr: 'خبراء المجال', color: 'text-yellow-500' },
+  integrations_specialist: { emoji: '🔌', layer: 'Domain Experts', layerAr: 'خبراء المجال', color: 'text-indigo-500' },
+  security_specialist: { emoji: '🔒', layer: 'Domain Experts', layerAr: 'خبراء المجال', color: 'text-red-400' },
+  fraud_analyst: { emoji: '🕵️', layer: 'Domain Experts', layerAr: 'خبراء المجال', color: 'text-amber-500' },
+  
+  // Growth & Business
+  growth_analyst: { emoji: '📈', layer: 'Growth & Business', layerAr: 'النمو والأعمال', color: 'text-teal-500' },
+  marketer_growth: { emoji: '🚀', layer: 'Growth & Business', layerAr: 'النمو والأعمال', color: 'text-violet-500' },
+  
+  // Operations
+  p2p_moderator: { emoji: '⚖️', layer: 'Operations', layerAr: 'العمليات', color: 'text-slate-500' },
+  support_agent: { emoji: '🎧', layer: 'Operations', layerAr: 'العمليات', color: 'text-lime-500' },
+  leader_team: { emoji: '👑', layer: 'Operations', layerAr: 'العمليات', color: 'text-amber-400' },
+  manager_stats: { emoji: '📊', layer: 'Operations', layerAr: 'العمليات', color: 'text-sky-500' },
+  contest_judge: { emoji: '🏆', layer: 'Operations', layerAr: 'العمليات', color: 'text-yellow-400' },
+  power_user: { emoji: '⚡', layer: 'Operations', layerAr: 'العمليات', color: 'text-orange-400' },
+  
+  // Governance
+  challenger_ai: { emoji: '👹', layer: 'Governance', layerAr: 'الحوكمة', color: 'text-rose-500' },
+};
+
+// Get unique layers for grouping
+export const AGENT_LAYERS = [
+  { key: 'Core Infrastructure', ar: 'البنية التحتية', icon: '🏛️' },
+  { key: 'Quality & Testing', ar: 'الجودة والاختبار', icon: '🧪' },
+  { key: 'Implementation', ar: 'التنفيذ', icon: '🔧' },
+  { key: 'Product & UX', ar: 'المنتج والتجربة', icon: '👤' },
+  { key: 'Platform Specialists', ar: 'متخصصو المنصات', icon: '📱' },
+  { key: 'Domain Experts', ar: 'خبراء المجال', icon: '🎓' },
+  { key: 'Growth & Business', ar: 'النمو والأعمال', icon: '📈' },
+  { key: 'Operations', ar: 'العمليات', icon: '⚙️' },
+  { key: 'Governance', ar: 'الحوكمة', icon: '🛡️' },
+];
+
 export interface AIControlRoomMessage {
   id: string;
   agentId: string;
@@ -48,29 +106,22 @@ export interface AIAgent {
   focusAreas: string[];
   isActive: boolean;
   behaviorDescription: string | null;
+  layer?: string;
+  layerAr?: string;
 }
 
 // Get agent emoji based on role
 export function getAgentEmoji(role: string): string {
-  const emojiMap: Record<string, string> = {
-    user_tester: '🧪',
-    marketer_growth: '📈',
-    leader_team: '👥',
-    manager_stats: '📊',
-    backend_engineer: '⚙️',
-    system_architect: '🏗️',
-    qa_breaker: '💥',
-    fraud_analyst: '🔍',
-    support_agent: '🎧',
-    power_user: '⚡',
-    contest_judge: '⚖️',
-    p2p_moderator: '🤝',
-    android_engineer: '🤖',
-    ios_engineer: '🍎',
-    web_engineer: '🌐',
-    challenger_ai: '😈',
+  return AGENT_ROLE_CONFIG[role]?.emoji || '🤖';
+}
+
+// Get agent layer
+export function getAgentLayer(role: string): { layer: string; layerAr: string } {
+  const config = AGENT_ROLE_CONFIG[role];
+  return {
+    layer: config?.layer || 'Other',
+    layerAr: config?.layerAr || 'أخرى',
   };
-  return emojiMap[role] || '🤖';
 }
 
 // Get category color class
