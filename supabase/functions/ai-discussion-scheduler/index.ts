@@ -5,128 +5,177 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Analysis topics for scheduled discussions (Level 3 - Autonomous with Human Gate)
+// Engineering Team Analysis Topics - Backend & Data Integrity Focus
 const ANALYSIS_TOPICS = [
   {
-    id: 'wallet_integrity',
-    topic: 'Wallet & Financial Integrity Analysis',
-    topicAr: 'تحليل سلامة المحفظة والنظام المالي',
-    agents: ['backend_engineer', 'fraud_analyst', 'system_architect', 'challenger_ai'],
-    prompt: `حلل سلامة نظام المحفظة في WINOVA:
-- تحقق من تطابق wallet_ledger مع balances
-- ابحث عن أي race conditions محتملة
-- راجع الـ RPCs المالية
+    id: 'database_integrity',
+    topic: 'Database Schema & Data Integrity Analysis',
+    topicAr: 'تحليل سلامة قاعدة البيانات والبيانات',
+    agents: ['system_architect', 'database_integrity_engineer', 'backend_core_engineer', 'challenger_ai'],
+    prompt: `تحليل عميق لقاعدة البيانات:
+- راجع العلاقات والـ Foreign Keys
+- ابحث عن Orphan Records
+- تحقق من RLS Policies coverage
+- راجع Indexes والـ Performance
+- ابحث عن Data Type mismatches
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'wallet_financial_integrity',
+    topic: 'Wallet & Financial Ledger Integrity',
+    topicAr: 'سلامة المحفظة والسجل المالي',
+    agents: ['wallet_p2p_engineer', 'database_integrity_engineer', 'security_fraud_engineer', 'challenger_ai'],
+    prompt: `تحليل سلامة النظام المالي:
+- تحقق من تطابق wallet_ledger مع wallets.balances
+- ابحث عن أي discrepancies في الأرصدة
+- راجع الـ RPCs المالية (atomicity)
 - تحقق من سلامة escrow في P2P
+- ابحث عن race conditions في التحويلات
 ⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
   },
   {
-    id: 'p2p_health',
-    topic: 'P2P Trading System Health',
-    topicAr: 'صحة نظام التداول P2P',
-    agents: ['p2p_moderator', 'backend_engineer', 'fraud_analyst', 'qa_breaker', 'challenger_ai'],
-    prompt: `حلل نظام P2P:
-- راجع status transitions
+    id: 'p2p_state_machine',
+    topic: 'P2P Order State Machine Analysis',
+    topicAr: 'تحليل آلة حالة طلبات P2P',
+    agents: ['wallet_p2p_engineer', 'backend_core_engineer', 'security_fraud_engineer', 'challenger_ai'],
+    prompt: `تحليل نظام P2P:
+- راجع status transitions logic
+- تحقق من timer expiration handling
 - ابحث عن disputes غير محلولة
-- تحقق من timer expiration logic
-- ابحث عن أي ثغرات في flow
+- راجع escrow release conditions
+- تحقق من edge cases في الـ flow
 ⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
   },
   {
-    id: 'team_hierarchy',
-    topic: 'Team Hierarchy & Referral Analysis',
-    topicAr: 'تحليل هيكل الفريق والإحالات',
-    agents: ['leader_team', 'backend_engineer', 'system_architect', 'fraud_analyst'],
-    prompt: `حلل نظام الفريق والإحالات:
-- تحقق من سلامة team_members
-- راجع rank promotions
-- ابحث عن circular references
-- تحقق من earnings distribution
-⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
-  },
-  {
-    id: 'security_audit',
-    topic: 'Security & RLS Audit',
+    id: 'security_rls_audit',
+    topic: 'Security & RLS Policies Audit',
     topicAr: 'تدقيق الأمان وسياسات RLS',
-    agents: ['system_architect', 'fraud_analyst', 'backend_engineer', 'challenger_ai'],
+    agents: ['security_fraud_engineer', 'database_integrity_engineer', 'system_architect', 'challenger_ai'],
     prompt: `تدقيق أمني شامل:
-- راجع RLS policies
-- ابحث عن exposed endpoints
-- تحقق من auth flows
-- ابحث عن privilege escalation
+- راجع جميع RLS policies
+- ابحث عن exposed data endpoints
+- تحقق من privilege escalation vectors
+- راجع auth flows وصلاحيات الأدوار
+- ابحث عن data leakage possibilities
 ⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
   },
   {
-    id: 'performance_review',
-    topic: 'Performance & Scalability Review',
-    topicAr: 'مراجعة الأداء وقابلية التوسع',
-    agents: ['system_architect', 'backend_engineer', 'web_engineer', 'android_engineer', 'ios_engineer'],
-    prompt: `مراجعة الأداء:
-- ابحث عن N+1 queries
-- راجع indexes
-- حلل realtime subscriptions
-- قيّم mobile performance
+    id: 'backend_rpc_review',
+    topic: 'Backend RPCs & Edge Functions Review',
+    topicAr: 'مراجعة RPCs و Edge Functions',
+    agents: ['backend_core_engineer', 'system_architect', 'wallet_p2p_engineer', 'challenger_ai'],
+    prompt: `مراجعة الـ Backend:
+- راجع جميع RPCs المالية
+- تحقق من atomicity كل عملية
+- ابحث عن error handling gaps
+- راجع input validation
+- تحقق من performance bottlenecks
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'frontend_state_sync',
+    topic: 'Frontend State & Backend Sync',
+    topicAr: 'تزامن حالة الواجهة مع Backend',
+    agents: ['frontend_systems_engineer', 'backend_core_engineer', 'system_architect', 'challenger_ai'],
+    prompt: `تحليل تزامن الواجهة:
+- راجع cache invalidation logic
+- ابحث عن stale data scenarios
+- تحقق من optimistic update rollbacks
+- راجع realtime subscription handling
+- ابحث عن race conditions في UI state
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'admin_audit_trail',
+    topic: 'Admin Operations & Audit Trail',
+    topicAr: 'عمليات الإدارة وسجل التدقيق',
+    agents: ['admin_panel_engineer', 'security_fraud_engineer', 'database_integrity_engineer', 'challenger_ai'],
+    prompt: `تدقيق نظام الإدارة:
+- راجع admin audit logging completeness
+- تحقق من bulk operations safety
+- ابحث عن missing audit entries
+- راجع support staff permissions
+- تحقق من moderation workflows
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'system_architecture',
+    topic: 'System Architecture & Technical Debt',
+    topicAr: 'البنية العامة والديون التقنية',
+    agents: ['system_architect', 'backend_core_engineer', 'frontend_systems_engineer', 'challenger_ai'],
+    prompt: `مراجعة البنية العامة:
+- حدد Technical Debt priorities
+- راجع scalability concerns
+- ابحث عن tight coupling issues
+- تحقق من separation of concerns
+- حلل dependency management
 ⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
   }
 ];
 
-// Agent-specific discussion prompts
+// Engineering Agent Prompts - Focus on Analysis & Proposals Only
 const AGENT_PROMPTS: Record<string, string> = {
-  backend_engineer: `أنت مهندس Backend خبير. ركز على:
-- سلامة الـ schema والـ RPCs
-- الـ atomicity والأمان
-- race conditions محتملة
-- اقترح حلولاً تقنية محددة مع Risk + Impact + Rollback`,
+  system_architect: `أنت مهندس النظام الرئيسي. ركز على:
+- التصميم الكلي والتوافق بين المكونات
+- قابلية التوسع والاستدامة
+- تقليل التعقيد والـ Technical Debt
+- أنماط التكامل الصحيحة
+⚠️ دورك: تحليل + اقتراح فقط. لا تنفيذ.`,
 
-  system_architect: `أنت معماري نظام. ركز على:
-- قابلية التوسع
-- البنية العامة
-- مخاطر طويلة المدى
-- التكامل بين المكونات`,
+  backend_core_engineer: `أنت مهندس Backend الأساسي. ركز على:
+- سلامة الـ RPCs و Edge Functions
+- Atomicity في كل عملية
+- Error Handling الشامل
+- Performance optimization
+⚠️ دورك: تحليل + اقتراح فقط. لا تنفيذ.`,
 
-  fraud_analyst: `أنت محلل احتيال. ابحث عن:
-- ثغرات أمنية محتملة
-- سيناريوهات إساءة الاستخدام
-- multi-accounting
-- اقترح آليات حماية`,
+  database_integrity_engineer: `أنت مهندس سلامة البيانات. ركز على:
+- Schema consistency
+- RLS Policies coverage
+- Referential Integrity
+- Orphan Records prevention
+- Query optimization
+⚠️ دورك: تحليل + اقتراح فقط. لا تنفيذ.`,
 
-  qa_breaker: `أنت مختبر QA متخصص في كسر السيناريوهات. ابحث عن:
-- edge cases غير معالجة
-- مدخلات غريبة
-- race conditions
-- سيناريوهات فشل`,
+  security_fraud_engineer: `أنت مهندس الأمان ومكافحة الاحتيال. ركز على:
+- ثغرات الوصول غير المصرح
+- Data exposure risks
+- Privilege escalation vectors
+- Fraud patterns detection
+- Complete audit logging
+⚠️ دورك: تحليل + اقتراح فقط. لا تنفيذ.`,
 
-  p2p_moderator: `أنت مشرف P2P. راقب:
-- دورة حياة الطلبات
-- أنماط النزاعات
-- التحقق من الدفع
-- إدارة الوقت`,
+  wallet_p2p_engineer: `أنت مهندس المحفظة والتداول. ركز على:
+- سلامة الأرصدة وتطابق الـ Ledger
+- Escrow safety في P2P
+- Financial atomicity
+- Balance reconciliation
+- Race conditions في التحويلات
+⚠️ دورك: تحليل + اقتراح فقط. لا تنفيذ.`,
 
-  leader_team: `أنت قائد فريق. راجع:
-- صحة هيكل الفريق
-- ظهور الأعضاء بشكل صحيح
-- منطق المستويات`,
+  frontend_systems_engineer: `أنت مهندس أنظمة الواجهة (ليس مصمم). ركز على:
+- State management consistency
+- Cache invalidation
+- Data sync with backend
+- Error recovery flows
+- Realtime subscription handling
+⚠️ دورك: تحليل + اقتراح فقط. لا تنفيذ.`,
 
-  android_engineer: `أنت مهندس Android. حلل من منظور:
-- تجربة المستخدم على الموبايل
-- الأداء والذاكرة
-- توافق الإصدارات`,
+  admin_panel_engineer: `أنت مهندس لوحة التحكم. ركز على:
+- Admin workflow completeness
+- Audit trail coverage
+- Bulk operations safety
+- Support tools effectiveness
+- Moderation workflows
+⚠️ دورك: تحليل + اقتراح فقط. لا تنفيذ.`,
 
-  ios_engineer: `أنت مهندس iOS. راجع حسب:
-- Apple Human Interface Guidelines
-- أداء iOS
-- توافق الأجهزة`,
-
-  web_engineer: `أنت مهندس Web متخصص. ركز على:
-- أداء React/TypeScript
-- SEO والـ accessibility
-- أفضل ممارسات PWA`,
-
-  challenger_ai: `أنت "المتحدي" (Devil's Advocate) - دورك هو:
-- تحدي كل الحلول المقترحة بشكل بناء
-- طرح أسئلة استفزازية
-- كشف نقاط الضعف في التفكير
-- طرح سيناريوهات "ماذا لو"
-- لا توافق بسهولة، ابحث عن الثغرات`,
+  challenger_ai: `أنت الذكاء المعارض - دورك الأساسي:
+- تحدي كل افتراض وحل مقترح
+- طرح أسوأ السيناريوهات (What Could Go Wrong)
+- كشف Edge Cases غير المعالجة
+- كسر المنطق الذي يبدو صحيحاً
+- لا توافق بسهولة، ابحث عن الثغرات
+⚠️ دورك: تحدي + نقد بناء. لا تنفيذ.`,
 };
 
 function delay(ms: number): Promise<void> {
@@ -142,6 +191,7 @@ async function fetchSystemContext(supabase: any) {
     { count: activeContests },
     { count: totalTeamLinks },
     { count: openTickets },
+    { data: walletStats },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_ai', false),
@@ -150,7 +200,12 @@ async function fetchSystemContext(supabase: any) {
     supabase.from('contests').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('team_members').select('*', { count: 'exact', head: true }),
     supabase.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+    supabase.from('wallets').select('nova_balance, aura_balance, is_frozen').limit(1000),
   ]);
+
+  const frozenWallets = walletStats?.filter((w: any) => w.is_frozen)?.length || 0;
+  const totalNova = walletStats?.reduce((sum: number, w: any) => sum + (w.nova_balance || 0), 0) || 0;
+  const totalAura = walletStats?.reduce((sum: number, w: any) => sum + (w.aura_balance || 0), 0) || 0;
 
   return {
     totalUsers: totalUsers || 0,
@@ -160,6 +215,9 @@ async function fetchSystemContext(supabase: any) {
     activeContests: activeContests || 0,
     totalTeamLinks: totalTeamLinks || 0,
     openTickets: openTickets || 0,
+    frozenWallets,
+    totalNova: Math.round(totalNova),
+    totalAura: Math.round(totalAura),
     timestamp: new Date().toISOString(),
   };
 }
@@ -191,23 +249,24 @@ async function generateAgentAnalysis(
       messages: [
         {
           role: 'system',
-          content: `أنت ${agent.agent_name_ar} في فريق WINOVA الهندسي.
+          content: `أنت ${agent.agent_name_ar} في مجلس المراجعة الهندسي لـ WINOVA.
 ${agentPrompt}
 
 📊 معلومات النظام الحالية:
 - المستخدمين الحقيقيين: ${systemContext.realUsers}
 - طلبات P2P: ${systemContext.totalOrders}
 - النزاعات المفتوحة: ${systemContext.disputedOrders}
-- المسابقات النشطة: ${systemContext.activeContests}
+- المحافظ المجمدة: ${systemContext.frozenWallets}
+- إجمالي Nova: ${systemContext.totalNova}
+- إجمالي Aura: ${systemContext.totalAura}
 - تذاكر الدعم المفتوحة: ${systemContext.openTickets}
 
-📌 قواعد Level 3 (Autonomous with Human Gate):
-- حلل واكتشف المشاكل
-- اقترح حلولاً مع Risk + Impact + Rollback
-- أي تغيير = Proposal فقط، ليس تنفيذ
-- التنفيذ يحتاج موافقة Admin
-- ❌ ممنوع: Auto-Deploy، تعديل Production، حذف/تحديث مالي مباشر
-- ✅ مسموح: Review + Suggest + Generate only
+📌 قواعد مجلس المراجعة الهندسي:
+- ❌ ممنوع: أي تنفيذ مباشر
+- ❌ ممنوع: تعديل DB/Wallet/Code
+- ✅ مسموح: تحليل + اكتشاف مشاكل + اقتراح حلول
+- ✅ كل اقتراح = Proposal قابل للإرسال لمبرمج بشري
+- ✅ ركز على: Backend consistency + Database integrity
 
 ${previousContext}`,
         },
@@ -216,7 +275,7 @@ ${previousContext}`,
           content: `الموضوع: ${topic}\n\n${prompt}\n\nدورك الآن (المتحدث ${turnNumber + 1}):`,
         },
       ],
-      max_tokens: 700,
+      max_tokens: 800,
       temperature: 0.7,
     }),
   });
@@ -245,32 +304,34 @@ async function generateSessionSummary(
       messages: [
         {
           role: 'system',
-          content: `أنت منسق فريق AI في WINOVA (Level 3 Governance).
+          content: `أنت منسق مجلس المراجعة الهندسي لـ WINOVA.
 
 مهمتك:
-1. تلخيص تحليلات الفريق
-2. استخراج المشاكل المكتشفة
-3. تجميع الحلول كـ Proposals مع تفاصيل كاملة
+1. تلخيص تحليلات الفريق الهندسي
+2. استخراج المشاكل المكتشفة بوضوح
+3. تجميع الحلول كـ Proposals قابلة للإرسال لمبرمج بشري أو Lovable
 
-⚠️ قواعد Level 3:
-- كل اقتراح = Proposal يحتاج موافقة Admin
-- لا تنفيذ تلقائي أبداً
-- وضح Risk + Impact + Rollback لكل proposal
+⚠️ قواعد صارمة:
+- لا تنفيذ - فقط Proposals
+- كل Proposal يجب أن يكون واضحاً وقابلاً للتنفيذ
+- التركيز على: Backend consistency + Database integrity
+- UI فقط لخدمة المنطق وليس للتجميل
 
 أخرج JSON:
 {
-  "summary": "ملخص تنفيذي موجز",
+  "summary": "ملخص تنفيذي موجز للمشاكل المكتشفة",
   "proposals": [
     {
-      "title": "عنوان الاقتراح",
-      "description": "وصف الحل",
+      "title": "عنوان واضح للاقتراح",
+      "description": "وصف تقني دقيق للحل",
       "priority": "critical|high|medium|low",
-      "area": "backend|frontend|security|ux|wallet|p2p|team",
+      "area": "backend|database|security|wallet|p2p|frontend|admin",
       "risk_level": "high|medium|low",
-      "impact_scope": "وصف نطاق التأثير",
-      "rollback_plan": "خطة التراجع في حال الفشل",
+      "impact_scope": "نطاق التأثير",
+      "rollback_plan": "خطة التراجع",
       "estimated_effort": "small|medium|large",
-      "suggested_by": "اسم الوكيل"
+      "suggested_by": "اسم المهندس",
+      "code_snippet": "مثال كود مختصر إن وجد"
     }
   ]
 }
@@ -279,10 +340,10 @@ async function generateSessionSummary(
         },
         {
           role: 'user',
-          content: `الموضوع: ${topic}\n\nتحليلات الفريق:\n${responsesText}`,
+          content: `الموضوع: ${topic}\n\nتحليلات الفريق الهندسي:\n${responsesText}`,
         },
       ],
-      max_tokens: 1500,
+      max_tokens: 2000,
       temperature: 0.5,
     }),
   });
@@ -335,7 +396,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Starting Level 3 scheduled discussion: ${topic.id}`);
+    console.log(`Starting Engineering Review Session: ${topic.id}`);
 
     // Fetch system context
     const systemContext = await fetchSystemContext(supabase);
@@ -354,7 +415,7 @@ Deno.serve(async (req) => {
 
     if (sessionError) throw sessionError;
 
-    // Get relevant agents
+    // Get relevant engineering agents
     const { data: allAgents, error: agentsError } = await supabase
       .from('ai_agents')
       .select('*')
@@ -365,30 +426,33 @@ Deno.serve(async (req) => {
 
     const selectedAgents = allAgents || [];
     
-    // Get system architect for session messages
-    const systemArchitect = selectedAgents.find(a => a.agent_role === 'system_architect') || selectedAgents[0];
+    // Get system architect for session coordination
+    const systemArchitect = selectedAgents.find(a => a.agent_role === 'system_architect') 
+      || selectedAgents.find(a => a.agent_role === 'database_integrity_engineer')
+      || selectedAgents[0];
+    
     if (!systemArchitect) {
-      throw new Error('No agents available for discussion');
+      throw new Error('No engineering agents available for review session');
     }
 
     // Insert topic announcement
     await supabase.from('ai_chat_room').insert({
       agent_id: systemArchitect.id,
-      content: `📋 جلسة تحليل مجدولة (Level 3)\n\n**الموضوع:** ${topic.topicAr}\n\n${topic.prompt}\n\n⚠️ جميع الاقتراحات ستحتاج موافقة Admin قبل التنفيذ.`,
-      content_ar: `📋 جلسة تحليل مجدولة (Level 3)\n\n**الموضوع:** ${topic.topicAr}\n\n${topic.prompt}\n\n⚠️ جميع الاقتراحات ستحتاج موافقة Admin قبل التنفيذ.`,
+      content: `🔧 جلسة مجلس المراجعة الهندسي\n\n**الموضوع:** ${topic.topicAr}\n\n${topic.prompt}\n\n📋 الفريق: ${selectedAgents.map(a => a.agent_name_ar).join(' | ')}\n\n⚠️ تحليل فقط - لا تنفيذ مباشر`,
+      content_ar: `🔧 جلسة مجلس المراجعة الهندسي\n\n**الموضوع:** ${topic.topicAr}\n\n${topic.prompt}\n\n📋 الفريق: ${selectedAgents.map(a => a.agent_name_ar).join(' | ')}\n\n⚠️ تحليل فقط - لا تنفيذ مباشر`,
       message_type: 'scheduled_topic',
       ai_session_id: session.id,
       turn_order: 0,
     });
 
-    // Generate responses SEQUENTIALLY with delay (Turn-based, Deliberate Mode)
+    // Generate responses SEQUENTIALLY (Turn-based Engineering Review)
     const responses: Array<{ agent: string; agentId: string; response: string }> = [];
     const previousResponses: string[] = [];
     
     for (let i = 0; i < selectedAgents.length; i++) {
       const agent = selectedAgents[i];
       
-      // Deliberate delay (5-10 seconds between responses)
+      // Deliberate delay between engineers (5-10 seconds)
       if (i > 0) {
         await delay(5000 + Math.random() * 5000);
       }
@@ -411,7 +475,7 @@ Deno.serve(async (req) => {
       
       previousResponses.push(`${agent.agent_name_ar}: ${response}`);
 
-      // Insert agent response with turn order
+      // Insert engineer response with turn order
       await supabase.from('ai_chat_room').insert({
         agent_id: agent.id,
         content: response,
@@ -436,8 +500,8 @@ Deno.serve(async (req) => {
     // Insert summary
     await supabase.from('ai_chat_room').insert({
       agent_id: systemArchitect.id,
-      content: `📋 ملخص جلسة التحليل (Level 3):\n\n${summary}\n\n⚠️ جميع الاقتراحات (${proposals.length}) تحتاج موافقة Admin قبل التنفيذ.\n❌ لا Auto-Deploy. ❌ لا تعديل مباشر.`,
-      content_ar: `📋 ملخص جلسة التحليل (Level 3):\n\n${summary}\n\n⚠️ جميع الاقتراحات (${proposals.length}) تحتاج موافقة Admin قبل التنفيذ.\n❌ لا Auto-Deploy. ❌ لا تعديل مباشر.`,
+      content: `📋 ملخص جلسة المراجعة الهندسية:\n\n${summary}\n\n🔧 Proposals للتنفيذ: ${proposals.length}\n⚠️ كل Proposal قابل للإرسال لمبرمج بشري أو Lovable`,
+      content_ar: `📋 ملخص جلسة المراجعة الهندسية:\n\n${summary}\n\n🔧 Proposals للتنفيذ: ${proposals.length}\n⚠️ كل Proposal قابل للإرسال لمبرمج بشري أو Lovable`,
       message_type: 'summary',
       ai_session_id: session.id,
       is_summary: true,
@@ -445,7 +509,7 @@ Deno.serve(async (req) => {
       is_proposal: proposals.length > 0,
     });
 
-    // Insert proposals with full Level 3 governance fields
+    // Insert proposals with full governance fields
     for (const proposal of proposals) {
       const proposingAgent = selectedAgents.find(a => 
         a.agent_name_ar === proposal.suggested_by || 
@@ -467,6 +531,7 @@ Deno.serve(async (req) => {
         impact_scope: proposal.impact_scope,
         rollback_plan: proposal.rollback_plan,
         estimated_effort: proposal.estimated_effort,
+        code_snippet: proposal.code_snippet,
       });
     }
 
@@ -490,16 +555,15 @@ Deno.serve(async (req) => {
         success: true,
         session_id: session.id,
         topic: topic.id,
-        agents_participated: responses.length,
-        proposals_generated: proposals.length,
-        governance: 'Level 3 - Human Gate Required',
-        summary
+        participants: selectedAgents.map(a => a.agent_name_ar),
+        proposals_count: proposals.length,
+        governance: 'review_only_no_execution'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {
-    console.error('AI Discussion Scheduler Error:', error);
+    console.error('Engineering Review Session Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

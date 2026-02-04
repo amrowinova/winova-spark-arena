@@ -3,62 +3,43 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Agent role display configuration - Full Engineering Organization
+// Engineering Team Role Configuration - Professional Engineering Review Board
 export const AGENT_ROLE_CONFIG: Record<string, { emoji: string; layer: string; layerAr: string; color: string }> = {
-  // Core Infrastructure Layer
-  system_sentinel: { emoji: '🛡️', layer: 'Core Infrastructure', layerAr: 'البنية التحتية', color: 'text-red-500' },
-  backend_engineer: { emoji: '⚙️', layer: 'Core Infrastructure', layerAr: 'البنية التحتية', color: 'text-blue-500' },
-  system_architect: { emoji: '🏗️', layer: 'Core Infrastructure', layerAr: 'البنية التحتية', color: 'text-purple-500' },
+  // Architecture & Design
+  system_architect: { emoji: '🏗️', layer: 'Architecture', layerAr: 'الهندسة المعمارية', color: 'text-purple-500' },
   
-  // Quality & Testing Layer
-  chaos_engineer: { emoji: '💥', layer: 'Quality & Testing', layerAr: 'الجودة والاختبار', color: 'text-orange-500' },
-  qa_breaker: { emoji: '🧪', layer: 'Quality & Testing', layerAr: 'الجودة والاختبار', color: 'text-yellow-500' },
+  // Backend & Core Systems
+  backend_core_engineer: { emoji: '⚙️', layer: 'Backend', layerAr: 'النظام الخلفي', color: 'text-blue-500' },
   
-  // Implementation Layer
-  implementation_engineer: { emoji: '🔧', layer: 'Implementation', layerAr: 'التنفيذ', color: 'text-emerald-500' },
+  // Database & Data
+  database_integrity_engineer: { emoji: '🗄️', layer: 'Database', layerAr: 'قاعدة البيانات', color: 'text-emerald-500' },
   
-  // Product & UX Layer
-  product_owner: { emoji: '👤', layer: 'Product & UX', layerAr: 'المنتج والتجربة', color: 'text-pink-500' },
-  user_tester: { emoji: '🎯', layer: 'Product & UX', layerAr: 'المنتج والتجربة', color: 'text-cyan-500' },
+  // Security & Fraud
+  security_fraud_engineer: { emoji: '🔒', layer: 'Security', layerAr: 'الأمان', color: 'text-red-500' },
   
-  // Platform Specialists
-  android_engineer: { emoji: '🤖', layer: 'Platform Specialists', layerAr: 'متخصصو المنصات', color: 'text-green-500' },
-  ios_engineer: { emoji: '🍎', layer: 'Platform Specialists', layerAr: 'متخصصو المنصات', color: 'text-gray-400' },
-  web_engineer: { emoji: '🌐', layer: 'Platform Specialists', layerAr: 'متخصصو المنصات', color: 'text-blue-400' },
+  // Financial Systems
+  wallet_p2p_engineer: { emoji: '💰', layer: 'Financial', layerAr: 'النظام المالي', color: 'text-yellow-500' },
   
-  // Domain Experts
-  fintech_specialist: { emoji: '💰', layer: 'Domain Experts', layerAr: 'خبراء المجال', color: 'text-yellow-500' },
-  integrations_specialist: { emoji: '🔌', layer: 'Domain Experts', layerAr: 'خبراء المجال', color: 'text-indigo-500' },
-  security_specialist: { emoji: '🔒', layer: 'Domain Experts', layerAr: 'خبراء المجال', color: 'text-red-400' },
-  fraud_analyst: { emoji: '🕵️', layer: 'Domain Experts', layerAr: 'خبراء المجال', color: 'text-amber-500' },
+  // Frontend Systems (not design)
+  frontend_systems_engineer: { emoji: '🖥️', layer: 'Frontend', layerAr: 'أنظمة الواجهة', color: 'text-cyan-500' },
   
-  // Growth & Business
-  growth_analyst: { emoji: '📈', layer: 'Growth & Business', layerAr: 'النمو والأعمال', color: 'text-teal-500' },
-  marketer_growth: { emoji: '🚀', layer: 'Growth & Business', layerAr: 'النمو والأعمال', color: 'text-violet-500' },
+  // Admin & Control
+  admin_panel_engineer: { emoji: '🎛️', layer: 'Admin', layerAr: 'لوحة التحكم', color: 'text-orange-500' },
   
-  // Operations
-  p2p_moderator: { emoji: '⚖️', layer: 'Operations', layerAr: 'العمليات', color: 'text-slate-500' },
-  support_agent: { emoji: '🎧', layer: 'Operations', layerAr: 'العمليات', color: 'text-lime-500' },
-  leader_team: { emoji: '👑', layer: 'Operations', layerAr: 'العمليات', color: 'text-amber-400' },
-  manager_stats: { emoji: '📊', layer: 'Operations', layerAr: 'العمليات', color: 'text-sky-500' },
-  contest_judge: { emoji: '🏆', layer: 'Operations', layerAr: 'العمليات', color: 'text-yellow-400' },
-  power_user: { emoji: '⚡', layer: 'Operations', layerAr: 'العمليات', color: 'text-orange-400' },
-  
-  // Governance
-  challenger_ai: { emoji: '👹', layer: 'Governance', layerAr: 'الحوكمة', color: 'text-rose-500' },
+  // Challenger (Devil's Advocate)
+  challenger_ai: { emoji: '👹', layer: 'Governance', layerAr: 'المعارض', color: 'text-rose-500' },
 };
 
-// Get unique layers for grouping
+// Engineering Layers for grouping
 export const AGENT_LAYERS = [
-  { key: 'Core Infrastructure', ar: 'البنية التحتية', icon: '🏛️' },
-  { key: 'Quality & Testing', ar: 'الجودة والاختبار', icon: '🧪' },
-  { key: 'Implementation', ar: 'التنفيذ', icon: '🔧' },
-  { key: 'Product & UX', ar: 'المنتج والتجربة', icon: '👤' },
-  { key: 'Platform Specialists', ar: 'متخصصو المنصات', icon: '📱' },
-  { key: 'Domain Experts', ar: 'خبراء المجال', icon: '🎓' },
-  { key: 'Growth & Business', ar: 'النمو والأعمال', icon: '📈' },
-  { key: 'Operations', ar: 'العمليات', icon: '⚙️' },
-  { key: 'Governance', ar: 'الحوكمة', icon: '🛡️' },
+  { key: 'Architecture', ar: 'الهندسة المعمارية', icon: '🏗️' },
+  { key: 'Backend', ar: 'النظام الخلفي', icon: '⚙️' },
+  { key: 'Database', ar: 'قاعدة البيانات', icon: '🗄️' },
+  { key: 'Security', ar: 'الأمان', icon: '🔒' },
+  { key: 'Financial', ar: 'النظام المالي', icon: '💰' },
+  { key: 'Frontend', ar: 'أنظمة الواجهة', icon: '🖥️' },
+  { key: 'Admin', ar: 'لوحة التحكم', icon: '🎛️' },
+  { key: 'Governance', ar: 'المعارض', icon: '👹' },
 ];
 
 export interface AIControlRoomMessage {

@@ -2095,6 +2095,12 @@ export type Database = {
         | "integrations_specialist"
         | "security_specialist"
         | "growth_analyst"
+        | "backend_core_engineer"
+        | "database_integrity_engineer"
+        | "security_fraud_engineer"
+        | "wallet_p2p_engineer"
+        | "frontend_systems_engineer"
+        | "admin_panel_engineer"
       app_role: "admin" | "moderator" | "user" | "support"
       currency_type: "nova" | "aura"
       engagement_status: "both" | "contest" | "vote" | "none"
@@ -2287,6 +2293,12 @@ export const Constants = {
         "integrations_specialist",
         "security_specialist",
         "growth_analyst",
+        "backend_core_engineer",
+        "database_integrity_engineer",
+        "security_fraud_engineer",
+        "wallet_p2p_engineer",
+        "frontend_systems_engineer",
+        "admin_panel_engineer",
       ],
       app_role: ["admin", "moderator", "user", "support"],
       currency_type: ["nova", "aura"],
