@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Brain, ArrowLeft, Lock, Send, Loader2 } from 'lucide-react';
+import { Brain, ArrowLeft, Lock, Send, Loader2, FileCheck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,21 +16,28 @@ import {
   getAgentEmoji 
 } from '@/hooks/useAIControlRoom';
 import { useAIHumanQuestion } from '@/hooks/useAIHumanQuestion';
+import { useAIProposals, getPriorityColor, getPriorityBadge, getStatusBadge, useApproveProposal, useRejectProposal } from '@/hooks/useAIProposals';
 import { AIControlRoomMessageBubble } from './AIControlRoomMessage';
+import { useAuth } from '@/contexts/AuthContext';
+
 interface AIControlRoomViewProps {
   onBack: () => void;
 }
 
 export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [questionInput, setQuestionInput] = useState('');
   
   const { data: messages, isLoading: messagesLoading } = useAIControlRoomCombined(200);
   const { data: agents, isLoading: agentsLoading } = useAIAgents();
   const { data: findings } = useAIControlRoomFindings(20);
+  const { data: proposals, isLoading: proposalsLoading } = useAIProposals();
   const { data: canAccess } = useCanAccessAIControlRoom();
   const { askQuestion, isAsking } = useAIHumanQuestion();
+  const { mutate: approveProposal, isPending: isApproving } = useApproveProposal();
+  const { mutate: rejectProposal, isPending: isRejecting } = useRejectProposal();
   
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -43,6 +50,13 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
     high: findings?.filter(f => f.severity === 'high').length || 0,
     medium: findings?.filter(f => f.severity === 'medium').length || 0,
     low: findings?.filter(f => f.severity === 'low').length || 0,
+  };
+
+  // Count proposals by status
+  const proposalCounts = {
+    pending: proposals?.filter(p => p.status === 'pending').length || 0,
+    approved: proposals?.filter(p => p.status === 'approved').length || 0,
+    rejected: proposals?.filter(p => p.status === 'rejected').length || 0,
   };
 
   const handleAskQuestion = () => {
@@ -83,8 +97,8 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
               </h2>
               <p className="text-xs text-muted-foreground">
                 {language === 'ar' 
-                  ? `${agents?.length || 0} وكيل نشط • للقراءة فقط`
-                  : `${agents?.length || 0} active agents • Read-only`
+                  ? `${agents?.length || 0} وكيل نشط • نقاش متسلسل`
+                  : `${agents?.length || 0} active agents • Turn-based`
                 }
               </p>
             </div>
@@ -97,9 +111,9 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
                 🔴 {findingCounts.critical}
               </Badge>
             )}
-            {findingCounts.high > 0 && (
+            {proposalCounts.pending > 0 && (
               <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">
-                🟡 {findingCounts.high}
+                ⏳ {proposalCounts.pending}
               </Badge>
             )}
           </div>
@@ -140,6 +154,14 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
             <TabsTrigger value="discussion" className="text-xs">
               💬 {language === 'ar' ? 'النقاش' : 'Discussion'}
             </TabsTrigger>
+            <TabsTrigger value="proposals" className="text-xs">
+              📝 {language === 'ar' ? 'الاقتراحات' : 'Proposals'}
+              {proposalCounts.pending > 0 && (
+                <span className="ms-1 px-1.5 py-0.5 rounded-full bg-warning text-warning-foreground text-[10px]">
+                  {proposalCounts.pending}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="findings" className="text-xs">
               🔍 {language === 'ar' ? 'المشاكل' : 'Findings'}
               {(findingCounts.critical + findingCounts.high) > 0 && (
@@ -158,6 +180,18 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
         <TabsContent value="discussion" className="flex-1 overflow-hidden m-0">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-2">
+              {/* Deliberate Mode Notice */}
+              <div className="bg-info/10 border border-info/30 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 text-info text-sm">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    {language === 'ar' 
+                      ? 'وضع النقاش العميق: الردود متسلسلة مع تأخير 5-10 ثواني'
+                      : 'Deliberate Mode: Sequential responses with 5-10s delay'}
+                  </span>
+                </div>
+              </div>
+
               {messagesLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map(i => (
@@ -175,8 +209,8 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
                   <Brain className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
                   <p className="text-muted-foreground">
                     {language === 'ar' 
-                      ? 'لا توجد رسائل بعد. سيبدأ النقاش التلقائي قريباً.'
-                      : 'No messages yet. Automated discussion will start soon.'}
+                      ? 'لا توجد رسائل بعد. اسأل الفريق الهندسي!'
+                      : 'No messages yet. Ask the engineering team!'}
                   </p>
                 </div>
               ) : (
@@ -185,6 +219,143 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
                 ))
               )}
               <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        {/* Proposals Tab */}
+        <TabsContent value="proposals" className="flex-1 overflow-hidden m-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-3">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-warning/10 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-warning">{proposalCounts.pending}</div>
+                  <div className="text-[10px] text-warning/80">
+                    {language === 'ar' ? 'بانتظار' : 'Pending'}
+                  </div>
+                </div>
+                <div className="bg-success/10 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-success">{proposalCounts.approved}</div>
+                  <div className="text-[10px] text-success/80">
+                    {language === 'ar' ? 'معتمد' : 'Approved'}
+                  </div>
+                </div>
+                <div className="bg-destructive/10 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-destructive">{proposalCounts.rejected}</div>
+                  <div className="text-[10px] text-destructive/80">
+                    {language === 'ar' ? 'مرفوض' : 'Rejected'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Governance Notice */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 text-primary text-sm">
+                  <FileCheck className="h-4 w-4" />
+                  <span>
+                    {language === 'ar' 
+                      ? 'جميع الاقتراحات تحتاج موافقتك قبل التنفيذ'
+                      : 'All proposals require your approval before execution'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Proposals List */}
+              {proposalsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2].map(i => (
+                    <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : proposals?.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileCheck className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <p className="text-muted-foreground">
+                    {language === 'ar' 
+                      ? 'لا توجد اقتراحات بعد'
+                      : 'No proposals yet'}
+                  </p>
+                </div>
+              ) : (
+                proposals?.map(proposal => {
+                  const priorityBadge = getPriorityBadge(proposal.priority, language as 'ar' | 'en');
+                  const statusBadge = getStatusBadge(proposal.status, language as 'ar' | 'en');
+                  
+                  return (
+                    <motion.div
+                      key={proposal.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-card border border-border rounded-xl p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <h3 className="font-semibold text-foreground">
+                          {language === 'ar' ? proposal.titleAr || proposal.title : proposal.title}
+                        </h3>
+                        <div className="flex gap-1.5 shrink-0">
+                          <Badge variant="outline" className={`text-[10px] ${getPriorityColor(proposal.priority)}`}>
+                            {priorityBadge.emoji} {priorityBadge.label}
+                          </Badge>
+                          <Badge variant="outline" className={`text-[10px] ${statusBadge.color}`}>
+                            {statusBadge.emoji} {statusBadge.label}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {language === 'ar' ? proposal.descriptionAr || proposal.description : proposal.description}
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {proposal.proposedByName && (
+                            <span>💡 {proposal.proposedByName}</span>
+                          )}
+                          {proposal.affectedArea && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              📍 {proposal.affectedArea}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {/* Admin Actions */}
+                        {proposal.status === 'pending' && canAccess && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                              onClick={() => rejectProposal({ proposalId: proposal.id })}
+                              disabled={isRejecting || isApproving}
+                            >
+                              ❌ {language === 'ar' ? 'رفض' : 'Reject'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => approveProposal({ proposalId: proposal.id })}
+                              disabled={isRejecting || isApproving}
+                            >
+                              ✅ {language === 'ar' ? 'موافقة' : 'Approve'}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Admin Notes */}
+                      {proposal.adminNotes && (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium">📝 {language === 'ar' ? 'ملاحظات:' : 'Notes:'}</span>{' '}
+                            {proposal.adminNotes}
+                          </p>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
           </ScrollArea>
         </TabsContent>
@@ -302,8 +473,8 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
               onChange={(e) => setQuestionInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={language === 'ar' 
-                ? 'اسأل فريق AI... (Enter للإرسال)'
-                : 'Ask the AI team... (Enter to send)'}
+                ? 'اسأل فريق AI الهندسي... (Enter للإرسال)'
+                : 'Ask the AI engineering team... (Enter to send)'}
               className="min-h-[44px] max-h-[120px] resize-none flex-1"
               disabled={isAsking}
             />

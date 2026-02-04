@@ -65,6 +65,10 @@ export function getAgentEmoji(role: string): string {
     power_user: '⚡',
     contest_judge: '⚖️',
     p2p_moderator: '🤝',
+    android_engineer: '🤖',
+    ios_engineer: '🍎',
+    web_engineer: '🌐',
+    challenger_ai: '😈',
   };
   return emojiMap[role] || '🤖';
 }
