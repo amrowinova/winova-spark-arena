@@ -110,7 +110,125 @@ const ANALYSIS_TOPICS = [
 - تحقق من separation of concerns
 - حلل dependency management
 ⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
-  }
+  },
+  // ============ SCREEN-SPECIFIC TOPICS ============
+  {
+    id: 'screen_home_analysis',
+    topic: 'Home Screen Logic & Data Flow Analysis',
+    topicAr: 'تحليل منطق وبيانات شاشة الرئيسية',
+    agents: ['screen_home_owner', 'frontend_systems_engineer', 'database_integrity_engineer', 'challenger_ai'],
+    prompt: `تحليل شاشة الرئيسية:
+- راجع ActiveUsersCard وصحة عداد المستخدمين
+- تحقق من تزامن بيانات الترتيب (Leaderboard)
+- ابحث عن تأخر في تحديث بطاقات المسابقات
+- راجع navigation flow وحالات الخطأ
+- تحقق من realtime subscriptions
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'screen_wallet_analysis',
+    topic: 'Wallet Screen Logic & Ledger Sync Analysis',
+    topicAr: 'تحليل شاشة المحفظة وتزامن السجل',
+    agents: ['screen_wallet_owner', 'wallet_p2p_engineer', 'database_integrity_engineer', 'challenger_ai'],
+    prompt: `تحليل شاشة المحفظة:
+- راجع دقة عرض الأرصدة (Nova, Aura, Locked)
+- تحقق من تزامن wallet_ledger مع الـ UI
+- ابحث عن race conditions عند التحويل
+- راجع حالات frozen wallet في الواجهة
+- تحقق من تحديثات الـ transaction history
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'screen_p2p_analysis',
+    topic: 'P2P Marketplace Screen Analysis',
+    topicAr: 'تحليل شاشة سوق P2P',
+    agents: ['screen_p2p_owner', 'wallet_p2p_engineer', 'backend_core_engineer', 'challenger_ai'],
+    prompt: `تحليل شاشة P2P Marketplace:
+- راجع فلترة الطلبات حسب البلد
+- تحقق من عرض حالات الطلبات الصحيحة
+- ابحث عن مشاكل في إنشاء طلبات جديدة
+- راجع تحديث الأسعار والـ exchange rates
+- تحقق من حالات عدم وجود طلبات
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'screen_p2p_chat_analysis',
+    topic: 'P2P Chat & Order Flow Analysis',
+    topicAr: 'تحليل شات P2P وتدفق الطلبات',
+    agents: ['screen_p2p_chat_owner', 'wallet_p2p_engineer', 'security_fraud_engineer', 'challenger_ai'],
+    prompt: `تحليل شاشة P2P Chat:
+- راجع payment steps flow ودقتها
+- تحقق من عرض timer countdown
+- ابحث عن مشاكل في رفع ملفات النزاع
+- راجع action buttons لكل حالة
+- تحقق من رسائل النظام التلقائية
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'screen_dm_chat_analysis',
+    topic: 'DM Chat & Messaging Logic Analysis',
+    topicAr: 'تحليل الرسائل المباشرة والمحادثات',
+    agents: ['screen_dm_chat_owner', 'frontend_systems_engineer', 'backend_core_engineer', 'challenger_ai'],
+    prompt: `تحليل شاشة الرسائل:
+- راجع message delivery وread receipts
+- تحقق من ترتيب المحادثات
+- ابحث عن مشاكل في realtime sync
+- راجع typing indicators ودقتها
+- تحقق من حالات offline/reconnect
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'screen_contests_analysis',
+    topic: 'Contests Screen Logic & Voting Analysis',
+    topicAr: 'تحليل شاشة المسابقات والتصويت',
+    agents: ['screen_contests_owner', 'wallet_p2p_engineer', 'database_integrity_engineer', 'challenger_ai'],
+    prompt: `تحليل شاشة المسابقات:
+- راجع entry requirements والتحقق منها
+- تحقق من voting mechanics وخصم Aura
+- ابحث عن مشاكل في حساب الفائزين
+- راجع timer accuracy وانتهاء المسابقة
+- تحقق من prize distribution logic
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'screen_profile_analysis',
+    topic: 'Profile Screen Data & Stats Analysis',
+    topicAr: 'تحليل شاشة البروفايل والإحصائيات',
+    agents: ['screen_profile_owner', 'database_integrity_engineer', 'frontend_systems_engineer', 'challenger_ai'],
+    prompt: `تحليل شاشة البروفايل:
+- راجع دقة عرض الإحصائيات
+- تحقق من followers/following sync
+- ابحث عن مشاكل في P2P reputation display
+- راجع wins history وصحتها
+- تحقق من profile edit flow
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'screen_team_analysis',
+    topic: 'Team Screen Hierarchy & Referral Analysis',
+    topicAr: 'تحليل شاشة الفريق والإحالات',
+    agents: ['screen_team_owner', 'database_integrity_engineer', 'backend_core_engineer', 'challenger_ai'],
+    prompt: `تحليل شاشة الفريق:
+- راجع team hierarchy accuracy
+- تحقق من referral chains وصحتها
+- ابحث عن مشاكل في rank progression display
+- راجع activity percentages calculations
+- تحقق من direct vs indirect members
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
+  {
+    id: 'screen_admin_analysis',
+    topic: 'Admin Panel Workflows & Safety Analysis',
+    topicAr: 'تحليل لوحة التحكم وسلامة العمليات',
+    agents: ['screen_admin_owner', 'admin_panel_engineer', 'security_fraud_engineer', 'challenger_ai'],
+    prompt: `تحليل لوحة التحكم:
+- راجع bulk operations وسلامتها
+- تحقق من audit trail completeness
+- ابحث عن missing admin actions
+- راجع role permissions في الواجهة
+- تحقق من user management workflows
+⚠️ تذكر: أي اقتراح = Proposal يحتاج موافقة Admin`
+  },
 ];
 
 // Engineering Agent Prompts - Focus on Analysis & Proposals Only
@@ -176,6 +294,79 @@ const AGENT_PROMPTS: Record<string, string> = {
 - كسر المنطق الذي يبدو صحيحاً
 - لا توافق بسهولة، ابحث عن الثغرات
 ⚠️ دورك: تحدي + نقد بناء. لا تنفيذ.`,
+
+  // ============ SCREEN OWNERS PROMPTS ============
+  screen_home_owner: `أنت مالك شاشة الرئيسية (Home). أنت تفهم كل التفاصيل:
+- ActiveUsersCard: كيف يحسب العداد من presence
+- Rankings: تزامن الترتيب مع profiles.spotlight_points
+- Contest Cards: عرض المسابقات النشطة والقادمة
+- Navigation: التنقل للشاشات الأخرى
+- Data Flow: ما يأتي من Backend وكيف يُعرض
+⚠️ دورك: اكتشاف مشاكل حقيقية في منطق الشاشة. لا تنفيذ.`,
+
+  screen_wallet_owner: `أنت مالك شاشة المحفظة (Wallet). أنت تفهم كل التفاصيل:
+- Balances: nova_balance, aura_balance, locked_nova_balance
+- Ledger Sync: wallet_ledger entries وتطابقها
+- Transaction History: عرض العمليات السابقة
+- Frozen States: كيف تظهر المحفظة المجمدة
+- Transfer Flow: تحويل Nova بين المستخدمين
+⚠️ دورك: اكتشاف مشاكل حقيقية في منطق الشاشة. لا تنفيذ.`,
+
+  screen_p2p_owner: `أنت مالك شاشة P2P Marketplace. أنت تفهم كل التفاصيل:
+- Order Cards: عرض الطلبات المتاحة
+- Country Filter: فلترة حسب wallet_country
+- Create Order: إنشاء طلب buy/sell جديد
+- Status Display: حالات الطلبات وألوانها
+- Exchange Rates: الأسعار وحساب المبالغ
+⚠️ دورك: اكتشاف مشاكل حقيقية في منطق الشاشة. لا تنفيذ.`,
+
+  screen_p2p_chat_owner: `أنت مالك شاشة P2P Chat. أنت تفهم كل التفاصيل:
+- Payment Steps: خطوات الدفع حسب الدور (buyer/seller)
+- Timer Countdown: العد التنازلي وانتهاء الوقت
+- Action Buttons: أزرار التأكيد والإلغاء والنزاع
+- Dispute Files: رفع ملفات إثبات
+- System Messages: الرسائل التلقائية
+⚠️ دورك: اكتشاف مشاكل حقيقية في منطق الشاشة. لا تنفيذ.`,
+
+  screen_dm_chat_owner: `أنت مالك شاشة الرسائل المباشرة (DM). أنت تفهم كل التفاصيل:
+- Conversations List: ترتيب المحادثات
+- Message Delivery: إرسال واستلام الرسائل
+- Read Receipts: is_read و delivered_at
+- Typing Indicators: مؤشر الكتابة
+- Realtime Sync: التحديث الفوري
+⚠️ دورك: اكتشاف مشاكل حقيقية في منطق الشاشة. لا تنفيذ.`,
+
+  screen_contests_owner: `أنت مالك شاشة المسابقات (Contests). أنت تفهم كل التفاصيل:
+- Entry Requirements: شروط الدخول (entry_fee, max_participants)
+- Voting Logic: التصويت وخصم aura_spent
+- Timer Accuracy: توقيت البداية والنهاية
+- Winner Calculation: حساب الفائزين والترتيب
+- Prize Distribution: توزيع الجوائز
+⚠️ دورك: اكتشاف مشاكل حقيقية في منطق الشاشة. لا تنفيذ.`,
+
+  screen_profile_owner: `أنت مالك شاشة البروفايل (Profile). أنت تفهم كل التفاصيل:
+- User Stats: النقاط والترتيب والفعالية
+- Followers/Following: follows table وعرضها
+- P2P Reputation: p2p_ratings وحساب السمعة
+- Wins History: المسابقات التي فاز بها
+- Profile Edit: تعديل البيانات الشخصية
+⚠️ دورك: اكتشاف مشاكل حقيقية في منطق الشاشة. لا تنفيذ.`,
+
+  screen_team_owner: `أنت مالك شاشة الفريق (Team). أنت تفهم كل التفاصيل:
+- Team Hierarchy: team_members وعلاقة leader/member
+- Referral Logic: referred_by وسلسلة الإحالات
+- Rank Display: عرض رتب الأعضاء
+- Activity Percentages: حساب نسبة النشاط
+- Direct vs Indirect: الفرق بين المستويات
+⚠️ دورك: اكتشاف مشاكل حقيقية في منطق الشاشة. لا تنفيذ.`,
+
+  screen_admin_owner: `أنت مالك لوحة التحكم (Admin Panel). أنت تفهم كل التفاصيل:
+- User Management: إدارة المستخدمين والأدوار
+- Wallet Operations: تجميد/إلغاء تجميد المحافظ
+- Nova Distribution: توزيع Nova للمستخدمين
+- Audit Logs: سجل العمليات الإدارية
+- Support Tools: أدوات فريق الدعم
+⚠️ دورك: اكتشاف مشاكل حقيقية في منطق الشاشة. لا تنفيذ.`,
 };
 
 function delay(ms: number): Promise<void> {
