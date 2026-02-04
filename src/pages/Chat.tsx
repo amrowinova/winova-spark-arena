@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones, UserPlus, Loader2, PenLine } from 'lucide-react';
+import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones, UserPlus, Loader2, PenLine, Brain } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { useSupport } from '@/contexts/SupportContext';
 import { useDirectMessages, DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useUserSearch, SearchedUser } from '@/hooks/useUserSearch';
 import { useChatListPresence, useGlobalPresence } from '@/hooks/useChatListPresence';
+import { useCanAccessAIControlRoom } from '@/hooks/useAIControlRoom';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { Receipt } from '@/contexts/TransactionContext';
@@ -32,6 +33,7 @@ import { TeamInfoSheet, TeamChatMember } from '@/components/chat/TeamInfoSheet';
 import { ChatSearchResults, ConversationResult, UserResult } from '@/components/chat/ChatSearchResults';
 import { SupportChatView } from '@/components/chat/SupportChatView';
 import { UserSearchSheet } from '@/components/chat/UserSearchSheet';
+import { AIControlRoomView } from '@/components/chat/AIControlRoomView';
 import { RankBadge } from '@/components/common/RankBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCountryFlag } from '@/lib/countryFlags';
@@ -48,7 +50,7 @@ import type { UserRank } from '@/contexts/UserContext';
 
 interface Conversation {
   id: string;
-  type: 'dm' | 'team' | 'p2p' | 'system';
+  type: 'dm' | 'team' | 'p2p' | 'system' | 'ai_system';
   name: string;
   nameAr?: string;
   username?: string;
@@ -143,6 +145,10 @@ function ChatContent() {
   const [showP2PDetails, setShowP2PDetails] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
+  const [showAIControlRoom, setShowAIControlRoom] = useState(false);
+  
+  // Check if user can access AI Control Room
+  const { data: canAccessAI } = useCanAccessAIControlRoom();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -334,7 +340,22 @@ function ChatContent() {
     pinnedMessages: [],
   };
 
-  // Combine all conversations - Real DMs + Support + P2P (remove mock DMs from conversations)
+  // Create AI Control Room conversation (only for authorized users)
+  const aiControlRoomConversation: Conversation | null = canAccessAI ? {
+    id: 'ai-control-room',
+    type: 'ai_system',
+    name: language === 'ar' ? '🧠 غرفة تحكم AI' : '🧠 AI Control Room',
+    nameAr: '🧠 غرفة تحكم AI',
+    username: 'ai_system',
+    avatar: '🧠',
+    lastMessage: language === 'ar' ? 'نقاش تلقائي بين الوكلاء' : 'Automated agent discussions',
+    time: '',
+    unread: 0,
+    messages: [],
+    pinnedMessages: [],
+  } : null;
+
+  // Combine all conversations - Real DMs + Support + AI Control Room + P2P (remove mock DMs from conversations)
   // Sort DMs by lastMessageAt to ensure newest conversation is at top
   const teamConversations = conversations.filter(c => c.type === 'team');
   const sortedDMConversations = [...realDMConversations].sort((a, b) => {
@@ -347,11 +368,21 @@ function ChatContent() {
       : '';
     return new Date(bTime).getTime() - new Date(aTime).getTime();
   });
-  const allConversations = [supportConversation, ...sortedDMConversations, ...teamConversations, ...p2pConversations];
+  
+  // Build all conversations with AI Control Room at top if available
+  const allConversations = [
+    ...(aiControlRoomConversation ? [aiControlRoomConversation] : []),
+    supportConversation, 
+    ...sortedDMConversations, 
+    ...teamConversations, 
+    ...p2pConversations
+  ];
+  
   const filteredConversations = allConversations.filter(conv => {
     if (conv.type === 'system') return false;
+    if (conv.id === 'ai-control-room') return selectedTab === 'dm'; // Show AI room in DM tab
     if (conv.id === 'support') return selectedTab === 'dm';
-    if (selectedTab === 'dm') return conv.type === 'dm';
+    if (selectedTab === 'dm') return conv.type === 'dm' || conv.type === 'ai_system';
     if (selectedTab === 'team') return conv.type === 'team';
     if (selectedTab === 'p2p') return conv.type === 'p2p';
     return false;
@@ -612,12 +643,23 @@ function ChatContent() {
   };
 
   const handleOpenConversation = (conv: Conversation) => {
+    // Handle AI Control Room specially
+    if (conv.id === 'ai-control-room') {
+      setShowAIControlRoom(true);
+      setActiveChat(null);
+      setActiveP2PChat(null);
+      setActiveDMConversation(null);
+      setShowSupportChat(false);
+      return;
+    }
+    
     // Handle support conversation specially
     if (conv.id === 'support') {
       setShowSupportChat(true);
       setActiveChat(null);
       setActiveP2PChat(null);
       setActiveDMConversation(null);
+      setShowAIControlRoom(false);
       return;
     }
     
@@ -626,6 +668,7 @@ function ChatContent() {
       setActiveP2PChat(conv.p2pChatId);
       setActiveChat(null);
       setActiveDMConversation(null);
+      setShowAIControlRoom(false);
       return;
     }
     
@@ -638,6 +681,7 @@ function ChatContent() {
         fetchDMMessages(dmConv.id);
         setActiveChat(null);
         setActiveP2PChat(null);
+        setShowAIControlRoom(false);
         return;
       }
     }
@@ -646,6 +690,7 @@ function ChatContent() {
     setActiveChat(conv);
     setActiveP2PChat(null);
     setActiveDMConversation(null);
+    setShowAIControlRoom(false);
   };
 
   const handleBackFromChat = () => {
@@ -655,6 +700,7 @@ function ChatContent() {
     setActiveDMConversationId(null); // Clear active conversation tracking
     setShowP2PDetails(false);
     setShowSupportChat(false);
+    setShowAIControlRoom(false);
     setReplyToDM(null);
   };
 
@@ -701,6 +747,15 @@ function ChatContent() {
     
     return { humanMessages: activeChat.messages, allContent };
   };
+
+  // AI Control Room View
+  if (showAIControlRoom) {
+    return (
+      <AppLayout title={language === 'ar' ? 'غرفة تحكم AI' : 'AI Control Room'} showNav={false} showHeader={false}>
+        <AIControlRoomView onBack={() => setShowAIControlRoom(false)} />
+      </AppLayout>
+    );
+  }
 
   // Support Chat View
   if (showSupportChat) {
@@ -1267,15 +1322,19 @@ function ChatContent() {
                       <CardContent className="p-3 flex items-center gap-3">
                         {/* Avatar */}
                         <div className={`relative w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                          conv.id === 'support' 
-                            ? 'bg-primary/20' 
-                            : conv.isSystem 
+                          conv.id === 'ai-control-room'
+                            ? 'bg-primary/20 ring-2 ring-primary/30'
+                            : conv.id === 'support' 
                               ? 'bg-primary/20' 
-                              : conv.type === 'p2p' 
-                                ? 'bg-success/20' 
-                                : 'bg-muted'
+                              : conv.isSystem 
+                                ? 'bg-primary/20' 
+                                : conv.type === 'p2p' 
+                                  ? 'bg-success/20' 
+                                  : 'bg-muted'
                         }`}>
-                          {conv.id === 'support' ? (
+                          {conv.id === 'ai-control-room' ? (
+                            <Brain className="w-6 h-6 text-primary" />
+                          ) : conv.id === 'support' ? (
                             <Headphones className="w-6 h-6 text-primary" />
                           ) : (
                             conv.avatar
