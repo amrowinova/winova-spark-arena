@@ -48,6 +48,7 @@ import SupportUsers from "./pages/support/SupportUsers";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminWallets from "./pages/admin/AdminWallets";
 import AdminRoles from "./pages/admin/AdminRoles";
+import AdminAI from "./pages/admin/AdminAI";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
@@ -118,6 +119,7 @@ const App = () => (
                             <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
                             <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />
                             <Route path="/admin/roles" element={<AdminGuard><AdminRoles /></AdminGuard>} />
+                            <Route path="/admin/ai" element={<AdminGuard><AdminAI /></AdminGuard>} />
                             
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />

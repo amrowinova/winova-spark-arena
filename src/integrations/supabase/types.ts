@@ -154,9 +154,11 @@ export type Database = {
           content_ar: string | null
           created_at: string
           id: string
+          is_summary: boolean | null
           message_type: string
           metadata: Json | null
           reply_to_id: string | null
+          session_id: string | null
         }
         Insert: {
           agent_id: string
@@ -164,9 +166,11 @@ export type Database = {
           content_ar?: string | null
           created_at?: string
           id?: string
+          is_summary?: boolean | null
           message_type?: string
           metadata?: Json | null
           reply_to_id?: string | null
+          session_id?: string | null
         }
         Update: {
           agent_id?: string
@@ -174,9 +178,11 @@ export type Database = {
           content_ar?: string | null
           created_at?: string
           id?: string
+          is_summary?: boolean | null
           message_type?: string
           metadata?: Json | null
           reply_to_id?: string | null
+          session_id?: string | null
         }
         Relationships: [
           {
@@ -194,6 +200,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_discussion_sessions: {
+        Row: {
+          action_items: Json | null
+          completed_at: string | null
+          id: string
+          messages_count: number | null
+          participants_count: number | null
+          started_at: string
+          status: string
+          summary: string | null
+          summary_ar: string | null
+          trigger_type: string
+        }
+        Insert: {
+          action_items?: Json | null
+          completed_at?: string | null
+          id?: string
+          messages_count?: number | null
+          participants_count?: number | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+          summary_ar?: string | null
+          trigger_type?: string
+        }
+        Update: {
+          action_items?: Json | null
+          completed_at?: string | null
+          id?: string
+          messages_count?: number | null
+          participants_count?: number | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+          summary_ar?: string | null
+          trigger_type?: string
+        }
+        Relationships: []
       }
       app_settings: {
         Row: {
@@ -1744,6 +1789,12 @@ export type Database = {
         | "manager_stats"
         | "backend_engineer"
         | "system_architect"
+        | "qa_breaker"
+        | "fraud_analyst"
+        | "support_agent"
+        | "power_user"
+        | "contest_judge"
+        | "p2p_moderator"
       app_role: "admin" | "moderator" | "user" | "support"
       currency_type: "nova" | "aura"
       engagement_status: "both" | "contest" | "vote" | "none"
@@ -1918,6 +1969,12 @@ export const Constants = {
         "manager_stats",
         "backend_engineer",
         "system_architect",
+        "qa_breaker",
+        "fraud_analyst",
+        "support_agent",
+        "power_user",
+        "contest_judge",
+        "p2p_moderator",
       ],
       app_role: ["admin", "moderator", "user", "support"],
       currency_type: ["nova", "aura"],
