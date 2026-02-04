@@ -17,12 +17,25 @@ export function AIRoomMessage({ message }: AIRoomMessageProps) {
   const [copied, setCopied] = useState(false);
   
   const isHuman = message.isHuman || message.messageCategory === 'human';
-  const emoji = isHuman ? '👤' : getAgentEmoji(message.agentRole);
+  const isLeader = message.agentRole === 'engineering_lead' || message.messageCategory === 'leader_response';
+  
+  // Leader gets special treatment
+  const emoji = isHuman 
+    ? '👤' 
+    : isLeader 
+      ? '🧠' 
+      : getAgentEmoji(message.agentRole);
+  
   const name = isHuman 
-    ? (language === 'ar' ? 'المدير' : 'Manager')
-    : (language === 'ar' ? message.agentNameAr : message.agentName);
+    ? (language === 'ar' ? 'عمرو' : 'Amro')
+    : isLeader
+      ? (language === 'ar' ? 'القائد الهندسي' : 'Engineering Lead')
+      : (language === 'ar' ? message.agentNameAr : message.agentName);
+  
   const content = language === 'ar' ? (message.contentAr || message.content) : message.content;
-  const style = getCategoryStyle(message.messageCategory);
+  const style = isLeader 
+    ? { bg: 'bg-primary/10', border: 'border-primary/30', text: 'text-primary' }
+    : getCategoryStyle(message.messageCategory);
   
   const time = format(new Date(message.createdAt), 'HH:mm', { 
     locale: language === 'ar' ? ar : enUS 
@@ -40,15 +53,16 @@ export function AIRoomMessage({ message }: AIRoomMessageProps) {
     warning: language === 'ar' ? 'تحذير' : 'Warning',
     info: language === 'ar' ? 'معلومة' : 'Info',
     success: language === 'ar' ? 'نجاح' : 'Success',
+    leader_response: language === 'ar' ? 'رد القائد' : 'Leader',
     human: language === 'ar' ? 'سؤال' : 'Question',
     discussion: language === 'ar' ? 'نقاش' : 'Discussion',
-  }[message.messageCategory] || 'Discussion';
+  }[message.messageCategory] || (isLeader ? (language === 'ar' ? 'رد القائد' : 'Leader') : 'Discussion');
 
   return (
     <div className="flex gap-2 py-1.5 group">
       {/* Small Avatar */}
-      <Avatar className={`h-7 w-7 shrink-0 ${isHuman ? 'ring-1 ring-primary/50' : ''}`}>
-        <AvatarFallback className="text-sm bg-muted">
+      <Avatar className={`h-7 w-7 shrink-0 ${isHuman ? 'ring-1 ring-primary/50' : isLeader ? 'ring-2 ring-primary' : ''}`}>
+        <AvatarFallback className={`text-sm ${isLeader ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
           {emoji}
         </AvatarFallback>
       </Avatar>

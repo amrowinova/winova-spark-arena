@@ -102,19 +102,19 @@ export function AIRoomView({ onBack }: AIRoomViewProps) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Brain className="h-4 w-4 text-primary" />
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-md">
+            <Brain className="h-5 w-5 text-primary-foreground" />
           </div>
           
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-sm text-foreground flex items-center gap-1.5">
-              🧠 {language === 'ar' ? 'الفريق الهندسي' : 'Engineering Team'}
+            <h2 className="font-bold text-sm text-foreground flex items-center gap-1.5">
+              {language === 'ar' ? 'القائد الهندسي' : 'Engineering Lead'}
             </h2>
             <p className="text-[10px] text-muted-foreground flex items-center gap-1">
               {isConnected ? (
                 <>
                   <Wifi className="h-2.5 w-2.5 text-success" />
-                  {language === 'ar' ? 'متصل - مباشر' : 'Connected - Live'}
+                  {language === 'ar' ? 'متصل • فريق من 8 مهندسين بالخلفية' : 'Online • 8 engineers in background'}
                 </>
               ) : (
                 <>
@@ -167,17 +167,22 @@ export function AIRoomView({ onBack }: AIRoomViewProps) {
                 ))}
               </div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <Brain className="h-10 w-10 text-muted-foreground/30 mb-2" />
+              <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Brain className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-1">
+                  {language === 'ar' ? 'مرحباً يا عمرو 👋' : 'Hey Amro 👋'}
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   {language === 'ar' 
-                    ? 'الفريق الهندسي يعمل على مراقبة النظام...'
-                    : 'Engineering team is monitoring the system...'}
+                    ? 'أنا القائد الهندسي لـ WINOVA. فريقي يراقب النظام بالخلفية.'
+                    : "I'm the Engineering Lead for WINOVA. My team monitors the system in the background."}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-2">
                   {language === 'ar' 
-                    ? 'اسأل سؤالاً لبدء النقاش'
-                    : 'Ask a question to start the discussion'}
+                    ? 'اسألني أي شي — أجمع آراء الفريق وأرجعلك رد واحد واضح.'
+                    : "Ask me anything — I'll gather team insights and give you one clear answer."}
                 </p>
               </div>
             ) : (
@@ -198,7 +203,7 @@ export function AIRoomView({ onBack }: AIRoomViewProps) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={language === 'ar' ? 'اسأل الفريق الهندسي...' : 'Ask the engineering team...'}
+                  placeholder={language === 'ar' ? 'اسأل القائد الهندسي...' : 'Ask the Engineering Lead...'}
                   className="h-9 text-sm"
                   disabled={isSending}
                 />
