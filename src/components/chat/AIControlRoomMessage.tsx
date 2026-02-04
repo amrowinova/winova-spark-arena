@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bot, AlertTriangle, Info, CheckCircle, MessageCircle } from 'lucide-react';
+import { AlertTriangle, Info, CheckCircle, MessageCircle, User } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -20,11 +20,18 @@ interface AIControlRoomMessageProps {
 export function AIControlRoomMessageBubble({ message }: AIControlRoomMessageProps) {
   const { language } = useLanguage();
   
-  const agentName = language === 'ar' ? message.agentNameAr : message.agentName;
+  const isHumanQuestion = message.messageCategory === 'human' || 
+    (message.type === 'message' && message.messageType === 'human_question');
+  
+  const agentName = isHumanQuestion 
+    ? (language === 'ar' ? '👤 المدير' : '👤 Manager')
+    : (language === 'ar' ? message.agentNameAr : message.agentName);
   const content = language === 'ar' ? (message.contentAr || message.content) : message.content;
-  const emoji = getAgentEmoji(message.agentRole);
+  const emoji = isHumanQuestion ? '👤' : getAgentEmoji(message.agentRole);
   const categoryBadge = getCategoryBadge(message.messageCategory, language as 'ar' | 'en');
-  const categoryColorClass = getCategoryColor(message.messageCategory);
+  const categoryColorClass = isHumanQuestion 
+    ? 'bg-primary/10 text-primary border-primary/30'
+    : getCategoryColor(message.messageCategory);
   
   const formattedTime = format(
     new Date(message.createdAt), 
@@ -49,6 +56,8 @@ export function AIControlRoomMessageBubble({ message }: AIControlRoomMessageProp
         return <Info className="h-3 w-3" />;
       case 'success':
         return <CheckCircle className="h-3 w-3" />;
+      case 'human':
+        return <User className="h-3 w-3" />;
       default:
         return <MessageCircle className="h-3 w-3" />;
     }
@@ -60,9 +69,9 @@ export function AIControlRoomMessageBubble({ message }: AIControlRoomMessageProp
       animate={{ opacity: 1, y: 0 }}
       className="flex gap-3 py-2"
     >
-      {/* AI Agent Avatar */}
-      <Avatar className="h-9 w-9 shrink-0 border-2 border-primary/20">
-        <AvatarFallback className="bg-primary/10 text-lg">
+      {/* Avatar */}
+      <Avatar className={`h-9 w-9 shrink-0 border-2 ${isHumanQuestion ? 'border-primary/40' : 'border-primary/20'}`}>
+        <AvatarFallback className={`${isHumanQuestion ? 'bg-primary/20' : 'bg-primary/10'} text-lg`}>
           {emoji}
         </AvatarFallback>
       </Avatar>

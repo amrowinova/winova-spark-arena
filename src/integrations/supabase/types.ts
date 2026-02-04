@@ -154,6 +154,7 @@ export type Database = {
           content: string
           content_ar: string | null
           created_at: string
+          human_sender_id: string | null
           id: string
           is_summary: boolean | null
           message_type: string
@@ -167,6 +168,7 @@ export type Database = {
           content: string
           content_ar?: string | null
           created_at?: string
+          human_sender_id?: string | null
           id?: string
           is_summary?: boolean | null
           message_type?: string
@@ -180,6 +182,7 @@ export type Database = {
           content?: string
           content_ar?: string | null
           created_at?: string
+          human_sender_id?: string | null
           id?: string
           is_summary?: boolean | null
           message_type?: string
@@ -254,6 +257,39 @@ export type Database = {
           summary?: string | null
           summary_ar?: string | null
           trigger_type?: string
+        }
+        Relationships: []
+      }
+      ai_human_sessions: {
+        Row: {
+          asked_by: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          question: string
+          status: string
+          summary: string | null
+          summary_ar: string | null
+        }
+        Insert: {
+          asked_by: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          question: string
+          status?: string
+          summary?: string | null
+          summary_ar?: string | null
+        }
+        Update: {
+          asked_by?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          question?: string
+          status?: string
+          summary?: string | null
+          summary_ar?: string | null
         }
         Relationships: []
       }
@@ -1489,6 +1525,7 @@ export type Database = {
           content: string | null
           content_ar: string | null
           created_at: string | null
+          human_sender_id: string | null
           id: string | null
           is_summary: boolean | null
           message_category: string | null

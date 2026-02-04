@@ -1,20 +1,22 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, Brain, Shield, ArrowLeft, Users, AlertTriangle, Info, Lock } from 'lucide-react';
+import { Brain, ArrowLeft, Lock, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   useAIControlRoomCombined, 
   useAIAgents,
   useAIControlRoomFindings,
+  useCanAccessAIControlRoom,
   getAgentEmoji 
 } from '@/hooks/useAIControlRoom';
+import { useAIHumanQuestion } from '@/hooks/useAIHumanQuestion';
 import { AIControlRoomMessageBubble } from './AIControlRoomMessage';
-
 interface AIControlRoomViewProps {
   onBack: () => void;
 }
@@ -22,10 +24,13 @@ interface AIControlRoomViewProps {
 export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
   const { language } = useLanguage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [questionInput, setQuestionInput] = useState('');
   
   const { data: messages, isLoading: messagesLoading } = useAIControlRoomCombined(200);
   const { data: agents, isLoading: agentsLoading } = useAIAgents();
   const { data: findings } = useAIControlRoomFindings(20);
+  const { data: canAccess } = useCanAccessAIControlRoom();
+  const { askQuestion, isAsking } = useAIHumanQuestion();
   
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -38,6 +43,19 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
     high: findings?.filter(f => f.severity === 'high').length || 0,
     medium: findings?.filter(f => f.severity === 'medium').length || 0,
     low: findings?.filter(f => f.severity === 'low').length || 0,
+  };
+
+  const handleAskQuestion = () => {
+    if (!questionInput.trim() || isAsking) return;
+    askQuestion(questionInput.trim());
+    setQuestionInput('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAskQuestion();
+    }
   };
 
   return (
@@ -275,16 +293,43 @@ export function AIControlRoomView({ onBack }: AIControlRoomViewProps) {
         </TabsContent>
       </Tabs>
 
-      {/* Read-Only Footer */}
-      <div className="flex-shrink-0 bg-muted/50 border-t border-border p-3">
-        <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
-          <Lock className="h-4 w-4" />
-          <span>
-            {language === 'ar' 
-              ? 'غرفة للقراءة فقط - النظام يعمل تلقائياً'
-              : 'Read-only room - System runs automatically'}
-          </span>
-        </div>
+      {/* Footer - Input for authorized users, read-only message for others */}
+      <div className="flex-shrink-0 bg-card border-t border-border p-3">
+        {canAccess ? (
+          <div className="flex gap-2">
+            <Textarea
+              value={questionInput}
+              onChange={(e) => setQuestionInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={language === 'ar' 
+                ? 'اسأل فريق AI... (Enter للإرسال)'
+                : 'Ask the AI team... (Enter to send)'}
+              className="min-h-[44px] max-h-[120px] resize-none flex-1"
+              disabled={isAsking}
+            />
+            <Button
+              onClick={handleAskQuestion}
+              disabled={!questionInput.trim() || isAsking}
+              size="icon"
+              className="h-11 w-11 shrink-0"
+            >
+              {isAsking ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+            <Lock className="h-4 w-4" />
+            <span>
+              {language === 'ar' 
+                ? 'غرفة للقراءة فقط - النظام يعمل تلقائياً'
+                : 'Read-only room - System runs automatically'}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
