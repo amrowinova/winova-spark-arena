@@ -16,7 +16,8 @@ export interface AIControlRoomMessage {
   isSummary: boolean;
   sessionId: string | null;
   createdAt: string;
-  messageCategory: 'warning' | 'info' | 'critical' | 'success' | 'discussion';
+  messageCategory: 'warning' | 'info' | 'critical' | 'success' | 'discussion' | 'human';
+  humanSenderId: string | null;
 }
 
 export interface AIControlRoomFinding {
@@ -95,6 +96,8 @@ export function getCategoryBadge(category: string, language: 'ar' | 'en'): { emo
       return { emoji: '🔵', label: language === 'ar' ? 'توصية' : 'Info' };
     case 'success':
       return { emoji: '🟢', label: language === 'ar' ? 'ملخص' : 'Summary' };
+    case 'human':
+      return { emoji: '👤', label: language === 'ar' ? 'سؤال' : 'Question' };
     default:
       return { emoji: '⚪', label: language === 'ar' ? 'نقاش' : 'Discussion' };
   }
@@ -152,6 +155,7 @@ export function useAIControlRoomMessages(limit = 100) {
         sessionId: msg.session_id,
         createdAt: msg.created_at,
         messageCategory: msg.message_category as AIControlRoomMessage['messageCategory'],
+        humanSenderId: msg.human_sender_id,
       })) as AIControlRoomMessage[];
     },
     enabled: !!user,
