@@ -93,8 +93,8 @@
    },
  };
  
- // Critical Expert - Reviews ALL outputs before Leader
- const CRITICAL_EXPERT_PROMPT = `أنت الخبير الناقد - أهم دور بعد القائد.
+// Critical Expert - Reviews ALL outputs before Leader  
+const CRITICAL_EXPERT_PROMPT = `أنت الخبير الناقد - أهم دور بعد القائد. أنت صارم جداً.
  
  مهمتك:
  1. راجع كل تقارير الفريق بعين ناقدة
@@ -102,20 +102,43 @@
  3. حدد المخاطر المخفية التي لم يذكرها أحد
  4. ارفض أي حل "نظري" أو غير قابل للتنفيذ
  5. تأكد من واقعية كل اقتراح في سياق WINOVA
+6. إذا الطلب يحتاج كود، حدد بالضبط شو نوع الكود المطلوب
  
  أسلوبك:
  - صارم ومباشر
  - لا تجامل أبداً
  - إذا في مشكلة قل "هذا غير واقعي لأن..."
- - ركز على: هل هذا قابل للتنفيذ فعلياً؟`;
+- ركز على: هل هذا قابل للتنفيذ فعلياً؟
+- إذا الطلب يحتاج تنفيذ، قل "يحتاج: [نوع الكود]"`;
  
- // Leader AI prompt
- const LEADER_SYSTEM_PROMPT = `أنت "القائد الهندسي" لمشروع WINOVA - الواجهة الوحيدة للمستخدم.
+// Detect if request needs code generation
+function detectCodeRequest(question: string): { needsCode: boolean; codeType: string | null } {
+  const codeKeywords = [
+    { pattern: /أضف|اضف|ضيف|add|create|implement|نفذ|اعمل|سوي|برمج/i, type: 'feature' },
+    { pattern: /صلح|fix|bug|مشكلة|خطأ|error/i, type: 'bugfix' },
+    { pattern: /sql|database|جدول|table|migration/i, type: 'sql' },
+    { pattern: /component|مكون|صفحة|page|screen/i, type: 'react' },
+    { pattern: /api|endpoint|edge function/i, type: 'backend' },
+    { pattern: /تصميم|design|ui|ux|شكل/i, type: 'design' },
+    { pattern: /rls|policy|أمان|security/i, type: 'security' },
+  ];
+  
+  for (const kw of codeKeywords) {
+    if (kw.pattern.test(question)) {
+      return { needsCode: true, codeType: kw.type };
+    }
+  }
+  return { needsCode: false, codeType: null };
+}
+
+// Leader AI prompt - Enhanced for code generation
+const LEADER_SYSTEM_PROMPT = `أنت "القائد الهندسي" لمشروع WINOVA - الواجهة الوحيدة للمستخدم. أنت مثل ChatGPT لكن متخصص بالهندسة.
  
  🎯 دورك:
  - أنت الوحيد الذي يتحدث مع المستخدم.
  - تحت إدارتك 15 مهندس AI متخصص + خبير ناقد.
  - تجمع آراءهم، تفلتر عبر الخبير الناقد، وترد رد واحد واضح.
+- إذا الطلب يحتاج كود، أنت تكتب الكود فعلياً.
  
  📋 أسلوبك:
  - عربي بسيط (لهجة شامية/خليجية)
@@ -127,12 +150,25 @@
  - إذا في شي ناقص: تسأل سؤال واحد فقط
  - إذا شي خارج القدرات: تقوله فوراً
  
- 📊 شكل الرد:
- 1. فهم الطلب (جملة واحدة)
- 2. التحليل (نقاط مختصرة)
- 3. الحل أو القرار
- 4. المخاطر (لو في)
- 5. الخطوة التالية
+📊 شكل الرد للأسئلة:
+1. ✅ فهم الطلب (جملة واحدة)
+2. 📊 التحليل (نقاط مختصرة)
+3. 💡 الحل أو القرار
+4. ⚠️ المخاطر (لو في)
+5. ➡️ الخطوة التالية
+
+📊 شكل الرد للتنفيذ (إذا طُلب كود):
+1. ✅ فهم الطلب
+2. 💻 الكود المطلوب (كامل وقابل للنسخ)
+3. 📁 أين يوضع الكود (مسار الملف)
+4. ⚠️ ملاحظات مهمة
+5. ➡️ خطوات التنفيذ
+
+عند كتابة الكود:
+- اكتب كود كامل وجاهز للنسخ
+- استخدم \`\`\` لتنسيق الكود
+- حدد اللغة (typescript, sql, etc.)
+- اكتب تعليقات بالعربي داخل الكود
  
  ⚠️ ممنوع:
  - تفاصيل تقنية معقدة (إلا إذا طُلبت)
@@ -140,24 +176,43 @@
  - تحويل المستخدم لـ AI آخر
  - وعود كاذبة أو كلام تسويقي
  - نقل كلام خام من الفريق
+- كود ناقص أو غير قابل للتنفيذ
  
  🏢 فريقك (15 متخصص):
  البنية | Backend | Database | الأمان | Wallet/P2P | Frontend | Mobile | UX | DevOps | Cloud | APIs | Performance | Networking | AI/ML | Low-Level
  
  +1 خبير ناقد (يراجع كل المخرجات قبلك)
  
- استخدم تقاريرهم + نقد الخبير لتكوين رأيك النهائي.`;
+استخدم تقاريرهم + نقد الخبير لتكوين رأيك النهائي.
+
+🔧 قدراتك:
+- تحليل المشاكل وإيجاد الحلول
+- كتابة كود React/TypeScript
+- كتابة SQL migrations و RLS policies  
+- كتابة Edge Functions
+- تصميم واجهات ومكونات
+- مراجعة وتحسين الكود الموجود
+
+⚡ حدودك (كن صريحاً):
+- لا تستطيع تعديل الملفات مباشرة (تحتاج Lovable للتنفيذ)
+- لا تستطيع deploy مباشر
+- الكود الذي تكتبه يُخزن كـ Proposal للمراجعة`;
  
  async function getBackgroundTeamAnalysis(
    question: string,
    apiKey: string,
-   previousContext: string
+  previousContext: string,
+  codeType: string | null
  ): Promise<string[]> {
    const teamEntries = Object.entries(BACKGROUND_TEAM);
    
    // Parallel analysis from all team members
    const promises = teamEntries.map(async ([role, config]) => {
      try {
+      const codeInstruction = codeType 
+        ? `\n\nملاحظة: هذا الطلب يحتاج ${codeType}. إذا كان ضمن تخصصك، أعطِ مقترح كود مختصر.`
+        : '';
+        
        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
          method: 'POST',
          headers: {
@@ -172,17 +227,18 @@
                content: `أنت ${config.nameAr} في فريق WINOVA.
  تخصصك: ${config.focus}
  
- مهمتك: أعطِ تقرير مختصر (جملة أو جملتين) للقائد عن السؤال من منظورك فقط.
+مهمتك: أعطِ تقرير مختصر (3-4 جمل) للقائد عن السؤال من منظورك فقط.
  - لا تتحدث للمستخدم مباشرة
  - ركز على تخصصك فقط
- - إذا السؤال خارج تخصصك، قل "خارج تخصصي"`
+- إذا السؤال خارج تخصصك، قل "خارج تخصصي"
+- إذا تحتاج تكتب كود، اكتب snippet مختصر${codeInstruction}`
              },
              { 
                role: 'user', 
                content: `السؤال: ${question}\n\nالسياق: ${previousContext || 'لا يوجد سياق سابق'}`
              },
            ],
-           max_tokens: 150,
+          max_tokens: 300,
            temperature: 0.7,
          }),
        });
@@ -208,9 +264,14 @@
  async function getCriticalExpertReview(
    question: string,
    teamAnalyses: string[],
-   apiKey: string
+  apiKey: string,
+  codeType: string | null
  ): Promise<string> {
    try {
+    const codeNote = codeType 
+      ? `\n\nملاحظة: هذا طلب تنفيذ (${codeType}). تأكد أن الحلول المقترحة قابلة للتنفيذ فعلياً.`
+      : '';
+      
      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
        method: 'POST',
        headers: {
@@ -236,10 +297,10 @@
  1. التناقضات (إن وجدت)
  2. المخاطر المخفية
  3. الحلول غير الواقعية
- 4. توصيتك النهائية`
+4. توصيتك النهائية${codeNote}`
            },
          ],
-         max_tokens: 300,
+        max_tokens: 400,
          temperature: 0.5,
        }),
      });
@@ -254,6 +315,43 @@
    return 'لم أتمكن من المراجعة';
  }
  
+// Save proposal if code was generated
+async function saveProposalIfNeeded(
+  supabase: any,
+  leaderContent: string,
+  question: string,
+  codeType: string | null,
+  agentId: string
+): Promise<string | null> {
+  // Check if response contains code blocks
+  const codeBlockMatch = leaderContent.match(/```[\s\S]*?```/g);
+  if (!codeBlockMatch || !codeType) return null;
+  
+  const codeSnippet = codeBlockMatch.join('\n\n');
+  
+  // Create a proposal
+  const { data: proposal, error } = await supabase.from('ai_proposals').insert({
+    title: `تنفيذ: ${question.substring(0, 50)}...`,
+    title_ar: `تنفيذ: ${question.substring(0, 50)}...`,
+    description: `طلب المستخدم: ${question}`,
+    description_ar: `طلب المستخدم: ${question}`,
+    proposal_type: codeType === 'sql' ? 'database' : codeType === 'security' ? 'security' : 'enhancement',
+    priority: 'medium',
+    status: 'pending',
+    code_snippet: codeSnippet,
+    proposed_by: agentId,
+    affected_area: codeType,
+    risk_level: codeType === 'security' || codeType === 'sql' ? 'high' : 'medium',
+  }).select().single();
+  
+  if (error) {
+    console.error('Failed to save proposal:', error);
+    return null;
+  }
+  
+  return proposal?.id || null;
+}
+
  Deno.serve(async (req) => {
    if (req.method === 'OPTIONS') {
      return new Response(null, { headers: corsHeaders });
@@ -290,6 +388,10 @@
        throw new Error('Leader AI not configured');
      }
  
+    // Detect if this needs code generation
+    const { needsCode, codeType } = detectCodeRequest(question);
+    console.log(`Code detection: needsCode=${needsCode}, type=${codeType}`);
+
      // 1) Save human question
      const { data: humanMessage, error: humanError } = await supabase.from('ai_chat_room').insert({
        agent_id: leaderAgent.id,
@@ -322,16 +424,21 @@
  
      // 3) Get background team analysis (parallel from 15 specialists)
      console.log('Getting analysis from 15 specialists...');
-     const teamAnalyses = await getBackgroundTeamAnalysis(question, apiKey, previousContext);
+    const teamAnalyses = await getBackgroundTeamAnalysis(question, apiKey, previousContext, codeType);
      console.log(`Got ${teamAnalyses.length} team reports`);
  
      // 4) Critical Expert reviews all outputs
      console.log('Critical Expert reviewing...');
-     const criticalReview = await getCriticalExpertReview(question, teamAnalyses, apiKey);
+    const criticalReview = await getCriticalExpertReview(question, teamAnalyses, apiKey, codeType);
      console.log('Critical review complete');
  
      // 5) Leader generates final response with all inputs
      console.log('Leader generating final response...');
+    
+    const codeInstruction = needsCode 
+      ? `\n\n⚡ ملاحظة مهمة: هذا طلب تنفيذ (${codeType}). اكتب الكود الكامل والجاهز للنسخ. استخدم \`\`\` لتنسيق الكود.`
+      : '';
+    
      const leaderResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
        method: 'POST',
        headers: {
@@ -360,11 +467,12 @@
  ${previousContext || 'لا يوجد'}
  
  ---
- الآن أعطِ ردك النهائي الواحد للمستخدم.
- تذكر: رد واحد، واضح، مع قرار وخطوة تالية.`
+الآن أعطِ ردك النهائي الواحد للمستخدم.${codeInstruction}
+تذكر: رد واحد، واضح، مع قرار وخطوة تالية.
+إذا كتبت كود، اكتبه كاملاً وجاهزاً للنسخ.`
            },
          ],
-         max_tokens: 1000,
+        max_tokens: 2000,
          temperature: 0.7,
        }),
      });
@@ -382,6 +490,15 @@
        throw new Error('Empty leader response');
      }
  
+    // 5.5) Save proposal if code was generated
+    let proposalId: string | null = null;
+    if (needsCode) {
+      proposalId = await saveProposalIfNeeded(supabase, leaderContent, question, codeType, leaderAgent.id);
+      if (proposalId) {
+        console.log('Proposal saved:', proposalId);
+      }
+    }
+
      // 6) Save leader response (the ONLY visible response)
      const { error: insertError } = await supabase.from('ai_chat_room').insert({
        agent_id: leaderAgent.id,
@@ -390,11 +507,14 @@
        message_type: 'response',
        message_category: 'leader_response',
        is_summary: false,
+      is_proposal: !!proposalId,
        previous_context: question,
        metadata: {
          team_reports_count: teamAnalyses.length,
          critical_review: criticalReview,
-         background_analyses: teamAnalyses
+        background_analyses: teamAnalyses,
+        code_type: codeType,
+        proposal_id: proposalId,
        }
      });
  
@@ -410,7 +530,10 @@
        humanMessageId: humanMessage.id,
        leaderAgentId: leaderAgent.id,
        teamReportsCount: teamAnalyses.length,
-       hasCriticalReview: true
+      hasCriticalReview: true,
+      codeGenerated: needsCode,
+      codeType,
+      proposalId,
      }), {
        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
      });
