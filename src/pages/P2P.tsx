@@ -213,25 +213,19 @@ function P2PContent() {
 
     setIsExecutingOrder(true);
     try {
-      const success = await db.executeOrder(order.id);
-      if (success) {
+      const result = await db.executeOrder(order.id);
+      if (result.success) {
         showSuccess(isRTL ? 'تم تأكيد الطلب! جاري فتح المحادثة...' : 'Order matched! Opening chat...');
         
-        // Refetch orders to get the updated order
         await db.fetchOrders();
-        
-        // Refetch marketplace
         refetchMarketplace();
-        
-        // Switch to orders tab
         setSelectedTab('orders');
         
-        // Find and open the chat for this order after a short delay
         setTimeout(() => {
           handleOpenChat(order.id);
         }, 500);
       } else {
-        showError(isRTL ? 'الطلب غير متاح أو تم تنفيذه من قبل شخص آخر' : 'Order unavailable or already taken by someone else');
+        showError(result.error || (isRTL ? 'الطلب غير متاح أو تم تنفيذه من قبل شخص آخر' : 'Order unavailable or already taken by someone else'));
       }
     } catch (err) {
       console.error('Error executing order:', err);
@@ -854,7 +848,10 @@ function P2PContent() {
             <P2POrdersList
               orders={orderListItems}
               onOpenChat={handleOpenChat}
-              onDeleteOrder={deleteOrder}
+              onDeleteOrder={async (orderId) => {
+                const result = await deleteOrder(orderId);
+                return result.success;
+              }}
               currentUserId={user?.id}
             />
           </TabsContent>

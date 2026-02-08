@@ -7,6 +7,12 @@ import { dbStatusToUI, uiStatusToDB, isActiveStatus, DBP2POrderStatus, UIP2POrde
 import { generateSystemMessage, P2PSystemMessageType } from '@/lib/p2pSystemMessages';
 import * as P2PEscrow from '@/lib/p2pEscrowService';
 
+// Unified result type for all P2P operations
+export interface P2POpResult {
+  success: boolean;
+  error?: string;
+}
+
 // Extended order row with matched_at
 interface P2POrderRowExtended {
   id: string;
@@ -389,172 +395,149 @@ export function useP2PDatabase() {
   }, [user, fetchOrders]);
 
   // Execute/match an order using atomic RPC (locks escrow for BUY orders)
-  const executeOrder = useCallback(async (orderId: string, paymentMethodId?: string) => {
-    if (!user) return false;
+  const executeOrder = useCallback(async (orderId: string, paymentMethodId?: string): Promise<P2POpResult> => {
+    if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
-      // Use atomic RPC - locks escrow for BUY orders (executor is seller)
       const result = await P2PEscrow.executeOrder(orderId, user.id, paymentMethodId);
 
       if (!result.success) {
         console.error('Execute order failed:', result.error);
-        return false;
+        return { success: false, error: result.error };
       }
       
-      console.log('Order executed successfully via RPC');
-      
-      // Refresh orders
       await fetchOrders();
-      
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Error executing P2P order:', err);
-      return false;
+      return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
 
   // Confirm payment using atomic RPC
-  const confirmPayment = useCallback(async (orderId: string) => {
-    if (!user) return false;
+  const confirmPayment = useCallback(async (orderId: string): Promise<P2POpResult> => {
+    if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
       const result = await P2PEscrow.confirmPayment(orderId, user.id);
 
       if (!result.success) {
         console.error('Confirm payment failed:', result.error);
-        return false;
+        return { success: false, error: result.error };
       }
       
       fetchOrders();
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Error confirming payment:', err);
-      return false;
+      return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
 
   // Release funds using atomic RPC - transfers Nova from seller to buyer
-  const releaseFunds = useCallback(async (orderId: string) => {
-    if (!user) return false;
+  const releaseFunds = useCallback(async (orderId: string): Promise<P2POpResult> => {
+    if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
-      // CRITICAL: This RPC atomically:
-      // 1. Deducts from seller's locked_nova_balance
-      // 2. Adds to buyer's nova_balance
-      // 3. Creates ledger entries for both parties
       const result = await P2PEscrow.releaseEscrow(orderId, user.id);
 
       if (!result.success) {
         console.error('Release escrow failed:', result.error);
-        return false;
+        return { success: false, error: result.error };
       }
       
-      console.log('Nova released successfully:', result);
-      
       fetchOrders();
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Error releasing funds:', err);
-      return false;
+      return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
 
   // Delete OPEN order using atomic RPC (refunds escrow)
-  const deleteOrder = useCallback(async (orderId: string) => {
-    if (!user) return false;
+  const deleteOrder = useCallback(async (orderId: string): Promise<P2POpResult> => {
+    if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
-      // RPC handles escrow refund for sell orders
       const result = await P2PEscrow.deleteOrder(orderId, user.id);
 
       if (!result.success) {
         console.error('Delete order failed:', result.error);
-        return false;
+        return { success: false, error: result.error };
       }
       
-      console.log('Order deleted, Nova refunded:', result.nova_refunded);
       fetchOrders();
-      
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Error deleting order:', err);
-      return false;
+      return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
 
   // Cancel order using atomic RPC (handles escrow refund)
-  const cancelOrder = useCallback(async (orderId: string, reason?: string) => {
-    if (!user) return false;
+  const cancelOrder = useCallback(async (orderId: string, reason?: string): Promise<P2POpResult> => {
+    if (!user) return { success: false, error: 'Not authenticated' };
 
-    // Check cancellation limit for matched orders
     const order = ordersRef.current.find(o => o.id === orderId);
     if (order?.status !== 'open' && cancellationsCount >= 3) {
-      console.error('Cancellation limit exceeded');
-      return false;
+      return { success: false, error: 'Cancellation limit exceeded (3/24h)' };
     }
 
     try {
-      // RPC handles all cases: open, awaiting_payment, and escrow refund
       const result = await P2PEscrow.cancelOrder(orderId, user.id, reason);
 
       if (!result.success) {
         console.error('Cancel order failed:', result.error);
-        return false;
+        return { success: false, error: result.error };
       }
       
-      console.log('Order cancelled, Nova refunded:', result.nova_refunded);
-      
-      // Refresh
       fetchOrders();
       fetchCancellationsCount();
-      
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Error cancelling order:', err);
-      return false;
+      return { success: false, error: 'Network error' };
     }
   }, [user, cancellationsCount, fetchOrders, fetchCancellationsCount]);
 
   // Relist order using atomic RPC (escrow stays locked for sell orders)
-  const relistOrder = useCallback(async (orderId: string, reason: string) => {
-    if (!user) return false;
+  const relistOrder = useCallback(async (orderId: string, reason: string): Promise<P2POpResult> => {
+    if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
       const result = await P2PEscrow.relistOrder(orderId, user.id, reason);
 
       if (!result.success) {
         console.error('Relist order failed:', result.error);
-        return false;
+        return { success: false, error: result.error };
       }
 
-      // Increment cancellation count
       fetchCancellationsCount();
       fetchOrders();
-
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Error relisting order:', err);
-      return false;
+      return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders, fetchCancellationsCount]);
 
   // Open dispute using atomic RPC
-  const openDispute = useCallback(async (orderId: string, reason: string) => {
-    if (!user) return false;
+  const openDispute = useCallback(async (orderId: string, reason: string): Promise<P2POpResult> => {
+    if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
       const result = await P2PEscrow.openDispute(orderId, user.id, reason);
 
       if (!result.success) {
         console.error('Open dispute failed:', result.error);
-        return false;
+        return { success: false, error: result.error };
       }
       
       fetchOrders();
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Error opening dispute:', err);
-      return false;
+      return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
 

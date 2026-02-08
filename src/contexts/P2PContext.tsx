@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useP2PDatabase, P2POrderWithProfiles, DBP2PParticipant } from '@/hooks/useP2PDatabase';
+import { useP2PDatabase, P2POrderWithProfiles, DBP2PParticipant, P2POpResult } from '@/hooks/useP2PDatabase';
 import { dbStatusToUI, UIP2POrderStatus, DBP2POrderStatus } from '@/lib/p2pStatusMapper';
 import { Database } from '@/integrations/supabase/types';
 
@@ -146,19 +146,19 @@ const MAX_CANCELLATIONS_24H = 3;
   updateOrderStatus: (orderId: string, status: P2POrderStatus, reason?: string) => void;
   
   // Buyer actions
-  confirmPayment: (orderId: string) => Promise<boolean>;
-  cancelOrder: (orderId: string) => boolean | Promise<boolean>;
-  cancelOrderWithReason: (orderId: string, reason: string) => boolean | Promise<boolean>;
-  deleteOrder: (orderId: string) => boolean | Promise<boolean>;
-  relistOrder: (orderId: string, reason: string) => boolean | Promise<boolean>;
-  openDispute: (orderId: string, reason: string) => void;
+  confirmPayment: (orderId: string) => Promise<P2POpResult>;
+  cancelOrder: (orderId: string) => Promise<P2POpResult>;
+  cancelOrderWithReason: (orderId: string, reason: string) => Promise<P2POpResult>;
+  deleteOrder: (orderId: string) => Promise<P2POpResult>;
+  relistOrder: (orderId: string, reason: string) => Promise<P2POpResult>;
+  openDispute: (orderId: string, reason: string) => Promise<P2POpResult>;
   
   // Timer expiration
   expireOrder: (orderId: string) => void;
   
   // Seller actions
-  releaseFunds: (orderId: string) => Promise<boolean>;
-  reportNoPayment: (orderId: string) => void;
+  releaseFunds: (orderId: string) => Promise<P2POpResult>;
+  reportNoPayment: (orderId: string) => Promise<P2POpResult>;
   
   // Mock mode triggers (for UI testing when enabled)
   triggerMockSellerConfirmation: (orderId: string) => void;
@@ -523,31 +523,31 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   }, [db]);
 
   // Buyer actions
-  const confirmPayment = useCallback(async (orderId: string): Promise<boolean> => {
+  const confirmPayment = useCallback(async (orderId: string): Promise<P2POpResult> => {
     return await db.confirmPayment(orderId);
   }, [db]);
 
-  const cancelOrder = useCallback(async (orderId: string): Promise<boolean> => {
-    if (isBlockedFromOrders()) return false;
+  const cancelOrder = useCallback(async (orderId: string): Promise<P2POpResult> => {
+    if (isBlockedFromOrders()) return { success: false, error: 'Blocked from orders (3 cancellations in 24h)' };
     return await db.cancelOrder(orderId);
   }, [db, isBlockedFromOrders]);
 
-  const cancelOrderWithReason = useCallback(async (orderId: string, reason: string): Promise<boolean> => {
-    if (isBlockedFromOrders()) return false;
+  const cancelOrderWithReason = useCallback(async (orderId: string, reason: string): Promise<P2POpResult> => {
+    if (isBlockedFromOrders()) return { success: false, error: 'Blocked from orders (3 cancellations in 24h)' };
     return await db.cancelOrder(orderId, reason);
   }, [db, isBlockedFromOrders]);
 
-  const deleteOrder = useCallback(async (orderId: string): Promise<boolean> => {
+  const deleteOrder = useCallback(async (orderId: string): Promise<P2POpResult> => {
     return await db.deleteOrder(orderId);
   }, [db]);
 
-  const relistOrder = useCallback(async (orderId: string, reason: string): Promise<boolean> => {
-    if (isBlockedFromOrders()) return false;
+  const relistOrder = useCallback(async (orderId: string, reason: string): Promise<P2POpResult> => {
+    if (isBlockedFromOrders()) return { success: false, error: 'Blocked from orders (3 cancellations in 24h)' };
     return await db.relistOrder(orderId, reason);
   }, [db, isBlockedFromOrders]);
 
-  const openDispute = useCallback(async (orderId: string, reason: string) => {
-    await db.openDispute(orderId, reason);
+  const openDispute = useCallback(async (orderId: string, reason: string): Promise<P2POpResult> => {
+    return await db.openDispute(orderId, reason);
   }, [db]);
 
   // Timer expiration
@@ -556,12 +556,12 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   }, [db]);
 
   // Seller actions
-  const releaseFunds = useCallback(async (orderId: string): Promise<boolean> => {
+  const releaseFunds = useCallback(async (orderId: string): Promise<P2POpResult> => {
     return await db.releaseFunds(orderId);
   }, [db]);
 
-  const reportNoPayment = useCallback(async (orderId: string) => {
-    await db.openDispute(orderId, 'Seller reports payment not received');
+  const reportNoPayment = useCallback(async (orderId: string): Promise<P2POpResult> => {
+    return await db.openDispute(orderId, 'Seller reports payment not received');
   }, [db]);
 
   // Mock mode triggers (no-op in database mode, but kept for interface compatibility)
@@ -584,8 +584,8 @@ export function P2PProvider({ children }: { children: ReactNode }) {
 
   const resolveDispute = useCallback(async (orderId: string, resolution: 'release_to_buyer' | 'return_to_seller') => {
     if (resolution === 'release_to_buyer') {
-      const ok = await db.releaseFunds(orderId);
-      if (!ok) return;
+      const result = await db.releaseFunds(orderId);
+      if (!result.success) return;
     } else {
       await db.cancelOrder(orderId, 'Dispute resolved - returned to seller');
     }
