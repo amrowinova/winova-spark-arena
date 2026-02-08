@@ -226,9 +226,13 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
     setConfirmDialog(null);
   };
 
-  const handlePaymentConfirm = () => {
-    confirmPayment(order.id);
+  const handlePaymentConfirm = async () => {
+    const ok = await confirmPayment(order.id);
     setShowPaymentConfirm(false);
+    if (!ok) {
+      showError(isRTL ? 'فشل تأكيد الدفع. حاول مرة أخرى.' : 'Payment confirmation failed. Try again.');
+      return;
+    }
     showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
     
     if (isMockMode) {
@@ -237,8 +241,12 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
   };
 
   // Handler for PaymentSteps payment confirmation
-  const handlePaymentStepsConfirm = () => {
-    confirmPayment(order.id);
+  const handlePaymentStepsConfirm = async () => {
+    const ok = await confirmPayment(order.id);
+    if (!ok) {
+      showError(isRTL ? 'فشل تأكيد الدفع. حاول مرة أخرى.' : 'Payment confirmation failed. Try again.');
+      return;
+    }
     showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
     
     if (isMockMode) {
@@ -520,8 +528,12 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
         currencySymbol={order.currencySymbol}
         localTotal={order.total}
         buyerName={language === 'ar' ? order.buyer.nameAr : order.buyer.name}
-        onConfirmRelease={() => {
-          releaseFunds(order.id);
+        onConfirmRelease={async () => {
+          const ok = await releaseFunds(order.id);
+          if (!ok) {
+            showError(language === 'ar' ? 'فشل تحرير Nova. حاول مرة أخرى.' : 'Failed to release Nova. Try again.');
+            return;
+          }
           showSuccess(language === 'ar' ? 'تم تحرير Nova بنجاح!' : 'Nova released successfully!');
           onOrderCompleted?.();
         }}

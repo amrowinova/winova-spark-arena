@@ -146,7 +146,7 @@ const MAX_CANCELLATIONS_24H = 3;
   updateOrderStatus: (orderId: string, status: P2POrderStatus, reason?: string) => void;
   
   // Buyer actions
-  confirmPayment: (orderId: string) => void;
+  confirmPayment: (orderId: string) => Promise<boolean>;
   cancelOrder: (orderId: string) => boolean | Promise<boolean>;
   cancelOrderWithReason: (orderId: string, reason: string) => boolean | Promise<boolean>;
   deleteOrder: (orderId: string) => boolean | Promise<boolean>;
@@ -157,7 +157,7 @@ const MAX_CANCELLATIONS_24H = 3;
   expireOrder: (orderId: string) => void;
   
   // Seller actions
-  releaseFunds: (orderId: string) => void;
+  releaseFunds: (orderId: string) => Promise<boolean>;
   reportNoPayment: (orderId: string) => void;
   
   // Mock mode triggers (for UI testing when enabled)
@@ -523,8 +523,8 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   }, [db]);
 
   // Buyer actions
-  const confirmPayment = useCallback(async (orderId: string) => {
-    await db.confirmPayment(orderId);
+  const confirmPayment = useCallback(async (orderId: string): Promise<boolean> => {
+    return await db.confirmPayment(orderId);
   }, [db]);
 
   const cancelOrder = useCallback(async (orderId: string): Promise<boolean> => {
@@ -556,8 +556,8 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   }, [db]);
 
   // Seller actions
-  const releaseFunds = useCallback(async (orderId: string) => {
-    await db.releaseFunds(orderId);
+  const releaseFunds = useCallback(async (orderId: string): Promise<boolean> => {
+    return await db.releaseFunds(orderId);
   }, [db]);
 
   const reportNoPayment = useCallback(async (orderId: string) => {
@@ -584,7 +584,8 @@ export function P2PProvider({ children }: { children: ReactNode }) {
 
   const resolveDispute = useCallback(async (orderId: string, resolution: 'release_to_buyer' | 'return_to_seller') => {
     if (resolution === 'release_to_buyer') {
-      await db.releaseFunds(orderId);
+      const ok = await db.releaseFunds(orderId);
+      if (!ok) return;
     } else {
       await db.cancelOrder(orderId, 'Dispute resolved - returned to seller');
     }
