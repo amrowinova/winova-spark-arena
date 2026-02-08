@@ -147,6 +147,186 @@ function detectCodeRequest(question: string): { needsCode: boolean; codeType: st
   return { needsCode: false, codeType: null };
 }
 
+// === WINOVA System Knowledge (Permanent Context) ===
+const WINOVA_SYSTEM_KNOWLEDGE = `
+📦 معرفة النظام الحقيقية - WINOVA Architecture Knowledge Base
+═══════════════════════════════════════════════════════════════
+
+⚠️ قاعدة ذهبية: إذا أي معلومة غير مذكورة هنا → الرد الوحيد المقبول:
+"غير موجود في النظام الحالي"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣ الجداول الأساسية (Database Tables)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+| الجدول | الوظيفة |
+|---|---|
+| profiles | بيانات المستخدم: الاسم، username، الرتبة (rank)، البلد، referral_code، نقاط spotlight |
+| wallets | الأرصدة: nova_balance، aura_balance، locked_nova_balance، حالة التجميد (is_frozen) |
+| wallet_ledger | السجل المالي الثابت (immutable): balance_before، balance_after، entry_type، reference |
+| transactions | سجل المعاملات المبسط للعرض في الواجهة |
+| team_members | هيكل الفريق: leader_id → member_id مع level (1=مباشر، 2+=غير مباشر) |
+| p2p_orders | أوامر التداول: النوع (buy/sell)، الحالة، المبالغ، الأطراف، وقت الانتهاء |
+| p2p_messages | رسائل الدردشة المرتبطة بأمر P2P محدد |
+| p2p_ratings | تقييم ما بعد التداول (+1/-1) |
+| p2p_dispute_files | ملفات إثبات النزاعات |
+| payment_methods | طرق الدفع: البنك، الآيبان، رقم الهاتف - مرتبطة بالمستخدم والبلد |
+| contests | المسابقات: التاريخ، رسوم الدخول (10 نوفا)، صندوق الجوائز (ديناميكي = مشاركين × 6) |
+| contest_entries | مشاركات المسابقة: المستخدم، الأصوات، الترتيب، الجائزة |
+| votes | سجل التصويت: المصوت، المتسابق، المبلغ المصروف |
+| spotlight_cycles | دورات Spotlight (98 يوم = 14 أسبوع) |
+| spotlight_user_points | نقاط المستخدمين اليومية حسب الدورة والأسبوع |
+| spotlight_daily_draws | السحوبات اليومية: فائز أول (65%) وثاني (35%) |
+| notifications | إشعارات المستخدم |
+| conversations | محادثات DM بين مستخدمين |
+| direct_messages | الرسائل المباشرة |
+| follows | نظام المتابعة |
+| support_tickets | تذاكر الدعم الفني |
+| support_messages | رسائل تذاكر الدعم |
+| user_roles | أدوار المستخدمين: admin، support، moderator |
+| app_settings | إعدادات التطبيق (key-value) |
+| audit_logs | سجل التدقيق لكل العمليات الحساسة |
+| ai_agents | وكلاء AI المتخصصين (15 وكيل) |
+| ai_chat_room | رسائل غرفة التحكم AI |
+| ai_proposals | مقترحات الكود من AI |
+| ai_discussion_sessions | جلسات النقاش التلقائية |
+| ai_human_sessions | جلسات الأسئلة البشرية |
+| wallet_freeze_logs | سجل عمليات تجميد/فك تجميد المحافظ |
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣ حركة Nova بين المستخدمين
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- التحويل يتم حصراً عبر RPC: execute_transfer
+- القفل الحتمي: LEAST(wallet1, wallet2) ثم GREATEST → يمنع deadlock
+- كل تحويل يسجل في wallet_ledger مع balance_before و balance_after
+- كل تحويل يحمل requestId فريد للـ idempotency
+- الآثار الجانبية (إشعارات DM، نقاط) تعمل fire-and-forget (لا تعيق التحويل)
+- ممنوع UPDATE مباشر على wallets عبر RLS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3️⃣ نظام تجميد المحفظة (Wallet Freeze)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- الحقول: is_frozen، frozen_by، frozen_reason، frozen_at في جدول wallets
+- التجميد يمنع: التحويل، التحويل بين العملات، P2P، المشاركة في المسابقات
+- صلاحية التجميد: Admin + Support
+- صلاحية فك التجميد: Admin فقط
+- كل عملية تجميد/فك تجميد تُسجل في wallet_freeze_logs مع السبب
+- المستخدم المجمّد يرى بنر تحذيري يوجهه للدعم
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4️⃣ دورة حياة P2P Order
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+الحالات بالترتيب:
+open → awaiting_payment → payment_sent → completed
+                       ↘ cancelled (قبل الدفع)
+                                    ↘ disputed (بعد الدفع)
+
+تفصيل كل مرحلة:
+
+📌 open (مفتوح):
+- البائع: Nova تنتقل إلى locked_nova_balance فوراً
+- لا يوجد chat أو رسائل نظام
+- ظاهر في السوق للمشترين
+
+📌 awaiting_payment (بانتظار الدفع):
+- مشتري قبل الأمر → matched_at يتحدث
+- يبدأ timer (time_limit_minutes)
+- تفتح دردشة مرتبطة بـ order_id
+- رسالة نظام تلقائية: اسم المشتري، البائع، المبلغ، المدة
+
+📌 payment_sent (تم الدفع):
+- المشتري أكد الدفع
+- Nova لا تزال في locked_nova_balance عند البائع
+- البائع يتحقق من استلام المال الحقيقي
+
+📌 completed (مكتمل):
+- البائع أكد الاستلام → يستدعي p2p_release_escrow RPC
+- Nova تنتقل: seller.locked_nova_balance → buyer.nova_balance (ذرياً)
+- يُسجل في wallet_ledger لكلا الطرفين
+- يفتح نظام التقييم
+
+📌 disputed (نزاع):
+- يمكن فتحه فقط بعد payment_sent
+- RLS يمنح الدعم (Support) صلاحية حصرية للحل
+- ملفات الإثبات ترفع في p2p_dispute_files
+
+📌 cancelled (ملغي):
+- قبل الدفع فقط
+- Nova تعود من locked إلى nova_balance
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5️⃣ Edge Functions المسؤولة عن الحركات المالية
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+| الدالة | المسؤولية |
+|---|---|
+| p2p-auto-expire | انتهاء صلاحية الأوامر غير المدفوعة → إعادة إدراج أو إلغاء |
+| contest-scheduler | إدارة دورة حياة المسابقات → بدء، إنهاء، توزيع جوائز |
+| ai-discussion-scheduler | جدولة نقاشات AI التلقائية |
+| ai-proposal-discussion | تنفيذ نقاشات مقترحات AI |
+| ai-human-question | معالجة أسئلة المستخدم → فريق AI → رد القائد |
+
+⚠️ مهم: Edge Functions لا تنقل الأموال مباشرة!
+الحركة المالية الفعلية تحدث داخل PostgreSQL RPCs الذرية.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6️⃣ RPCs المالية الذرية (Atomic Financial RPCs)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+| RPC | الوظيفة |
+|---|---|
+| execute_transfer | تحويل Nova بين مستخدمين مع قفل حتمي |
+| join_contest | خصم 10 نوفا (Aura أولاً) + إنشاء مشاركة + تحديث صندوق الجوائز |
+| cast_vote | خصم تكلفة التصويت (Aura ثم Nova) + تحديث الأصوات |
+| cast_free_vote | تصويت مجاني (مرة واحدة في المرحلة الأولى) |
+| p2p_release_escrow | تحرير الضمان: seller.locked → buyer.nova_balance |
+| admin_adjust_balance | تعديل إداري للأرصدة مع تسجيل في ledger |
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7️⃣ أين يُكتب السجل المالي (Ledger)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- كل RPC مالي يكتب سطراً في wallet_ledger
+- الحقول: user_id، wallet_id، currency، amount، balance_before، balance_after
+- entry_type: credit | debit | escrow_lock | escrow_release | contest_entry | vote | transfer | admin_adjustment
+- reference_id + reference_type: للربط بالعملية الأصلية (order_id، contest_id، etc.)
+- السجل immutable: لا يمكن تعديله أو حذفه
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8️⃣ حماية ضد التنفيذ المزدوج (Double Execution Prevention)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+| الآلية | التفصيل |
+|---|---|
+| Transaction-level status checks | كل RPC يتحقق من الحالة قبل التنفيذ |
+| UNIQUE constraints | مثل: contest_entries(contest_id, user_id) يمنع مشاركة مزدوجة |
+| SELECT FOR UPDATE | قفل الصف أثناء العملية |
+| Deterministic locking | LEAST/GREATEST wallet IDs يمنع deadlock |
+| requestId idempotency | كل تحويل يحمل معرف فريد |
+| RLS blocks direct UPDATE | ممنوع تعديل wallets/ledger مباشرة من الكلاينت |
+| SECURITY DEFINER RPCs | الدوال تعمل بصلاحيات مرتفعة محمية server-side |
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9️⃣ نظام الأدوار والصلاحيات
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+| الدور | الصلاحيات |
+|---|---|
+| subscriber | مستخدم عادي: تداول، مسابقات، تحويل |
+| marketer | + إدارة فريق مباشر |
+| manager | + إدارة فريق غير مباشر + وصول غرفة AI |
+| leader | + صلاحيات إدارية موسعة |
+| president | + أعلى رتبة مستخدم + وصول كامل لـ AI |
+| support | موظف دعم: عرض كل البيانات + تجميد + حل نزاعات |
+| admin | صلاحية كاملة: تعديل أرصدة + فك تجميد + إدارة كل شيء |
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔟 العملات
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+| العملة | الرمز | الاستخدام |
+|---|---|---|
+| Nova | И | رصيد داخلي: تحويل، P2P، دخول مسابقات |
+| Aura | ✦ | نقاط تصويت فقط، لا قيمة نقدية |
+
+- الحد الأدنى للسحب: 50 Nova
+- لا يوجد ربط بنكي خارجي
+- التعديل الإداري حصراً عبر admin_adjust_balance RPC
+`;
+
 // === Critical Expert ===
 const CRITICAL_EXPERT_PROMPT = `أنت الخبير الناقد - أهم دور بعد القائد. أنت صارم جداً.
 
@@ -163,7 +343,10 @@ const CRITICAL_EXPERT_PROMPT = `أنت الخبير الناقد - أهم دور
 - لا تجامل أبداً
 - إذا في مشكلة قل "هذا غير واقعي لأن..."
 - ركز على: هل هذا قابل للتنفيذ فعلياً؟
-- إذا الطلب يحتاج تنفيذ، قل "يحتاج: [نوع الكود]"`;
+- إذا الطلب يحتاج تنفيذ، قل "يحتاج: [نوع الكود]"
+- إذا المعلومة غير موجودة في معرفة النظام، قل "غير موجود في النظام الحالي"
+
+${WINOVA_SYSTEM_KNOWLEDGE}`;
 
 // === Leader Prompt ===
 const LEADER_SYSTEM_PROMPT = `أنت "القائد الهندسي" لمشروع WINOVA - الواجهة الوحيدة للمستخدم. أنت مثل ChatGPT لكن متخصص بالهندسة.
@@ -215,7 +398,9 @@ const LEADER_SYSTEM_PROMPT = `أنت "القائد الهندسي" لمشروع 
 ⚡ حدودك (كن صريحاً):
 - لا تستطيع تعديل الملفات مباشرة (تحتاج Lovable للتنفيذ)
 - لا تستطيع deploy مباشر
-- الكود الذي تكتبه يُخزن كـ Proposal للمراجعة`;
+- الكود الذي تكتبه يُخزن كـ Proposal للمراجعة
+
+${WINOVA_SYSTEM_KNOWLEDGE}`;
 
 // === Team Analysis (smart selection) ===
 async function getTeamAnalysis(
@@ -240,7 +425,10 @@ async function getTeamAnalysis(
 - لا تتحدث للمستخدم مباشرة
 - ركز على تخصصك فقط
 - إذا السؤال خارج تخصصك، قل "خارج تخصصي"
-- إذا تحتاج تكتب كود، اكتب snippet مختصر${codeInstruction}`;
+- إذا المعلومة غير موجودة في معرفة النظام أدناه، قل "غير موجود في النظام الحالي"
+- إذا تحتاج تكتب كود، اكتب snippet مختصر${codeInstruction}
+
+${WINOVA_SYSTEM_KNOWLEDGE}`;
 
     const userContent = `السؤال: ${question}\n\nالسياق: ${previousContext || 'لا يوجد سياق سابق'}`;
     const content = await callClaude(systemPrompt, userContent, apiKey, 300, 0.7);
