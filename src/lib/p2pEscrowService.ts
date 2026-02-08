@@ -7,6 +7,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logActivity, logMoneyFlow, logFailure } from '@/lib/ai/logger';
 
 export interface P2POrderResult {
   success: boolean;
@@ -77,6 +78,7 @@ export async function createSellOrder(
   timeLimitMinutes: number = 15,
   paymentMethodId?: string
 ): Promise<P2POrderResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_create_sell_order', {
       p_creator_id: creatorId,
@@ -90,13 +92,20 @@ export async function createSellOrder(
 
     if (error) {
       console.error('p2p_create_sell_order RPC error:', error);
+      logFailure({ rpc_name: 'p2p_create_sell_order', user_id: creatorId, error_message: error.message, parameters: { novaAmount, localAmount, country } as any });
+      logActivity({ user_id: creatorId, action_type: 'p2p_create_sell', entity_type: 'p2p_order', success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2POrderResult;
+    logActivity({ user_id: creatorId, action_type: 'p2p_create_sell', entity_type: 'p2p_order', entity_id: result.order_id, success: result.success, after_state: { nova_balance: result.nova_balance, locked_balance: result.locked_balance } as any, duration_ms: Date.now() - t0 });
+    if (result.success) {
+      logMoneyFlow({ operation: 'p2p_sell_escrow_lock', from_user: creatorId, amount: novaAmount, currency: 'nova', reference_type: 'p2p_order', reference_id: result.order_id });
+    }
     return result;
   } catch (err) {
     console.error('createSellOrder error:', err);
+    logFailure({ rpc_name: 'p2p_create_sell_order', user_id: creatorId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
@@ -113,6 +122,7 @@ export async function createBuyOrder(
   timeLimitMinutes: number = 15,
   paymentMethodId?: string
 ): Promise<P2POrderResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_create_buy_order', {
       p_creator_id: creatorId,
@@ -126,13 +136,17 @@ export async function createBuyOrder(
 
     if (error) {
       console.error('p2p_create_buy_order RPC error:', error);
+      logFailure({ rpc_name: 'p2p_create_buy_order', user_id: creatorId, error_message: error.message, parameters: { novaAmount, localAmount, country } as any });
+      logActivity({ user_id: creatorId, action_type: 'p2p_create_buy', entity_type: 'p2p_order', success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2POrderResult;
+    logActivity({ user_id: creatorId, action_type: 'p2p_create_buy', entity_type: 'p2p_order', entity_id: result.order_id, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
     console.error('createBuyOrder error:', err);
+    logFailure({ rpc_name: 'p2p_create_buy_order', user_id: creatorId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
@@ -147,6 +161,7 @@ export async function executeOrder(
   executorId: string,
   paymentMethodId?: string
 ): Promise<P2PExecuteResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_execute_order', {
       p_order_id: orderId,
@@ -156,13 +171,17 @@ export async function executeOrder(
 
     if (error) {
       console.error('p2p_execute_order RPC error:', error);
+      logFailure({ rpc_name: 'p2p_execute_order', user_id: executorId, error_message: error.message, parameters: { orderId } as any });
+      logActivity({ user_id: executorId, action_type: 'p2p_execute', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2PExecuteResult;
+    logActivity({ user_id: executorId, action_type: 'p2p_execute', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
     console.error('executeOrder error:', err);
+    logFailure({ rpc_name: 'p2p_execute_order', user_id: executorId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
@@ -175,6 +194,7 @@ export async function confirmPayment(
   orderId: string,
   userId: string
 ): Promise<P2PConfirmPaymentResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_confirm_payment', {
       p_order_id: orderId,
@@ -183,13 +203,17 @@ export async function confirmPayment(
 
     if (error) {
       console.error('p2p_confirm_payment RPC error:', error);
+      logFailure({ rpc_name: 'p2p_confirm_payment', user_id: userId, error_message: error.message, parameters: { orderId } as any });
+      logActivity({ user_id: userId, action_type: 'p2p_confirm_payment', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2PConfirmPaymentResult;
+    logActivity({ user_id: userId, action_type: 'p2p_confirm_payment', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
     console.error('confirmPayment error:', err);
+    logFailure({ rpc_name: 'p2p_confirm_payment', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
@@ -205,6 +229,7 @@ export async function releaseEscrow(
   orderId: string,
   userId: string
 ): Promise<P2PReleaseResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_release_escrow', {
       p_order_id: orderId,
@@ -213,13 +238,20 @@ export async function releaseEscrow(
 
     if (error) {
       console.error('p2p_release_escrow RPC error:', error);
+      logFailure({ rpc_name: 'p2p_release_escrow', user_id: userId, error_message: error.message, parameters: { orderId } as any });
+      logActivity({ user_id: userId, action_type: 'p2p_release_escrow', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2PReleaseResult;
+    logActivity({ user_id: userId, action_type: 'p2p_release_escrow', entity_type: 'p2p_order', entity_id: orderId, success: result.success, after_state: { buyer_new_balance: result.buyer_new_balance } as any, duration_ms: Date.now() - t0 });
+    if (result.success) {
+      logMoneyFlow({ operation: 'p2p_escrow_release', from_user: userId, amount: 0, currency: 'nova', reference_type: 'p2p_order', reference_id: orderId });
+    }
     return result;
   } catch (err) {
     console.error('releaseEscrow error:', err);
+    logFailure({ rpc_name: 'p2p_release_escrow', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
@@ -236,6 +268,7 @@ export async function cancelOrder(
   userId: string,
   reason?: string
 ): Promise<P2PCancelResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_cancel_order', {
       p_order_id: orderId,
@@ -245,13 +278,20 @@ export async function cancelOrder(
 
     if (error) {
       console.error('p2p_cancel_order RPC error:', error);
+      logFailure({ rpc_name: 'p2p_cancel_order', user_id: userId, error_message: error.message, parameters: { orderId, reason } as any });
+      logActivity({ user_id: userId, action_type: 'p2p_cancel', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2PCancelResult;
+    logActivity({ user_id: userId, action_type: 'p2p_cancel', entity_type: 'p2p_order', entity_id: orderId, success: result.success, after_state: { status: result.status, nova_refunded: result.nova_refunded } as any, duration_ms: Date.now() - t0 });
+    if (result.success && result.nova_refunded && result.nova_refunded > 0) {
+      logMoneyFlow({ operation: 'p2p_cancel_refund', to_user: userId, amount: result.nova_refunded, currency: 'nova', reference_type: 'p2p_order', reference_id: orderId });
+    }
     return result;
   } catch (err) {
     console.error('cancelOrder error:', err);
+    logFailure({ rpc_name: 'p2p_cancel_order', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
@@ -264,6 +304,7 @@ export async function deleteOrder(
   orderId: string,
   userId: string
 ): Promise<P2PCancelResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_delete_order', {
       p_order_id: orderId,
@@ -272,13 +313,17 @@ export async function deleteOrder(
 
     if (error) {
       console.error('p2p_delete_order RPC error:', error);
+      logFailure({ rpc_name: 'p2p_delete_order', user_id: userId, error_message: error.message, parameters: { orderId } as any });
+      logActivity({ user_id: userId, action_type: 'p2p_delete', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2PCancelResult;
+    logActivity({ user_id: userId, action_type: 'p2p_delete', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
     console.error('deleteOrder error:', err);
+    logFailure({ rpc_name: 'p2p_delete_order', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
@@ -292,6 +337,7 @@ export async function relistOrder(
   userId: string,
   reason?: string
 ): Promise<P2PCancelResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_relist_order', {
       p_order_id: orderId,
@@ -301,13 +347,17 @@ export async function relistOrder(
 
     if (error) {
       console.error('p2p_relist_order RPC error:', error);
+      logFailure({ rpc_name: 'p2p_relist_order', user_id: userId, error_message: error.message, parameters: { orderId, reason } as any });
+      logActivity({ user_id: userId, action_type: 'p2p_relist', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2PCancelResult;
+    logActivity({ user_id: userId, action_type: 'p2p_relist', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
     console.error('relistOrder error:', err);
+    logFailure({ rpc_name: 'p2p_relist_order', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
@@ -320,6 +370,7 @@ export async function openDispute(
   userId: string,
   reason: string
 ): Promise<P2PDisputeResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_open_dispute', {
       p_order_id: orderId,
@@ -329,13 +380,17 @@ export async function openDispute(
 
     if (error) {
       console.error('p2p_open_dispute RPC error:', error);
+      logFailure({ rpc_name: 'p2p_open_dispute', user_id: userId, error_message: error.message, parameters: { orderId, reason } as any });
+      logActivity({ user_id: userId, action_type: 'p2p_dispute_open', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2PDisputeResult;
+    logActivity({ user_id: userId, action_type: 'p2p_dispute_open', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
     console.error('openDispute error:', err);
+    logFailure({ rpc_name: 'p2p_open_dispute', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
@@ -349,6 +404,7 @@ export async function resolveDispute(
   staffId: string,
   resolution: 'release_to_buyer' | 'return_to_seller'
 ): Promise<P2PResolveResult> {
+  const t0 = Date.now();
   try {
     const { data, error } = await supabase.rpc('p2p_resolve_dispute', {
       p_order_id: orderId,
@@ -358,13 +414,17 @@ export async function resolveDispute(
 
     if (error) {
       console.error('p2p_resolve_dispute RPC error:', error);
+      logFailure({ rpc_name: 'p2p_resolve_dispute', user_id: staffId, error_message: error.message, parameters: { orderId, resolution } as any });
+      logActivity({ user_id: staffId, role: 'support', action_type: 'p2p_dispute_resolve', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2PResolveResult;
+    logActivity({ user_id: staffId, role: 'support', action_type: 'p2p_dispute_resolve', entity_type: 'p2p_order', entity_id: orderId, success: result.success, after_state: { resolution: result.resolution } as any, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
     console.error('resolveDispute error:', err);
+    logFailure({ rpc_name: 'p2p_resolve_dispute', user_id: staffId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
 }
