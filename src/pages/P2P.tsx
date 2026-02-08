@@ -97,6 +97,7 @@ function P2PContent() {
     hasRatedOrder,
     createOrder,
     deleteOrder,
+    isCreatingOrder,
   } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   const isRTL = language === 'ar';
@@ -264,14 +265,14 @@ function P2PContent() {
     setSellDialogOpen(true);
   };
 
-  const handleConfirmBuy = (amount: number, timeLimit: number) => {
+  const handleConfirmBuy = async (amount: number, timeLimit: number) => {
     if (!selectedOffer) return;
 
     const buyer = p2pParticipantFromUser(user);
     const seller = p2pParticipantFromOfferUser(selectedOffer);
     const paymentDetails = p2pPaymentDetailsFromOffer(selectedOffer);
 
-    const created = createOrder({
+    const created = await createOrder({
       type: 'buy',
       amount,
       price: selectedOffer.price,
@@ -284,7 +285,7 @@ function P2PContent() {
     });
 
     if (!created) {
-      showError(isRTL ? 'لا يمكنك إنشاء طلب جديد حالياً' : 'Cannot create a new order right now');
+      showError(isRTL ? 'فشل إنشاء الطلب. تحقق من رصيدك وحاول مرة أخرى.' : 'Order creation failed. Check your balance and try again.');
       return;
     }
 
@@ -294,16 +295,14 @@ function P2PContent() {
     setSelectedTab('orders');
   };
 
-  const handleConfirmSell = (amount: number, selectedPaymentMethod: SavedPaymentMethod) => {
+  const handleConfirmSell = async (amount: number, selectedPaymentMethod: SavedPaymentMethod) => {
     if (!selectedOffer) return;
 
     const seller = p2pParticipantFromUser(user);
     const buyer = p2pParticipantFromOfferUser(selectedOffer);
-    
-    // Payment details from seller's saved method (where buyer will pay)
     const paymentDetails = p2pPaymentDetailsFromSavedMethod(selectedPaymentMethod);
 
-    const created = createOrder({
+    const created = await createOrder({
       type: 'sell',
       amount,
       price: selectedOffer.price,
@@ -316,7 +315,7 @@ function P2PContent() {
     });
 
     if (!created) {
-      showError(isRTL ? 'لا يمكنك إنشاء طلب جديد حالياً' : 'Cannot create a new order right now');
+      showError(isRTL ? 'فشل إنشاء الطلب. تحقق من رصيدك وحاول مرة أخرى.' : 'Order creation failed. Check your balance and try again.');
       return;
     }
 
@@ -326,7 +325,7 @@ function P2PContent() {
     setSelectedTab('orders');
   };
 
-  const handleCreateOrder = (orderData: {
+  const handleCreateOrder = async (orderData: {
     type: 'buy' | 'sell';
     amount: number;
     timeLimit: number;
@@ -348,7 +347,7 @@ function P2PContent() {
       ? p2pPaymentDetailsFromSavedMethod(orderData.savedPaymentMethod)
       : p2pPaymentDetailsFromPaymentMethod(orderData.paymentMethod, paymentAccountHolder);
 
-    const created = createOrder({
+    const created = await createOrder({
       type: orderData.type,
       amount: orderData.amount,
       price: currentCountry.novaRate,
@@ -361,7 +360,7 @@ function P2PContent() {
     });
 
     if (!created) {
-      showError(isRTL ? 'لا يمكنك إنشاء طلب جديد حالياً' : 'Cannot create a new order right now');
+      showError(isRTL ? 'فشل إنشاء الطلب. تحقق من رصيدك وحاول مرة أخرى.' : 'Order creation failed. Check your balance and try again.');
       return;
     }
 
@@ -865,24 +864,27 @@ function P2PContent() {
       {/* Dialogs */}
       <P2PCreateOrderDialog
         open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+        onOpenChange={(open) => !isCreatingOrder && setCreateDialogOpen(open)}
         country={currentCountry}
         initialOrderType={createOrderType}
         onCreateOrder={handleCreateOrder}
+        isSubmitting={isCreatingOrder}
       />
 
       <P2PBuyDialog
         open={buyDialogOpen}
-        onOpenChange={setBuyDialogOpen}
+        onOpenChange={(open) => !isCreatingOrder && setBuyDialogOpen(open)}
         offer={selectedOffer}
         onConfirm={handleConfirmBuy}
+        isSubmitting={isCreatingOrder}
       />
 
       <P2PSellDialog
         open={sellDialogOpen}
-        onOpenChange={setSellDialogOpen}
+        onOpenChange={(open) => !isCreatingOrder && setSellDialogOpen(open)}
         offer={selectedOffer}
         onConfirm={handleConfirmSell}
+        isSubmitting={isCreatingOrder}
       />
       
       <BottomNav />
