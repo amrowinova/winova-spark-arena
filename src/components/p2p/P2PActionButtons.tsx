@@ -143,11 +143,11 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
 
   // Handle delete order (for open orders only)
   const handleDeleteOrder = async () => {
-    const deleted = await deleteOrder(order.id);
-    if (deleted) {
+    const result = await deleteOrder(order.id);
+    if (result.success) {
       showSuccess(isRTL ? 'تم حذف الطلب' : 'Order deleted');
     } else {
-      showError(isRTL ? 'فشل في حذف الطلب' : 'Failed to delete order');
+      showError(result.error || (isRTL ? 'فشل في حذف الطلب' : 'Failed to delete order'));
     }
     setConfirmDialog(null);
   };
@@ -158,18 +158,11 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
     
     // For awaiting_payment: relist order (return to market)
     if (order.status === 'waiting_payment') {
-      const relisted = await relistOrder(order.id, reason);
-      if (relisted) {
+      const result = await relistOrder(order.id, reason);
+      if (result.success) {
         showSuccess(isRTL ? 'تم إلغاء الطلب وإعادته للسوق' : 'Order cancelled and returned to market');
       } else {
-        if (isBlockedFromOrders()) {
-          showError(isRTL 
-            ? 'لا يمكنك الإلغاء. تم تجاوز حد الإلغاءات (3 خلال 24 ساعة).'
-            : 'Cannot cancel. You have exceeded the cancellation limit (3 per 24 hours).'
-          );
-        } else {
-          showError(isRTL ? 'فشل في إلغاء الطلب' : 'Failed to cancel order');
-        }
+        showError(result.error || (isRTL ? 'فشل في إلغاء الطلب' : 'Failed to cancel order'));
       }
       return;
     }
@@ -179,16 +172,20 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
       const reason_dispute = isRTL 
         ? 'محاولة إلغاء بعد تأكيد الدفع' 
         : 'Cancellation attempt after payment confirmation';
-      openDispute(order.id, reason_dispute);
-      showSuccess(isRTL 
-        ? '⚖️ تم فتح نزاع – لا يمكن الإلغاء بعد الدفع'
-        : '⚖️ Dispute opened – Cannot cancel after payment'
-      );
+      const result = await openDispute(order.id, reason_dispute);
+      if (result.success) {
+        showSuccess(isRTL 
+          ? '⚖️ تم فتح نزاع – لا يمكن الإلغاء بعد الدفع'
+          : '⚖️ Dispute opened – Cannot cancel after payment'
+        );
+      } else {
+        showError(result.error || (isRTL ? 'فشل فتح النزاع' : 'Failed to open dispute'));
+      }
       return;
     }
   };
 
-  const handleAction = (action: ActionType) => {
+  const handleAction = async (action: ActionType) => {
     switch (action) {
       case 'confirm_payment':
         setShowPaymentConfirm(true);
@@ -202,7 +199,10 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
         break;
       case 'dispute':
         if (disputeReason.trim()) {
-          openDispute(order.id, disputeReason);
+          const result = await openDispute(order.id, disputeReason);
+          if (!result.success) {
+            showError(result.error || (isRTL ? 'فشل فتح النزاع' : 'Failed to open dispute'));
+          }
           setDisputeReason('');
         }
         break;
@@ -227,10 +227,10 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
   };
 
   const handlePaymentConfirm = async () => {
-    const ok = await confirmPayment(order.id);
+    const result = await confirmPayment(order.id);
     setShowPaymentConfirm(false);
-    if (!ok) {
-      showError(isRTL ? 'فشل تأكيد الدفع. حاول مرة أخرى.' : 'Payment confirmation failed. Try again.');
+    if (!result.success) {
+      showError(result.error || (isRTL ? 'فشل تأكيد الدفع' : 'Payment confirmation failed'));
       return;
     }
     showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
@@ -242,9 +242,9 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
 
   // Handler for PaymentSteps payment confirmation
   const handlePaymentStepsConfirm = async () => {
-    const ok = await confirmPayment(order.id);
-    if (!ok) {
-      showError(isRTL ? 'فشل تأكيد الدفع. حاول مرة أخرى.' : 'Payment confirmation failed. Try again.');
+    const result = await confirmPayment(order.id);
+    if (!result.success) {
+      showError(result.error || (isRTL ? 'فشل تأكيد الدفع' : 'Payment confirmation failed'));
       return;
     }
     showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
@@ -529,9 +529,9 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
         localTotal={order.total}
         buyerName={language === 'ar' ? order.buyer.nameAr : order.buyer.name}
         onConfirmRelease={async () => {
-          const ok = await releaseFunds(order.id);
-          if (!ok) {
-            showError(language === 'ar' ? 'فشل تحرير Nova. حاول مرة أخرى.' : 'Failed to release Nova. Try again.');
+          const result = await releaseFunds(order.id);
+          if (!result.success) {
+            showError(result.error || (language === 'ar' ? 'فشل تحرير Nova' : 'Failed to release Nova'));
             return;
           }
           showSuccess(language === 'ar' ? 'تم تحرير Nova بنجاح!' : 'Nova released successfully!');

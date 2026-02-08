@@ -62,28 +62,25 @@ export function P2PSellerSteps({
     setShowCancelDialog(false);
     
     if (order.status === 'waiting_payment') {
-      const relisted = await relistOrder(order.id, reason);
-      if (relisted) {
+      const result = await relistOrder(order.id, reason);
+      if (result.success) {
         showSuccess(isRTL ? 'تم إلغاء الطلب وإعادته للسوق' : 'Order cancelled and returned to market');
       } else {
-        if (isBlockedFromOrders()) {
-          showError(isRTL 
-            ? 'لا يمكنك الإلغاء. تم تجاوز حد الإلغاءات (3 خلال 24 ساعة).'
-            : 'Cannot cancel. You have exceeded the cancellation limit (3 per 24 hours).'
-          );
-        } else {
-          showError(isRTL ? 'فشل في إلغاء الطلب' : 'Failed to cancel order');
-        }
+        showError(result.error || (isRTL ? 'فشل في إلغاء الطلب' : 'Failed to cancel order'));
       }
     } else if (order.status === 'paid') {
-      openDispute(order.id, isRTL 
+      const result = await openDispute(order.id, isRTL 
         ? 'محاولة إلغاء بعد تأكيد الدفع'
         : 'Cancellation attempt after payment confirmation'
       );
-      showError(isRTL 
-        ? '⚖️ تم فتح نزاع – لا يمكن الإلغاء بعد الدفع'
-        : '⚖️ Dispute opened – Cannot cancel after payment'
-      );
+      if (result.success) {
+        showError(isRTL 
+          ? '⚖️ تم فتح نزاع – لا يمكن الإلغاء بعد الدفع'
+          : '⚖️ Dispute opened – Cannot cancel after payment'
+        );
+      } else {
+        showError(result.error || (isRTL ? 'فشل فتح النزاع' : 'Failed to open dispute'));
+      }
     }
   };
 
@@ -172,12 +169,12 @@ export function P2PSellerSteps({
     };
 
     const handleConfirmedRelease = async () => {
-      const ok = await releaseFunds(order.id);
-      if (!ok) {
-        showError(isRTL 
-          ? 'فشل تحرير Nova. حاول مرة أخرى.'
-          : 'Failed to release Nova. Try again.'
-        );
+      const result = await releaseFunds(order.id);
+      if (!result.success) {
+        showError(result.error || (isRTL 
+          ? 'فشل تحرير Nova'
+          : 'Failed to release Nova'
+        ));
         return;
       }
       showSuccess(isRTL 
@@ -187,24 +184,27 @@ export function P2PSellerSteps({
       onOrderCompleted?.();
     };
 
-    const handleNoPayment = (action: 'wait' | 'dispute') => {
+    const handleNoPayment = async (action: 'wait' | 'dispute') => {
       if (action === 'wait') {
         setIsExtendedWait(true);
         showSuccess(isRTL 
           ? '⏳ تم تمديد وقت الانتظار 10 دقائق'
           : '⏳ Wait time extended by 10 minutes'
         );
-        // Reset extended wait after 10 minutes (mock)
-        setTimeout(() => setIsExtendedWait(false), 10000); // 10 seconds in mock
+        setTimeout(() => setIsExtendedWait(false), 10000);
       } else {
-        openDispute(order.id, isRTL 
+        const result = await openDispute(order.id, isRTL 
           ? 'البائع يبلغ عن عدم استلام التحويل'
           : 'Seller reports payment not received'
         );
-        showError(isRTL 
-          ? '⚖️ تم فتح نزاع – سيراجعه فريق الدعم'
-          : '⚖️ Dispute opened – Support will review'
-        );
+        if (result.success) {
+          showError(isRTL 
+            ? '⚖️ تم فتح نزاع – سيراجعه فريق الدعم'
+            : '⚖️ Dispute opened – Support will review'
+          );
+        } else {
+          showError(result.error || (isRTL ? 'فشل فتح النزاع' : 'Failed to open dispute'));
+        }
       }
     };
 
