@@ -32,7 +32,6 @@ export function DailyLuckyWinnersCard({
   const navigate = useNavigate();
   const isRTL = language === 'ar';
 
-  // Check if announcement time has passed
   const [isAnnounced, setIsAnnounced] = useState(() => {
     return new Date() >= nextDrawTime;
   });
@@ -53,14 +52,11 @@ export function DailyLuckyWinnersCard({
     navigate(`/user/${userId}`);
   };
 
-  // Determine which winners and pool to show
   const displayWinners = isAnnounced ? winners : (yesterdayWinners || winners);
   const displayPool = isAnnounced ? totalPool : (yesterdayPool || totalPool);
 
-  // Calculate next draw time for after announcement
   const getNextDrawTime = () => {
     if (isAnnounced) {
-      // After today's announcement, show countdown to tomorrow
       const tomorrow = new Date(nextDrawTime);
       tomorrow.setDate(tomorrow.getDate() + 1);
       return tomorrow;
@@ -72,14 +68,13 @@ export function DailyLuckyWinnersCard({
 
   return (
     <Card className="overflow-hidden">
-      {/* Countdown Header */}
       <div className="bg-nova/10 p-4 border-b border-nova/20">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Clock className="h-4 w-4 text-nova" />
           <span className="text-sm text-muted-foreground">
             {isRTL 
               ? (isAnnounced ? 'متبقي للإعلان عن محظوظي الغد' : 'متبقي للإعلان عن محظوظي اليوم')
-              : (isAnnounced ? 'Time until tomorrow\'s announcement' : 'Time until today\'s announcement')
+              : (isAnnounced ? "Time until tomorrow's announcement" : "Time until today's announcement")
             }
           </span>
         </div>
@@ -130,14 +125,12 @@ export function DailyLuckyWinnersCard({
                   : 'bg-muted/50'
               }`}
             >
-              {/* Medal */}
               <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
                 index === 0 ? 'bg-gradient-nova' : 'bg-muted'
               }`}>
                 {index === 0 ? '🥇' : '🥈'}
               </div>
 
-              {/* Winner Info */}
               <div className="flex-1">
                 <p 
                   className="font-medium cursor-pointer hover:text-nova transition-colors"
@@ -152,7 +145,6 @@ export function DailyLuckyWinnersCard({
                 </div>
               </div>
 
-              {/* Prize */}
               <div className="text-end">
                 <p className={`font-bold ${index === 0 ? 'text-nova text-lg' : ''}`}>
                   И {winner.prize.toFixed(0)}
