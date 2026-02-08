@@ -21,6 +21,7 @@ interface P2PBuyDialogProps {
   onOpenChange: (open: boolean) => void;
   offer: P2POffer | null;
   onConfirm: (amount: number, timeLimit: number) => void;
+  isSubmitting?: boolean;
 }
 
 export function P2PBuyDialog({
@@ -28,6 +29,7 @@ export function P2PBuyDialog({
   onOpenChange,
   offer,
   onConfirm,
+  isSubmitting = false,
 }: P2PBuyDialogProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
@@ -173,9 +175,9 @@ export function P2PBuyDialog({
           <Button
             className="w-full h-12 text-base font-semibold bg-success hover:bg-success/90"
             onClick={handleConfirm}
-            disabled={!canConfirm}
+            disabled={!canConfirm || isSubmitting}
           >
-            {isRTL ? 'تأكيد الشراء' : 'Confirm Purchase'}
+            {isSubmitting ? (isRTL ? 'جاري الإنشاء...' : 'Creating...') : (isRTL ? 'تأكيد الشراء' : 'Confirm Purchase')}
           </Button>
         </div>
       </DialogContent>

@@ -121,11 +121,12 @@ export const generateChatId = (id1: string, id2: string): string => {
 
 const MAX_CANCELLATIONS_24H = 3;
 
-interface P2PContextType {
+  interface P2PContextType {
   chats: P2PChat[];
   activeChat: P2PChat | null;
   activeOrder: P2POrder | null;
   isLoading: boolean;
+  isCreatingOrder: boolean;
   isMockMode: boolean;
   
   // Order restriction checks
@@ -141,7 +142,7 @@ interface P2PContextType {
   sendMessage: (chatId: string, content: string, attachment?: P2PMessage['attachment']) => void;
   
   // Order operations
-  createOrder: (order: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>) => P2POrder | null;
+  createOrder: (order: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>) => Promise<P2POrder | null>;
   updateOrderStatus: (orderId: string, status: P2POrderStatus, reason?: string) => void;
   
   // Buyer actions
@@ -463,31 +464,51 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     await db.sendMessage(latestOrder.id, content);
   }, [user, chats, db]);
 
-  // Order operations
-  const createOrder = useCallback((orderData: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>): P2POrder | null => {
+  // Loading state for order creation
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+
+  // Order operations - ASYNC: awaits DB, returns real order or null
+  const createOrder = useCallback(async (orderData: Omit<P2POrder, 'id' | 'createdAt' | 'expiresAt' | 'status'>): Promise<P2POrder | null> => {
     const check = canCreateOrder();
     if (!check.allowed) return null;
 
-    // Create in database
-    db.createOrder({
-      orderType: orderData.type,
-      novaAmount: orderData.amount,
-      localAmount: orderData.total,
-      exchangeRate: orderData.price,
-      country: orderData.seller.country || 'Saudi Arabia',
-      timeLimitMinutes: 60,
-    });
+    setIsCreatingOrder(true);
+    try {
+      const result = await db.createOrder({
+        orderType: orderData.type,
+        novaAmount: orderData.amount,
+        localAmount: orderData.total,
+        exchangeRate: orderData.price,
+        country: orderData.seller.country || 'Saudi Arabia',
+        timeLimitMinutes: 60,
+      });
 
-    // Return a temporary order object
-    const tempOrder: P2POrder = {
-      ...orderData,
-      id: `temp-${Date.now()}`,
-      status: 'created',
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    };
+      if (!result || !result.id) {
+        return null;
+      }
 
-    return tempOrder;
+      // Refresh orders to get the full order with profiles
+      await db.fetchOrders();
+
+      // Build real order from DB result
+      const currency = COUNTRY_CURRENCIES[orderData.seller.country || 'Saudi Arabia'] || COUNTRY_CURRENCIES['Saudi Arabia'];
+      const realOrder: P2POrder = {
+        ...orderData,
+        id: result.id,
+        status: 'created',
+        currency: currency.code,
+        currencySymbol: currency.symbol,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      };
+
+      return realOrder;
+    } catch (err) {
+      console.error('Error creating P2P order:', err);
+      return null;
+    } finally {
+      setIsCreatingOrder(false);
+    }
   }, [canCreateOrder, db]);
 
   const updateOrderStatus = useCallback(async (orderId: string, status: P2POrderStatus, reason?: string) => {
@@ -601,6 +622,7 @@ export function P2PProvider({ children }: { children: ReactNode }) {
         activeChat,
         activeOrder,
         isLoading: db.isLoading,
+        isCreatingOrder,
         isMockMode: MOCK_MODE,
         hasOpenOrder,
         canCreateOrder,

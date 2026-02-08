@@ -50,6 +50,7 @@ interface P2PSellDialogProps {
   onOpenChange: (open: boolean) => void;
   offer: P2POffer | null; // This is a BUY offer from a buyer
   onConfirm: (amount: number, selectedPaymentMethod: SavedPaymentMethod) => void;
+  isSubmitting?: boolean;
 }
 
 export function P2PSellDialog({
@@ -57,6 +58,7 @@ export function P2PSellDialog({
   onOpenChange,
   offer,
   onConfirm,
+  isSubmitting = false,
 }: P2PSellDialogProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
@@ -561,9 +563,9 @@ export function P2PSellDialog({
             <Button
               className="w-full h-12 text-base font-semibold"
               onClick={handleConfirm}
-              disabled={!canConfirm}
+              disabled={!canConfirm || isSubmitting}
             >
-              {isRTL ? 'متابعة وبدء الصفقة' : 'Continue & Start Trade'}
+              {isSubmitting ? (isRTL ? 'جاري الإنشاء...' : 'Creating...') : (isRTL ? 'متابعة وبدء الصفقة' : 'Continue & Start Trade')}
             </Button>
           </div>
         </DialogContent>

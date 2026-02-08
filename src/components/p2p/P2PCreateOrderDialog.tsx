@@ -43,6 +43,7 @@ interface P2PCreateOrderDialogProps {
   onOpenChange: (open: boolean) => void;
   country: CountryConfig;
   initialOrderType?: 'buy' | 'sell';
+  isSubmitting?: boolean;
   onCreateOrder: (order: {
     type: 'buy' | 'sell';
     amount: number;
@@ -58,6 +59,7 @@ export function P2PCreateOrderDialog({
   onOpenChange,
   country,
   initialOrderType = 'sell',
+  isSubmitting = false,
   onCreateOrder,
 }: P2PCreateOrderDialogProps) {
   const { language } = useLanguage();
@@ -471,9 +473,9 @@ export function P2PCreateOrderDialog({
             <Button
               className="w-full h-12 text-base font-semibold"
               onClick={handleCreate}
-              disabled={!canCreate || !!insufficientBalance || noSavedMethods}
+              disabled={!canCreate || !!insufficientBalance || noSavedMethods || isSubmitting}
             >
-              {isRTL ? 'إنشاء الطلب' : 'Create Order'}
+              {isSubmitting ? (isRTL ? 'جاري الإنشاء...' : 'Creating...') : (isRTL ? 'إنشاء الطلب' : 'Create Order')}
             </Button>
           </div>
         </DialogContent>
