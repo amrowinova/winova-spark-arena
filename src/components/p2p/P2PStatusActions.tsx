@@ -12,6 +12,7 @@ import { P2PSellerConfirmCard } from './P2PSellerConfirmCard';
 import { P2PNoPaymentSheet } from './P2PNoPaymentSheet';
 import { P2PCancelOrderDialog } from './P2PCancelOrderDialog';
 import { motion } from 'framer-motion';
+import { ReleaseSafetyFlow } from './release-safety';
 
 interface P2PStatusActionsProps {
   order: P2POrder;
@@ -41,6 +42,7 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   const [isExtendedWait, setIsExtendedWait] = useState(false);
   const [showNoPaymentSheet, setShowNoPaymentSheet] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showSafetyFlow, setShowSafetyFlow] = useState(false);
   
   // Get role info
   const roleInfo = getP2PRoleInfoFromOrder(order, currentUserId);
@@ -339,12 +341,7 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
           buyerName={order.buyer.name}
           buyerNameAr={order.buyer.nameAr}
           onRelease={() => {
-            releaseFunds(order.id);
-            showSuccess(isRTL 
-              ? `🎉 تم تحرير ${order.amount.toFixed(0)} Nova بنجاح!`
-              : `🎉 ${order.amount.toFixed(0)} Nova released successfully!`
-            );
-            onOrderCompleted?.();
+            setShowSafetyFlow(true);
           }}
           onNoPayment={(action) => {
             if (action === 'wait') {
@@ -377,6 +374,23 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
             } else {
               openDispute(order.id, 'Seller reports no payment');
             }
+          }}
+        />
+
+        <ReleaseSafetyFlow
+          open={showSafetyFlow}
+          onOpenChange={setShowSafetyFlow}
+          novaAmount={order.amount}
+          currencySymbol={order.currencySymbol}
+          localTotal={order.total}
+          buyerName={isRTL ? order.buyer.nameAr : order.buyer.name}
+          onConfirmRelease={() => {
+            releaseFunds(order.id);
+            showSuccess(isRTL 
+              ? `🎉 تم تحرير ${order.amount.toFixed(0)} Nova بنجاح!`
+              : `🎉 ${order.amount.toFixed(0)} Nova released successfully!`
+            );
+            onOrderCompleted?.();
           }}
         />
       </div>
