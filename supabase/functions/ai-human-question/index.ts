@@ -87,6 +87,14 @@ async function callClaude(
 ): Promise<string | null> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
+      // === DEBUG: Log exact system prompt being sent ===
+      console.log(`[PROMPT DEBUG] System prompt length: ${systemPrompt.length} chars`);
+      console.log(`[PROMPT DEBUG] First 300 chars: ${systemPrompt.substring(0, 300)}`);
+      console.log(`[PROMPT DEBUG] Last 300 chars: ${systemPrompt.substring(systemPrompt.length - 300)}`);
+      console.log(`[PROMPT DEBUG] Contains WINOVA_SYSTEM_KNOWLEDGE: ${systemPrompt.includes('معرفة النظام الحقيقية')}`);
+      console.log(`[PROMPT DEBUG] Contains golden rule: ${systemPrompt.includes('غير موجود في النظام الحالي')}`);
+      console.log(`[PROMPT DEBUG] User content length: ${userContent.length} chars`);
+      
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
