@@ -171,8 +171,15 @@ export function P2PSellerSteps({
       setShowSafetyFlow(true);
     };
 
-    const handleConfirmedRelease = () => {
-      releaseFunds(order.id);
+    const handleConfirmedRelease = async () => {
+      const ok = await releaseFunds(order.id);
+      if (!ok) {
+        showError(isRTL 
+          ? 'فشل تحرير Nova. حاول مرة أخرى.'
+          : 'Failed to release Nova. Try again.'
+        );
+        return;
+      }
       showSuccess(isRTL 
         ? `🎉 تم تحرير ${order.amount.toFixed(0)} Nova بنجاح!`
         : `🎉 ${order.amount.toFixed(0)} Nova released successfully!`

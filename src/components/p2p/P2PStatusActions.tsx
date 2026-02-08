@@ -196,8 +196,12 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
         
         <P2PPaymentSteps
           order={order}
-          onConfirmPayment={() => {
-            confirmPayment(order.id);
+          onConfirmPayment={async () => {
+            const ok = await confirmPayment(order.id);
+            if (!ok) {
+              showError(isRTL ? 'فشل تأكيد الدفع. حاول مرة أخرى.' : 'Payment confirmation failed. Try again.');
+              return;
+            }
             showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
             if (isMockMode) {
               triggerMockSellerConfirmation(order.id);
@@ -384,8 +388,12 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
           currencySymbol={order.currencySymbol}
           localTotal={order.total}
           buyerName={isRTL ? order.buyer.nameAr : order.buyer.name}
-          onConfirmRelease={() => {
-            releaseFunds(order.id);
+          onConfirmRelease={async () => {
+            const ok = await releaseFunds(order.id);
+            if (!ok) {
+              showError(isRTL ? 'فشل تحرير Nova. حاول مرة أخرى.' : 'Failed to release Nova. Try again.');
+              return;
+            }
             showSuccess(isRTL 
               ? `🎉 تم تحرير ${order.amount.toFixed(0)} Nova بنجاح!`
               : `🎉 ${order.amount.toFixed(0)} Nova released successfully!`
