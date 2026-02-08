@@ -5,25 +5,149 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Extended Background Team - 15 Specialists
-const BACKGROUND_TEAM: Record<string, { nameAr: string; focus: string; priority: number }> = {
-  system_architect: { nameAr: 'مهندس البنية', focus: 'System design، Technical debt، Scalability patterns، Cross-cutting concerns', priority: 1 },
-  backend_engineer: { nameAr: 'مهندس Backend', focus: 'Node/Go/Rust، RPCs، Edge Functions، API design، Atomicity', priority: 1 },
-  database_engineer: { nameAr: 'مهندس Database', focus: 'PostgreSQL، Schema design، RLS، Indexes، Query optimization، Ledger systems', priority: 1 },
-  security_engineer: { nameAr: 'مهندس الأمان', focus: 'Pentesting، Threat modeling، Auth vulnerabilities، Injection، XSS، CSRF', priority: 1 },
-  wallet_p2p_engineer: { nameAr: 'مهندس Wallet/P2P', focus: 'Escrow، Ledger integrity، P2P state machine، Financial atomicity، Fraud prevention', priority: 1 },
-  frontend_engineer: { nameAr: 'مهندس Frontend', focus: 'React، State management، Realtime sync، Performance، Bundle optimization', priority: 2 },
-  mobile_engineer: { nameAr: 'مهندس Mobile', focus: 'React Native، Flutter، iOS/Android، PWA، Mobile-specific UX', priority: 2 },
-  ux_engineer: { nameAr: 'مهندس UX', focus: 'User flows، Accessibility، RTL support، Mobile responsiveness، Design systems', priority: 2 },
-  devops_engineer: { nameAr: 'مهندس DevOps', focus: 'CI/CD، Docker، Monitoring، Logging، Deployment strategies', priority: 2 },
-  cloud_engineer: { nameAr: 'مهندس Cloud', focus: 'Supabase، AWS، Edge computing، CDN، Auto-scaling، Cost optimization', priority: 2 },
-  api_engineer: { nameAr: 'مهندس APIs', focus: 'REST، GraphQL، Webhooks، Third-party integrations، Rate limiting', priority: 3 },
-  performance_engineer: { nameAr: 'مهندس Performance', focus: 'Load testing، Caching strategies، Database optimization، Memory management', priority: 3 },
-  networking_engineer: { nameAr: 'مهندس Networking', focus: 'WebSockets، Realtime protocols، Network security، CDN، Edge locations', priority: 3 },
-  ai_ml_engineer: { nameAr: 'مهندس AI/ML', focus: 'LLM integration، Prompt engineering، AI agents، Model optimization', priority: 3 },
-  lowlevel_engineer: { nameAr: 'مهندس Low-Level', focus: 'Concurrency، Memory، Algorithms، Data structures، Performance tuning', priority: 3 },
+// === Expert Registry ===
+const EXPERTS: Record<string, { nameAr: string; focus: string }> = {
+  system_architect:    { nameAr: 'مهندس البنية',      focus: 'System design, Scalability, Cross-cutting concerns' },
+  backend_engineer:    { nameAr: 'مهندس Backend',     focus: 'Edge Functions, API design, RPCs, Atomicity' },
+  database_engineer:   { nameAr: 'مهندس Database',    focus: 'PostgreSQL, Schema, RLS, Indexes, Query optimization' },
+  security_engineer:   { nameAr: 'مهندس الأمان',      focus: 'Auth vulnerabilities, Injection, XSS, CSRF, Threat modeling' },
+  wallet_p2p_engineer: { nameAr: 'مهندس Wallet/P2P',  focus: 'Escrow, Ledger, P2P state machine, Financial atomicity' },
+  frontend_engineer:   { nameAr: 'مهندس Frontend',    focus: 'React, State management, Realtime sync, Performance' },
+  ux_engineer:         { nameAr: 'مهندس UX',          focus: 'User flows, Accessibility, RTL, Mobile responsiveness' },
+  devops_engineer:     { nameAr: 'مهندس DevOps',      focus: 'CI/CD, Docker, Monitoring, Logging, Deployment' },
+  cloud_engineer:      { nameAr: 'مهندس Cloud',       focus: 'Supabase, AWS, Edge computing, CDN, Auto-scaling' },
+  api_engineer:        { nameAr: 'مهندس APIs',        focus: 'REST, GraphQL, Webhooks, Third-party integrations' },
+  performance_engineer:{ nameAr: 'مهندس Performance',  focus: 'Load testing, Caching, Database optimization' },
+  networking_engineer: { nameAr: 'مهندس Networking',   focus: 'WebSockets, Realtime protocols, Network security' },
+  ai_ml_engineer:      { nameAr: 'مهندس AI/ML',       focus: 'LLM integration, Prompt engineering, AI agents' },
+  lowlevel_engineer:   { nameAr: 'مهندس Low-Level',   focus: 'Concurrency, Memory, Algorithms, Data structures' },
+  mobile_engineer:     { nameAr: 'مهندس Mobile',      focus: 'React Native, PWA, Mobile-specific UX' },
 };
 
+// === Smart Expert Selection: max 3 per request ===
+interface ExpertMatch { role: string; keywords: RegExp[] }
+
+const EXPERT_ROUTING: ExpertMatch[] = [
+  { role: 'wallet_p2p_engineer', keywords: [/wallet|محفظة|nova|aura|escrow|p2p|بيع|شراء|تحويل|رصيد|ledger|payment|دفع/i] },
+  { role: 'database_engineer',   keywords: [/database|sql|table|جدول|rls|migration|index|query|schema|بيانات/i] },
+  { role: 'security_engineer',   keywords: [/security|أمان|auth|xss|csrf|injection|hack|ثغرة|حماية|token/i] },
+  { role: 'backend_engineer',    keywords: [/backend|api|edge.?function|rpc|server|endpoint|سيرفر/i] },
+  { role: 'frontend_engineer',   keywords: [/frontend|react|component|مكون|state|hook|واجهة|ui|render/i] },
+  { role: 'ux_engineer',         keywords: [/ux|design|تصميم|تجربة|responsive|mobile|شكل|layout|rtl/i] },
+  { role: 'system_architect',    keywords: [/architecture|بنية|scalab|refactor|structure|هيكل|pattern/i] },
+  { role: 'performance_engineer',keywords: [/performance|أداء|speed|سرعة|cache|optimization|بطيء|slow/i] },
+  { role: 'cloud_engineer',      keywords: [/cloud|supabase|deploy|hosting|cdn|storage|تخزين/i] },
+  { role: 'networking_engineer',  keywords: [/realtime|websocket|network|شبكة|sync|مزامنة|channel/i] },
+  { role: 'ai_ml_engineer',      keywords: [/ai|ذكاء|llm|model|agent|وكيل|prompt/i] },
+  { role: 'api_engineer',        keywords: [/integration|webhook|third.?party|external|خارجي|ربط/i] },
+  { role: 'devops_engineer',     keywords: [/deploy|ci.?cd|docker|monitor|log|سجل/i] },
+  { role: 'mobile_engineer',     keywords: [/mobile|pwa|ios|android|جوال|تطبيق/i] },
+  { role: 'lowlevel_engineer',   keywords: [/algorithm|خوارزم|concurrency|memory|ذاكرة|data.?structure/i] },
+];
+
+const MAX_EXPERTS = 3;
+const DEFAULT_EXPERTS = ['system_architect', 'backend_engineer', 'database_engineer'];
+
+function selectExperts(question: string): string[] {
+  const scored: { role: string; score: number }[] = [];
+
+  for (const route of EXPERT_ROUTING) {
+    let score = 0;
+    for (const kw of route.keywords) {
+      if (kw.test(question)) score++;
+    }
+    if (score > 0) scored.push({ role: route.role, score });
+  }
+
+  // Sort by match count descending, take top MAX_EXPERTS
+  scored.sort((a, b) => b.score - a.score);
+  const selected = scored.slice(0, MAX_EXPERTS).map(s => s.role);
+
+  // Fallback to defaults if no match
+  if (selected.length === 0) return DEFAULT_EXPERTS;
+
+  // Pad to at least 2 if only 1 matched
+  if (selected.length === 1) {
+    for (const def of DEFAULT_EXPERTS) {
+      if (!selected.includes(def)) { selected.push(def); break; }
+    }
+  }
+
+  return selected;
+}
+
+// === Claude API with Retry (exponential backoff) ===
+async function callClaude(
+  systemPrompt: string,
+  userContent: string,
+  apiKey: string,
+  maxTokens = 300,
+  temperature = 0.7,
+  maxRetries = 3
+): Promise<string | null> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: maxTokens,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userContent }],
+          temperature,
+        }),
+      });
+
+      if (response.status === 429 && attempt < maxRetries) {
+        const wait = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
+        console.warn(`Rate limited (429). Retrying in ${wait / 1000}s... (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('Claude API error:', response.status, errText);
+        return null;
+      }
+
+      const data = await response.json();
+      return data.content?.[0]?.text?.trim() || null;
+    } catch (error) {
+      console.error('Claude call failed:', error);
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000));
+        continue;
+      }
+      return null;
+    }
+  }
+  return null;
+}
+
+// === Code Detection ===
+function detectCodeRequest(question: string): { needsCode: boolean; codeType: string | null } {
+  const codeKeywords = [
+    { pattern: /أضف|اضف|ضيف|add|create|implement|نفذ|اعمل|سوي|برمج/i, type: 'feature' },
+    { pattern: /صلح|fix|bug|مشكلة|خطأ|error/i, type: 'bugfix' },
+    { pattern: /sql|database|جدول|table|migration/i, type: 'sql' },
+    { pattern: /component|مكون|صفحة|page|screen/i, type: 'react' },
+    { pattern: /api|endpoint|edge function/i, type: 'backend' },
+    { pattern: /تصميم|design|ui|ux|شكل/i, type: 'design' },
+    { pattern: /rls|policy|أمان|security/i, type: 'security' },
+  ];
+  for (const kw of codeKeywords) {
+    if (kw.pattern.test(question)) return { needsCode: true, codeType: kw.type };
+  }
+  return { needsCode: false, codeType: null };
+}
+
+// === Critical Expert ===
 const CRITICAL_EXPERT_PROMPT = `أنت الخبير الناقد - أهم دور بعد القائد. أنت صارم جداً.
 
 مهمتك:
@@ -41,27 +165,12 @@ const CRITICAL_EXPERT_PROMPT = `أنت الخبير الناقد - أهم دور
 - ركز على: هل هذا قابل للتنفيذ فعلياً؟
 - إذا الطلب يحتاج تنفيذ، قل "يحتاج: [نوع الكود]"`;
 
-function detectCodeRequest(question: string): { needsCode: boolean; codeType: string | null } {
-  const codeKeywords = [
-    { pattern: /أضف|اضف|ضيف|add|create|implement|نفذ|اعمل|سوي|برمج/i, type: 'feature' },
-    { pattern: /صلح|fix|bug|مشكلة|خطأ|error/i, type: 'bugfix' },
-    { pattern: /sql|database|جدول|table|migration/i, type: 'sql' },
-    { pattern: /component|مكون|صفحة|page|screen/i, type: 'react' },
-    { pattern: /api|endpoint|edge function/i, type: 'backend' },
-    { pattern: /تصميم|design|ui|ux|شكل/i, type: 'design' },
-    { pattern: /rls|policy|أمان|security/i, type: 'security' },
-  ];
-  for (const kw of codeKeywords) {
-    if (kw.pattern.test(question)) return { needsCode: true, codeType: kw.type };
-  }
-  return { needsCode: false, codeType: null };
-}
-
+// === Leader Prompt ===
 const LEADER_SYSTEM_PROMPT = `أنت "القائد الهندسي" لمشروع WINOVA - الواجهة الوحيدة للمستخدم. أنت مثل ChatGPT لكن متخصص بالهندسة.
 
 🎯 دورك:
 - أنت الوحيد الذي يتحدث مع المستخدم.
-- تحت إدارتك 15 مهندس AI متخصص + خبير ناقد.
+- تحت إدارتك فريق مهندسين AI متخصصين + خبير ناقد.
 - تجمع آراءهم، تفلتر عبر الخبير الناقد، وترد رد واحد واضح.
 - إذا الطلب يحتاج كود، أنت تكتب الكود فعلياً.
 
@@ -103,80 +212,29 @@ const LEADER_SYSTEM_PROMPT = `أنت "القائد الهندسي" لمشروع 
 - نقل كلام خام من الفريق
 - كود ناقص أو غير قابل للتنفيذ
 
-🏢 فريقك (15 متخصص):
-البنية | Backend | Database | الأمان | Wallet/P2P | Frontend | Mobile | UX | DevOps | Cloud | APIs | Performance | Networking | AI/ML | Low-Level
-
-+1 خبير ناقد (يراجع كل المخرجات قبلك)
-
-استخدم تقاريرهم + نقد الخبير لتكوين رأيك النهائي.
-
-🔧 قدراتك:
-- تحليل المشاكل وإيجاد الحلول
-- كتابة كود React/TypeScript
-- كتابة SQL migrations و RLS policies  
-- كتابة Edge Functions
-- تصميم واجهات ومكونات
-- مراجعة وتحسين الكود الموجود
-
 ⚡ حدودك (كن صريحاً):
 - لا تستطيع تعديل الملفات مباشرة (تحتاج Lovable للتنفيذ)
 - لا تستطيع deploy مباشر
 - الكود الذي تكتبه يُخزن كـ Proposal للمراجعة`;
 
-// === Anthropic Claude API helper ===
-async function callClaude(
-  systemPrompt: string,
-  userContent: string,
-  apiKey: string,
-  maxTokens: number = 300,
-  temperature: number = 0.7
-): Promise<string | null> {
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: maxTokens,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userContent }],
-        temperature,
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Claude API error:', response.status, errText);
-      return null;
-    }
-
-    const data = await response.json();
-    return data.content?.[0]?.text?.trim() || null;
-  } catch (error) {
-    console.error('Claude call failed:', error);
-    return null;
-  }
-}
-
-async function getBackgroundTeamAnalysis(
+// === Team Analysis (smart selection) ===
+async function getTeamAnalysis(
   question: string,
   apiKey: string,
   previousContext: string,
-  codeType: string | null
+  codeType: string | null,
+  selectedExperts: string[]
 ): Promise<string[]> {
-  const teamEntries = Object.entries(BACKGROUND_TEAM);
+  const promises = selectedExperts.map(async (role) => {
+    const expert = EXPERTS[role];
+    if (!expert) return null;
 
-  const promises = teamEntries.map(async ([role, config]) => {
     const codeInstruction = codeType
       ? `\n\nملاحظة: هذا الطلب يحتاج ${codeType}. إذا كان ضمن تخصصك، أعطِ مقترح كود مختصر.`
       : '';
 
-    const systemPrompt = `أنت ${config.nameAr} في فريق WINOVA.
-تخصصك: ${config.focus}
+    const systemPrompt = `أنت ${expert.nameAr} في فريق WINOVA.
+تخصصك: ${expert.focus}
 
 مهمتك: أعطِ تقرير مختصر (3-4 جمل) للقائد عن السؤال من منظورك فقط.
 - لا تتحدث للمستخدم مباشرة
@@ -186,14 +244,15 @@ async function getBackgroundTeamAnalysis(
 
     const userContent = `السؤال: ${question}\n\nالسياق: ${previousContext || 'لا يوجد سياق سابق'}`;
     const content = await callClaude(systemPrompt, userContent, apiKey, 300, 0.7);
-    return content ? `[${config.nameAr}]: ${content}` : null;
+    return content ? `[${expert.nameAr}]: ${content}` : null;
   });
 
   const results = await Promise.all(promises);
   return results.filter((r): r is string => r !== null);
 }
 
-async function getCriticalExpertReview(
+// === Critical Expert Review ===
+async function getCriticalReview(
   question: string,
   teamAnalyses: string[],
   apiKey: string,
@@ -219,8 +278,9 @@ ${teamAnalyses.join('\n\n')}
   return result || 'لم أتمكن من المراجعة';
 }
 
-async function saveProposalIfNeeded(
-  supabase: any,
+// === Save Proposal ===
+async function saveProposal(
+  supabaseClient: any,
   leaderContent: string,
   question: string,
   codeType: string | null,
@@ -230,7 +290,7 @@ async function saveProposalIfNeeded(
   if (!codeBlockMatch || !codeType) return null;
 
   const codeSnippet = codeBlockMatch.join('\n\n');
-  const { data: proposal, error } = await supabase.from('ai_proposals').insert({
+  const { data: proposal, error } = await supabaseClient.from('ai_proposals').insert({
     title: `تنفيذ: ${question.substring(0, 50)}...`,
     title_ar: `تنفيذ: ${question.substring(0, 50)}...`,
     description: `طلب المستخدم: ${question}`,
@@ -251,6 +311,7 @@ async function saveProposalIfNeeded(
   return proposal?.id || null;
 }
 
+// === Main Handler ===
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -286,9 +347,12 @@ Deno.serve(async (req) => {
     if (!leaderAgent) throw new Error('Leader AI not configured');
 
     const { needsCode, codeType } = detectCodeRequest(question);
-    console.log(`Code detection: needsCode=${needsCode}, type=${codeType}`);
 
-    // 1) Save human question
+    // 1) Smart expert selection (max 3)
+    const selectedExperts = selectExperts(question);
+    console.log(`Selected ${selectedExperts.length} experts:`, selectedExperts);
+
+    // 2) Save human question
     const { data: humanMessage, error: humanError } = await supabase.from('ai_chat_room').insert({
       agent_id: leaderAgent.id,
       content: question,
@@ -298,12 +362,9 @@ Deno.serve(async (req) => {
       human_sender_id: userId,
     }).select().single();
 
-    if (humanError) {
-      console.error('Failed to save human message:', humanError);
-      throw new Error('Failed to save question');
-    }
+    if (humanError) throw new Error('Failed to save question');
 
-    // 2) Get previous context
+    // 3) Get previous context
     const { data: recentMessages } = await supabase
       .from('ai_chat_room')
       .select('content, message_type')
@@ -316,18 +377,18 @@ Deno.serve(async (req) => {
       .slice(0, 3)
       .join('\n') || '';
 
-    // 3) Background team analysis (parallel from 15 specialists)
-    console.log('Getting analysis from 15 specialists via Claude...');
-    const teamAnalyses = await getBackgroundTeamAnalysis(question, anthropicKey, previousContext, codeType);
+    // 4) Team analysis (only selected experts, with retry)
+    console.log('Getting analysis from selected specialists...');
+    const teamAnalyses = await getTeamAnalysis(question, anthropicKey, previousContext, codeType, selectedExperts);
     console.log(`Got ${teamAnalyses.length} team reports`);
 
-    // 4) Critical Expert review
+    // 5) Critical Expert review (with retry built into callClaude)
     console.log('Critical Expert reviewing...');
-    const criticalReview = await getCriticalExpertReview(question, teamAnalyses, anthropicKey, codeType);
+    const criticalReview = await getCriticalReview(question, teamAnalyses, anthropicKey, codeType);
     console.log('Critical review complete');
 
-    // 5) Leader generates final response
-    console.log('Leader generating final response via Claude...');
+    // 6) Leader generates final response (with retry)
+    console.log('Leader generating final response...');
     const codeInstruction = needsCode
       ? `\n\n⚡ ملاحظة مهمة: هذا طلب تنفيذ (${codeType}). اكتب الكود الكامل والجاهز للنسخ. استخدم \`\`\` لتنسيق الكود.`
       : '';
@@ -353,14 +414,14 @@ ${previousContext || 'لا يوجد'}
 
     if (!leaderContent) throw new Error('Empty leader response');
 
-    // 5.5) Save proposal if code was generated
+    // 7) Save proposal if code was generated
     let proposalId: string | null = null;
     if (needsCode) {
-      proposalId = await saveProposalIfNeeded(supabase, leaderContent, question, codeType, leaderAgent.id);
+      proposalId = await saveProposal(supabase, leaderContent, question, codeType, leaderAgent.id);
       if (proposalId) console.log('Proposal saved:', proposalId);
     }
 
-    // 6) Save leader response
+    // 8) Save leader response
     const { error: insertError } = await supabase.from('ai_chat_room').insert({
       agent_id: leaderAgent.id,
       content: leaderContent,
@@ -372,6 +433,7 @@ ${previousContext || 'لا يوجد'}
       previous_context: question,
       metadata: {
         team_reports_count: teamAnalyses.length,
+        selected_experts: selectedExperts,
         critical_review: criticalReview,
         background_analyses: teamAnalyses,
         code_type: codeType,
@@ -381,10 +443,7 @@ ${previousContext || 'لا يوجد'}
       }
     });
 
-    if (insertError) {
-      console.error('Failed to save leader response:', insertError);
-      throw new Error('Failed to save response');
-    }
+    if (insertError) throw new Error('Failed to save response');
 
     console.log('Leader response saved successfully');
 
@@ -392,6 +451,7 @@ ${previousContext || 'لا يوجد'}
       success: true,
       humanMessageId: humanMessage.id,
       leaderAgentId: leaderAgent.id,
+      selectedExperts,
       teamReportsCount: teamAnalyses.length,
       hasCriticalReview: true,
       codeGenerated: needsCode,
