@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_activity_stream: {
+        Row: {
+          action_type: string
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          duration_ms: number | null
+          entity_id: string | null
+          entity_type: string | null
+          error_code: string | null
+          id: string
+          role: string | null
+          success: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          duration_ms?: number | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_code?: string | null
+          id?: string
+          role?: string | null
+          success?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          duration_ms?: number | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_code?: string | null
+          id?: string
+          role?: string | null
+          success?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_agents: {
         Row: {
           agent_name: string
@@ -284,6 +329,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_failures: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          parameters: Json | null
+          rpc_name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          parameters?: Json | null
+          rpc_name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          parameters?: Json | null
+          rpc_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_human_sessions: {
         Row: {
           agents_order: Json | null
@@ -320,6 +392,42 @@ export type Database = {
           status?: string
           summary?: string | null
           summary_ar?: string | null
+        }
+        Relationships: []
+      }
+      ai_money_flow: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          from_user: string | null
+          id: string
+          operation: string
+          reference_id: string | null
+          reference_type: string | null
+          to_user: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          from_user?: string | null
+          id?: string
+          operation: string
+          reference_id?: string | null
+          reference_type?: string | null
+          to_user?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          from_user?: string | null
+          id?: string
+          operation?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          to_user?: string | null
         }
         Relationships: []
       }
