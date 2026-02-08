@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { P2POrder, useP2P } from '@/contexts/P2PContext';
 import { P2PSellerConfirmCard } from './P2PSellerConfirmCard';
 import { P2PCancelOrderDialog } from './P2PCancelOrderDialog';
+import { ReleaseSafetyFlow } from './release-safety';
 import { useBanner } from '@/contexts/BannerContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -34,6 +35,7 @@ export function P2PSellerSteps({
   
   const [isExtendedWait, setIsExtendedWait] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showSafetyFlow, setShowSafetyFlow] = useState(false);
   
   // Track if we've already triggered the mock simulation for this order
   const hasTriggeredMockRef = useRef<string | null>(null);
@@ -165,7 +167,11 @@ export function P2PSellerSteps({
 
   // Show confirmation card when buyer has paid
   if (order.status === 'paid') {
-    const handleRelease = () => {
+    const handleReleaseRequest = () => {
+      setShowSafetyFlow(true);
+    };
+
+    const handleConfirmedRelease = () => {
       releaseFunds(order.id);
       showSuccess(isRTL 
         ? `🎉 تم تحرير ${order.amount.toFixed(0)} Nova بنجاح!`
@@ -240,8 +246,18 @@ export function P2PSellerSteps({
           order={order}
           buyerName={order.buyer.name}
           buyerNameAr={order.buyer.nameAr}
-          onRelease={handleRelease}
+          onRelease={handleReleaseRequest}
           onNoPayment={handleNoPayment}
+        />
+
+        <ReleaseSafetyFlow
+          open={showSafetyFlow}
+          onOpenChange={setShowSafetyFlow}
+          novaAmount={order.amount}
+          currencySymbol={order.currencySymbol}
+          localTotal={order.total}
+          buyerName={isRTL ? order.buyer.nameAr : order.buyer.name}
+          onConfirmRelease={handleConfirmedRelease}
         />
       </div>
     );

@@ -28,6 +28,7 @@ import { P2PConfirmPaymentDialog } from './P2PConfirmPaymentDialog';
 import { P2PPaymentSteps } from './P2PPaymentSteps';
 import { P2PSellerSteps } from './P2PSellerSteps';
 import { P2PCancelOrderDialog } from './P2PCancelOrderDialog';
+import { ReleaseSafetyFlow } from './release-safety';
 
 interface P2PActionButtonsProps {
   order: P2POrder;
@@ -124,6 +125,7 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
   const [disputeReason, setDisputeReason] = useState('');
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showSafetyFlow, setShowSafetyFlow] = useState(false);
 
   const isBuyer = order.buyer.id === currentUserId;
   const isSeller = order.seller.id === currentUserId;
@@ -205,9 +207,7 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
         }
         break;
       case 'release':
-        releaseFunds(order.id);
-        showSuccess(isRTL ? 'تم تحرير Nova بنجاح!' : 'Nova released successfully!');
-        onOrderCompleted?.();
+        setShowSafetyFlow(true);
         break;
       case 'no_payment':
         reportNoPayment(order.id);
@@ -512,6 +512,20 @@ export function P2PActionButtons({ order, currentUserId, isSupport = false, onOr
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ReleaseSafetyFlow
+        open={showSafetyFlow}
+        onOpenChange={setShowSafetyFlow}
+        novaAmount={order.amount}
+        currencySymbol={order.currencySymbol}
+        localTotal={order.total}
+        buyerName={language === 'ar' ? order.buyer.nameAr : order.buyer.name}
+        onConfirmRelease={() => {
+          releaseFunds(order.id);
+          showSuccess(language === 'ar' ? 'تم تحرير Nova بنجاح!' : 'Nova released successfully!');
+          onOrderCompleted?.();
+        }}
+      />
     </>
   );
 }
