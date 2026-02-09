@@ -547,6 +547,170 @@ async function approveRetirement(sb: any, retirementId: string, userId: string) 
   return { success: true };
 }
 
+// ---- NEW SKILL ACQUIRED ----
+async function reportNewSkill(sb: any, agentId: string, skillName: string, skillNameAr: string, skillCategory: string, conversationId?: string) {
+  // Upsert skill
+  const { data: existing } = await sb.from('ai_agent_skills')
+    .select('id, proficiency_level, usage_count')
+    .eq('agent_id', agentId)
+    .eq('skill_name', skillName)
+    .limit(1);
+
+  let isNew = true;
+  let proficiency = 10;
+
+  if (existing && existing.length > 0) {
+    isNew = false;
+    proficiency = Math.min(100, existing[0].proficiency_level + 5);
+    await sb.from('ai_agent_skills').update({
+      proficiency_level: proficiency,
+      usage_count: existing[0].usage_count + 1,
+      last_used_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', existing[0].id);
+  } else {
+    await sb.from('ai_agent_skills').insert({
+      agent_id: agentId,
+      skill_name: skillName,
+      skill_name_ar: skillNameAr,
+      skill_category: skillCategory,
+      proficiency_level: proficiency,
+      usage_count: 1,
+    });
+  }
+
+  const convId = conversationId || await findAdminConversation(sb);
+  if (convId) {
+    const { data: agent } = await sb.from('ai_agents').select('agent_name_ar, agent_name').eq('id', agentId).single();
+    const emoji = isNew ? '🧠' : '📈';
+    const label = isNew ? 'مهارة جديدة' : 'تحسين مهارة';
+    await postDM(sb, convId,
+      `${emoji} **${label}**\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🤖 الوكيل: ${agent?.agent_name_ar || agent?.agent_name}\n` +
+      `🎯 المهارة: ${skillNameAr || skillName}\n` +
+      `📂 التصنيف: ${skillCategory}\n` +
+      `📊 الإتقان: ${proficiency}%\n` +
+      `${isNew ? '✨ تم اكتساب مهارة جديدة!' : `⬆️ ارتفع الإتقان إلى ${proficiency}%`}`,
+      'evolution_skill'
+    );
+  }
+
+  return { isNew, proficiency };
+}
+
+// ---- LEARNING DISCOVERY ----
+async function reportLearning(sb: any, agentId: string, discovery: string, discoveryAr: string, source: string, conversationId?: string) {
+  // Log to knowledge_memory
+  await sb.from('knowledge_memory').insert({
+    source,
+    event_type: 'ai_learning',
+    summary: discovery,
+    metadata: { agent_id: agentId, discovery_ar: discoveryAr },
+  });
+
+  const convId = conversationId || await findAdminConversation(sb);
+  if (convId) {
+    const { data: agent } = await sb.from('ai_agents').select('agent_name_ar, agent_name').eq('id', agentId).single();
+    await postDM(sb, convId,
+      `💡 **اكتشاف تعلّمي**\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🤖 الوكيل: ${agent?.agent_name_ar || agent?.agent_name}\n` +
+      `📖 الاكتشاف: ${discoveryAr || discovery}\n` +
+      `📂 المصدر: ${source}\n` +
+      `⏰ ${new Date().toLocaleString('ar-SA')}`,
+      'evolution_learning'
+    );
+  }
+
+  return { logged: true };
+}
+
+// ---- SELF-EVOLUTION PROPOSAL ----
+async function submitEvolutionProposal(
+  sb: any, agentId: string,
+  proposalType: string, title: string, titleAr: string,
+  description: string, descriptionAr: string,
+  proposedChange: string, proposedChangeAr: string,
+  riskAssessment: string, riskDetails: string, riskDetailsAr: string,
+  expectedImpact: string, expectedImpactAr: string,
+  conversationId?: string
+) {
+  const { data: proposal } = await sb.from('ai_self_evolution_proposals').insert({
+    proposing_agent_id: agentId,
+    proposal_type: proposalType,
+    title, title_ar: titleAr,
+    description, description_ar: descriptionAr,
+    proposed_change: proposedChange, proposed_change_ar: proposedChangeAr,
+    risk_assessment: riskAssessment,
+    risk_details: riskDetails, risk_details_ar: riskDetailsAr,
+    expected_impact: expectedImpact, expected_impact_ar: expectedImpactAr,
+    lifecycle_status: 'draft',
+  }).select().single();
+
+  const convId = conversationId || await findAdminConversation(sb);
+  if (convId && proposal) {
+    const { data: agent } = await sb.from('ai_agents').select('agent_name_ar, agent_name, rank').eq('id', agentId).single();
+    const typeLabels: Record<string, string> = {
+      weakness_fix: '🔧 إصلاح ضعف',
+      upgrade: '⬆️ ترقية',
+      new_tool: '🛠️ أداة جديدة',
+      new_agent: '🤖 وكيل جديد',
+      workflow: '🔄 تحسين سير العمل',
+      architecture: '🏗️ تحسين معماري',
+    };
+    const riskEmoji: Record<string, string> = { low: '🟢', medium: '🟡', high: '🟠', critical: '🔴' };
+
+    await postDM(sb, convId,
+      `🧬 **مقترح تطور ذاتي**\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `${typeLabels[proposalType] || '📋 مقترح'}\n\n` +
+      `🤖 المقترح من: ${agent?.agent_name_ar || agent?.agent_name} (${agent?.rank})\n` +
+      `📌 العنوان: ${titleAr || title}\n` +
+      `📖 الوصف: ${descriptionAr || description}\n\n` +
+      `🔄 التغيير المقترح: ${proposedChangeAr || proposedChange}\n` +
+      `${riskEmoji[riskAssessment] || '🟡'} المخاطر: ${riskDetailsAr || riskDetails}\n` +
+      `📈 الأثر المتوقع: ${expectedImpactAr || expectedImpact}\n\n` +
+      `📊 الحالة: مسودة — بانتظار المحاكاة\n\n` +
+      `evolution_proposal_id: ${proposal.id}\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `⏳ يجب المحاكاة أولاً ثم الموافقة`,
+      'evolution_proposal'
+    );
+  }
+
+  return proposal;
+}
+
+// ---- APPROVE/REJECT EVOLUTION PROPOSAL ----
+async function decideEvolutionProposal(sb: any, proposalId: string, decision: 'approved' | 'rejected', userId: string, reason?: string) {
+  const { data: proposal } = await sb.from('ai_self_evolution_proposals')
+    .select('*').eq('id', proposalId).single();
+  if (!proposal) return { error: 'Not found' };
+
+  await sb.from('ai_self_evolution_proposals').update({
+    lifecycle_status: decision,
+    decided_at: new Date().toISOString(),
+    decided_by: userId,
+    decision_reason: reason || (decision === 'approved' ? 'Approved by admin' : 'Rejected by admin'),
+    decision_reason_ar: reason,
+    updated_at: new Date().toISOString(),
+  }).eq('id', proposalId);
+
+  const convId = proposal.conversation_id || await findAdminConversation(sb);
+  if (convId) {
+    const emoji = decision === 'approved' ? '✅' : '❌';
+    const label = decision === 'approved' ? 'تمت الموافقة' : 'تم الرفض';
+    await postDM(sb, convId,
+      `${emoji} **${label} — مقترح التطور**\n\n` +
+      `📌 ${proposal.title_ar || proposal.title}\n` +
+      `${reason ? `السبب: ${reason}` : ''}`,
+    );
+  }
+
+  return { success: true };
+}
+
 // ---- FULL EVOLUTION CYCLE ----
 async function runEvolutionCycle(sb: any) {
   const conversationId = await findAdminConversation(sb);
@@ -632,22 +796,21 @@ Deno.serve(async (req) => {
         break;
 
       case 'approve_promotion':
-        result = await approvePromotion(sb, promotion_id, user_id);
+        result = await approvePromotion(sb, body.promotion_id, body.user_id);
         break;
 
       case 'reject_promotion':
-        result = await rejectPromotion(sb, promotion_id, user_id, reason);
+        result = await rejectPromotion(sb, body.promotion_id, body.user_id, body.reason);
         break;
 
       case 'approve_retirement':
-        result = await approveRetirement(sb, retirement_id, user_id);
+        result = await approveRetirement(sb, body.retirement_id, body.user_id);
         break;
 
       case 'reject_retirement':
-        // Simply reject the proposal
         await sb.from('ai_retirement_proposals').update({
-          status: 'rejected', decided_by: user_id, decided_at: new Date().toISOString(),
-        }).eq('id', retirement_id);
+          status: 'rejected', decided_by: body.user_id, decided_at: new Date().toISOString(),
+        }).eq('id', body.retirement_id);
         result = { success: true };
         break;
 
@@ -656,12 +819,39 @@ Deno.serve(async (req) => {
         result = { compared: true };
         break;
 
+      case 'report_skill':
+        result = await reportNewSkill(sb, agent_id, body.skill_name, body.skill_name_ar, body.skill_category, conversation_id);
+        break;
+
+      case 'report_learning':
+        result = await reportLearning(sb, agent_id, body.discovery, body.discovery_ar, body.source, conversation_id);
+        break;
+
+      case 'submit_evolution_proposal':
+        result = await submitEvolutionProposal(
+          sb, agent_id,
+          body.proposal_type, body.title, body.title_ar,
+          body.description, body.description_ar,
+          body.proposed_change, body.proposed_change_ar,
+          body.risk_assessment, body.risk_details, body.risk_details_ar,
+          body.expected_impact, body.expected_impact_ar,
+          conversation_id
+        );
+        break;
+
+      case 'approve_evolution_proposal':
+        result = await decideEvolutionProposal(sb, body.proposal_id, 'approved', body.user_id, body.reason);
+        break;
+
+      case 'reject_evolution_proposal':
+        result = await decideEvolutionProposal(sb, body.proposal_id, 'rejected', body.user_id, body.reason);
+        break;
+
       case 'run_cycle':
         result = await runEvolutionCycle(sb);
         break;
 
       default:
-        // Default: run full evolution cycle
         result = await runEvolutionCycle(sb);
     }
 
