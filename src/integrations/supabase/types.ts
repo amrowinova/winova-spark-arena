@@ -162,12 +162,16 @@ export type Database = {
           agent_name_ar: string
           agent_role: Database["public"]["Enums"]["ai_agent_role"]
           behavior_description: string | null
+          confidence: number | null
           created_at: string
           focus_areas: string[]
           id: string
           is_active: boolean
           last_analysis_at: string | null
           profile_id: string | null
+          rank: string
+          specialty: string | null
+          status: string
           updated_at: string
           user_id: string | null
         }
@@ -176,12 +180,16 @@ export type Database = {
           agent_name_ar: string
           agent_role: Database["public"]["Enums"]["ai_agent_role"]
           behavior_description?: string | null
+          confidence?: number | null
           created_at?: string
           focus_areas?: string[]
           id?: string
           is_active?: boolean
           last_analysis_at?: string | null
           profile_id?: string | null
+          rank?: string
+          specialty?: string | null
+          status?: string
           updated_at?: string
           user_id?: string | null
         }
@@ -190,12 +198,16 @@ export type Database = {
           agent_name_ar?: string
           agent_role?: Database["public"]["Enums"]["ai_agent_role"]
           behavior_description?: string | null
+          confidence?: number | null
           created_at?: string
           focus_areas?: string[]
           id?: string
           is_active?: boolean
           last_analysis_at?: string | null
           profile_id?: string | null
+          rank?: string
+          specialty?: string | null
+          status?: string
           updated_at?: string
           user_id?: string | null
         }
@@ -823,6 +835,44 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_promotions: {
+        Row: {
+          agent_id: string
+          approved_by: string | null
+          from_rank: string | null
+          id: string
+          promoted_at: string | null
+          reason: string | null
+          to_rank: string | null
+        }
+        Insert: {
+          agent_id: string
+          approved_by?: string | null
+          from_rank?: string | null
+          id?: string
+          promoted_at?: string | null
+          reason?: string | null
+          to_rank?: string | null
+        }
+        Update: {
+          agent_id?: string
+          approved_by?: string | null
+          from_rank?: string | null
+          id?: string
+          promoted_at?: string | null
+          reason?: string | null
+          to_rank?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_promotions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_proposals: {
         Row: {
           admin_notes: string | null
@@ -934,6 +984,35 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "ai_human_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_retirements: {
+        Row: {
+          agent_id: string
+          id: string
+          reason: string | null
+          retired_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          id?: string
+          reason?: string | null
+          retired_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          id?: string
+          reason?: string | null
+          retired_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_retirements_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
             referencedColumns: ["id"]
           },
         ]
@@ -1065,6 +1144,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_training_history_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_training_sessions: {
+        Row: {
+          agent_id: string
+          confidence_gain: number | null
+          id: string
+          sources_count: number | null
+          topic: string | null
+          trained_at: string | null
+          weaknesses: string | null
+        }
+        Insert: {
+          agent_id: string
+          confidence_gain?: number | null
+          id?: string
+          sources_count?: number | null
+          topic?: string | null
+          trained_at?: string | null
+          weaknesses?: string | null
+        }
+        Update: {
+          agent_id?: string
+          confidence_gain?: number | null
+          id?: string
+          sources_count?: number | null
+          topic?: string | null
+          trained_at?: string | null
+          weaknesses?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_training_sessions_agent_id_fkey"
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "ai_agents"
