@@ -99,6 +99,11 @@ const INTENT_MAP: Record<string, { agent: string; intent: string }> = {
   'أولويات': { agent: 'ai-executive-commander', intent: 'executive_summary' },
   'rule': { agent: 'ai-rule-generator', intent: 'rule_discovery' },
   'قاعدة': { agent: 'ai-rule-generator', intent: 'rule_discovery' },
+  'p2p': { agent: 'ai-p2p-scanner', intent: 'p2p_security_scan' },
+  'p2p scan': { agent: 'ai-p2p-scanner', intent: 'p2p_security_scan' },
+  'فحص p2p': { agent: 'ai-p2p-scanner', intent: 'p2p_security_scan' },
+  'أمان': { agent: 'ai-p2p-scanner', intent: 'p2p_security_scan' },
+  'security': { agent: 'ai-p2p-scanner', intent: 'p2p_security_scan' },
 };
 
 // ─── DM Helper ────────────────────────────────────────
