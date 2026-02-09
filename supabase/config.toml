@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.ai-p2p-scanner]
 verify_jwt = false
+
+[functions.ai-code-engineer]
+verify_jwt = false

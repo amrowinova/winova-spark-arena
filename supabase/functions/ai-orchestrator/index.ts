@@ -104,6 +104,14 @@ const INTENT_MAP: Record<string, { agent: string; intent: string }> = {
   'فحص p2p': { agent: 'ai-p2p-scanner', intent: 'p2p_security_scan' },
   'أمان': { agent: 'ai-p2p-scanner', intent: 'p2p_security_scan' },
   'security': { agent: 'ai-p2p-scanner', intent: 'p2p_security_scan' },
+  'fix': { agent: 'ai-code-engineer', intent: 'code_fix' },
+  'إصلاح': { agent: 'ai-code-engineer', intent: 'code_fix' },
+  'refactor': { agent: 'ai-code-engineer', intent: 'code_refactor' },
+  'إعادة هيكلة': { agent: 'ai-code-engineer', intent: 'code_refactor' },
+  'improve': { agent: 'ai-code-engineer', intent: 'code_improve' },
+  'تحسين': { agent: 'ai-code-engineer', intent: 'code_improve' },
+  'code': { agent: 'ai-code-engineer', intent: 'code_search' },
+  'كود': { agent: 'ai-code-engineer', intent: 'code_search' },
 };
 
 // ─── DM Helper ────────────────────────────────────────
