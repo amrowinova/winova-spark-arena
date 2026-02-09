@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.ai-forecast-engine]
 verify_jwt = false
+
+[functions.ai-execution-engine]
+verify_jwt = false
