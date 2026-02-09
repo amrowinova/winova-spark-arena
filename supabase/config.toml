@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.ai-product-discovery]
 verify_jwt = false
+
+[functions.ai-executive-brain]
+verify_jwt = false
