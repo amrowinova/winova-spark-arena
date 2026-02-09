@@ -17,6 +17,7 @@ import { isFeatureEnabled } from '@/lib/featureFlags';
 import { isAISystemUser } from '@/lib/aiSystemUser';
 import { AlertDecisionButtons } from './AlertDecisionButtons';
 import { ExecutionDecisionButtons } from './ExecutionDecisionButtons';
+import { BuildProgressMessage } from './BuildProgressMessage';
 
 export interface DMMessageData {
   id: string;
@@ -331,6 +332,21 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
                     </span>
                   )}
                 </div>
+              );
+            })()}
+
+            {/* Build engine messages */}
+            {isAISystemUser(message.senderId) && ['build_clarification', 'build_delivery', 'build_progress', 'build_error'].includes(message.messageType) && (() => {
+              const projIdMatch = message.content.match(/build_project_id:\s*([0-9a-f-]+)/i);
+              const projId = projIdMatch?.[1];
+              if (!projId) return null;
+              return (
+                <BuildProgressMessage
+                  projectId={projId}
+                  conversationId={message.conversationId}
+                  messageType={message.messageType as any}
+                  content={message.content}
+                />
               );
             })()}
 

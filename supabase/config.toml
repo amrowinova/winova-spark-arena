@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.ai-execution-worker]
 verify_jwt = false
+
+[functions.ai-build-engine]
+verify_jwt = false

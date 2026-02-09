@@ -14,6 +14,7 @@ import { DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useChatPresence } from '@/hooks/useChatPresence';
 import { isAISystemUser } from '@/lib/aiSystemUser';
+import { useBuildEngine } from '@/hooks/useBuildEngine';
 
 interface DMChatViewProps {
   conversation: DMConversation;
@@ -49,6 +50,10 @@ export function DMChatView({
   // Real-time hooks - skip for system user
   const { otherUserTyping, handleTyping, stopTyping } = useTypingIndicator(conversation.id, conversation.participantName);
   const { isOnline, getLastSeenText } = useChatPresence(conversation.id, isSystemChat ? null : conversation.participantId);
+  const { startBuild, isBuilding, isBuildRequest } = useBuildEngine();
+
+  // Build command state
+  const [buildInput, setBuildInput] = useState('');
 
   // Convert messages to DMMessageData format with pending state
   const formattedMessages: DMMessageData[] = messages.map(msg => ({
@@ -286,11 +291,45 @@ export function DMChatView({
       {/* Read-only label for system chat */}
       {isSystemChat && (
         <div 
-          className="flex-shrink-0 bg-muted/50 border-t border-border py-3 text-center"
+          className="flex-shrink-0 bg-card border-t border-border"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <p className="text-xs text-muted-foreground">
-            {language === 'ar' ? '📡 قناة ذكاء اصطناعي — للقراءة فقط' : '📡 AI Intelligence Channel — Read Only'}
+          <div className="p-3 flex items-center gap-2">
+            <Input
+              value={buildInput}
+              onChange={(e) => setBuildInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && buildInput.trim()) {
+                  e.preventDefault();
+                  startBuild(buildInput.trim(), conversation.id);
+                  setBuildInput('');
+                }
+              }}
+              placeholder={language === 'ar' ? '🏭 ابني لي... (مثال: ابني لي نظام تذاكر)' : '🏭 Build me... (e.g. Build me a ticket system)'}
+              className="flex-1"
+              autoComplete="off"
+              disabled={isBuilding}
+            />
+            <Button 
+              size="icon" 
+              onClick={() => {
+                if (buildInput.trim()) {
+                  startBuild(buildInput.trim(), conversation.id);
+                  setBuildInput('');
+                }
+              }}
+              disabled={!buildInput.trim() || isBuilding}
+              className="shrink-0 h-10 w-10"
+            >
+              {isBuilding ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center pb-2">
+            {language === 'ar' ? '🏭 مصنع WINOVA — اكتب طلب البناء' : '🏭 WINOVA Factory — Type your build request'}
           </p>
         </div>
       )}

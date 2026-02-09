@@ -301,6 +301,123 @@ export type Database = {
           },
         ]
       }
+      ai_build_projects: {
+        Row: {
+          api_docs: Json | null
+          architecture: Json | null
+          backend_services: Json | null
+          clarification_answers: Json | null
+          clarification_questions: Json | null
+          conversation_id: string
+          created_at: string
+          current_phase: string
+          db_schemas: Json | null
+          description: string
+          description_ar: string | null
+          duration_ms: number | null
+          env_variables: Json | null
+          error_message: string | null
+          execution_request_id: string | null
+          frontend_components: Json | null
+          id: string
+          infra_config: Json | null
+          model_used: string | null
+          phase_progress: Json | null
+          requested_by: string
+          risk_level: string
+          run_instructions: string | null
+          simulation_id: string | null
+          simulation_verdict: string | null
+          stack_choices: Json | null
+          status: string
+          title: string
+          title_ar: string | null
+          total_tokens_used: number | null
+          updated_at: string
+        }
+        Insert: {
+          api_docs?: Json | null
+          architecture?: Json | null
+          backend_services?: Json | null
+          clarification_answers?: Json | null
+          clarification_questions?: Json | null
+          conversation_id: string
+          created_at?: string
+          current_phase?: string
+          db_schemas?: Json | null
+          description: string
+          description_ar?: string | null
+          duration_ms?: number | null
+          env_variables?: Json | null
+          error_message?: string | null
+          execution_request_id?: string | null
+          frontend_components?: Json | null
+          id?: string
+          infra_config?: Json | null
+          model_used?: string | null
+          phase_progress?: Json | null
+          requested_by: string
+          risk_level?: string
+          run_instructions?: string | null
+          simulation_id?: string | null
+          simulation_verdict?: string | null
+          stack_choices?: Json | null
+          status?: string
+          title: string
+          title_ar?: string | null
+          total_tokens_used?: number | null
+          updated_at?: string
+        }
+        Update: {
+          api_docs?: Json | null
+          architecture?: Json | null
+          backend_services?: Json | null
+          clarification_answers?: Json | null
+          clarification_questions?: Json | null
+          conversation_id?: string
+          created_at?: string
+          current_phase?: string
+          db_schemas?: Json | null
+          description?: string
+          description_ar?: string | null
+          duration_ms?: number | null
+          env_variables?: Json | null
+          error_message?: string | null
+          execution_request_id?: string | null
+          frontend_components?: Json | null
+          id?: string
+          infra_config?: Json | null
+          model_used?: string | null
+          phase_progress?: Json | null
+          requested_by?: string
+          risk_level?: string
+          run_instructions?: string | null
+          simulation_id?: string | null
+          simulation_verdict?: string | null
+          stack_choices?: Json | null
+          status?: string
+          title?: string
+          title_ar?: string | null
+          total_tokens_used?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_build_projects_execution_request_id_fkey"
+            columns: ["execution_request_id"]
+            isOneToOne: false
+            referencedRelation: "ai_execution_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_build_projects_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_shadow_simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_capability_metrics: {
         Row: {
           active_agents: number
