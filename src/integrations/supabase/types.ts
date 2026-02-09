@@ -1052,6 +1052,7 @@ export type Database = {
           max_risk_level: string
           permission_key: string
           permission_key_ar: string | null
+          required_auto_execute_level: number
           requires_approval: boolean
           updated_at: string
         }
@@ -1072,6 +1073,7 @@ export type Database = {
           max_risk_level?: string
           permission_key: string
           permission_key_ar?: string | null
+          required_auto_execute_level?: number
           requires_approval?: boolean
           updated_at?: string
         }
@@ -1092,6 +1094,7 @@ export type Database = {
           max_risk_level?: string
           permission_key?: string
           permission_key_ar?: string | null
+          required_auto_execute_level?: number
           requires_approval?: boolean
           updated_at?: string
         }

@@ -22,8 +22,8 @@ const RANK_THRESHOLDS: Record<AgentRank, { trust: number; success_rate: number; 
   architect:  { trust: 95, success_rate: 95, min_ops: 200, auto_level: 5 },
 };
 
-// Trust deltas
-const TRUST_DELTAS = {
+// Trust deltas (normal)
+const TRUST_DELTAS: Record<string, number> = {
   prediction_correct:   +3,
   simulation_aligned:   +2,
   human_approved:       +2,
@@ -33,6 +33,12 @@ const TRUST_DELTAS = {
   rollback:             -5,
   high_risk_failure:    -8,
   human_override:       -2,
+};
+
+// Autonomous trust multipliers: freedom = responsibility
+const AUTONOMOUS_MULTIPLIER = {
+  success: 1.5,  // 1.5x reward for autonomous success
+  failure: 2.0,  // 2x penalty for autonomous failure
 };
 
 const AI_SYSTEM_USER_ID = '00000000-0000-0000-0000-a10000000001';
@@ -60,10 +66,19 @@ async function findAdminConversation(sb: any): Promise<string | null> {
 // ---- TRUST ECONOMY ----
 async function updateTrust(
   sb: any, agentId: string, sourceType: string, sourceId: string,
-  reasonAr: string, conversationId?: string
+  reasonAr: string, conversationId?: string, autonomous = false
 ) {
-  const delta = (TRUST_DELTAS as any)[sourceType] || 0;
-  if (delta === 0) return;
+  const baseDelta = TRUST_DELTAS[sourceType] || 0;
+  if (baseDelta === 0) return;
+
+  // Apply autonomous multiplier
+  let delta: number;
+  if (autonomous) {
+    const multiplier = baseDelta > 0 ? AUTONOMOUS_MULTIPLIER.success : AUTONOMOUS_MULTIPLIER.failure;
+    delta = Math.round(baseDelta * multiplier);
+  } else {
+    delta = baseDelta;
+  }
 
   const { data: agent } = await sb.from('ai_agents').select('trust_score, agent_name, agent_name_ar').eq('id', agentId).single();
   if (!agent) return;
@@ -82,20 +97,24 @@ async function updateTrust(
     new_score: next,
     reason: reasonAr,
     reason_ar: reasonAr,
-    source_type: sourceType,
+    source_type: autonomous ? `autonomous_${sourceType}` : sourceType,
     source_id: sourceId,
   });
 
   // Post to DM if significant change
-  if (Math.abs(delta) >= 3 && conversationId) {
-    const emoji = delta > 0 ? '📈' : '📉';
-    const direction = delta > 0 ? 'ارتفاع' : 'انخفاض';
-    await postDM(sb, conversationId,
-      `${emoji} **تحديث الثقة — ${agent.agent_name_ar || agent.agent_name}**\n\n` +
-      `الثقة: ${prev}% → ${next}% (${delta > 0 ? '+' : ''}${delta})\n` +
-      `السبب: ${reasonAr}\n` +
-      `الاتجاه: ${direction}`
-    );
+  if (Math.abs(delta) >= 3) {
+    const convId = conversationId || await findAdminConversation(sb);
+    if (convId) {
+      const emoji = delta > 0 ? '📈' : '📉';
+      const direction = delta > 0 ? 'ارتفاع' : 'انخفاض';
+      const autoTag = autonomous ? ' (تلقائي — مُضاعف)' : '';
+      await postDM(sb, convId,
+        `${emoji} **تحديث الثقة${autoTag} — ${agent.agent_name_ar || agent.agent_name}**\n\n` +
+        `الثقة: ${prev}% → ${next}% (${delta > 0 ? '+' : ''}${delta})\n` +
+        `السبب: ${reasonAr}\n` +
+        `الاتجاه: ${direction}`
+      );
+    }
   }
 
   return { prev, next, delta };
@@ -591,7 +610,11 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'update_trust':
-        result = await updateTrust(sb, agent_id, source_type, source_id, reason_ar, conversation_id);
+        result = await updateTrust(sb, agent_id, source_type, source_id, reason_ar, conversation_id, false);
+        break;
+
+      case 'update_trust_autonomous':
+        result = await updateTrust(sb, agent_id, source_type, source_id, reason_ar, conversation_id, true);
         break;
 
       case 'self_evaluate':
