@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.ai-executive-brain]
 verify_jwt = false
+
+[functions.ai-ci-validator]
+verify_jwt = false
