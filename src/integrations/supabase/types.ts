@@ -4901,12 +4901,62 @@ export type Database = {
           total_weeks: number
         }[]
       }
+      get_database_size_overview: {
+        Args: never
+        Returns: {
+          largest_table: string
+          largest_table_size: string
+          total_db_size: string
+          total_tables: number
+        }[]
+      }
+      get_index_usage_stats: {
+        Args: never
+        Returns: {
+          idx_scan: number
+          idx_tup_fetch: number
+          idx_tup_read: number
+          index_name: string
+          index_size: string
+          schema_name: string
+          table_name: string
+        }[]
+      }
       get_my_direct_leader: { Args: { p_user_id: string }; Returns: Json }
       get_or_create_ai_conversation: {
         Args: { target_user_id: string }
         Returns: string
       }
       get_referral_stats: { Args: { p_user_id: string }; Returns: Json }
+      get_slow_query_stats: {
+        Args: never
+        Returns: {
+          calls: number
+          mean_exec_time: number
+          query_text: string
+          rows_returned: number
+          total_exec_time: number
+        }[]
+      }
+      get_table_performance_stats: {
+        Args: never
+        Returns: {
+          idx_scan: number
+          index_size: string
+          last_analyze: string
+          last_autovacuum: string
+          last_vacuum: string
+          n_dead_tup: number
+          n_live_tup: number
+          row_estimate: number
+          schema_name: string
+          seq_scan: number
+          seq_tup_read: number
+          table_name: string
+          table_size: string
+          total_size: string
+        }[]
+      }
       get_team_hierarchy: {
         Args: { p_leader_id: string; p_max_depth?: number }
         Returns: {
@@ -5134,6 +5184,7 @@ export type Database = {
         | "screen_team_owner"
         | "screen_admin_owner"
         | "engineering_lead"
+        | "performance_analyst"
       ai_decision_type: "approve" | "defer" | "reject"
       app_role: "admin" | "moderator" | "user" | "support"
       currency_type: "nova" | "aura"
@@ -5349,6 +5400,7 @@ export const Constants = {
         "screen_team_owner",
         "screen_admin_owner",
         "engineering_lead",
+        "performance_analyst",
       ],
       ai_decision_type: ["approve", "defer", "reject"],
       app_role: ["admin", "moderator", "user", "support"],

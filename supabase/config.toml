@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.ai-evolution-engine]
 verify_jwt = false
+
+[functions.ai-performance-analyst]
+verify_jwt = false
