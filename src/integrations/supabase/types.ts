@@ -497,6 +497,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_product_proposals: {
+        Row: {
+          based_on_events: number | null
+          confidence_score: number | null
+          created_at: string | null
+          data_window: string | null
+          description: string | null
+          description_ar: string | null
+          estimated_impact: string | null
+          generated_by: string | null
+          id: string
+          opportunity_type: string | null
+          status: string | null
+          title: string | null
+          title_ar: string | null
+        }
+        Insert: {
+          based_on_events?: number | null
+          confidence_score?: number | null
+          created_at?: string | null
+          data_window?: string | null
+          description?: string | null
+          description_ar?: string | null
+          estimated_impact?: string | null
+          generated_by?: string | null
+          id?: string
+          opportunity_type?: string | null
+          status?: string | null
+          title?: string | null
+          title_ar?: string | null
+        }
+        Update: {
+          based_on_events?: number | null
+          confidence_score?: number | null
+          created_at?: string | null
+          data_window?: string | null
+          description?: string | null
+          description_ar?: string | null
+          estimated_impact?: string | null
+          generated_by?: string | null
+          id?: string
+          opportunity_type?: string | null
+          status?: string | null
+          title?: string | null
+          title_ar?: string | null
+        }
+        Relationships: []
+      }
       ai_proposals: {
         Row: {
           admin_notes: string | null
