@@ -301,6 +301,60 @@ export type Database = {
           },
         ]
       }
+      ai_capability_metrics: {
+        Row: {
+          active_agents: number
+          avg_confidence: number | null
+          created_at: string
+          escalations: number | null
+          forecasts_accurate: number | null
+          forecasts_generated: number | null
+          id: string
+          improvement_rate: number | null
+          metadata: Json | null
+          metric_date: string
+          proposals_approved: number | null
+          proposals_rejected: number | null
+          skills_coverage: number | null
+          solved_without_human: number | null
+          total_agents: number
+        }
+        Insert: {
+          active_agents?: number
+          avg_confidence?: number | null
+          created_at?: string
+          escalations?: number | null
+          forecasts_accurate?: number | null
+          forecasts_generated?: number | null
+          id?: string
+          improvement_rate?: number | null
+          metadata?: Json | null
+          metric_date?: string
+          proposals_approved?: number | null
+          proposals_rejected?: number | null
+          skills_coverage?: number | null
+          solved_without_human?: number | null
+          total_agents?: number
+        }
+        Update: {
+          active_agents?: number
+          avg_confidence?: number | null
+          created_at?: string
+          escalations?: number | null
+          forecasts_accurate?: number | null
+          forecasts_generated?: number | null
+          id?: string
+          improvement_rate?: number | null
+          metadata?: Json | null
+          metric_date?: string
+          proposals_approved?: number | null
+          proposals_rejected?: number | null
+          skills_coverage?: number | null
+          solved_without_human?: number | null
+          total_agents?: number
+        }
+        Relationships: []
+      }
       ai_chat_room: {
         Row: {
           agent_id: string
@@ -634,6 +688,69 @@ export type Database = {
           },
         ]
       }
+      ai_evolution_proposals: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          expected_impact: string | null
+          expected_impact_ar: string | null
+          id: string
+          metadata: Json | null
+          missing_capability: string
+          missing_capability_ar: string | null
+          reason: string
+          reason_ar: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          skills_required: string[] | null
+          status: string
+          suggested_agent_type: string | null
+          suggested_agent_type_ar: string | null
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          expected_impact?: string | null
+          expected_impact_ar?: string | null
+          id?: string
+          metadata?: Json | null
+          missing_capability: string
+          missing_capability_ar?: string | null
+          reason: string
+          reason_ar?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          skills_required?: string[] | null
+          status?: string
+          suggested_agent_type?: string | null
+          suggested_agent_type_ar?: string | null
+          updated_at?: string
+          urgency?: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          expected_impact?: string | null
+          expected_impact_ar?: string | null
+          id?: string
+          metadata?: Json | null
+          missing_capability?: string
+          missing_capability_ar?: string | null
+          reason?: string
+          reason_ar?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          skills_required?: string[] | null
+          status?: string
+          suggested_agent_type?: string | null
+          suggested_agent_type_ar?: string | null
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: []
+      }
       ai_failures: {
         Row: {
           created_at: string
@@ -658,6 +775,72 @@ export type Database = {
           parameters?: Json | null
           rpc_name?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_forecasts: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          description: string
+          description_ar: string | null
+          forecast_type: string
+          id: string
+          impact_range: string | null
+          impact_range_ar: string | null
+          metadata: Json | null
+          probability: number
+          recommended_action: string | null
+          recommended_action_ar: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          time_window: string | null
+          title: string
+          title_ar: string | null
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          description: string
+          description_ar?: string | null
+          forecast_type?: string
+          id?: string
+          impact_range?: string | null
+          impact_range_ar?: string | null
+          metadata?: Json | null
+          probability?: number
+          recommended_action?: string | null
+          recommended_action_ar?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          time_window?: string | null
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          forecast_type?: string
+          id?: string
+          impact_range?: string | null
+          impact_range_ar?: string | null
+          metadata?: Json | null
+          probability?: number
+          recommended_action?: string | null
+          recommended_action_ar?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          time_window?: string | null
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
