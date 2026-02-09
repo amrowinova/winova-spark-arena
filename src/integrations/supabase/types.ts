@@ -3442,6 +3442,287 @@ export type Database = {
           },
         ]
       }
+      project_activity: {
+        Row: {
+          activity_type: string
+          agent_id: string | null
+          created_at: string
+          description: string | null
+          description_ar: string | null
+          id: string
+          metadata: Json | null
+          project_id: string
+          risk_level: string | null
+          title: string
+          title_ar: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          agent_id?: string | null
+          created_at?: string
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id: string
+          risk_level?: string | null
+          title: string
+          title_ar?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          agent_id?: string | null
+          created_at?: string
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id?: string
+          risk_level?: string | null
+          title?: string
+          title_ar?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_activity_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_build_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_agents: {
+        Row: {
+          agent_id: string
+          assigned_at: string
+          id: string
+          last_activity_at: string | null
+          project_id: string
+          role: string
+          tasks_completed: number | null
+        }
+        Insert: {
+          agent_id: string
+          assigned_at?: string
+          id?: string
+          last_activity_at?: string | null
+          project_id: string
+          role?: string
+          tasks_completed?: number | null
+        }
+        Update: {
+          agent_id?: string
+          assigned_at?: string
+          id?: string
+          last_activity_at?: string | null
+          project_id?: string
+          role?: string
+          tasks_completed?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_agents_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_agents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_build_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_artifacts: {
+        Row: {
+          artifact_type: string
+          content: string | null
+          content_json: Json | null
+          created_at: string
+          file_size: number | null
+          file_url: string | null
+          generated_by: string | null
+          id: string
+          mime_type: string | null
+          project_id: string
+          title: string
+          title_ar: string | null
+        }
+        Insert: {
+          artifact_type: string
+          content?: string | null
+          content_json?: Json | null
+          created_at?: string
+          file_size?: number | null
+          file_url?: string | null
+          generated_by?: string | null
+          id?: string
+          mime_type?: string | null
+          project_id: string
+          title: string
+          title_ar?: string | null
+        }
+        Update: {
+          artifact_type?: string
+          content?: string | null
+          content_json?: Json | null
+          created_at?: string
+          file_size?: number | null
+          file_url?: string | null
+          generated_by?: string | null
+          id?: string
+          mime_type?: string | null
+          project_id?: string
+          title?: string
+          title_ar?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_artifacts_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_artifacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_build_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_files: {
+        Row: {
+          created_at: string
+          description: string | null
+          description_ar: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string | null
+          id: string
+          mime_type: string | null
+          project_id: string
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          description_ar?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url?: string | null
+          id?: string
+          mime_type?: string | null
+          project_id: string
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          description_ar?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string | null
+          id?: string
+          mime_type?: string | null
+          project_id?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_build_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_phases: {
+        Row: {
+          agent_id: string | null
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          output_summary: string | null
+          output_summary_ar: string | null
+          phase_name: string
+          phase_name_ar: string | null
+          project_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          output_summary?: string | null
+          output_summary_ar?: string | null
+          phase_name: string
+          phase_name_ar?: string | null
+          project_id: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          output_summary?: string | null
+          output_summary_ar?: string | null
+          phase_name?: string
+          phase_name_ar?: string | null
+          project_id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_phases_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_phases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_build_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spotlight_cycles: {
         Row: {
           created_at: string

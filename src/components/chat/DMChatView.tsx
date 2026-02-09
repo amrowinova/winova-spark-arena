@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send } from 'lucide-react';
+import { Send, FolderOpen, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -15,6 +15,7 @@ import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useChatPresence } from '@/hooks/useChatPresence';
 import { isAISystemUser } from '@/lib/aiSystemUser';
 import { useBuildEngine } from '@/hooks/useBuildEngine';
+import { ProjectsTab } from './ProjectsTab';
 
 interface DMChatViewProps {
   conversation: DMConversation;
@@ -54,6 +55,8 @@ export function DMChatView({
 
   // Build command state
   const [buildInput, setBuildInput] = useState('');
+  // System chat tab: 'chat' or 'projects'
+  const [activeSystemTab, setActiveSystemTab] = useState<'chat' | 'projects'>('chat');
 
   // Convert messages to DMMessageData format with pending state
   const formattedMessages: DMMessageData[] = messages.map(msg => ({
@@ -209,9 +212,39 @@ export function DMChatView({
           onBack={onBack}
           onTransfer={isSystemChat ? undefined : () => setTransferDialogOpen(true)}
         />
+
+        {/* System Chat Tabs: Chat / Projects */}
+        {isSystemChat && (
+          <div className="flex border-b border-border bg-card">
+            <button
+              onClick={() => setActiveSystemTab('chat')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors border-b-2 ${
+                activeSystemTab === 'chat' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
+              }`}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              {language === 'ar' ? 'المحادثة' : 'Chat'}
+            </button>
+            <button
+              onClick={() => setActiveSystemTab('projects')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors border-b-2 ${
+                activeSystemTab === 'projects' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
+              }`}
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+              {language === 'ar' ? '📁 المشاريع' : '📁 Projects'}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Scrollable Messages Area - Takes remaining space */}
+      {/* Projects Tab Content */}
+      {isSystemChat && activeSystemTab === 'projects' ? (
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <ProjectsTab conversationId={conversation.id} />
+        </div>
+      ) : (
+      /* Scrollable Messages Area - Takes remaining space */
       <div 
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto overscroll-contain"
@@ -250,6 +283,7 @@ export function DMChatView({
           <div ref={messagesEndRef} className="h-1" />
         </div>
       </div>
+      )}
 
       {/* Fixed Bottom Input Area - Hidden for system chat */}
       {!isSystemChat && (

@@ -19,6 +19,7 @@ import { AlertDecisionButtons } from './AlertDecisionButtons';
 import { ExecutionDecisionButtons } from './ExecutionDecisionButtons';
 import { BuildProgressMessage } from './BuildProgressMessage';
 import { EvolutionDecisionButtons } from './EvolutionDecisionButtons';
+import { ProjectDeliveryCard } from './ProjectDeliveryCard';
 
 
 export interface DMMessageData {
@@ -338,7 +339,7 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
             })()}
 
             {/* Build engine messages */}
-            {isAISystemUser(message.senderId) && ['build_clarification', 'build_delivery', 'build_progress', 'build_error'].includes(message.messageType) && (() => {
+            {isAISystemUser(message.senderId) && ['build_clarification', 'build_progress', 'build_error'].includes(message.messageType) && (() => {
               const projIdMatch = message.content.match(/build_project_id:\s*([0-9a-f-]+)/i);
               const projId = projIdMatch?.[1];
               if (!projId) return null;
@@ -347,6 +348,19 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
                   projectId={projId}
                   conversationId={message.conversationId}
                   messageType={message.messageType as any}
+                  content={message.content}
+                />
+              );
+            })()}
+
+            {/* Project delivery card */}
+            {isAISystemUser(message.senderId) && message.messageType === 'build_delivery' && (() => {
+              const projIdMatch = message.content.match(/build_project_id:\s*([0-9a-f-]+)/i);
+              const projId = projIdMatch?.[1];
+              if (!projId) return null;
+              return (
+                <ProjectDeliveryCard
+                  projectId={projId}
                   content={message.content}
                 />
               );

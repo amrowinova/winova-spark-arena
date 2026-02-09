@@ -75,6 +75,17 @@ async function postDM(supabase: any, conversationId: string, content: string, me
   });
 }
 
+async function logActivity(supabase: any, projectId: string, activityType: string, title: string, titleAr: string, description?: string, riskLevel = 'low') {
+  await supabase.from('project_activity').insert({
+    project_id: projectId,
+    activity_type: activityType,
+    title,
+    title_ar: titleAr,
+    description,
+    risk_level: riskLevel,
+  });
+}
+
 // ─── Phase Executors ──────────────────────────────
 
 async function runClarification(apiKey: string, description: string): Promise<{ questions: string[]; title: string; title_ar: string }> {
@@ -372,6 +383,9 @@ Deno.serve(async (req) => {
 
       if (projErr) throw projErr;
 
+      // Log activity
+      await logActivity(supabase, project.id, 'project_created', 'Project created', 'تم إنشاء المشروع', clarification.title_ar);
+
       // Post questions to DM
       const questionsText = clarification.questions
         .map((q: string, i: number) => `${i + 1}. ${q}`)
@@ -426,6 +440,8 @@ Deno.serve(async (req) => {
         phase_progress: { ...project.phase_progress, architecture: 'completed' },
       }).eq('id', project_id);
 
+      await logActivity(supabase, project_id, 'phase_complete', 'Architecture designed', 'تم تصميم الهندسة المعمارية', architecture.overview_ar, architecture.risk_assessment || 'medium');
+
       await postDM(supabase, convId,
         `✅ **الهندسة المعمارية**\n\n${architecture.overview_ar || architecture.overview}\n\n**المكونات:**\n${(architecture.components || []).map((c: any) => `• ${c.name} (${c.type}): ${c.description}`).join('\n')}\n\n**المخاطر:** ${architecture.risk_assessment} — ${architecture.risk_reason || ''}`
       );
@@ -442,6 +458,8 @@ Deno.serve(async (req) => {
         current_phase: 'stack',
         phase_progress: { ...project.phase_progress, architecture: 'completed', stack: 'completed' },
       }).eq('id', project_id);
+
+      await logActivity(supabase, project_id, 'phase_complete', 'Stack selected', 'تم اختيار التقنيات');
 
       await postDM(supabase, convId,
         `✅ **التقنيات المختارة**\n\n• Frontend: ${stack.frontend?.framework} + ${stack.frontend?.ui}\n• Backend: ${stack.backend?.runtime}\n• Database: ${stack.database?.engine}\n• Auth: ${stack.auth}\n\n${stack.justification_ar || ''}`
@@ -460,6 +478,8 @@ Deno.serve(async (req) => {
         phase_progress: { ...project.phase_progress, architecture: 'completed', stack: 'completed', database: 'completed' },
       }).eq('id', project_id);
 
+      await logActivity(supabase, project_id, 'phase_complete', `Database designed (${dbSchemas.length} tables)`, `تم تصميم قاعدة البيانات (${dbSchemas.length} جدول)`);
+
       await postDM(supabase, convId,
         `✅ **قاعدة البيانات — ${dbSchemas.length} جدول**\n\n${dbSchemas.map((s: any) => `🗄️ **${s.table_name}**\n${s.description_ar || s.description}\n\`\`\`sql\n${(s.sql || '').slice(0, 300)}${(s.sql || '').length > 300 ? '...' : ''}\n\`\`\``).join('\n\n')}`
       );
@@ -476,6 +496,8 @@ Deno.serve(async (req) => {
         current_phase: 'backend',
         phase_progress: { ...project.phase_progress, architecture: 'completed', stack: 'completed', database: 'completed', backend: 'completed' },
       }).eq('id', project_id);
+
+      await logActivity(supabase, project_id, 'phase_complete', `Backend built (${backendServices.length} services)`, `تم بناء الخدمات (${backendServices.length} خدمة)`);
 
       await postDM(supabase, convId,
         `✅ **الخدمات الخلفية — ${backendServices.length} خدمة**\n\n${backendServices.map((s: any) => `🔧 **${s.name}** (${s.method})\n${s.description_ar || s.description}`).join('\n\n')}`
@@ -494,6 +516,8 @@ Deno.serve(async (req) => {
         phase_progress: { ...project.phase_progress, architecture: 'completed', stack: 'completed', database: 'completed', backend: 'completed', frontend: 'completed' },
       }).eq('id', project_id);
 
+      await logActivity(supabase, project_id, 'phase_complete', `Frontend designed (${frontendComponents.length} components)`, `تم تصميم الواجهات (${frontendComponents.length} مكون)`);
+
       await postDM(supabase, convId,
         `✅ **واجهات المستخدم — ${frontendComponents.length} مكون**\n\n${frontendComponents.map((c: any) => `🎨 **${c.component_name}**\n📁 ${c.file_path}\n${c.description_ar || c.description}`).join('\n\n')}`
       );
@@ -511,6 +535,8 @@ Deno.serve(async (req) => {
         current_phase: 'infra',
         phase_progress: { ...project.phase_progress, architecture: 'completed', stack: 'completed', database: 'completed', backend: 'completed', frontend: 'completed', infra: 'completed' },
       }).eq('id', project_id);
+
+      await logActivity(supabase, project_id, 'phase_complete', 'Infrastructure configured', 'تم إعداد البنية التحتية');
 
       await postDM(supabase, convId,
         `✅ **البنية التحتية**\n\n${infra.notes_ar || ''}\n\n${(infra.env_variables || []).length > 0 ? `🔑 متغيرات البيئة:\n${infra.env_variables.map((v: any) => `• ${v.name}: ${v.description}`).join('\n')}` : ''}`
@@ -548,6 +574,7 @@ Deno.serve(async (req) => {
       // ─── Phase 9: Delivery Report ────────────────
       const report = generateBuildReport(updatedProject);
       await postDM(supabase, convId, report, 'build_delivery');
+      await logActivity(supabase, project_id, 'project_delivered', 'Build package delivered', 'تم تسليم حزمة البناء', `Duration: ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
       return new Response(JSON.stringify({
         success: true,
