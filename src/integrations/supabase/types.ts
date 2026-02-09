@@ -1032,6 +1032,92 @@ export type Database = {
           },
         ]
       }
+      ai_code_changes: {
+        Row: {
+          agent_function: string
+          approved_at: string | null
+          approved_by: string | null
+          branch_name: string
+          closed_at: string | null
+          confidence_score: number | null
+          created_at: string
+          diff_summary: string | null
+          diff_summary_ar: string | null
+          error_message: string | null
+          files_changed: Json
+          id: string
+          merged_at: string | null
+          metadata: Json | null
+          pr_body: string | null
+          pr_number: number | null
+          pr_title: string
+          pr_url: string | null
+          risk_level: string
+          source_command: string | null
+          source_request_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_function?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_name: string
+          closed_at?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          diff_summary?: string | null
+          diff_summary_ar?: string | null
+          error_message?: string | null
+          files_changed?: Json
+          id?: string
+          merged_at?: string | null
+          metadata?: Json | null
+          pr_body?: string | null
+          pr_number?: number | null
+          pr_title: string
+          pr_url?: string | null
+          risk_level?: string
+          source_command?: string | null
+          source_request_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_function?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_name?: string
+          closed_at?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          diff_summary?: string | null
+          diff_summary_ar?: string | null
+          error_message?: string | null
+          files_changed?: Json
+          id?: string
+          merged_at?: string | null
+          metadata?: Json | null
+          pr_body?: string | null
+          pr_number?: number | null
+          pr_title?: string
+          pr_url?: string | null
+          risk_level?: string
+          source_command?: string | null
+          source_request_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_code_changes_source_request_id_fkey"
+            columns: ["source_request_id"]
+            isOneToOne: false
+            referencedRelation: "ai_execution_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_discussion_sessions: {
         Row: {
           action_items: Json | null
