@@ -2685,8 +2685,8 @@ export type Database = {
           p_body: string
           p_confidence: number
           p_severity: string
-          p_source_type?: string
           p_title: string
+          p_type?: string
         }
         Returns: undefined
       }
