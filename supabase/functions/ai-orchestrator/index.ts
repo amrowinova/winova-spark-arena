@@ -426,6 +426,25 @@ async function runHealthChecks(sb: any): Promise<void> {
   }
 }
 
+// ─── PHASE 5: Executive Commander Review ─────────────
+async function runCommanderReview(sb: any): Promise<void> {
+  const url = `${SUPABASE_URL}/functions/v1/ai-executive-commander`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ANON_KEY}`,
+      },
+      body: JSON.stringify({ mode: 'workforce_review', triggered_by: 'orchestrator' }),
+    });
+    const body = await res.json().catch(() => ({}));
+    console.log(`[Orchestrator] Commander review: ${res.ok ? 'OK' : 'FAILED'}`, body);
+  } catch (err) {
+    console.error('[Orchestrator] Commander review failed:', err);
+  }
+}
+
 // ─── Main Orchestrator Tick ──────────────────────────
 async function orchestratorTick(sb: any): Promise<{ commands: number; schedules: number; executions: number }> {
   const { data: freezeRule } = await sb
@@ -446,8 +465,16 @@ async function orchestratorTick(sb: any): Promise<{ commands: number; schedules:
   ]);
 
   const { data: state } = await sb.from('orchestrator_state').select('tick_count').eq('id', 'singleton').single();
-  if ((state?.tick_count || 0) % 5 === 0) {
+  const tick = state?.tick_count || 0;
+
+  // Health checks every 5 ticks (~5 min)
+  if (tick % 5 === 0) {
     await runHealthChecks(sb);
+  }
+
+  // Executive Commander workforce review every 60 ticks (~1 hour)
+  if (tick % 60 === 0 && tick > 0) {
+    await runCommanderReview(sb);
   }
 
   await sb.from('orchestrator_state').update({

@@ -155,6 +155,51 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_performance_metrics: {
+        Row: {
+          agent_function: string
+          avg_duration_ms: number | null
+          consecutive_failures: number | null
+          created_at: string
+          failures_1h: number | null
+          failures_24h: number | null
+          id: string
+          lifecycle_state: string | null
+          measured_at: string
+          success_rate: number | null
+          tasks_completed: number | null
+          time_since_last_success_minutes: number | null
+        }
+        Insert: {
+          agent_function: string
+          avg_duration_ms?: number | null
+          consecutive_failures?: number | null
+          created_at?: string
+          failures_1h?: number | null
+          failures_24h?: number | null
+          id?: string
+          lifecycle_state?: string | null
+          measured_at?: string
+          success_rate?: number | null
+          tasks_completed?: number | null
+          time_since_last_success_minutes?: number | null
+        }
+        Update: {
+          agent_function?: string
+          avg_duration_ms?: number | null
+          consecutive_failures?: number | null
+          created_at?: string
+          failures_1h?: number | null
+          failures_24h?: number | null
+          id?: string
+          lifecycle_state?: string | null
+          measured_at?: string
+          success_rate?: number | null
+          tasks_completed?: number | null
+          time_since_last_success_minutes?: number | null
+        }
+        Relationships: []
+      }
       agent_schedules: {
         Row: {
           agent_function: string
@@ -499,12 +544,17 @@ export type Database = {
           confidence: number | null
           created_at: string
           demotions: number | null
+          disabled_at: string | null
           failure_rate: number | null
           focus_areas: string[]
           id: string
           is_active: boolean
           last_analysis_at: string | null
           last_evaluation_date: string | null
+          lifecycle_changed_at: string | null
+          lifecycle_reason: string | null
+          lifecycle_state: string
+          probation_started_at: string | null
           profile_id: string | null
           rank: string
           specialty: string | null
@@ -525,12 +575,17 @@ export type Database = {
           confidence?: number | null
           created_at?: string
           demotions?: number | null
+          disabled_at?: string | null
           failure_rate?: number | null
           focus_areas?: string[]
           id?: string
           is_active?: boolean
           last_analysis_at?: string | null
           last_evaluation_date?: string | null
+          lifecycle_changed_at?: string | null
+          lifecycle_reason?: string | null
+          lifecycle_state?: string
+          probation_started_at?: string | null
           profile_id?: string | null
           rank?: string
           specialty?: string | null
@@ -551,12 +606,17 @@ export type Database = {
           confidence?: number | null
           created_at?: string
           demotions?: number | null
+          disabled_at?: string | null
           failure_rate?: number | null
           focus_areas?: string[]
           id?: string
           is_active?: boolean
           last_analysis_at?: string | null
           last_evaluation_date?: string | null
+          lifecycle_changed_at?: string | null
+          lifecycle_reason?: string | null
+          lifecycle_state?: string
+          probation_started_at?: string | null
           profile_id?: string | null
           rank?: string
           specialty?: string | null
@@ -2726,6 +2786,54 @@ export type Database = {
           requires_human?: string[]
           set_by?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      commander_reviews: {
+        Row: {
+          agents_scanned: number | null
+          created_at: string
+          disabled_count: number | null
+          duration_ms: number | null
+          escalations: Json | null
+          healthy_count: number | null
+          id: string
+          probation_count: number | null
+          report_content: string | null
+          report_content_ar: string | null
+          review_type: string
+          warning_count: number | null
+          watch_count: number | null
+        }
+        Insert: {
+          agents_scanned?: number | null
+          created_at?: string
+          disabled_count?: number | null
+          duration_ms?: number | null
+          escalations?: Json | null
+          healthy_count?: number | null
+          id?: string
+          probation_count?: number | null
+          report_content?: string | null
+          report_content_ar?: string | null
+          review_type?: string
+          warning_count?: number | null
+          watch_count?: number | null
+        }
+        Update: {
+          agents_scanned?: number | null
+          created_at?: string
+          disabled_count?: number | null
+          duration_ms?: number | null
+          escalations?: Json | null
+          healthy_count?: number | null
+          id?: string
+          probation_count?: number | null
+          report_content?: string | null
+          report_content_ar?: string | null
+          review_type?: string
+          warning_count?: number | null
+          watch_count?: number | null
         }
         Relationships: []
       }
