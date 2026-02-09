@@ -165,10 +165,42 @@ export function useExecutionDecision() {
             await postResultMessage(conversationId,
               `🎉 **اكتمل التنفيذ بنجاح**\n\n✅ العملية: ${reqData.title}\n📊 المخاطر: ${reqData.risk_level}\n🧠 الثقة: ${reqData.confidence_score}%\n⚙️ العمليات: ${(workerResult.operations_run || []).join(', ')}\n⏱️ المدة: ${workerResult.duration_ms}ms\n🔄 التراجع: ${workerResult.rollback_available ? 'جاهز ✅' : 'غير متاح'}`
             );
+
+            // Trust economy: reward successful execution
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/ai-evolution-engine`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+                body: JSON.stringify({
+                  action: 'update_trust',
+                  agent_id: reqData.source_proposal_id || reqData.source_forecast_id || requestId,
+                  source_type: 'execution_success',
+                  source_id: requestId,
+                  reason_ar: `تنفيذ ناجح: ${reqData.title}`,
+                  conversation_id: conversationId,
+                }),
+              });
+            } catch { /* fire and forget */ }
           } else {
             await postResultMessage(conversationId,
               `❌ **فشل التنفيذ**\n\nالعملية: ${reqData.title}\n${workerResult.error ? `السبب: ${workerResult.error}` : 'يرجى مراجعة السجلات.'}`
             );
+
+            // Trust economy: penalize failure
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/ai-evolution-engine`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+                body: JSON.stringify({
+                  action: 'update_trust',
+                  agent_id: reqData.source_proposal_id || reqData.source_forecast_id || requestId,
+                  source_type: 'high_risk_failure',
+                  source_id: requestId,
+                  reason_ar: `فشل التنفيذ: ${reqData.title}`,
+                  conversation_id: conversationId,
+                }),
+              });
+            } catch { /* fire and forget */ }
           }
         } catch {
           await postResultMessage(conversationId,
