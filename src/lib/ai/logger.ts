@@ -47,6 +47,14 @@ export interface FailureEntry {
   parameters?: Json;
 }
 
+export interface KnowledgeEntry {
+  source: 'system' | 'ai' | 'admin' | 'support';
+  event_type: string;
+  area?: 'p2p' | 'wallet' | 'contest' | 'chat' | string;
+  reference_id?: string;
+  payload?: Json;
+}
+
 /* ── Internal safe insert ──────────────────────── */
 
 function safeInsert(table: string, row: Record<string, unknown>): void {
@@ -93,6 +101,22 @@ export function logMoneyFlow(entry: MoneyFlowEntry): void {
       currency: entry.currency ?? 'nova',
       reference_type: entry.reference_type ?? null,
       reference_id: entry.reference_id ?? null,
+    });
+  } catch { /* silent */ }
+}
+
+/**
+ * Log a knowledge learning event.
+ * Fire-and-forget — never throws.
+ */
+export function logKnowledge(entry: KnowledgeEntry): void {
+  try {
+    safeInsert('knowledge_memory', {
+      source: entry.source,
+      event_type: entry.event_type,
+      area: entry.area ?? null,
+      reference_id: entry.reference_id ?? null,
+      payload: entry.payload ?? null,
     });
   } catch { /* silent */ }
 }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { logKnowledge } from '@/lib/ai/logger';
 
 export interface AIProposal {
   id: string;
@@ -104,12 +105,13 @@ export function useApproveProposal() {
       
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast({
         title: 'تمت الموافقة',
         description: 'تم اعتماد الاقتراح للتنفيذ',
       });
       queryClient.invalidateQueries({ queryKey: ['ai-proposals'] });
+      logKnowledge({ source: 'admin', event_type: 'proposal_approved', area: 'ai', reference_id: variables.proposalId, payload: { notes: variables.notes, approved_by: user?.id } as any });
     },
     onError: (error: Error) => {
       toast({
@@ -141,12 +143,13 @@ export function useRejectProposal() {
       
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast({
         title: 'تم الرفض',
         description: 'تم رفض الاقتراح',
       });
       queryClient.invalidateQueries({ queryKey: ['ai-proposals'] });
+      logKnowledge({ source: 'admin', event_type: 'proposal_rejected', area: 'ai', reference_id: variables.proposalId, payload: { notes: variables.notes, rejected_by: user?.id } as any });
     },
     onError: (error: Error) => {
       toast({

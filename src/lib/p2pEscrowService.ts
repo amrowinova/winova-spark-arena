@@ -7,7 +7,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { logActivity, logMoneyFlow, logFailure } from '@/lib/ai/logger';
+import { logActivity, logMoneyFlow, logFailure, logKnowledge } from '@/lib/ai/logger';
 
 export interface P2POrderResult {
   success: boolean;
@@ -94,6 +94,7 @@ export async function createSellOrder(
       console.error('p2p_create_sell_order RPC error:', error);
       logFailure({ rpc_name: 'p2p_create_sell_order', user_id: creatorId, error_message: error.message, parameters: { novaAmount, localAmount, country } as any });
       logActivity({ user_id: creatorId, action_type: 'p2p_create_sell', entity_type: 'p2p_order', success: false, error_code: error.code, duration_ms: Date.now() - t0 });
+      logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', reference_id: undefined, payload: { rpc: 'p2p_create_sell_order', error: error.message, user_id: creatorId } as any });
       return { success: false, error: error.message };
     }
 
@@ -138,6 +139,7 @@ export async function createBuyOrder(
       console.error('p2p_create_buy_order RPC error:', error);
       logFailure({ rpc_name: 'p2p_create_buy_order', user_id: creatorId, error_message: error.message, parameters: { novaAmount, localAmount, country } as any });
       logActivity({ user_id: creatorId, action_type: 'p2p_create_buy', entity_type: 'p2p_order', success: false, error_code: error.code, duration_ms: Date.now() - t0 });
+      logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', payload: { rpc: 'p2p_create_buy_order', error: error.message, user_id: creatorId } as any });
       return { success: false, error: error.message };
     }
 
@@ -173,6 +175,7 @@ export async function executeOrder(
       console.error('p2p_execute_order RPC error:', error);
       logFailure({ rpc_name: 'p2p_execute_order', user_id: executorId, error_message: error.message, parameters: { orderId } as any });
       logActivity({ user_id: executorId, action_type: 'p2p_execute', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
+      logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', reference_id: orderId, payload: { rpc: 'p2p_execute_order', error: error.message, user_id: executorId } as any });
       return { success: false, error: error.message };
     }
 
@@ -205,6 +208,7 @@ export async function confirmPayment(
       console.error('p2p_confirm_payment RPC error:', error);
       logFailure({ rpc_name: 'p2p_confirm_payment', user_id: userId, error_message: error.message, parameters: { orderId } as any });
       logActivity({ user_id: userId, action_type: 'p2p_confirm_payment', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
+      logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', reference_id: orderId, payload: { rpc: 'p2p_confirm_payment', error: error.message, user_id: userId } as any });
       return { success: false, error: error.message };
     }
 
@@ -240,6 +244,7 @@ export async function releaseEscrow(
       console.error('p2p_release_escrow RPC error:', error);
       logFailure({ rpc_name: 'p2p_release_escrow', user_id: userId, error_message: error.message, parameters: { orderId } as any });
       logActivity({ user_id: userId, action_type: 'p2p_release_escrow', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
+      logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', reference_id: orderId, payload: { rpc: 'p2p_release_escrow', error: error.message, user_id: userId } as any });
       return { success: false, error: error.message };
     }
 
@@ -416,11 +421,15 @@ export async function resolveDispute(
       console.error('p2p_resolve_dispute RPC error:', error);
       logFailure({ rpc_name: 'p2p_resolve_dispute', user_id: staffId, error_message: error.message, parameters: { orderId, resolution } as any });
       logActivity({ user_id: staffId, role: 'support', action_type: 'p2p_dispute_resolve', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
+      logKnowledge({ source: 'support', event_type: 'rpc_failure', area: 'p2p', reference_id: orderId, payload: { rpc: 'p2p_resolve_dispute', error: error.message, staff_id: staffId } as any });
       return { success: false, error: error.message };
     }
 
     const result = data as unknown as P2PResolveResult;
     logActivity({ user_id: staffId, role: 'support', action_type: 'p2p_dispute_resolve', entity_type: 'p2p_order', entity_id: orderId, success: result.success, after_state: { resolution: result.resolution } as any, duration_ms: Date.now() - t0 });
+    if (result.success) {
+      logKnowledge({ source: 'support', event_type: 'dispute_resolved', area: 'p2p', reference_id: orderId, payload: { resolution, staff_id: staffId, result: result.resolution } as any });
+    }
     return result;
   } catch (err) {
     console.error('resolveDispute error:', err);
