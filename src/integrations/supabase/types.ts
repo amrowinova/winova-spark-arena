@@ -497,6 +497,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_priorities: {
+        Row: {
+          category: string | null
+          confidence_score: number | null
+          created_at: string | null
+          description: string | null
+          description_ar: string | null
+          estimated_impact: string | null
+          id: string
+          reference_id: string | null
+          requires_approval: boolean | null
+          severity: string | null
+          source: string | null
+          status: string | null
+          title: string | null
+          title_ar: string | null
+        }
+        Insert: {
+          category?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          estimated_impact?: string | null
+          id?: string
+          reference_id?: string | null
+          requires_approval?: boolean | null
+          severity?: string | null
+          source?: string | null
+          status?: string | null
+          title?: string | null
+          title_ar?: string | null
+        }
+        Update: {
+          category?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          estimated_impact?: string | null
+          id?: string
+          reference_id?: string | null
+          requires_approval?: boolean | null
+          severity?: string | null
+          source?: string | null
+          status?: string | null
+          title?: string | null
+          title_ar?: string | null
+        }
+        Relationships: []
+      }
       ai_product_proposals: {
         Row: {
           based_on_events: number | null
