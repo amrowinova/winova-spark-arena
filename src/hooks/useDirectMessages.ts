@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { AI_SYSTEM_USER_ID, AI_SYSTEM_USER_NAME, AI_SYSTEM_USER_USERNAME, isAISystemUser } from '@/lib/aiSystemUser';
 
 export interface DMConversation {
   id: string;
@@ -71,6 +72,17 @@ export function useDirectMessages() {
         .in('user_id', partnerIds);
 
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      // Add AI system user to profile map if needed
+      if (partnerIds.includes(AI_SYSTEM_USER_ID)) {
+        profileMap.set(AI_SYSTEM_USER_ID, {
+          user_id: AI_SYSTEM_USER_ID,
+          name: AI_SYSTEM_USER_NAME,
+          username: AI_SYSTEM_USER_USERNAME,
+          avatar_url: null,
+          country: 'Saudi Arabia',
+        });
+      }
 
       // Build conversations with profiles
       const conversationsWithProfiles: DMConversation[] = [];
