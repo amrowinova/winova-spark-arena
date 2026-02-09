@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.ai-executive-commander]
 verify_jwt = false
+
+[functions.ai-p2p-scanner]
+verify_jwt = false
