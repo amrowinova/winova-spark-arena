@@ -18,6 +18,8 @@ import { isAISystemUser } from '@/lib/aiSystemUser';
 import { AlertDecisionButtons } from './AlertDecisionButtons';
 import { ExecutionDecisionButtons } from './ExecutionDecisionButtons';
 import { BuildProgressMessage } from './BuildProgressMessage';
+import { EvolutionDecisionButtons } from './EvolutionDecisionButtons';
+
 
 export interface DMMessageData {
   id: string;
@@ -348,6 +350,32 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
                   content={message.content}
                 />
               );
+            })()}
+
+            {/* Evolution: Promotion decision buttons */}
+            {isAISystemUser(message.senderId) && message.messageType === 'evolution_promotion' && message.content.includes('promotion_request_id:') && message.content.includes('Decision required') && (() => {
+              const match = message.content.match(/promotion_request_id:\s*([0-9a-f-]+)/i);
+              const promoId = match?.[1];
+              return promoId ? (
+                <EvolutionDecisionButtons
+                  entityId={promoId}
+                  entityType="promotion"
+                  conversationId={message.conversationId}
+                />
+              ) : null;
+            })()}
+
+            {/* Evolution: Retirement decision buttons */}
+            {isAISystemUser(message.senderId) && message.messageType === 'evolution_retirement' && message.content.includes('retirement_proposal_id:') && message.content.includes('Decision required') && (() => {
+              const match = message.content.match(/retirement_proposal_id:\s*([0-9a-f-]+)/i);
+              const retireId = match?.[1];
+              return retireId ? (
+                <EvolutionDecisionButtons
+                  entityId={retireId}
+                  entityType="retirement"
+                  conversationId={message.conversationId}
+                />
+              ) : null;
             })()}
 
             {/* Time, status, and quick copy */}

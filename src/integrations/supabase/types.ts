@@ -59,6 +59,141 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_agent_comparisons: {
+        Row: {
+          agents_compared: Json
+          conversation_id: string | null
+          created_at: string
+          details: string | null
+          details_ar: string | null
+          id: string
+          recommendation: string | null
+          recommendation_ar: string | null
+          specialty: string
+          winner_agent_id: string | null
+        }
+        Insert: {
+          agents_compared: Json
+          conversation_id?: string | null
+          created_at?: string
+          details?: string | null
+          details_ar?: string | null
+          id?: string
+          recommendation?: string | null
+          recommendation_ar?: string | null
+          specialty: string
+          winner_agent_id?: string | null
+        }
+        Update: {
+          agents_compared?: Json
+          conversation_id?: string | null
+          created_at?: string
+          details?: string | null
+          details_ar?: string | null
+          id?: string
+          recommendation?: string | null
+          recommendation_ar?: string | null
+          specialty?: string
+          winner_agent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_comparisons_winner_agent_id_fkey"
+            columns: ["winner_agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_creation_proposals: {
+        Row: {
+          conversation_id: string | null
+          created_agent_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          expected_improvement: string | null
+          expected_improvement_ar: string | null
+          id: string
+          mission: string
+          mission_ar: string | null
+          proposed_by_agent: string
+          proposed_name: string
+          proposed_name_ar: string | null
+          required_skills: string[] | null
+          risk_level: string | null
+          status: string
+          supervision_model: string | null
+          supervisor_agent_id: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_agent_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          expected_improvement?: string | null
+          expected_improvement_ar?: string | null
+          id?: string
+          mission: string
+          mission_ar?: string | null
+          proposed_by_agent: string
+          proposed_name: string
+          proposed_name_ar?: string | null
+          required_skills?: string[] | null
+          risk_level?: string | null
+          status?: string
+          supervision_model?: string | null
+          supervisor_agent_id?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_agent_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          expected_improvement?: string | null
+          expected_improvement_ar?: string | null
+          id?: string
+          mission?: string
+          mission_ar?: string | null
+          proposed_by_agent?: string
+          proposed_name?: string
+          proposed_name_ar?: string | null
+          required_skills?: string[] | null
+          risk_level?: string | null
+          status?: string
+          supervision_model?: string | null
+          supervisor_agent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_creation_proposals_created_agent_id_fkey"
+            columns: ["created_agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agent_creation_proposals_proposed_by_agent_fkey"
+            columns: ["proposed_by_agent"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agent_creation_proposals_supervisor_agent_id_fkey"
+            columns: ["supervisor_agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_agent_lifecycle: {
         Row: {
           agent_id: string
@@ -161,17 +296,25 @@ export type Database = {
           agent_name: string
           agent_name_ar: string
           agent_role: Database["public"]["Enums"]["ai_agent_role"]
+          auto_execute_level: number | null
           behavior_description: string | null
           confidence: number | null
           created_at: string
+          demotions: number | null
+          failure_rate: number | null
           focus_areas: string[]
           id: string
           is_active: boolean
           last_analysis_at: string | null
+          last_evaluation_date: string | null
           profile_id: string | null
           rank: string
           specialty: string | null
           status: string
+          success_rate: number | null
+          supervisor_agent_id: string | null
+          total_operations: number | null
+          trust_score: number
           updated_at: string
           user_id: string | null
         }
@@ -179,17 +322,25 @@ export type Database = {
           agent_name: string
           agent_name_ar: string
           agent_role: Database["public"]["Enums"]["ai_agent_role"]
+          auto_execute_level?: number | null
           behavior_description?: string | null
           confidence?: number | null
           created_at?: string
+          demotions?: number | null
+          failure_rate?: number | null
           focus_areas?: string[]
           id?: string
           is_active?: boolean
           last_analysis_at?: string | null
+          last_evaluation_date?: string | null
           profile_id?: string | null
           rank?: string
           specialty?: string | null
           status?: string
+          success_rate?: number | null
+          supervisor_agent_id?: string | null
+          total_operations?: number | null
+          trust_score?: number
           updated_at?: string
           user_id?: string | null
         }
@@ -197,17 +348,25 @@ export type Database = {
           agent_name?: string
           agent_name_ar?: string
           agent_role?: Database["public"]["Enums"]["ai_agent_role"]
+          auto_execute_level?: number | null
           behavior_description?: string | null
           confidence?: number | null
           created_at?: string
+          demotions?: number | null
+          failure_rate?: number | null
           focus_areas?: string[]
           id?: string
           is_active?: boolean
           last_analysis_at?: string | null
+          last_evaluation_date?: string | null
           profile_id?: string | null
           rank?: string
           specialty?: string | null
           status?: string
+          success_rate?: number | null
+          supervisor_agent_id?: string | null
+          total_operations?: number | null
+          trust_score?: number
           updated_at?: string
           user_id?: string | null
         }
@@ -238,6 +397,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles_search"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_supervisor_agent_id_fkey"
+            columns: ["supervisor_agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
             referencedColumns: ["id"]
           },
         ]
@@ -1397,6 +1563,74 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_promotion_requests: {
+        Row: {
+          agent_id: string
+          conversation_id: string | null
+          created_at: string
+          current_rank: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          impact_summary: string | null
+          impact_summary_ar: string | null
+          justification: string
+          justification_ar: string | null
+          requested_rank: string
+          status: string
+          success_rate_at_request: number | null
+          total_ops_at_request: number | null
+          trust_score_at_request: number | null
+        }
+        Insert: {
+          agent_id: string
+          conversation_id?: string | null
+          created_at?: string
+          current_rank: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          id?: string
+          impact_summary?: string | null
+          impact_summary_ar?: string | null
+          justification: string
+          justification_ar?: string | null
+          requested_rank: string
+          status?: string
+          success_rate_at_request?: number | null
+          total_ops_at_request?: number | null
+          trust_score_at_request?: number | null
+        }
+        Update: {
+          agent_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          current_rank?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          id?: string
+          impact_summary?: string | null
+          impact_summary_ar?: string | null
+          justification?: string
+          justification_ar?: string | null
+          requested_rank?: string
+          status?: string
+          success_rate_at_request?: number | null
+          total_ops_at_request?: number | null
+          trust_score_at_request?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_promotion_requests_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_promotions: {
         Row: {
           agent_id: string
@@ -1550,6 +1784,59 @@ export type Database = {
           },
         ]
       }
+      ai_retirement_proposals: {
+        Row: {
+          agent_id: string
+          conversation_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          performance_summary: Json | null
+          reason: string
+          reason_ar: string | null
+          recommendation: string
+          recommendation_ar: string | null
+          status: string
+        }
+        Insert: {
+          agent_id: string
+          conversation_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          performance_summary?: Json | null
+          reason: string
+          reason_ar?: string | null
+          recommendation: string
+          recommendation_ar?: string | null
+          status?: string
+        }
+        Update: {
+          agent_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          performance_summary?: Json | null
+          reason?: string
+          reason_ar?: string | null
+          recommendation?: string
+          recommendation_ar?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_retirement_proposals_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_retirements: {
         Row: {
           agent_id: string
@@ -1572,6 +1859,77 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_retirements_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_self_evaluations: {
+        Row: {
+          agent_id: string
+          correct_predictions: number | null
+          created_at: string
+          errors_analyzed: number | null
+          evaluation_period_end: string
+          evaluation_period_start: string
+          human_agreements: number | null
+          human_overrides: number | null
+          id: string
+          improvement_hypotheses: Json | null
+          incorrect_predictions: number | null
+          operations_reviewed: number | null
+          recommended_action: string | null
+          strengths: string[] | null
+          summary: string | null
+          summary_ar: string | null
+          trust_score_at_evaluation: number | null
+          weaknesses: string[] | null
+        }
+        Insert: {
+          agent_id: string
+          correct_predictions?: number | null
+          created_at?: string
+          errors_analyzed?: number | null
+          evaluation_period_end: string
+          evaluation_period_start: string
+          human_agreements?: number | null
+          human_overrides?: number | null
+          id?: string
+          improvement_hypotheses?: Json | null
+          incorrect_predictions?: number | null
+          operations_reviewed?: number | null
+          recommended_action?: string | null
+          strengths?: string[] | null
+          summary?: string | null
+          summary_ar?: string | null
+          trust_score_at_evaluation?: number | null
+          weaknesses?: string[] | null
+        }
+        Update: {
+          agent_id?: string
+          correct_predictions?: number | null
+          created_at?: string
+          errors_analyzed?: number | null
+          evaluation_period_end?: string
+          evaluation_period_start?: string
+          human_agreements?: number | null
+          human_overrides?: number | null
+          id?: string
+          improvement_hypotheses?: Json | null
+          incorrect_predictions?: number | null
+          operations_reviewed?: number | null
+          recommended_action?: string | null
+          strengths?: string[] | null
+          summary?: string | null
+          summary_ar?: string | null
+          trust_score_at_evaluation?: number | null
+          weaknesses?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_self_evaluations_agent_id_fkey"
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "ai_agents"
@@ -1846,6 +2204,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_training_sessions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_trust_changes: {
+        Row: {
+          agent_id: string
+          created_at: string
+          delta: number
+          id: string
+          new_score: number
+          previous_score: number
+          reason: string
+          reason_ar: string | null
+          source_id: string | null
+          source_type: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          delta: number
+          id?: string
+          new_score: number
+          previous_score: number
+          reason: string
+          reason_ar?: string | null
+          source_id?: string | null
+          source_type: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          delta?: number
+          id?: string
+          new_score?: number
+          previous_score?: number
+          reason?: string
+          reason_ar?: string | null
+          source_id?: string | null
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_trust_changes_agent_id_fkey"
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "ai_agents"
@@ -2204,6 +2609,197 @@ export type Database = {
           title?: string
           title_ar?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      external_access_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          conversation_id: string
+          created_at: string
+          credential_id: string | null
+          duration_minutes: number
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          reason: string
+          reason_ar: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requested_by_agent: string | null
+          risk_level: string
+          scopes: string[]
+          service_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          conversation_id: string
+          created_at?: string
+          credential_id?: string | null
+          duration_minutes?: number
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          reason: string
+          reason_ar?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requested_by_agent?: string | null
+          risk_level?: string
+          scopes?: string[]
+          service_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          conversation_id?: string
+          created_at?: string
+          credential_id?: string | null
+          duration_minutes?: number
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          reason?: string
+          reason_ar?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requested_by_agent?: string | null
+          risk_level?: string
+          scopes?: string[]
+          service_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_access_request_credential"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "external_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_access_usage_log: {
+        Row: {
+          action: string
+          agent_id: string | null
+          credential_id: string | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          request_id: string | null
+          result: string
+          scopes_used: string[] | null
+          service_name: string
+          used_at: string
+        }
+        Insert: {
+          action: string
+          agent_id?: string | null
+          credential_id?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          request_id?: string | null
+          result?: string
+          scopes_used?: string[] | null
+          service_name: string
+          used_at?: string
+        }
+        Update: {
+          action?: string
+          agent_id?: string | null
+          credential_id?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          request_id?: string | null
+          result?: string
+          scopes_used?: string[] | null
+          service_name?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_access_usage_log_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "external_credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_access_usage_log_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "external_access_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_credentials: {
+        Row: {
+          created_at: string
+          encrypted_reference: string
+          expires_at: string | null
+          granted_by: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          rate_limit_per_minute: number | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          scopes: string[]
+          service_name: string
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          created_at?: string
+          encrypted_reference: string
+          expires_at?: string | null
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          rate_limit_per_minute?: number | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scopes?: string[]
+          service_name: string
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          created_at?: string
+          encrypted_reference?: string
+          expires_at?: string | null
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          rate_limit_per_minute?: number | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scopes?: string[]
+          service_name?: string
+          updated_at?: string
+          uses_count?: number
         }
         Relationships: []
       }
