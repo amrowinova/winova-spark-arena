@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { isAISystemUser } from '@/lib/aiSystemUser';
 import { AlertDecisionButtons } from './AlertDecisionButtons';
+import { ExecutionDecisionButtons } from './ExecutionDecisionButtons';
 
 export interface DMMessageData {
   id: string;
@@ -289,6 +290,18 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
                 messageContent={message.content}
               />
             )}
+
+            {/* Execution request decision buttons */}
+            {isAISystemUser(message.senderId) && message.messageType === 'execution_request' && message.content.includes('request_id:') && (() => {
+              const match = message.content.match(/request_id:\s*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+              const reqId = match?.[1];
+              return reqId ? (
+                <ExecutionDecisionButtons
+                  requestId={reqId}
+                  conversationId={message.conversationId}
+                />
+              ) : null;
+            })()}
 
             {/* Time, status, and quick copy */}
             <div className={`flex items-center gap-1 mt-1 ${message.isMine ? 'justify-end' : ''}`}>

@@ -114,7 +114,9 @@ ${request.description}
 🎯 المخاطر: ${request.risk_level} (${request.risk_score}%)
 🧠 الثقة: ${request.confidence_score}%
 ${request.rollback_plan ? `🔄 خطة التراجع: ${request.rollback_plan}` : ''}
-${action === 'pending_approval' ? '\n⚠️ **يتطلب موافقة الإدارة للمتابعة**' : ''}`;
+${action === 'pending_approval' ? '\n⚠️ **يتطلب موافقة الإدارة للمتابعة**' : ''}
+
+request_id: ${request.id}`;
 
   await supabase.from('ai_chat_room').insert({
     agent_id: agent.id,
@@ -124,6 +126,28 @@ ${action === 'pending_approval' ? '\n⚠️ **يتطلب موافقة الإدا
     message_category: request.risk_level === 'critical' || request.risk_level === 'high' ? 'critical' : 'warning',
     is_summary: true,
   });
+
+  // Also send to the WINOVA Intelligence DM thread
+  const AI_SYSTEM_USER_ID = '00000000-0000-0000-0000-a10000000001';
+
+  // Find admin conversations with the AI system user
+  const { data: convos } = await supabase
+    .from('conversations')
+    .select('id')
+    .or(`participant1_id.eq.${AI_SYSTEM_USER_ID},participant2_id.eq.${AI_SYSTEM_USER_ID}`)
+    .limit(10);
+
+  if (convos && convos.length > 0) {
+    for (const convo of convos) {
+      await supabase.from('direct_messages').insert({
+        conversation_id: convo.id,
+        sender_id: AI_SYSTEM_USER_ID,
+        content,
+        message_type: 'execution_request',
+        is_read: false,
+      });
+    }
+  }
 }
 
 // ─── Confidence Learning ──────────────────────────
