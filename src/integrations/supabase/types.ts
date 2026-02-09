@@ -329,6 +329,72 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_engineer_reports: {
+        Row: {
+          activities_scanned: number
+          analysis_type: string
+          created_at: string
+          critical_issues: number
+          duration_ms: number | null
+          failures_scanned: number
+          findings_count: number
+          github_branch: string | null
+          github_pr_number: number | null
+          github_pr_url: string | null
+          id: string
+          model_used: string | null
+          money_flows_scanned: number
+          patches_proposed: number
+          raw_analysis: Json | null
+          status: string
+          summary: string | null
+          summary_ar: string | null
+          tokens_used: number | null
+        }
+        Insert: {
+          activities_scanned?: number
+          analysis_type?: string
+          created_at?: string
+          critical_issues?: number
+          duration_ms?: number | null
+          failures_scanned?: number
+          findings_count?: number
+          github_branch?: string | null
+          github_pr_number?: number | null
+          github_pr_url?: string | null
+          id?: string
+          model_used?: string | null
+          money_flows_scanned?: number
+          patches_proposed?: number
+          raw_analysis?: Json | null
+          status?: string
+          summary?: string | null
+          summary_ar?: string | null
+          tokens_used?: number | null
+        }
+        Update: {
+          activities_scanned?: number
+          analysis_type?: string
+          created_at?: string
+          critical_issues?: number
+          duration_ms?: number | null
+          failures_scanned?: number
+          findings_count?: number
+          github_branch?: string | null
+          github_pr_number?: number | null
+          github_pr_url?: string | null
+          id?: string
+          model_used?: string | null
+          money_flows_scanned?: number
+          patches_proposed?: number
+          raw_analysis?: Json | null
+          status?: string
+          summary?: string | null
+          summary_ar?: string | null
+          tokens_used?: number | null
+        }
+        Relationships: []
+      }
       ai_failures: {
         Row: {
           created_at: string
@@ -438,19 +504,25 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           code_snippet: string | null
+          confidence_score: number | null
           created_at: string
           description: string
           description_ar: string | null
           estimated_effort: string | null
+          github_pr_number: number | null
+          github_pr_url: string | null
           id: string
           impact_scope: string | null
           priority: string
           proposal_type: string
           proposed_by: string | null
           rejected_at: string | null
+          report_id: string | null
+          risk_label: string | null
           risk_level: string | null
           rollback_plan: string | null
           session_id: string | null
+          source: string | null
           status: string
           title: string
           title_ar: string | null
@@ -462,19 +534,25 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           code_snippet?: string | null
+          confidence_score?: number | null
           created_at?: string
           description: string
           description_ar?: string | null
           estimated_effort?: string | null
+          github_pr_number?: number | null
+          github_pr_url?: string | null
           id?: string
           impact_scope?: string | null
           priority?: string
           proposal_type?: string
           proposed_by?: string | null
           rejected_at?: string | null
+          report_id?: string | null
+          risk_label?: string | null
           risk_level?: string | null
           rollback_plan?: string | null
           session_id?: string | null
+          source?: string | null
           status?: string
           title: string
           title_ar?: string | null
@@ -486,19 +564,25 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           code_snippet?: string | null
+          confidence_score?: number | null
           created_at?: string
           description?: string
           description_ar?: string | null
           estimated_effort?: string | null
+          github_pr_number?: number | null
+          github_pr_url?: string | null
           id?: string
           impact_scope?: string | null
           priority?: string
           proposal_type?: string
           proposed_by?: string | null
           rejected_at?: string | null
+          report_id?: string | null
+          risk_label?: string | null
           risk_level?: string | null
           rollback_plan?: string | null
           session_id?: string | null
+          source?: string | null
           status?: string
           title?: string
           title_ar?: string | null
@@ -510,6 +594,13 @@ export type Database = {
             columns: ["proposed_by"]
             isOneToOne: false
             referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_proposals_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ai_engineer_reports"
             referencedColumns: ["id"]
           },
           {
