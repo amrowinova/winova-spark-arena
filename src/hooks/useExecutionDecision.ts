@@ -141,37 +141,33 @@ export function useExecutionDecision() {
 
         // 4. Post "execution started" message
         await postResultMessage(conversationId,
-          `🚀 **بدأ التنفيذ...**\n\nتمت الموافقة بواسطة الإدارة.${requiresSimulation ? `\n✅ محاكاة عالم الظل: ناجحة` : ''}\nجاري تنفيذ العملية — سيتم إبلاغكم بالنتيجة.`
+          `🚀 **بدأ التنفيذ...**\n\nتمت الموافقة بواسطة الإدارة.${requiresSimulation ? `\n✅ محاكاة عالم الظل: ناجحة` : ''}\nجاري تنفيذ العملية عبر محرك التنفيذ الآمن — سيتم إبلاغكم بالنتيجة.`
         );
 
-        // 5. Trigger execution engine
+        // 5. Trigger execution WORKER (real execution engine)
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
         try {
-          const res = await fetch(`${supabaseUrl}/functions/v1/ai-execution-engine`, {
+          const res = await fetch(`${supabaseUrl}/functions/v1/ai-execution-worker`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'apikey': supabaseKey,
               'Authorization': `Bearer ${supabaseKey}`,
             },
-            body: JSON.stringify({
-              action: 'report_result',
-              request_id: requestId,
-              execution_status: 'success',
-              output: { approved_by: user.id, method: 'dm_approval', simulation_passed: requiresSimulation },
-              duration_ms: 0,
-            }),
+            body: JSON.stringify({ request_id: requestId }),
           });
 
-          if (res.ok) {
+          const workerResult = await res.json().catch(() => ({ success: false }));
+
+          if (res.ok && workerResult.success) {
             await postResultMessage(conversationId,
-              `🎉 **اكتمل التنفيذ بنجاح**\n\n✅ تم تنفيذ العملية: ${reqData.title}\n📊 مستوى المخاطر: ${reqData.risk_level}\n🧠 الثقة: ${reqData.confidence_score}%`
+              `🎉 **اكتمل التنفيذ بنجاح**\n\n✅ العملية: ${reqData.title}\n📊 المخاطر: ${reqData.risk_level}\n🧠 الثقة: ${reqData.confidence_score}%\n⚙️ العمليات: ${(workerResult.operations_run || []).join(', ')}\n⏱️ المدة: ${workerResult.duration_ms}ms\n🔄 التراجع: ${workerResult.rollback_available ? 'جاهز ✅' : 'غير متاح'}`
             );
           } else {
             await postResultMessage(conversationId,
-              `❌ **فشل التنفيذ**\n\nالعملية: ${reqData.title}\nيرجى مراجعة السجلات في لوحة التحكم.`
+              `❌ **فشل التنفيذ**\n\nالعملية: ${reqData.title}\n${workerResult.error ? `السبب: ${workerResult.error}` : 'يرجى مراجعة السجلات.'}`
             );
           }
         } catch {
