@@ -2489,6 +2489,48 @@ export type Database = {
         }
         Relationships: []
       }
+      autonomy_caps: {
+        Row: {
+          cap_key: string
+          cap_key_ar: string | null
+          created_at: string
+          description: string
+          description_ar: string | null
+          id: string
+          is_active: boolean
+          max_auto_execute_level: number
+          requires_human: string[]
+          set_by: string
+          updated_at: string
+        }
+        Insert: {
+          cap_key: string
+          cap_key_ar?: string | null
+          created_at?: string
+          description: string
+          description_ar?: string | null
+          id?: string
+          is_active?: boolean
+          max_auto_execute_level?: number
+          requires_human?: string[]
+          set_by?: string
+          updated_at?: string
+        }
+        Update: {
+          cap_key?: string
+          cap_key_ar?: string | null
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          id?: string
+          is_active?: boolean
+          max_auto_execute_level?: number
+          requires_human?: string[]
+          set_by?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contest_entries: {
         Row: {
           contest_id: string
