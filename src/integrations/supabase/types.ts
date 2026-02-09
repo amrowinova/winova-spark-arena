@@ -2750,6 +2750,51 @@ export type Database = {
           },
         ]
       }
+      emergency_controls: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          control_key: string
+          control_key_ar: string | null
+          created_at: string
+          deactivated_at: string | null
+          deactivated_by: string | null
+          description: string
+          description_ar: string | null
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          control_key: string
+          control_key_ar?: string | null
+          created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          description: string
+          description_ar?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          control_key?: string
+          control_key_ar?: string | null
+          created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          description?: string
+          description_ar?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       execution_tasks: {
         Row: {
           assigned_to: string | null
