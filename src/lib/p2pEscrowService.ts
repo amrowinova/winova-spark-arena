@@ -251,7 +251,7 @@ export async function releaseEscrow(
     const result = data as unknown as P2PReleaseResult;
     logActivity({ user_id: userId, action_type: 'p2p_release_escrow', entity_type: 'p2p_order', entity_id: orderId, success: result.success, after_state: { buyer_new_balance: result.buyer_new_balance } as any, duration_ms: Date.now() - t0 });
     if (result.success) {
-      logMoneyFlow({ operation: 'p2p_escrow_release', from_user: userId, amount: 0, currency: 'nova', reference_type: 'p2p_order', reference_id: orderId });
+      logMoneyFlow({ operation: 'p2p_escrow_release', from_user: userId, amount: (result as any).released_amount ?? 0, currency: 'nova', reference_type: 'p2p_order', reference_id: orderId });
     }
     return result;
   } catch (err) {
