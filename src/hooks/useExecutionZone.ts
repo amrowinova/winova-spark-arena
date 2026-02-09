@@ -71,6 +71,23 @@ export function useTogglePermission() {
   });
 }
 
+export function useUpdatePermissionAutonomy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, requiredLevel }: { id: string; requiredLevel: number }) => {
+      const { error } = await supabase
+        .from('ai_execution_permissions')
+        .update({ 
+          required_auto_execute_level: requiredLevel, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ai-execution-permissions'] }),
+  });
+}
+
 export function useApproveRequest() {
   const qc = useQueryClient();
   const { user } = useAuth();

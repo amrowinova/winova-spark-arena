@@ -225,12 +225,39 @@ Deno.serve(async (req) => {
         }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      // Determine if auto-approve or needs human
-      const needsApproval = permission.requires_approval ||
-        risk.level === 'high' || risk.level === 'critical' ||
-        (confidence_score || 50) < permission.auto_execute_threshold;
+      // ─── AUTONOMY LADDER: Check if agent rank allows auto-execution ───
+      const agentId = body.agent_id;
+      let autonomousExecution = false;
+      let agentInfo: any = null;
 
-      const status = needsApproval ? 'pending' : 'approved';
+      if (agentId) {
+        const { data: agent } = await supabase.from('ai_agents')
+          .select('id, agent_name, agent_name_ar, rank, auto_execute_level, is_active')
+          .eq('id', agentId)
+          .eq('is_active', true)
+          .single();
+        agentInfo = agent;
+
+        if (agent && agent.auto_execute_level >= (permission.required_auto_execute_level || 99)) {
+          // Agent rank is high enough — check additional safety gates
+          const riskAllowsAuto = risk.level === 'low' || 
+            (risk.level === 'medium' && agent.auto_execute_level >= 3) ||
+            (risk.level === 'high' && agent.auto_execute_level >= 5);
+          
+          if (riskAllowsAuto) {
+            autonomousExecution = true;
+          }
+        }
+      }
+
+      // Traditional approval check (fallback when no autonomous authority)
+      const needsApproval = !autonomousExecution && (
+        permission.requires_approval ||
+        risk.level === 'high' || risk.level === 'critical' ||
+        (confidence_score || 50) < permission.auto_execute_threshold
+      );
+
+      const status = (autonomousExecution || !needsApproval) ? 'approved' : 'pending';
 
       const { data: request, error: insertErr } = await supabase.from('ai_execution_requests').insert({
         permission_id: permission.id,
@@ -256,7 +283,120 @@ Deno.serve(async (req) => {
         daily_executions_used: permission.daily_executions_used + 1,
       }).eq('id', permission.id);
 
-      // Send DM alert
+      // ─── AUTONOMOUS PATH: auto-approve + send to worker immediately ───
+      if (autonomousExecution && agentInfo) {
+        // Post autonomy activation DM
+        const AI_SYS = '00000000-0000-0000-0000-a10000000001';
+        const { data: convos } = await supabase.from('conversations')
+          .select('id')
+          .or(`participant1_id.eq.${AI_SYS},participant2_id.eq.${AI_SYS}`)
+          .limit(10);
+
+        const autoMsg = `🚀 **تنفيذ تلقائي — سلم الاستقلالية**\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `🤖 الوكيل: ${agentInfo.agent_name_ar || agentInfo.agent_name}\n` +
+          `🏅 الرتبة: ${agentInfo.rank}\n` +
+          `🔓 مستوى الصلاحية: ${agentInfo.auto_execute_level}\n` +
+          `⚙️ العملية: ${title_ar || title}\n` +
+          `🎯 المخاطر: ${risk.level} (${risk.score}%)\n` +
+          `🧠 الثقة: ${confidence_score || 50}%\n\n` +
+          `⏳ جاري التنفيذ بصلاحية الرتبة...\n\n` +
+          `request_id: ${request.id}`;
+
+        if (convos) {
+          for (const convo of convos) {
+            await supabase.from('direct_messages').insert({
+              conversation_id: convo.id,
+              sender_id: AI_SYS,
+              content: autoMsg,
+              message_type: 'autonomous_execution',
+              is_read: false,
+            });
+          }
+        }
+
+        // Trigger worker immediately
+        try {
+          const workerRes = await fetch(`${supabaseUrl}/functions/v1/ai-execution-worker`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${serviceRoleKey}`,
+            },
+            body: JSON.stringify({ request_id: request.id }),
+          });
+
+          const workerResult = await workerRes.json().catch(() => ({ success: false }));
+          const workerSuccess = workerRes.ok && workerResult.success;
+
+          // Post result DM
+          const resultMsg = workerSuccess
+            ? `🎉 **اكتمل التنفيذ التلقائي بنجاح**\n\n` +
+              `✅ العملية: ${title_ar || title}\n` +
+              `🤖 الوكيل: ${agentInfo.agent_name_ar || agentInfo.agent_name}\n` +
+              `🏅 الرتبة: ${agentInfo.rank}\n` +
+              `⚙️ العمليات: ${(workerResult.operations_run || []).join(', ')}\n` +
+              `⏱️ المدة: ${workerResult.duration_ms}ms\n` +
+              `🔄 التراجع: ${workerResult.rollback_available ? 'جاهز ✅' : 'غير متاح'}`
+            : `❌ **فشل التنفيذ التلقائي**\n\n` +
+              `العملية: ${title_ar || title}\n` +
+              `🤖 الوكيل: ${agentInfo.agent_name_ar || agentInfo.agent_name}\n` +
+              `${workerResult.error ? `السبب: ${workerResult.error}` : ''}`;
+
+          if (convos) {
+            for (const convo of convos) {
+              await supabase.from('direct_messages').insert({
+                conversation_id: convo.id,
+                sender_id: AI_SYS,
+                content: resultMsg,
+                message_type: workerSuccess ? 'execution_result' : 'execution_failure',
+                is_read: false,
+              });
+            }
+          }
+
+          // Trust economy: autonomous multiplier (1.5x reward, 2x penalty)
+          try {
+            const trustSource = workerSuccess ? 'execution_success' : 'high_risk_failure';
+            const trustReason = workerSuccess 
+              ? `تنفيذ تلقائي ناجح (مضاعف الثقة): ${title_ar || title}`
+              : `فشل تنفيذ تلقائي (عقوبة مضاعفة): ${title_ar || title}`;
+
+            await fetch(`${supabaseUrl}/functions/v1/ai-evolution-engine`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${serviceRoleKey}`,
+              },
+              body: JSON.stringify({
+                action: 'update_trust_autonomous',
+                agent_id: agentId,
+                source_type: trustSource,
+                source_id: request.id,
+                reason_ar: trustReason,
+                autonomous: true,
+              }),
+            });
+          } catch { /* fire and forget */ }
+
+        } catch (workerErr) {
+          console.error('[Autonomy] Worker call failed:', workerErr);
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          request_id: request.id,
+          status: 'approved',
+          autonomous: true,
+          agent_rank: agentInfo.rank,
+          agent_level: agentInfo.auto_execute_level,
+          risk_score: risk.score,
+          risk_level: risk.level,
+          needs_approval: false,
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // ─── NORMAL PATH: send DM alert for human approval ───
       await sendExecutionAlert(supabase, request, needsApproval ? 'pending_approval' : 'executed');
 
       return new Response(JSON.stringify({
@@ -266,6 +406,7 @@ Deno.serve(async (req) => {
         risk_score: risk.score,
         risk_level: risk.level,
         needs_approval: needsApproval,
+        autonomous: false,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

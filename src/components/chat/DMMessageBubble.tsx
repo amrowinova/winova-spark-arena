@@ -365,7 +365,18 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
               ) : null;
             })()}
 
-            {/* Evolution: Retirement decision buttons */}
+            {/* Autonomy Ladder: Autonomous execution badge */}
+            {isAISystemUser(message.senderId) && message.messageType === 'autonomous_execution' && (
+              <div className="mt-3 pt-2 border-t border-primary/30">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🔓</span>
+                  <div className="flex-1">
+                    <p className="text-[10px] text-muted-foreground">سلم الاستقلالية</p>
+                    <p className="text-xs font-medium text-primary">تنفيذ تلقائي بصلاحية الرتبة</p>
+                  </div>
+                </div>
+              </div>
+            )}
             {isAISystemUser(message.senderId) && message.messageType === 'evolution_retirement' && message.content.includes('retirement_proposal_id:') && message.content.includes('Decision required') && (() => {
               const match = message.content.match(/retirement_proposal_id:\s*([0-9a-f-]+)/i);
               const retireId = match?.[1];
