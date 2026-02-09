@@ -868,6 +868,125 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_decisions: {
+        Row: {
+          created_at: string | null
+          decided_by: string | null
+          decision: string | null
+          id: string
+          notes: string | null
+          proposal_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          id?: string
+          notes?: string | null
+          proposal_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          id?: string
+          notes?: string | null
+          proposal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_decisions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "ai_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_memory: {
+        Row: {
+          area: string | null
+          created_at: string | null
+          event_type: string | null
+          id: string
+          payload: Json | null
+          reference_id: string | null
+          source: string | null
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          reference_id?: string | null
+          source?: string | null
+        }
+        Update: {
+          area?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          reference_id?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
+      knowledge_patterns: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          id: string
+          pattern_type: string | null
+          problem: string | null
+          solution: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          pattern_type?: string | null
+          problem?: string | null
+          solution?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          pattern_type?: string | null
+          problem?: string | null
+          solution?: string | null
+        }
+        Relationships: []
+      }
+      knowledge_rules: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          description_ar: string | null
+          id: string
+          is_active: boolean | null
+          rule_key: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_key?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_key?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
