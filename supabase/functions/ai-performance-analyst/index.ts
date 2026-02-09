@@ -8,6 +8,70 @@ const corsHeaders = {
 const AI_SYSTEM_USER_ID = '00000000-0000-0000-0000-a10000000001';
 const AGENT_NAME = 'Performance Analyst';
 const AGENT_NAME_AR = 'محلل الأداء';
+const AGENT_RANK = 'Expert';
+
+// ─── Thinking Stream Phases ──────────────────────
+
+const PHASES = [
+  { key: 'command_received',   emoji: '📩', en: 'Command received',        ar: 'تم استلام الأمر' },
+  { key: 'understanding',      emoji: '🧠', en: 'Understanding request',   ar: 'فهم الطلب' },
+  { key: 'planning',           emoji: '📋', en: 'Planning execution',      ar: 'تخطيط التنفيذ' },
+  { key: 'collecting_data',    emoji: '📡', en: 'Collecting data',         ar: 'جمع البيانات' },
+  { key: 'analyzing',          emoji: '🔬', en: 'Analyzing findings',      ar: 'تحليل النتائج' },
+  { key: 'building',           emoji: '🏗️', en: 'Building optimizations',  ar: 'بناء التحسينات' },
+  { key: 'validating',         emoji: '✅', en: 'Validating results',      ar: 'التحقق من النتائج' },
+  { key: 'preparing_output',   emoji: '📝', en: 'Preparing output',        ar: 'إعداد المخرجات' },
+  { key: 'completed',          emoji: '🏁', en: 'Completed',               ar: 'مكتمل' },
+] as const;
+
+type PhaseKey = typeof PHASES[number]['key'];
+
+/**
+ * Stream a thinking phase to both AI chat room and Intelligence DM.
+ * Each phase is a separate message so it appears in real-time.
+ */
+async function streamPhase(
+  sb: any,
+  agentId: string,
+  phaseKey: PhaseKey,
+  detail?: string,
+  detailAr?: string,
+  confidence?: number,
+  risk?: string,
+): Promise<void> {
+  const phase = PHASES.find(p => p.key === phaseKey)!;
+  const phaseIndex = PHASES.findIndex(p => p.key === phaseKey);
+  const progress = `[${phaseIndex + 1}/${PHASES.length}]`;
+
+  const content = [
+    `${phase.emoji} **${phase.en}** ${progress}`,
+    `🤖 Agent: ${AGENT_NAME} | Rank: ${AGENT_RANK}`,
+    confidence !== undefined ? `📊 Confidence: ${confidence}%` : null,
+    risk ? `⚡ Risk: ${risk}` : null,
+    detail ? `→ ${detail}` : null,
+  ].filter(Boolean).join('\n');
+
+  const contentAr = [
+    `${phase.emoji} **${phase.ar}** ${progress}`,
+    `🤖 الوكيل: ${AGENT_NAME_AR} | الرتبة: ${AGENT_RANK}`,
+    confidence !== undefined ? `📊 الثقة: ${confidence}%` : null,
+    risk ? `⚡ المخاطر: ${risk}` : null,
+    detailAr || detail ? `→ ${detailAr || detail}` : null,
+  ].filter(Boolean).join('\n');
+
+  // Fire both chat + DM in parallel, non-blocking
+  await Promise.all([
+    sb.from('ai_chat_room').insert({
+      agent_id: agentId,
+      content,
+      content_ar: contentAr,
+      message_type: 'thinking_stream',
+      message_category: phaseKey === 'completed' ? 'success' : 'info',
+      is_summary: false,
+    }),
+    postToDM(sb, contentAr, 'thinking_stream'),
+  ]);
+}
 
 // ─── Chat Reporter ────────────────────────────────
 
@@ -93,7 +157,6 @@ interface Finding {
 function analyzeLocally(data: any): Finding[] {
   const findings: Finding[] = [];
 
-  // 1. Sequential scan heavy tables (no index usage)
   for (const t of data.tables) {
     if (t.seq_scan > 100 && t.idx_scan === 0 && t.row_estimate > 1000) {
       findings.push({
@@ -112,7 +175,6 @@ function analyzeLocally(data: any): Finding[] {
       });
     }
 
-    // High seq scan ratio
     if (t.seq_scan > 50 && t.idx_scan > 0 && t.row_estimate > 500) {
       const ratio = t.seq_scan / (t.idx_scan || 1);
       if (ratio > 10) {
@@ -133,7 +195,6 @@ function analyzeLocally(data: any): Finding[] {
       }
     }
 
-    // 2. Table bloat (dead tuples)
     if (t.n_dead_tup > 10000) {
       const bloatRatio = t.n_live_tup > 0 ? (t.n_dead_tup / t.n_live_tup) : 999;
       if (bloatRatio > 0.2) {
@@ -154,7 +215,6 @@ function analyzeLocally(data: any): Finding[] {
       }
     }
 
-    // 3. Missing vacuum
     if (t.row_estimate > 1000 && !t.last_autovacuum && !t.last_vacuum) {
       findings.push({
         type: 'vacuum_needed',
@@ -173,7 +233,6 @@ function analyzeLocally(data: any): Finding[] {
     }
   }
 
-  // 4. Unused indexes (wasting space)
   for (const idx of data.indexes) {
     if (idx.idx_scan === 0 && idx.index_name && !idx.index_name.endsWith('_pkey')) {
       findings.push({
@@ -193,7 +252,6 @@ function analyzeLocally(data: any): Finding[] {
     }
   }
 
-  // 5. Slow queries (from pg_stat_statements if available)
   for (const q of data.slowQueries) {
     if (q.mean_exec_time > 500) {
       findings.push({
@@ -213,11 +271,9 @@ function analyzeLocally(data: any): Finding[] {
     }
   }
 
-  // Sort by severity
   const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
   findings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
-
-  return findings.slice(0, 15); // Cap at 15
+  return findings.slice(0, 15);
 }
 
 // ─── AI-Enhanced Analysis ─────────────────────────
@@ -304,7 +360,7 @@ function formatReport(findings: Finding[], aiAnalysis: any): string {
   let report = `${icon} **تقرير تحليل الأداء — ${AGENT_NAME_AR}**\n`;
   report += `━━━━━━━━━━━━━━━━━━━━━━\n`;
   report += `🤖 الوكيل: ${AGENT_NAME_AR}\n`;
-  report += `🏅 الرتبة: Expert\n`;
+  report += `🏅 الرتبة: ${AGENT_RANK}\n`;
   report += `📊 الصحة: ${aiAnalysis.health_score}/100\n`;
   report += `🔍 المشاكل المكتشفة: ${findings.length}\n\n`;
   report += `📝 ${aiAnalysis.summary_ar || aiAnalysis.summary}\n\n`;
@@ -344,7 +400,6 @@ async function createFixRequests(sb: any, aiAnalysis: any, agentId: string) {
     const needsApproval = issue.requires_approval !== false;
     const permissionKey = needsApproval ? 'database_design' : 'performance_optimization';
 
-    // Check if permission exists and is enabled
     const { data: perm } = await sb
       .from('ai_execution_permissions')
       .select('id, is_enabled, requires_approval, required_auto_execute_level')
@@ -414,7 +469,6 @@ Deno.serve(async (req) => {
     if (agent) {
       agentId = agent.id;
     } else {
-      // Use any active agent as fallback
       const { data: fallback } = await sb.from('ai_agents').select('id').eq('is_active', true).limit(1).single();
       agentId = fallback?.id || '';
     }
@@ -425,42 +479,76 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ─── Step 1: Announce scan start ──────────────────
-    const startMsg = `🔍 **بدء تحليل الأداء**\n━━━━━━━━━━━━━━━━━━━━━━\n🤖 الوكيل: ${AGENT_NAME_AR}\n📡 جاري مسح قاعدة البيانات...\n⏳ الحالة: قيد التنفيذ`;
-    await Promise.all([
-      postToChat(sb, agentId, startMsg, 'info', 'agent_action'),
-      postToDM(sb, startMsg, 'agent_action'),
-    ]);
+    // ═══════════════════════════════════════════════════
+    // PHASE 1: Command Received
+    // ═══════════════════════════════════════════════════
+    await streamPhase(sb, agentId, 'command_received',
+      'Performance analysis scan triggered',
+      'تم تفعيل مسح تحليل الأداء',
+      90, 'low');
 
-    // ─── Step 2: Collect raw performance data ────────
-    console.log('[PerfAnalyst] Collecting performance data...');
+    // ═══════════════════════════════════════════════════
+    // PHASE 2: Understanding Request
+    // ═══════════════════════════════════════════════════
+    await streamPhase(sb, agentId, 'understanding',
+      'Scope: Full database health — tables, indexes, queries, bloat',
+      'النطاق: صحة قاعدة البيانات الكاملة — جداول، فهارس، استعلامات، تضخم',
+      90, 'low');
+
+    // ═══════════════════════════════════════════════════
+    // PHASE 3: Planning
+    // ═══════════════════════════════════════════════════
+    await streamPhase(sb, agentId, 'planning',
+      'Plan: 4 RPCs → local heuristics → AI enhancement → report + fix requests',
+      'الخطة: 4 استعلامات → تحليل محلي → تعزيز ذكاء اصطناعي → تقرير + طلبات إصلاح',
+      90, 'low');
+
+    // ═══════════════════════════════════════════════════
+    // PHASE 4: Collecting Data
+    // ═══════════════════════════════════════════════════
+    await streamPhase(sb, agentId, 'collecting_data',
+      'Querying: table stats, index usage, DB overview, slow queries...',
+      'استعلام: إحصائيات الجداول، استخدام الفهارس، نظرة عامة، استعلامات بطيئة...',
+      85, 'low');
+
     const rawData = await collectPerformanceData(sb);
 
-    const collectMsg = `📊 **تم جمع البيانات**\n• ${rawData.tables.length} جدول\n• ${rawData.indexes.length} فهرس\n• ${rawData.slowQueries.length} استعلام بطيء\n• ${JSON.stringify(rawData.overview[0] || {})}`;
-    await postToChat(sb, agentId, collectMsg, 'info', 'agent_progress');
+    await streamPhase(sb, agentId, 'collecting_data',
+      `Collected: ${rawData.tables.length} tables, ${rawData.indexes.length} indexes, ${rawData.slowQueries.length} slow queries`,
+      `تم الجمع: ${rawData.tables.length} جدول، ${rawData.indexes.length} فهرس، ${rawData.slowQueries.length} استعلام بطيء`,
+      90, 'low');
 
-    // ─── Step 3: Local analysis ──────────────────────
-    console.log('[PerfAnalyst] Running local analysis...');
+    // ═══════════════════════════════════════════════════
+    // PHASE 5: Analyzing
+    // ═══════════════════════════════════════════════════
+    await streamPhase(sb, agentId, 'analyzing',
+      'Running local heuristic analysis: seq scans, bloat, unused indexes, vacuum gaps...',
+      'تشغيل التحليل المحلي: مسح تسلسلي، تضخم، فهارس غير مستخدمة، فجوات التنظيف...',
+      85, 'low');
+
     const findings = analyzeLocally(rawData);
 
     if (findings.length === 0) {
-      const healthyMsg = `🟢 **تحليل الأداء — لا مشاكل مكتشفة**\n━━━━━━━━━━━━━━━━━━━━━━\n🤖 ${AGENT_NAME_AR}\n✅ قاعدة البيانات بصحة جيدة\n📊 الجداول: ${rawData.tables.length}\n⏱️ المدة: ${Date.now() - t0}ms`;
+      await streamPhase(sb, agentId, 'completed',
+        `Database healthy. ${rawData.tables.length} tables scanned, 0 issues. Duration: ${Date.now() - t0}ms`,
+        `قاعدة البيانات سليمة. ${rawData.tables.length} جدول تم مسحه، 0 مشاكل. المدة: ${Date.now() - t0}ms`,
+        95, 'none');
 
-      await Promise.all([
-        postToChat(sb, agentId, healthyMsg, 'info', 'analysis_complete'),
-        postToDM(sb, healthyMsg, 'analysis_complete'),
-        logActivity(sb, 'perf_analysis_clean', null, true, Date.now() - t0, null, { tables: rawData.tables.length, findings: 0 }),
-      ]);
+      await logActivity(sb, 'perf_analysis_clean', null, true, Date.now() - t0, null, { tables: rawData.tables.length, findings: 0 });
 
       return new Response(JSON.stringify({
         success: true, health: 'healthy', findings: 0, duration_ms: Date.now() - t0,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const localMsg = `⚠️ **تحليل محلي — ${findings.length} مشكلة مكتشفة**\n${findings.slice(0, 3).map(f => `• [${f.severity.toUpperCase()}] ${f.title_ar}`).join('\n')}\n${findings.length > 3 ? `... و ${findings.length - 3} أخرى` : ''}`;
-    await postToChat(sb, agentId, localMsg, 'warning', 'agent_progress');
+    await streamPhase(sb, agentId, 'analyzing',
+      `Found ${findings.length} issues. Critical: ${findings.filter(f => f.severity === 'critical').length}, High: ${findings.filter(f => f.severity === 'high').length}`,
+      `تم اكتشاف ${findings.length} مشكلة. حرجة: ${findings.filter(f => f.severity === 'critical').length}، عالية: ${findings.filter(f => f.severity === 'high').length}`,
+      80, findings.some(f => f.severity === 'critical') ? 'high' : 'medium');
 
-    // ─── Step 4: AI-enhanced analysis ────────────────
+    // ═══════════════════════════════════════════════════
+    // PHASE 6: Building / AI Enhancement
+    // ═══════════════════════════════════════════════════
     let aiAnalysis: any = {
       health_status: findings.some(f => f.severity === 'critical') ? 'critical' : 'needs_attention',
       health_score: Math.max(20, 100 - findings.length * 10),
@@ -481,40 +569,71 @@ Deno.serve(async (req) => {
     };
 
     if (lovableApiKey) {
+      await streamPhase(sb, agentId, 'building',
+        'Enhancing analysis with AI model (gemini-2.5-flash)...',
+        'تعزيز التحليل بنموذج الذكاء الاصطناعي (gemini-2.5-flash)...',
+        80, 'low');
+
       try {
-        console.log('[PerfAnalyst] Enhancing with AI...');
         const aiRaw = await enhanceWithAI(findings, rawData, lovableApiKey);
         let parsed = aiRaw;
         const jsonMatch = aiRaw.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (jsonMatch) parsed = jsonMatch[1].trim();
         aiAnalysis = JSON.parse(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
+
+        await streamPhase(sb, agentId, 'building',
+          `AI enhancement complete. Health score: ${aiAnalysis.health_score}/100`,
+          `اكتمل التعزيز بالذكاء الاصطناعي. درجة الصحة: ${aiAnalysis.health_score}/100`,
+          90, 'low');
       } catch (e) {
         console.warn('[PerfAnalyst] AI enhancement failed, using local analysis:', e);
-        await postToChat(sb, agentId, `⚠️ تعزيز AI غير متاح — استخدام التحليل المحلي فقط`, 'warning', 'agent_progress');
+        await streamPhase(sb, agentId, 'building',
+          'AI enhancement unavailable — using local analysis only',
+          'تعزيز AI غير متاح — استخدام التحليل المحلي فقط',
+          75, 'low');
       }
     } else {
-      await postToChat(sb, agentId, `ℹ️ مفتاح AI غير متوفر — تحليل محلي فقط`, 'info', 'agent_progress');
+      await streamPhase(sb, agentId, 'building',
+        'No AI key available — local analysis only',
+        'مفتاح AI غير متوفر — تحليل محلي فقط',
+        75, 'low');
     }
 
-    // ─── Step 5: Post full report ────────────────────
+    // ═══════════════════════════════════════════════════
+    // PHASE 7: Validating
+    // ═══════════════════════════════════════════════════
+    await streamPhase(sb, agentId, 'validating',
+      `Validating ${aiAnalysis.top_issues?.length || 0} top issues and preparing fix requests...`,
+      `التحقق من ${aiAnalysis.top_issues?.length || 0} مشكلة رئيسية وتحضير طلبات الإصلاح...`,
+      85, 'low');
+
+    const requestIds = await createFixRequests(sb, aiAnalysis, agentId);
+
+    await streamPhase(sb, agentId, 'validating',
+      `Created ${requestIds.length} execution requests. ${requestIds.length > 0 ? 'Awaiting approval for gated fixes.' : 'No auto-fixable issues found.'}`,
+      `تم إنشاء ${requestIds.length} طلب تنفيذ. ${requestIds.length > 0 ? 'بانتظار الموافقة للإصلاحات المحمية.' : 'لا توجد مشاكل قابلة للإصلاح التلقائي.'}`,
+      90, 'low');
+
+    // ═══════════════════════════════════════════════════
+    // PHASE 8: Preparing Output
+    // ═══════════════════════════════════════════════════
+    await streamPhase(sb, agentId, 'preparing_output',
+      'Formatting final report and logging to knowledge memory...',
+      'تنسيق التقرير النهائي وتسجيل في ذاكرة المعرفة...',
+      90, 'low');
+
     const report = formatReport(findings, aiAnalysis);
     await Promise.all([
       postToChat(sb, agentId, report, aiAnalysis.health_status === 'critical' ? 'critical' : 'warning', 'analysis_complete'),
       postToDM(sb, report, 'analysis_complete'),
     ]);
 
-    // ─── Step 6: Create execution requests for fixes ─
-    const requestIds = await createFixRequests(sb, aiAnalysis, agentId);
-
     if (requestIds.length > 0) {
       const fixMsg = `🔧 **طلبات إصلاح تم إنشاؤها: ${requestIds.length}**\n${requestIds.map((id, i) => `${i + 1}. request_id: ${id}`).join('\n')}\n\n⏳ بانتظار الموافقة للمشاكل التي تحتاج مراجعة بشرية.`;
-      await Promise.all([
-        postToChat(sb, agentId, fixMsg, 'info', 'execution_request'),
-        postToDM(sb, fixMsg, 'execution_request'),
-      ]);
+      await postToDM(sb, fixMsg, 'execution_request');
     }
 
-    // ─── Step 7: Log to knowledge_memory ─────────────
+    // Log to knowledge_memory
     await sb.from('knowledge_memory').insert({
       source: 'ai',
       event_type: 'performance_analysis',
@@ -531,13 +650,21 @@ Deno.serve(async (req) => {
       },
     });
 
-    // ─── Step 8: Activity log ────────────────────────
+    // Activity log
     await logActivity(sb, 'perf_analysis_complete', null, true, Date.now() - t0,
       { tables: rawData.tables.length, indexes: rawData.indexes.length },
       { findings: findings.length, health: aiAnalysis.health_status, fix_requests: requestIds.length },
     );
 
+    // ═══════════════════════════════════════════════════
+    // PHASE 9: Completed
+    // ═══════════════════════════════════════════════════
     const durationMs = Date.now() - t0;
+    await streamPhase(sb, agentId, 'completed',
+      `✅ Analysis complete. Health: ${aiAnalysis.health_score}/100 | Findings: ${findings.length} | Fixes: ${requestIds.length} | Duration: ${durationMs}ms | Rollback: ready`,
+      `✅ اكتمل التحليل. الصحة: ${aiAnalysis.health_score}/100 | المشاكل: ${findings.length} | الإصلاحات: ${requestIds.length} | المدة: ${durationMs}ms | التراجع: جاهز`,
+      95, 'none');
+
     console.log(`[PerfAnalyst] Analysis complete: ${findings.length} findings, ${requestIds.length} fix requests, ${durationMs}ms`);
 
     return new Response(JSON.stringify({
@@ -556,7 +683,6 @@ Deno.serve(async (req) => {
     const durationMs = Date.now() - t0;
     console.error('[PerfAnalyst] Error:', error);
 
-    // Try to report failure to chat
     try {
       const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
       const failMsg = `❌ **فشل تحليل الأداء**\n🤖 ${AGENT_NAME_AR}\n⚠️ ${error instanceof Error ? error.message : 'Unknown error'}\n⏱️ ${durationMs}ms`;
