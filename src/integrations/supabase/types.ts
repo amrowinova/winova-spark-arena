@@ -1940,6 +1940,123 @@ export type Database = {
           },
         ]
       }
+      ai_self_evolution_proposals: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          current_state: string | null
+          current_state_ar: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          decision_reason_ar: string | null
+          description: string
+          description_ar: string | null
+          draft_at: string
+          expected_impact: string | null
+          expected_impact_ar: string | null
+          id: string
+          lifecycle_status: string
+          metadata: Json | null
+          proposal_type: string
+          proposed_change: string
+          proposed_change_ar: string | null
+          proposing_agent_id: string | null
+          risk_assessment: string
+          risk_details: string | null
+          risk_details_ar: string | null
+          simulated_at: string | null
+          simulation_id: string | null
+          simulation_report: string | null
+          simulation_verdict: string | null
+          submitted_at: string | null
+          title: string
+          title_ar: string | null
+          updated_at: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          current_state?: string | null
+          current_state_ar?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          decision_reason_ar?: string | null
+          description: string
+          description_ar?: string | null
+          draft_at?: string
+          expected_impact?: string | null
+          expected_impact_ar?: string | null
+          id?: string
+          lifecycle_status?: string
+          metadata?: Json | null
+          proposal_type: string
+          proposed_change: string
+          proposed_change_ar?: string | null
+          proposing_agent_id?: string | null
+          risk_assessment?: string
+          risk_details?: string | null
+          risk_details_ar?: string | null
+          simulated_at?: string | null
+          simulation_id?: string | null
+          simulation_report?: string | null
+          simulation_verdict?: string | null
+          submitted_at?: string | null
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          current_state?: string | null
+          current_state_ar?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          decision_reason_ar?: string | null
+          description?: string
+          description_ar?: string | null
+          draft_at?: string
+          expected_impact?: string | null
+          expected_impact_ar?: string | null
+          id?: string
+          lifecycle_status?: string
+          metadata?: Json | null
+          proposal_type?: string
+          proposed_change?: string
+          proposed_change_ar?: string | null
+          proposing_agent_id?: string | null
+          risk_assessment?: string
+          risk_details?: string | null
+          risk_details_ar?: string | null
+          simulated_at?: string | null
+          simulation_id?: string | null
+          simulation_report?: string | null
+          simulation_verdict?: string | null
+          submitted_at?: string | null
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_self_evolution_proposals_proposing_agent_id_fkey"
+            columns: ["proposing_agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_self_evolution_proposals_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_shadow_simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_shadow_simulations: {
         Row: {
           affected_systems: string[]
