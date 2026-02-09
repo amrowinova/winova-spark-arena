@@ -278,6 +278,56 @@ export type Database = {
           },
         ]
       }
+      ai_ci_reports: {
+        Row: {
+          branch: string
+          build_status: string
+          created_at: string
+          id: string
+          lint_status: string
+          pr_number: number
+          raw_logs: Json | null
+          report_id: string | null
+          repository: string | null
+          risk_level: string
+          test_status: string
+        }
+        Insert: {
+          branch: string
+          build_status?: string
+          created_at?: string
+          id?: string
+          lint_status?: string
+          pr_number: number
+          raw_logs?: Json | null
+          report_id?: string | null
+          repository?: string | null
+          risk_level?: string
+          test_status?: string
+        }
+        Update: {
+          branch?: string
+          build_status?: string
+          created_at?: string
+          id?: string
+          lint_status?: string
+          pr_number?: number
+          raw_logs?: Json | null
+          report_id?: string | null
+          repository?: string | null
+          risk_level?: string
+          test_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_ci_reports_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ai_engineer_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_discussion_sessions: {
         Row: {
           action_items: Json | null
