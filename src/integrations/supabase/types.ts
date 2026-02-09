@@ -761,6 +761,78 @@ export type Database = {
           },
         ]
       }
+      ai_strategic_insights: {
+        Row: {
+          admin_notes: string | null
+          category: string
+          confidence_score: number | null
+          created_at: string
+          description: string
+          description_ar: string | null
+          id: string
+          impact_estimation: string | null
+          impact_estimation_ar: string | null
+          insight_type: string
+          metadata: Json | null
+          recommended_action: string | null
+          recommended_action_ar: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          source_knowledge_ids: string[] | null
+          status: string
+          title: string
+          title_ar: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          category?: string
+          confidence_score?: number | null
+          created_at?: string
+          description: string
+          description_ar?: string | null
+          id?: string
+          impact_estimation?: string | null
+          impact_estimation_ar?: string | null
+          insight_type?: string
+          metadata?: Json | null
+          recommended_action?: string | null
+          recommended_action_ar?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          source_knowledge_ids?: string[] | null
+          status?: string
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          category?: string
+          confidence_score?: number | null
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          id?: string
+          impact_estimation?: string | null
+          impact_estimation_ar?: string | null
+          insight_type?: string
+          metadata?: Json | null
+          recommended_action?: string | null
+          recommended_action_ar?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          source_knowledge_ids?: string[] | null
+          status?: string
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -995,6 +1067,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      external_knowledge: {
+        Row: {
+          collected_at: string
+          content: string
+          content_ar: string | null
+          created_at: string
+          id: string
+          is_processed: boolean | null
+          metadata: Json | null
+          relevance_score: number | null
+          source_category: string
+          source_name: string
+          source_url: string | null
+          tags: string[] | null
+          title: string
+          title_ar: string | null
+        }
+        Insert: {
+          collected_at?: string
+          content: string
+          content_ar?: string | null
+          created_at?: string
+          id?: string
+          is_processed?: boolean | null
+          metadata?: Json | null
+          relevance_score?: number | null
+          source_category?: string
+          source_name: string
+          source_url?: string | null
+          tags?: string[] | null
+          title: string
+          title_ar?: string | null
+        }
+        Update: {
+          collected_at?: string
+          content?: string
+          content_ar?: string | null
+          created_at?: string
+          id?: string
+          is_processed?: boolean | null
+          metadata?: Json | null
+          relevance_score?: number | null
+          source_category?: string
+          source_name?: string
+          source_url?: string | null
+          tags?: string[] | null
+          title?: string
+          title_ar?: string | null
+        }
+        Relationships: []
       }
       follows: {
         Row: {
