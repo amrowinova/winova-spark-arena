@@ -962,28 +962,43 @@ export type Database = {
       }
       knowledge_rules: {
         Row: {
+          confidence_score: number | null
           created_at: string | null
           description: string | null
           description_ar: string | null
+          generated_from_events: string[] | null
           id: string
           is_active: boolean | null
+          pattern_type: string | null
           rule_key: string | null
+          sample_count: number | null
+          status: string | null
         }
         Insert: {
+          confidence_score?: number | null
           created_at?: string | null
           description?: string | null
           description_ar?: string | null
+          generated_from_events?: string[] | null
           id?: string
           is_active?: boolean | null
+          pattern_type?: string | null
           rule_key?: string | null
+          sample_count?: number | null
+          status?: string | null
         }
         Update: {
+          confidence_score?: number | null
           created_at?: string | null
           description?: string | null
           description_ar?: string | null
+          generated_from_events?: string[] | null
           id?: string
           is_active?: boolean | null
+          pattern_type?: string | null
           rule_key?: string | null
+          sample_count?: number | null
+          status?: string | null
         }
         Relationships: []
       }

@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.ai-engineer-agent]
 verify_jwt = false
+
+[functions.ai-rule-generator]
+verify_jwt = false
