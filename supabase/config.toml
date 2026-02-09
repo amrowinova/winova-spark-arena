@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.ai-health-monitor]
 verify_jwt = false
+
+[functions.ai-executive-commander]
+verify_jwt = false
