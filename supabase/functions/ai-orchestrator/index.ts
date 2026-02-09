@@ -10,7 +10,60 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
 
-// ─── Intent Map: keywords → agent function ───────────
+// ─── Thinking Stream ─────────────────────────────────
+const PHASES = [
+  { key: 'command_received',   emoji: '📩', en: 'Command received',        ar: 'تم استلام الأمر' },
+  { key: 'understanding',      emoji: '🧠', en: 'Understanding request',   ar: 'فهم الطلب' },
+  { key: 'planning',           emoji: '📋', en: 'Planning execution',      ar: 'تخطيط التنفيذ' },
+  { key: 'collecting_data',    emoji: '📡', en: 'Collecting data',         ar: 'جمع البيانات' },
+  { key: 'analyzing',          emoji: '🔬', en: 'Analyzing',               ar: 'تحليل' },
+  { key: 'building',           emoji: '🏗️', en: 'Building solution',       ar: 'بناء الحل' },
+  { key: 'validating',         emoji: '✅', en: 'Validating',              ar: 'التحقق' },
+  { key: 'preparing_output',   emoji: '📝', en: 'Preparing result',        ar: 'إعداد النتيجة' },
+  { key: 'completed',          emoji: '🏁', en: 'Completed',               ar: 'مكتمل' },
+] as const;
+
+type PhaseKey = typeof PHASES[number]['key'];
+
+async function streamPhase(
+  sb: any,
+  agentId: string,
+  agentName: string,
+  agentNameAr: string,
+  phaseKey: PhaseKey,
+  detail?: string,
+  detailAr?: string,
+): Promise<void> {
+  const phase = PHASES.find(p => p.key === phaseKey)!;
+  const idx = PHASES.findIndex(p => p.key === phaseKey);
+  const progress = `[${idx + 1}/${PHASES.length}]`;
+
+  const content = [
+    `${phase.emoji} **${phase.en}** ${progress}`,
+    `🤖 Agent: ${agentName}`,
+    detail ? `→ ${detail}` : null,
+  ].filter(Boolean).join('\n');
+
+  const contentAr = [
+    `${phase.emoji} **${phase.ar}** ${progress}`,
+    `🤖 الوكيل: ${agentNameAr}`,
+    detailAr || detail ? `→ ${detailAr || detail}` : null,
+  ].filter(Boolean).join('\n');
+
+  await Promise.all([
+    sb.from('ai_chat_room').insert({
+      agent_id: agentId,
+      content,
+      content_ar: contentAr,
+      message_type: 'thinking_stream',
+      message_category: phaseKey === 'completed' ? 'success' : 'info',
+      is_summary: false,
+    }),
+    postToDM(sb, contentAr, 'thinking_stream'),
+  ]);
+}
+
+// ─── Intent Map ──────────────────────────────────────
 const INTENT_MAP: Record<string, { agent: string; intent: string }> = {
   'performance': { agent: 'ai-performance-analyst', intent: 'performance_scan' },
   'أداء': { agent: 'ai-performance-analyst', intent: 'performance_scan' },
@@ -38,6 +91,14 @@ const INTENT_MAP: Record<string, { agent: string; intent: string }> = {
   'فحص': { agent: 'ai-performance-analyst', intent: 'performance_scan' },
   'health': { agent: 'ai-health-monitor', intent: 'health_check' },
   'صحة': { agent: 'ai-health-monitor', intent: 'health_check' },
+  'commander': { agent: 'ai-executive-commander', intent: 'executive_summary' },
+  'قائد': { agent: 'ai-executive-commander', intent: 'executive_summary' },
+  'summary': { agent: 'ai-executive-commander', intent: 'executive_summary' },
+  'ملخص': { agent: 'ai-executive-commander', intent: 'executive_summary' },
+  'priorities': { agent: 'ai-executive-commander', intent: 'executive_summary' },
+  'أولويات': { agent: 'ai-executive-commander', intent: 'executive_summary' },
+  'rule': { agent: 'ai-rule-generator', intent: 'rule_discovery' },
+  'قاعدة': { agent: 'ai-rule-generator', intent: 'rule_discovery' },
 };
 
 // ─── DM Helper ────────────────────────────────────────
@@ -104,7 +165,13 @@ async function dispatchAgent(agentFunction: string, payload: Record<string, any>
   }
 }
 
-// ─── PHASE 1: Process Command Queue ──────────────────
+// ─── Get Active Agent ID ─────────────────────────────
+async function getAgentId(sb: any): Promise<string | null> {
+  const { data } = await sb.from('ai_agents').select('id').eq('is_active', true).limit(1).single();
+  return data?.id || null;
+}
+
+// ─── PHASE 1: Process Command Queue with Thinking Stream ──
 async function processCommandQueue(sb: any): Promise<number> {
   const { data: commands } = await sb
     .from('agent_command_queue')
@@ -115,9 +182,21 @@ async function processCommandQueue(sb: any): Promise<number> {
 
   if (!commands?.length) return 0;
 
+  const agentId = await getAgentId(sb);
+  if (!agentId) return 0;
+
   let processed = 0;
   for (const cmd of commands) {
+    // Phase 1: Command Received
+    await streamPhase(sb, agentId, 'Orchestrator', 'المنسق', 'command_received',
+      `"${cmd.raw_text.substring(0, 80)}"`,
+      `"${cmd.raw_text.substring(0, 80)}"`);
+
+    // Phase 2: Understanding
     const intent = classifyIntent(cmd.raw_text);
+    await streamPhase(sb, agentId, 'Orchestrator', 'المنسق', 'understanding',
+      intent ? `Detected: ${intent.intent} → ${intent.agent}` : 'No matching intent found',
+      intent ? `تم الكشف: ${intent.intent} → ${intent.agent}` : 'لم يتم العثور على نية مطابقة');
 
     if (!intent) {
       await sb.from('agent_command_queue').update({
@@ -125,10 +204,19 @@ async function processCommandQueue(sb: any): Promise<number> {
         detected_intent: 'unknown',
         completed_at: new Date().toISOString(),
       }).eq('id', cmd.id);
+
+      await streamPhase(sb, agentId, 'Orchestrator', 'المنسق', 'completed',
+        'Command ignored — no matching agent',
+        'تم تجاهل الأمر — لا يوجد وكيل مطابق');
       continue;
     }
 
-    // Update command with detected intent
+    // Phase 3: Planning
+    await streamPhase(sb, agentId, 'Orchestrator', 'المنسق', 'planning',
+      `Routing to ${intent.agent} with intent "${intent.intent}"`,
+      `توجيه إلى ${intent.agent} بنية "${intent.intent}"`);
+
+    // Update command
     await sb.from('agent_command_queue').update({
       dispatch_status: 'dispatched',
       detected_intent: intent.intent,
@@ -136,12 +224,28 @@ async function processCommandQueue(sb: any): Promise<number> {
       dispatched_at: new Date().toISOString(),
     }).eq('id', cmd.id);
 
-    // Stream to DM
-    await postToDM(sb, `🎯 **أمر مكتشف** | Intent: ${intent.intent}\n📡 جاري تشغيل: ${intent.agent}\n💬 الأمر: "${cmd.raw_text.substring(0, 100)}"`, 'orchestrator_dispatch');
+    // Phase 4: Collecting / Dispatching
+    await streamPhase(sb, agentId, 'Orchestrator', 'المنسق', 'collecting_data',
+      `Dispatching ${intent.agent}...`,
+      `جاري تشغيل ${intent.agent}...`);
 
-    // Dispatch
-    const result = await dispatchAgent(intent.agent, { triggered_by: 'orchestrator', command: cmd.raw_text, command_id: cmd.id });
+    // Dispatch the agent
+    const result = await dispatchAgent(intent.agent, {
+      triggered_by: 'orchestrator',
+      command: cmd.raw_text,
+      command_id: cmd.id,
+    });
 
+    // Phase 7: Validating result
+    await streamPhase(sb, agentId, 'Orchestrator', 'المنسق', 'validating',
+      result.success
+        ? `Agent responded OK (${result.durationMs}ms)`
+        : `Agent FAILED: ${JSON.stringify(result.body).substring(0, 100)}`,
+      result.success
+        ? `الوكيل استجاب بنجاح (${result.durationMs}ms)`
+        : `فشل الوكيل`);
+
+    // Update queue
     await sb.from('agent_command_queue').update({
       dispatch_status: result.success ? 'completed' : 'failed',
       dispatch_result: result.body,
@@ -149,7 +253,7 @@ async function processCommandQueue(sb: any): Promise<number> {
       error_message: result.success ? null : JSON.stringify(result.body),
     }).eq('id', cmd.id);
 
-    // Store in agent memory
+    // Memory
     await sb.from('agent_memory').insert({
       agent_function: intent.agent,
       memory_type: 'decision',
@@ -157,6 +261,12 @@ async function processCommandQueue(sb: any): Promise<number> {
       importance: result.success ? 5 : 8,
       tags: ['command', intent.intent],
     });
+
+    // Phase 9: Completed
+    const icon = result.success ? '✅' : '❌';
+    await streamPhase(sb, agentId, 'Orchestrator', 'المنسق', 'completed',
+      `${icon} ${intent.agent} finished in ${result.durationMs}ms`,
+      `${icon} ${intent.agent} انتهى في ${result.durationMs}ms`);
 
     processed++;
   }
@@ -178,20 +288,20 @@ async function processSchedules(sb: any): Promise<number> {
   for (const sched of schedules) {
     if (!shouldRunNow(sched, now)) continue;
 
-    // Check if auto-disabled due to failures
     if (sched.consecutive_failures >= sched.max_consecutive_failures) {
       await sb.from('agent_schedules').update({ is_enabled: false, updated_at: now.toISOString() }).eq('id', sched.id);
-      await postToDM(sb, `⚠️ **وكيل معطل تلقائياً** | ${sched.agent_function}\nسبب: ${sched.consecutive_failures} إخفاقات متتالية\nيرجى المراجعة وإعادة التفعيل يدوياً.`, 'alert');
+      await postToDM(sb, `⚠️ **وكيل معطل تلقائياً** | ${sched.agent_function}\nسبب: ${sched.consecutive_failures} إخفاقات متتالية`, 'alert');
       continue;
     }
 
-    // Mark as running
     await sb.from('agent_schedules').update({ last_status: 'running', updated_at: now.toISOString() }).eq('id', sched.id);
 
-    // Dispatch
-    const result = await dispatchAgent(sched.agent_function, { triggered_by: 'scheduler', schedule_id: sched.id, ...(sched.payload || {}) });
+    const result = await dispatchAgent(sched.agent_function, {
+      triggered_by: 'scheduler',
+      schedule_id: sched.id,
+      ...(sched.payload || {}),
+    });
 
-    // Update schedule
     await sb.from('agent_schedules').update({
       last_run_at: now.toISOString(),
       last_status: result.success ? 'success' : 'failed',
@@ -203,30 +313,24 @@ async function processSchedules(sb: any): Promise<number> {
       updated_at: now.toISOString(),
     }).eq('id', sched.id);
 
-    // Stream result
     const icon = result.success ? '✅' : '❌';
-    await postToDM(sb, `${icon} **تنفيذ مجدول** | ${sched.schedule_label}\nالوكيل: ${sched.agent_function}\nالمدة: ${result.durationMs}ms\nالنتيجة: ${result.success ? 'ناجح' : 'فشل'}`, 'scheduler_result');
+    await postToDM(sb, `${icon} **تنفيذ مجدول** | ${sched.schedule_label}\nالوكيل: ${sched.agent_function}\nالمدة: ${result.durationMs}ms`, 'scheduler_result');
 
     triggered++;
   }
   return triggered;
 }
 
-// ─── Schedule Matching (simplified cron parser) ──────
+// ─── Schedule Matching ───────────────────────────────
 function shouldRunNow(sched: any, now: Date): boolean {
-  if (!sched.last_run_at) return true; // Never ran before
-
+  if (!sched.last_run_at) return true;
   const lastRun = new Date(sched.last_run_at);
   const cron = sched.schedule_cron;
-
-  // Parse simple cron patterns
   const parts = cron.split(' ');
   if (parts.length !== 5) return false;
 
-  const [min, hour, _dom, _mon, _dow] = parts;
-
-  // Calculate minimum interval from cron
-  let intervalMs = 60000; // default 1 minute
+  const [min, hour] = parts;
+  let intervalMs = 60000;
   if (hour.startsWith('*/')) {
     intervalMs = parseInt(hour.replace('*/', '')) * 3600000;
   } else if (min.startsWith('*/')) {
@@ -234,9 +338,9 @@ function shouldRunNow(sched: any, now: Date): boolean {
   } else if (hour === '*' && min === '*') {
     intervalMs = 60000;
   } else if (hour === '*') {
-    intervalMs = 3600000; // hourly at specific minute
+    intervalMs = 3600000;
   } else {
-    intervalMs = 86400000; // daily
+    intervalMs = 86400000;
   }
 
   return (now.getTime() - lastRun.getTime()) >= intervalMs;
@@ -244,7 +348,6 @@ function shouldRunNow(sched: any, now: Date): boolean {
 
 // ─── PHASE 3: Autonomy Gate ──────────────────────────
 async function processAutonomyQueue(sb: any): Promise<number> {
-  // Find approved requests that haven't been executed yet
   const { data: requests } = await sb
     .from('ai_execution_requests')
     .select('*, ai_execution_permissions!ai_execution_requests_permission_id_fkey(*)')
@@ -259,14 +362,12 @@ async function processAutonomyQueue(sb: any): Promise<number> {
     const perm = req.ai_execution_permissions;
     if (!perm || !perm.is_enabled) continue;
 
-    // Dispatch to execution worker
     const result = await dispatchAgent('ai-execution-worker', { request_id: req.id });
 
     if (result.success) {
       await postToDM(sb, `🚀 **تنفيذ تلقائي** | ${req.title_ar || req.title}\nالمخاطر: ${req.risk_level}\nالنتيجة: نجح ✅\nالمدة: ${result.durationMs}ms`, 'auto_execution');
     }
 
-    // Memory
     await sb.from('agent_memory').insert({
       agent_function: 'ai-execution-worker',
       memory_type: result.success ? 'decision' : 'failure',
@@ -283,8 +384,9 @@ async function processAutonomyQueue(sb: any): Promise<number> {
 
 // ─── PHASE 4: Health Check ───────────────────────────
 async function runHealthChecks(sb: any): Promise<void> {
-  // Check each scheduled agent's health
-  const { data: schedules } = await sb.from('agent_schedules').select('agent_function, last_status, last_run_at, consecutive_failures, last_duration_ms').eq('is_enabled', true);
+  const { data: schedules } = await sb.from('agent_schedules')
+    .select('agent_function, last_status, last_run_at, consecutive_failures, last_duration_ms')
+    .eq('is_enabled', true);
 
   if (!schedules?.length) return;
 
@@ -298,7 +400,6 @@ async function runHealthChecks(sb: any): Promise<void> {
     else if (sched.consecutive_failures >= 1) status = 'degraded';
     else if (hoursSinceRun > 24) status = 'degraded';
 
-    // Count recent errors from activity stream
     const { count: errorCount1h } = await sb
       .from('ai_activity_stream')
       .select('id', { count: 'exact' })
@@ -306,7 +407,6 @@ async function runHealthChecks(sb: any): Promise<void> {
       .gte('created_at', new Date(now.getTime() - 3600000).toISOString())
       .limit(100);
 
-    // Upsert health check
     await sb.from('agent_health_checks').upsert({
       agent_function: sched.agent_function,
       check_type: 'heartbeat',
@@ -320,16 +420,14 @@ async function runHealthChecks(sb: any): Promise<void> {
       checked_at: now.toISOString(),
     }, { onConflict: 'agent_function,check_type', ignoreDuplicates: false });
 
-    // Alert on critical
     if (status === 'critical') {
-      await postToDM(sb, `🚨 **تنبيه صحي حرج** | ${sched.agent_function}\nالحالة: ${status}\nإخفاقات متتالية: ${sched.consecutive_failures}\nآخر تشغيل: ${sched.last_run_at || 'أبداً'}`, 'health_alert');
+      await postToDM(sb, `🚨 **تنبيه صحي حرج** | ${sched.agent_function}\nإخفاقات: ${sched.consecutive_failures}`, 'health_alert');
     }
   }
 }
 
 // ─── Main Orchestrator Tick ──────────────────────────
 async function orchestratorTick(sb: any): Promise<{ commands: number; schedules: number; executions: number }> {
-  // Check emergency freeze
   const { data: freezeRule } = await sb
     .from('governance_rules')
     .select('is_active')
@@ -337,24 +435,21 @@ async function orchestratorTick(sb: any): Promise<{ commands: number; schedules:
     .single();
 
   if (freezeRule?.is_active) {
-    console.log('[Orchestrator] FREEZE_EXECUTION is active. Skipping tick.');
+    console.log('[Orchestrator] FREEZE_EXECUTION active. Skipping.');
     return { commands: 0, schedules: 0, executions: 0 };
   }
 
-  // Run all phases
   const [commands, schedules, executions] = await Promise.all([
     processCommandQueue(sb),
     processSchedules(sb),
     processAutonomyQueue(sb),
   ]);
 
-  // Health checks (less frequent, every 5th tick)
   const { data: state } = await sb.from('orchestrator_state').select('tick_count').eq('id', 'singleton').single();
   if ((state?.tick_count || 0) % 5 === 0) {
     await runHealthChecks(sb);
   }
 
-  // Update orchestrator state
   await sb.from('orchestrator_state').update({
     last_heartbeat: new Date().toISOString(),
     tick_count: (state?.tick_count || 0) + 1,
@@ -380,7 +475,7 @@ Deno.serve(async (req) => {
     const result = await orchestratorTick(sb);
     const duration = Date.now() - t0;
 
-    console.log(`[Orchestrator] Tick complete: commands=${result.commands}, schedules=${result.schedules}, executions=${result.executions}, duration=${duration}ms`);
+    console.log(`[Orchestrator] Tick: cmd=${result.commands}, sched=${result.schedules}, exec=${result.executions}, ${duration}ms`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -392,13 +487,10 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('[Orchestrator] Error:', error);
-
-    // Try to report error
     try {
       const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
       await sb.from('orchestrator_state').update({
         status: 'error',
-        errors_caught: sb.rpc ? undefined : 1,
         metadata: { last_error: error instanceof Error ? error.message : 'Unknown', last_error_at: new Date().toISOString() },
       }).eq('id', 'singleton');
     } catch (_) { /* ignore */ }
