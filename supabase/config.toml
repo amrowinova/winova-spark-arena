@@ -53,3 +53,12 @@ verify_jwt = false
 
 [functions.ai-performance-analyst]
 verify_jwt = false
+
+[functions.ai-orchestrator]
+verify_jwt = false
+
+[functions.ai-message-router]
+verify_jwt = false
+
+[functions.ai-health-monitor]
+verify_jwt = false
