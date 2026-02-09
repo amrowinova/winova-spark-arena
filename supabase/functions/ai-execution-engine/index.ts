@@ -239,13 +239,36 @@ Deno.serve(async (req) => {
         agentInfo = agent;
 
         if (agent && agent.auto_execute_level >= (permission.required_auto_execute_level || 99)) {
-          // Agent rank is high enough — check additional safety gates
-          const riskAllowsAuto = risk.level === 'low' || 
-            (risk.level === 'medium' && agent.auto_execute_level >= 3) ||
-            (risk.level === 'high' && agent.auto_execute_level >= 5);
-          
-          if (riskAllowsAuto) {
-            autonomousExecution = true;
+          // ─── AUTONOMY CAP: Owner-defined ceiling ───
+          const { data: globalCap } = await supabase.from('autonomy_caps')
+            .select('max_auto_execute_level')
+            .eq('cap_key', 'global_cap').eq('is_active', true).single();
+
+          const ownerCap = globalCap?.max_auto_execute_level ?? 3;
+          const effectiveLevel = Math.min(agent.auto_execute_level, ownerCap);
+
+          // Check category-specific caps (infrastructure, financial, external, security, agent_lifecycle)
+          const { data: categoryCaps } = await supabase.from('autonomy_caps')
+            .select('cap_key, requires_human')
+            .eq('is_active', true)
+            .eq('max_auto_execute_level', 99);
+
+          const blockedOps = (categoryCaps || []).flatMap((c: any) => c.requires_human || []);
+          const operationBlocked = blockedOps.some((op: string) =>
+            permission_key.includes(op) || (parameters && JSON.stringify(parameters).includes(op))
+          );
+
+          if (operationBlocked) {
+            // Human authority is permanent for these categories
+            autonomousExecution = false;
+          } else if (effectiveLevel >= (permission.required_auto_execute_level || 99)) {
+            const riskAllowsAuto = risk.level === 'low' || 
+              (risk.level === 'medium' && effectiveLevel >= 3) ||
+              (risk.level === 'high' && effectiveLevel >= 5);
+            
+            if (riskAllowsAuto) {
+              autonomousExecution = true;
+            }
           }
         }
       }
