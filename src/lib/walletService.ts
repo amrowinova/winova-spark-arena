@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logActivity, logMoneyFlow, logFailure } from '@/lib/ai/logger';
 
 export interface TransferResult {
   success: boolean;
@@ -39,6 +40,7 @@ export async function executeTransfer(
   description?: string,
   descriptionAr?: string
 ): Promise<TransferResult> {
+  const t0 = Date.now();
   try {
     // Validate inputs before calling RPC
     if (!senderId || !recipientId) {
@@ -66,7 +68,8 @@ export async function executeTransfer(
 
     if (error) {
       console.error('Transfer RPC error:', error);
-      // IMPORTANT: Return the real backend/transport message (no masking)
+      logFailure({ rpc_name: 'execute_transfer', user_id: senderId, error_message: error.message, parameters: { amount, currency, recipientId } as any });
+      logActivity({ user_id: senderId, action_type: 'transfer', entity_type: 'wallet', success: false, error_code: (error as any).code || 'RPC_ERROR', duration_ms: Date.now() - t0 });
       const fullMessage = [error.message, (error as any).details].filter(Boolean).join(' | ');
       return {
         success: false,
@@ -88,19 +91,23 @@ export async function executeTransfer(
     };
 
     if (!result.success) {
-      // Log detailed error for debugging
       console.error('Transfer failed:', {
         error: result.error,
         error_code: result.error_code,
         available: result.available_balance,
         requested: result.requested_amount
       });
+      logActivity({ user_id: senderId, action_type: 'transfer', entity_type: 'wallet', success: false, error_code: result.error_code || 'TRANSFER_FAILED', duration_ms: Date.now() - t0, after_state: { available_balance: result.available_balance, requested_amount: result.requested_amount } as any });
       return {
         success: false,
         error: result.error || 'Transfer failed',
         errorCode: result.error_code || 'TRANSFER_FAILED',
       };
     }
+
+    // Log successful transfer with balance snapshots
+    logActivity({ user_id: senderId, action_type: 'transfer', entity_type: 'wallet', success: true, duration_ms: Date.now() - t0, after_state: { sender_balance_after: result.sender_balance_after, recipient_balance_after: result.recipient_balance_after } as any });
+    logMoneyFlow({ operation: 'transfer', from_user: senderId, to_user: recipientId, amount, currency, reference_type: referenceType, reference_id: referenceId });
 
     return {
       success: true,
@@ -111,6 +118,7 @@ export async function executeTransfer(
     };
   } catch (err) {
     console.error('Transfer error:', err);
+    logFailure({ rpc_name: 'execute_transfer', user_id: senderId, error_message: String(err) });
     const message = err instanceof Error ? err.message : String(err);
     return {
       success: false,

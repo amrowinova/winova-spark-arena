@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logActivity, logMoneyFlow, logFailure } from '@/lib/ai/logger';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Info, Ban, Trophy, Clock, Users, Gift, Timer, CalendarClock } from 'lucide-react';
@@ -349,6 +350,7 @@ export default function ContestsPage() {
     setIsJoining(true);
 
     try {
+      const t0 = Date.now();
       const { data, error } = await supabase.rpc('join_contest', {
         p_user_id: authUser.id,
         p_contest_id: activeContestId,
@@ -357,6 +359,8 @@ export default function ContestsPage() {
 
       if (error) {
         console.error('Join contest error:', error);
+        logFailure({ rpc_name: 'join_contest', user_id: authUser.id, error_message: error.message, parameters: { contest_id: activeContestId } as any });
+        logActivity({ user_id: authUser.id, action_type: 'contest_join', entity_type: 'contest', entity_id: activeContestId, success: false, error_code: error.message, duration_ms: Date.now() - t0 });
         showError(error.message);
         return;
       }
@@ -364,6 +368,7 @@ export default function ContestsPage() {
       const result = data as { success: boolean; error?: string; new_participants?: number; new_prize_pool?: number };
 
       if (!result.success) {
+        logActivity({ user_id: authUser.id, action_type: 'contest_join', entity_type: 'contest', entity_id: activeContestId, success: false, error_code: result.error, duration_ms: Date.now() - t0 });
         const normalizedError = (() => {
           if (!result.error) return undefined;
           if (language !== 'ar') return result.error;
@@ -377,6 +382,10 @@ export default function ContestsPage() {
         showError(normalizedError || (language === 'ar' ? 'فشل الانضمام' : 'Failed to join'));
         return;
       }
+
+      // Log successful join with balance impact
+      logActivity({ user_id: authUser.id, action_type: 'contest_join', entity_type: 'contest', entity_id: activeContestId, success: true, duration_ms: Date.now() - t0, after_state: { participants: result.new_participants, prize_pool: result.new_prize_pool } as any });
+      logMoneyFlow({ operation: 'contest_entry_fee', from_user: authUser.id, amount: entryFee, currency: 'nova', reference_type: 'contest', reference_id: activeContestId });
 
       setHasJoined(true);
       setPrizePool(result.new_prize_pool || prizePool);
@@ -452,6 +461,7 @@ export default function ContestsPage() {
     setIsVoting(true);
 
     try {
+      const t0 = Date.now();
       const { data, error } = await supabase.rpc('cast_vote', {
         p_voter_id: authUser.id,
         p_contestant_id: selectedParticipant.id,
@@ -461,6 +471,8 @@ export default function ContestsPage() {
 
       if (error) {
         console.error('Vote error:', error);
+        logFailure({ rpc_name: 'cast_vote', user_id: authUser.id, error_message: error.message, parameters: { contest_id: activeContestId, vote_count: voteCount } as any });
+        logActivity({ user_id: authUser.id, action_type: 'contest_vote', entity_type: 'contest', entity_id: activeContestId, success: false, error_code: error.message, duration_ms: Date.now() - t0 });
         showError(error.message);
         return;
       }
@@ -468,9 +480,14 @@ export default function ContestsPage() {
       const result = data as { success: boolean; error?: string; votes_cast?: number };
 
       if (!result.success) {
+        logActivity({ user_id: authUser.id, action_type: 'contest_vote', entity_type: 'contest', entity_id: activeContestId, success: false, error_code: result.error, duration_ms: Date.now() - t0 });
         showError(result.error || (language === 'ar' ? 'فشل التصويت' : 'Vote failed'));
         return;
       }
+
+      // Log successful vote
+      logActivity({ user_id: authUser.id, action_type: 'contest_vote', entity_type: 'contest', entity_id: activeContestId, success: true, duration_ms: Date.now() - t0, after_state: { contestant: selectedParticipant.id, votes_cast: voteCount } as any });
+      logMoneyFlow({ operation: 'contest_vote', from_user: authUser.id, amount: voteCount, currency: 'aura', reference_type: 'contest', reference_id: activeContestId });
 
       if (isStage1) {
         setUsedVotesStage1(prev => prev + voteCount);

@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
         // Send system message
         const systemMessage = {
           order_id: order.id,
-          sender_id: order.creator_id, // Use creator as sender for system messages
+          sender_id: order.creator_id,
           content: '⏰ Time expired – Order has been returned to the marketplace\n🔄 The transaction was not completed in time',
           content_ar: '⏰ انتهى الوقت – تم إعادة الطلب إلى السوق\n🔄 لم تكتمل الصفقة في الوقت المحدد',
           is_system_message: true,
@@ -94,6 +94,17 @@ Deno.serve(async (req) => {
         };
 
         await supabase.from('p2p_messages').insert(systemMessage);
+
+        // AI observability: log why this order expired
+        await supabase.from('ai_activity_stream').insert({
+          action_type: 'p2p_timer_expired',
+          entity_type: 'p2p_order',
+          entity_id: order.id,
+          role: 'system',
+          success: true,
+          before_state: { status: 'awaiting_payment', order_type: order.order_type, nova_amount: order.nova_amount, country: order.country, matched_at: order.matched_at, time_limit_minutes: order.time_limit_minutes },
+          after_state: { status: 'open', reason: 'payment_timeout' },
+        });
 
         results.expiredCount++;
       } catch (err) {
@@ -126,6 +137,17 @@ Deno.serve(async (req) => {
         };
 
         await supabase.from('p2p_messages').insert(systemMessage);
+
+        // AI observability: log auto-dispute with context
+        await supabase.from('ai_activity_stream').insert({
+          action_type: 'p2p_auto_dispute',
+          entity_type: 'p2p_order',
+          entity_id: order.id,
+          role: 'system',
+          success: true,
+          before_state: { status: 'payment_sent', order_type: order.order_type, nova_amount: order.nova_amount, country: order.country, matched_at: order.matched_at, time_limit_minutes: order.time_limit_minutes },
+          after_state: { status: 'disputed', reason: 'confirmation_timeout' },
+        });
 
         results.disputedCount++;
       } catch (err) {

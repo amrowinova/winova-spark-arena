@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logNovaChange } from '@/lib/auditLogger';
+import { logActivity, logMoneyFlow } from '@/lib/ai/logger';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import {
   Dialog,
@@ -116,6 +117,26 @@ export function AddNovaDialog({ open, onOpenChange, user, onSuccess }: AddNovaDi
         newBalance: response.balance_after ?? (operation === 'add' ? user.nova_balance + numericAmount : user.nova_balance - numericAmount),
         amount: numericAmount,
         reason: reason || (operation === 'add' ? 'Admin deposit' : 'Admin withdrawal'),
+      });
+
+      // AI observability: admin balance change with before/after snapshot
+      logActivity({
+        user_id: adminUser.id,
+        role: 'admin',
+        action_type: operation === 'add' ? 'admin_nova_add' : 'admin_nova_deduct',
+        entity_type: 'wallet',
+        entity_id: user.id,
+        success: true,
+        before_state: { nova_balance: response.balance_before ?? user.nova_balance } as any,
+        after_state: { nova_balance: response.balance_after, target_user: user.username } as any,
+      });
+      logMoneyFlow({
+        operation: operation === 'add' ? 'admin_deposit' : 'admin_withdrawal',
+        to_user: operation === 'add' ? user.user_id : undefined,
+        from_user: operation === 'deduct' ? user.user_id : undefined,
+        amount: numericAmount,
+        currency: 'nova',
+        reference_type: 'admin_action',
       });
 
       toast.success(

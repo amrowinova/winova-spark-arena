@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logWalletFreeze } from '@/lib/auditLogger';
+import { logActivity, logKnowledge } from '@/lib/ai/logger';
 import {
   Dialog,
   DialogContent,
@@ -114,6 +115,10 @@ export function WalletFreezeDialog({
         reason,
       });
 
+      // AI observability: freeze event
+      logActivity({ user_id: adminUser.id, role: 'admin', action_type: 'wallet_freeze', entity_type: 'wallet', entity_id: user.id, success: true, after_state: { target_user: user.username, reason } as any });
+      logKnowledge({ source: 'admin', event_type: 'wallet_frozen', area: 'wallet', reference_id: user.id, payload: { target_user: user.user_id, reason } as any });
+
       toast.success(isRTL ? 'تم تجميد المحفظة بنجاح' : 'Wallet frozen successfully');
       
       setSelectedReason('');
@@ -170,6 +175,10 @@ export function WalletFreezeDialog({
         targetUsername: user.username,
         reason: 'Manual unfreeze by admin',
       });
+
+      // AI observability: unfreeze event
+      logActivity({ user_id: adminUser.id, role: 'admin', action_type: 'wallet_unfreeze', entity_type: 'wallet', entity_id: user.id, success: true, after_state: { target_user: user.username } as any });
+      logKnowledge({ source: 'admin', event_type: 'wallet_unfrozen', area: 'wallet', reference_id: user.id, payload: { target_user: user.user_id } as any });
 
       toast.success(isRTL ? 'تم فك تجميد المحفظة بنجاح' : 'Wallet unfrozen successfully');
       
