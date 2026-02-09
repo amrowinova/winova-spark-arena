@@ -2502,6 +2502,10 @@ export type Database = {
         }[]
       }
       get_my_direct_leader: { Args: { p_user_id: string }; Returns: Json }
+      get_or_create_ai_conversation: {
+        Args: { target_user_id: string }
+        Returns: string
+      }
       get_referral_stats: { Args: { p_user_id: string }; Returns: Json }
       get_team_hierarchy: {
         Args: { p_leader_id: string; p_max_depth?: number }
@@ -2674,6 +2678,17 @@ export type Database = {
           sender_id: string
           sender_name: string
         }[]
+      }
+      send_ai_alert_to_admins: {
+        Args: {
+          p_action: string
+          p_body: string
+          p_confidence: number
+          p_severity: string
+          p_source_type?: string
+          p_title: string
+        }
+        Returns: undefined
       }
       update_last_seen: { Args: { p_user_id: string }; Returns: undefined }
     }

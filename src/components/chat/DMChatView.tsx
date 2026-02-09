@@ -13,6 +13,7 @@ import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useChatPresence } from '@/hooks/useChatPresence';
+import { isAISystemUser } from '@/lib/aiSystemUser';
 
 interface DMChatViewProps {
   conversation: DMConversation;
@@ -31,6 +32,7 @@ export function DMChatView({
 }: DMChatViewProps) {
   const { language } = useLanguage();
   const { info: showInfo, success: showSuccess } = useBanner();
+  const isSystemChat = isAISystemUser(conversation.participantId);
   
   const [message, setMessage] = useState('');
   const [replyTo, setReplyTo] = useState<DMMessageData | null>(null);
@@ -44,9 +46,9 @@ export function DMChatView({
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Real-time hooks - pass participant name for global typing broadcast
+  // Real-time hooks - skip for system user
   const { otherUserTyping, handleTyping, stopTyping } = useTypingIndicator(conversation.id, conversation.participantName);
-  const { isOnline, getLastSeenText } = useChatPresence(conversation.id, conversation.participantId);
+  const { isOnline, getLastSeenText } = useChatPresence(conversation.id, isSystemChat ? null : conversation.participantId);
 
   // Convert messages to DMMessageData format with pending state
   const formattedMessages: DMMessageData[] = messages.map(msg => ({
@@ -195,12 +197,12 @@ export function DMChatView({
           id={conversation.participantId}
           name={conversation.participantName}
           username={conversation.participantUsername}
-          avatar="👤"
-          isOnline={isOnline}
-          lastSeen={getLastSeenText(language as 'ar' | 'en') || undefined}
-          isTyping={!!otherUserTyping}
+          avatar={isSystemChat ? '🤖' : '👤'}
+          isOnline={isSystemChat ? true : isOnline}
+          lastSeen={isSystemChat ? (language === 'ar' ? 'نظام ذكي' : 'AI System') : (getLastSeenText(language as 'ar' | 'en') || undefined)}
+          isTyping={isSystemChat ? false : !!otherUserTyping}
           onBack={onBack}
-          onTransfer={() => setTransferDialogOpen(true)}
+          onTransfer={isSystemChat ? undefined : () => setTransferDialogOpen(true)}
         />
       </div>
 
@@ -244,40 +246,54 @@ export function DMChatView({
         </div>
       </div>
 
-      {/* Fixed Bottom Input Area - Always visible */}
-      <div 
-        className="flex-shrink-0 bg-card border-t border-border"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-      >
-        {/* Reply Preview */}
-        {replyTo && (
-          <ReplyBar
-            replyTo={{ sender: replyTo.senderName, content: replyTo.content }}
-            onCancel={() => setReplyTo(null)}
-          />
-        )}
-        
-        {/* Input Bar */}
-        <div className="p-3 flex items-center gap-2">
-          <Input
-            ref={inputRef}
-            value={message}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={language === 'ar' ? 'اكتب رسالة...' : 'Type a message...'}
-            className="flex-1"
-            autoComplete="off"
-          />
-          <Button 
-            size="icon" 
-            onClick={handleSend} 
-            disabled={!message.trim()}
-            className="shrink-0 h-10 w-10"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+      {/* Fixed Bottom Input Area - Hidden for system chat */}
+      {!isSystemChat && (
+        <div 
+          className="flex-shrink-0 bg-card border-t border-border"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          {/* Reply Preview */}
+          {replyTo && (
+            <ReplyBar
+              replyTo={{ sender: replyTo.senderName, content: replyTo.content }}
+              onCancel={() => setReplyTo(null)}
+            />
+          )}
+          
+          {/* Input Bar */}
+          <div className="p-3 flex items-center gap-2">
+            <Input
+              ref={inputRef}
+              value={message}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder={language === 'ar' ? 'اكتب رسالة...' : 'Type a message...'}
+              className="flex-1"
+              autoComplete="off"
+            />
+            <Button 
+              size="icon" 
+              onClick={handleSend} 
+              disabled={!message.trim()}
+              className="shrink-0 h-10 w-10"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
+      
+      {/* Read-only label for system chat */}
+      {isSystemChat && (
+        <div 
+          className="flex-shrink-0 bg-muted/50 border-t border-border py-3 text-center"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          <p className="text-xs text-muted-foreground">
+            {language === 'ar' ? '📡 قناة ذكاء اصطناعي — للقراءة فقط' : '📡 AI Intelligence Channel — Read Only'}
+          </p>
+        </div>
+      )}
 
       {/* Transfer Dialog */}
       <TransferNovaDialog
