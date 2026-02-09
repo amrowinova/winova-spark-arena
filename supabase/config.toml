@@ -1,1 +1,19 @@
 project_id = "whatixmzgweolywmrsty"
+
+[functions.ai-discussion-scheduler]
+verify_jwt = false
+
+[functions.ai-human-question]
+verify_jwt = false
+
+[functions.ai-proposal-discussion]
+verify_jwt = false
+
+[functions.contest-scheduler]
+verify_jwt = false
+
+[functions.p2p-auto-expire]
+verify_jwt = false
+
+[functions.ai-engineer-agent]
+verify_jwt = false
