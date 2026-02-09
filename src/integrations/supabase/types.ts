@@ -59,6 +59,103 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_agent_lifecycle: {
+        Row: {
+          agent_id: string
+          approved_by: string | null
+          created_at: string
+          event_type: string
+          from_state: Json | null
+          id: string
+          metadata: Json | null
+          reason: string | null
+          reason_ar: string | null
+          to_state: Json | null
+        }
+        Insert: {
+          agent_id: string
+          approved_by?: string | null
+          created_at?: string
+          event_type: string
+          from_state?: Json | null
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          reason_ar?: string | null
+          to_state?: Json | null
+        }
+        Update: {
+          agent_id?: string
+          approved_by?: string | null
+          created_at?: string
+          event_type?: string
+          from_state?: Json | null
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          reason_ar?: string | null
+          to_state?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_lifecycle_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_skills: {
+        Row: {
+          acquired_at: string
+          agent_id: string
+          created_at: string
+          id: string
+          last_used_at: string | null
+          proficiency_level: number
+          skill_category: string
+          skill_name: string
+          skill_name_ar: string | null
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          acquired_at?: string
+          agent_id: string
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          proficiency_level?: number
+          skill_category?: string
+          skill_name: string
+          skill_name_ar?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          acquired_at?: string
+          agent_id?: string
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          proficiency_level?: number
+          skill_category?: string
+          skill_name?: string
+          skill_name_ar?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_skills_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_agents: {
         Row: {
           agent_name: string
@@ -444,6 +541,86 @@ export type Database = {
           tokens_used?: number | null
         }
         Relationships: []
+      }
+      ai_evaluations: {
+        Row: {
+          accuracy_score: number | null
+          agent_id: string
+          created_at: string
+          evaluation_type: string
+          evaluator: string
+          false_positive_rate: number | null
+          findings_accepted: number | null
+          findings_rejected: number | null
+          id: string
+          insight_quality_score: number | null
+          overall_score: number | null
+          period_end: string
+          period_start: string
+          recommendations: string | null
+          recommendations_ar: string | null
+          reliability_score: number | null
+          speed_score: number | null
+          summary: string | null
+          summary_ar: string | null
+          tasks_completed: number | null
+          tasks_failed: number | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          agent_id: string
+          created_at?: string
+          evaluation_type?: string
+          evaluator?: string
+          false_positive_rate?: number | null
+          findings_accepted?: number | null
+          findings_rejected?: number | null
+          id?: string
+          insight_quality_score?: number | null
+          overall_score?: number | null
+          period_end: string
+          period_start: string
+          recommendations?: string | null
+          recommendations_ar?: string | null
+          reliability_score?: number | null
+          speed_score?: number | null
+          summary?: string | null
+          summary_ar?: string | null
+          tasks_completed?: number | null
+          tasks_failed?: number | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          agent_id?: string
+          created_at?: string
+          evaluation_type?: string
+          evaluator?: string
+          false_positive_rate?: number | null
+          findings_accepted?: number | null
+          findings_rejected?: number | null
+          id?: string
+          insight_quality_score?: number | null
+          overall_score?: number | null
+          period_end?: string
+          period_start?: string
+          recommendations?: string | null
+          recommendations_ar?: string | null
+          reliability_score?: number | null
+          speed_score?: number | null
+          summary?: string | null
+          summary_ar?: string | null
+          tasks_completed?: number | null
+          tasks_failed?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_evaluations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_failures: {
         Row: {
@@ -832,6 +1009,68 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ai_training_history: {
+        Row: {
+          accuracy_after: number | null
+          accuracy_before: number | null
+          agent_id: string
+          completed_at: string | null
+          created_at: string
+          data_source: string | null
+          duration_ms: number | null
+          id: string
+          notes: string | null
+          samples_processed: number | null
+          started_at: string
+          status: string
+          topic: string
+          topic_ar: string | null
+          training_type: string
+        }
+        Insert: {
+          accuracy_after?: number | null
+          accuracy_before?: number | null
+          agent_id: string
+          completed_at?: string | null
+          created_at?: string
+          data_source?: string | null
+          duration_ms?: number | null
+          id?: string
+          notes?: string | null
+          samples_processed?: number | null
+          started_at?: string
+          status?: string
+          topic: string
+          topic_ar?: string | null
+          training_type?: string
+        }
+        Update: {
+          accuracy_after?: number | null
+          accuracy_before?: number | null
+          agent_id?: string
+          completed_at?: string | null
+          created_at?: string
+          data_source?: string | null
+          duration_ms?: number | null
+          id?: string
+          notes?: string | null
+          samples_processed?: number | null
+          started_at?: string
+          status?: string
+          topic?: string
+          topic_ar?: string | null
+          training_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_training_history_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       app_settings: {
         Row: {
