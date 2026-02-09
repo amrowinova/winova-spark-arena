@@ -14,6 +14,204 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_command_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          detected_intent: string | null
+          dispatch_result: Json | null
+          dispatch_status: string | null
+          dispatched_at: string | null
+          error_message: string | null
+          id: string
+          raw_text: string
+          sender_id: string | null
+          source_message_id: string | null
+          target_agent: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          detected_intent?: string | null
+          dispatch_result?: Json | null
+          dispatch_status?: string | null
+          dispatched_at?: string | null
+          error_message?: string | null
+          id?: string
+          raw_text: string
+          sender_id?: string | null
+          source_message_id?: string | null
+          target_agent?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          detected_intent?: string | null
+          dispatch_result?: Json | null
+          dispatch_status?: string | null
+          dispatched_at?: string | null
+          error_message?: string | null
+          id?: string
+          raw_text?: string
+          sender_id?: string | null
+          source_message_id?: string | null
+          target_agent?: string | null
+        }
+        Relationships: []
+      }
+      agent_health_checks: {
+        Row: {
+          agent_function: string
+          avg_duration_ms: number | null
+          check_type: string
+          checked_at: string | null
+          created_at: string | null
+          error_count_1h: number | null
+          error_count_24h: number | null
+          id: string
+          last_error: string | null
+          last_failure_at: string | null
+          last_success_at: string | null
+          metadata: Json | null
+          response_time_ms: number | null
+          status: string
+          token_usage_24h: number | null
+        }
+        Insert: {
+          agent_function: string
+          avg_duration_ms?: number | null
+          check_type?: string
+          checked_at?: string | null
+          created_at?: string | null
+          error_count_1h?: number | null
+          error_count_24h?: number | null
+          id?: string
+          last_error?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          metadata?: Json | null
+          response_time_ms?: number | null
+          status?: string
+          token_usage_24h?: number | null
+        }
+        Update: {
+          agent_function?: string
+          avg_duration_ms?: number | null
+          check_type?: string
+          checked_at?: string | null
+          created_at?: string | null
+          error_count_1h?: number | null
+          error_count_24h?: number | null
+          id?: string
+          last_error?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          metadata?: Json | null
+          response_time_ms?: number | null
+          status?: string
+          token_usage_24h?: number | null
+        }
+        Relationships: []
+      }
+      agent_memory: {
+        Row: {
+          agent_function: string
+          content: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          importance: number | null
+          last_recalled_at: string | null
+          memory_type: string
+          recalled_count: number | null
+          reference_id: string | null
+          tags: string[] | null
+        }
+        Insert: {
+          agent_function: string
+          content: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          importance?: number | null
+          last_recalled_at?: string | null
+          memory_type: string
+          recalled_count?: number | null
+          reference_id?: string | null
+          tags?: string[] | null
+        }
+        Update: {
+          agent_function?: string
+          content?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          importance?: number | null
+          last_recalled_at?: string | null
+          memory_type?: string
+          recalled_count?: number | null
+          reference_id?: string | null
+          tags?: string[] | null
+        }
+        Relationships: []
+      }
+      agent_schedules: {
+        Row: {
+          agent_function: string
+          consecutive_failures: number | null
+          created_at: string | null
+          fail_count: number | null
+          id: string
+          is_enabled: boolean
+          last_duration_ms: number | null
+          last_error: string | null
+          last_run_at: string | null
+          last_status: string | null
+          max_consecutive_failures: number | null
+          payload: Json | null
+          run_count: number | null
+          schedule_cron: string
+          schedule_label: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_function: string
+          consecutive_failures?: number | null
+          created_at?: string | null
+          fail_count?: number | null
+          id?: string
+          is_enabled?: boolean
+          last_duration_ms?: number | null
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          max_consecutive_failures?: number | null
+          payload?: Json | null
+          run_count?: number | null
+          schedule_cron: string
+          schedule_label: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_function?: string
+          consecutive_failures?: number | null
+          created_at?: string | null
+          fail_count?: number | null
+          id?: string
+          is_enabled?: boolean
+          last_duration_ms?: number | null
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          max_consecutive_failures?: number | null
+          payload?: Json | null
+          run_count?: number | null
+          schedule_cron?: string
+          schedule_label?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ai_activity_stream: {
         Row: {
           action_type: string
@@ -3393,6 +3591,48 @@ export type Database = {
         }
         Relationships: []
       }
+      orchestrator_state: {
+        Row: {
+          auto_executions: number | null
+          commands_processed: number | null
+          errors_caught: number | null
+          health_checks_run: number | null
+          id: string
+          last_heartbeat: string | null
+          metadata: Json | null
+          schedules_triggered: number | null
+          started_at: string | null
+          status: string | null
+          tick_count: number | null
+        }
+        Insert: {
+          auto_executions?: number | null
+          commands_processed?: number | null
+          errors_caught?: number | null
+          health_checks_run?: number | null
+          id?: string
+          last_heartbeat?: string | null
+          metadata?: Json | null
+          schedules_triggered?: number | null
+          started_at?: string | null
+          status?: string | null
+          tick_count?: number | null
+        }
+        Update: {
+          auto_executions?: number | null
+          commands_processed?: number | null
+          errors_caught?: number | null
+          health_checks_run?: number | null
+          id?: string
+          last_heartbeat?: string | null
+          metadata?: Json | null
+          schedules_triggered?: number | null
+          started_at?: string | null
+          status?: string | null
+          tick_count?: number | null
+        }
+        Relationships: []
+      }
       p2p_dispute_files: {
         Row: {
           created_at: string
@@ -4061,6 +4301,59 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "ai_build_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sandbox_executions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approved_for_production: boolean | null
+          completed_at: string | null
+          error_message: string | null
+          execution_mode: string | null
+          id: string
+          request_id: string | null
+          result: Json | null
+          rows_affected: number | null
+          sql_statement: string
+          started_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_for_production?: boolean | null
+          completed_at?: string | null
+          error_message?: string | null
+          execution_mode?: string | null
+          id?: string
+          request_id?: string | null
+          result?: Json | null
+          rows_affected?: number | null
+          sql_statement: string
+          started_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_for_production?: boolean | null
+          completed_at?: string | null
+          error_message?: string | null
+          execution_mode?: string | null
+          id?: string
+          request_id?: string | null
+          result?: Json | null
+          rows_affected?: number | null
+          sql_statement?: string
+          started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sandbox_executions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "ai_execution_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -5018,6 +5311,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_user: { Args: never; Returns: boolean }
       is_real_user: { Args: { p_user_id: string }; Returns: boolean }
       is_support_staff: { Args: { _user_id: string }; Returns: boolean }
       is_wallet_frozen: { Args: { _user_id: string }; Returns: boolean }
