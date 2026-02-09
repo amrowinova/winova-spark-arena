@@ -85,11 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
       });
-      logActivity({ action_type: 'auth_login', success: !error, error_code: error?.message, duration_ms: Date.now() - t0 });
-      if (error) logFailure({ rpc_name: 'auth.signInWithPassword', error_message: error.message });
+      // Attempt to get user_id from the response for attribution
+      const { data: sessionData } = await supabase.auth.getSession();
+      const uid = sessionData?.session?.user?.id;
+      logActivity({ action_type: 'auth_login', user_id: uid, success: !error, error_code: error?.message, duration_ms: Date.now() - t0 });
+      if (error) logFailure({ rpc_name: 'auth.signInWithPassword', user_id: uid, error_message: error.message });
       return { error: error as Error | null };
     } catch (error) {
       logFailure({ rpc_name: 'auth.signInWithPassword', error_message: String(error) });
+      logActivity({ action_type: 'auth_login', success: false, error_code: String(error), duration_ms: Date.now() - t0 });
       return { error: error as Error };
     }
   };
