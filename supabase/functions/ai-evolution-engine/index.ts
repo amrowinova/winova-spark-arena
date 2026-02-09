@@ -772,6 +772,41 @@ Deno.serve(async (req) => {
 
     let result: any;
 
+    // ─── EMERGENCY: FREEZE_EVOLUTION check ───
+    const evolutionActions = ['update_trust', 'update_trust_autonomous', 'self_evaluate', 'check_promotion',
+      'check_retirement', 'compare', 'report_skill', 'report_learning', 'submit_evolution_proposal', 'run_cycle'];
+    if (evolutionActions.includes(action)) {
+      const { data: evoFreeze } = await sb.from('emergency_controls')
+        .select('is_active').eq('control_key', 'FREEZE_EVOLUTION').single();
+      if (evoFreeze?.is_active) {
+        return new Response(JSON.stringify({ error: 'FREEZE_EVOLUTION active — all learning/evolution halted by owner', frozen: true }), {
+          status: 423, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // ─── EMERGENCY: KILL_ALL_AGENTS check ───
+    if (action === 'run_cycle' || action === 'kill_all_agents') {
+      const { data: killSwitch } = await sb.from('emergency_controls')
+        .select('is_active').eq('control_key', 'KILL_ALL_AGENTS').single();
+      if (killSwitch?.is_active) {
+        // Disable all agents immediately
+        await sb.from('ai_agents').update({ is_active: false, status: 'killed' }).eq('is_active', true);
+        const convId = await findAdminConversation(sb);
+        if (convId) {
+          await postDM(sb, convId,
+            `🛑 **إيقاف طارئ — تم تعطيل جميع الوكلاء**\n\n` +
+            `⚠️ تم تفعيل KILL_ALL_AGENTS بواسطة المالك.\n` +
+            `جميع الوكلاء معطلون الآن.\n` +
+            `⏰ ${new Date().toISOString()}`
+          );
+        }
+        return new Response(JSON.stringify({ killed: true, message: 'All agents disabled' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     switch (action) {
       case 'update_trust':
         result = await updateTrust(sb, agent_id, source_type, source_id, reason_ar, conversation_id, false);

@@ -186,6 +186,17 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'scan';
 
+    // ─── EMERGENCY CHECK ─────────────────────────────
+    if (action === 'request' || action === 'scan') {
+      const { data: execFreeze } = await supabase.from('emergency_controls')
+        .select('is_active').eq('control_key', 'FREEZE_EXECUTION').single();
+      if (execFreeze?.is_active) {
+        return new Response(JSON.stringify({ error: 'FREEZE_EXECUTION active — all AI execution halted by owner', frozen: true }), {
+          status: 423, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     // ─── ACTION: Create execution request ─────────
     if (action === 'request') {
       const { permission_key, title, title_ar, description, description_ar,
