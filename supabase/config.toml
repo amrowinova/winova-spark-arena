@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.ai-execution-engine]
 verify_jwt = false
+
+[functions.ai-shadow-simulator]
+verify_jwt = false

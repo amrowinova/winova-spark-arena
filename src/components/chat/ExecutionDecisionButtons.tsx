@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, Clock, X, Loader2, Shield } from 'lucide-react';
+import { Check, Clock, X, Loader2, Shield, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -24,19 +24,24 @@ export function ExecutionDecisionButtons({
   const [pendingAction, setPendingAction] = useState<'defer' | 'reject' | null>(null);
   const [reason, setReason] = useState('');
   const [existingStatus, setExistingStatus] = useState<string | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [riskLevel, setRiskLevel] = useState<string | null>(null);
   const pending = isPending(requestId);
 
-  // Check current status of the execution request
+  // Check current status and risk level
   useEffect(() => {
     if (!user || !requestId) return;
     supabase
       .from('ai_execution_requests')
-      .select('status')
+      .select('status, risk_level, simulation_verdict')
       .eq('id', requestId)
       .single()
       .then(({ data }) => {
         if (data && data.status !== 'pending') {
           setExistingStatus(data.status);
+        }
+        if (data) {
+          setRiskLevel(data.risk_level);
         }
       });
   }, [requestId, user]);
@@ -64,14 +69,20 @@ export function ExecutionDecisionButtons({
     );
   }
 
+  const requiresSimulation = ['medium', 'high', 'critical'].includes(riskLevel || '');
+
   const handleAction = async (action: 'approve' | 'defer' | 'reject') => {
     if (action === 'defer' || action === 'reject') {
       setPendingAction(action);
       setShowReasonInput(true);
       return;
     }
-    // Approve directly
+    // Approve — simulation will run automatically for medium/high/critical
+    if (requiresSimulation) {
+      setIsSimulating(true);
+    }
     const result = await makeExecDecision(requestId, conversationId, 'approve');
+    setIsSimulating(false);
     if (result.success) {
       setExistingStatus('approved');
       showSuccess('✅ تمت الموافقة — بدأ التنفيذ');
@@ -99,9 +110,27 @@ export function ExecutionDecisionButtons({
       <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
         <Shield className="h-3 w-3" />
         <span>قرار التنفيذ</span>
+        {requiresSimulation && (
+          <Badge variant="outline" className="text-[9px] h-4 gap-0.5 ms-1">
+            <FlaskConical className="h-2.5 w-2.5" />
+            محاكاة مطلوبة
+          </Badge>
+        )}
       </div>
 
-      {!showReasonInput && (
+      {isSimulating && (
+        <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-accent/20 border border-accent/30">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <div>
+            <p className="text-xs font-medium">🏗️ عالم الظل — جاري المحاكاة...</p>
+            <p className="text-[10px] text-muted-foreground">
+              تشغيل 7 سيناريوهات أمان قبل التنفيذ
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!showReasonInput && !isSimulating && (
         <div className="flex items-center gap-2">
           <Button
             size="sm"

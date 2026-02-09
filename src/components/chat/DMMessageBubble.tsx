@@ -303,6 +303,37 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
               ) : null;
             })()}
 
+            {/* Simulation report badge */}
+            {isAISystemUser(message.senderId) && message.messageType === 'simulation_report' && (() => {
+              const verdictMatch = message.content.match(/الحكم:\s*(✅|⚠️|🚫|🔒)\s*(آمن للتنفيذ|يحتاج مراجعة|خطر — لا يُنصح بالتنفيذ|محظور)/);
+              const simIdMatch = message.content.match(/simulation_id:\s*([0-9a-f-]+)/i);
+              if (!verdictMatch) return null;
+              const verdictEmoji = verdictMatch[1];
+              const verdictText = verdictMatch[2];
+              const isSafe = verdictEmoji === '✅';
+              const isDangerous = verdictEmoji === '🚫' || verdictEmoji === '🔒';
+              return (
+                <div className={`mt-3 pt-2 border-t flex items-center gap-2 ${
+                  isDangerous ? 'border-destructive/30' : isSafe ? 'border-primary/30' : 'border-warning/30'
+                }`}>
+                  <span className="text-lg">{verdictEmoji === '✅' ? '🏗️' : '⚠️'}</span>
+                  <div className="flex-1">
+                    <p className="text-[10px] text-muted-foreground">تقرير عالم الظل</p>
+                    <p className={`text-xs font-medium ${
+                      isDangerous ? 'text-destructive' : isSafe ? 'text-primary' : 'text-warning'
+                    }`}>
+                      {verdictEmoji} {verdictText}
+                    </p>
+                  </div>
+                  {simIdMatch && (
+                    <span className="text-[9px] text-muted-foreground font-mono">
+                      {simIdMatch[1].slice(0, 8)}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Time, status, and quick copy */}
             <div className={`flex items-center gap-1 mt-1 ${message.isMine ? 'justify-end' : ''}`}>
               {/* Quick copy button - visible on hover/tap */}

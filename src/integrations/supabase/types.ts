@@ -838,6 +838,9 @@ export type Database = {
           rollback_data: Json | null
           rollback_plan: string
           rollback_plan_ar: string | null
+          simulation_id: string | null
+          simulation_required: boolean
+          simulation_verdict: string | null
           source_forecast_id: string | null
           source_proposal_id: string | null
           status: string
@@ -868,6 +871,9 @@ export type Database = {
           rollback_data?: Json | null
           rollback_plan: string
           rollback_plan_ar?: string | null
+          simulation_id?: string | null
+          simulation_required?: boolean
+          simulation_verdict?: string | null
           source_forecast_id?: string | null
           source_proposal_id?: string | null
           status?: string
@@ -898,6 +904,9 @@ export type Database = {
           rollback_data?: Json | null
           rollback_plan?: string
           rollback_plan_ar?: string | null
+          simulation_id?: string | null
+          simulation_required?: boolean
+          simulation_verdict?: string | null
           source_forecast_id?: string | null
           source_proposal_id?: string | null
           status?: string
@@ -911,6 +920,13 @@ export type Database = {
             columns: ["permission_id"]
             isOneToOne: false
             referencedRelation: "ai_execution_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_execution_requests_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_shadow_simulations"
             referencedColumns: ["id"]
           },
           {
@@ -1442,6 +1458,108 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_shadow_simulations: {
+        Row: {
+          affected_systems: string[]
+          completed_at: string | null
+          created_at: string
+          cto_report: string | null
+          cto_report_ar: string | null
+          duration_ms: number | null
+          financial_deviation: number | null
+          id: string
+          logical_deviations: number | null
+          metadata: Json | null
+          proposal_id: string | null
+          request_id: string | null
+          results: Json
+          risk_delta: number | null
+          rollback_ready: boolean
+          scenarios_failed: number
+          scenarios_passed: number
+          scenarios_run: number
+          simulation_config: Json
+          snapshot_data: Json
+          snapshot_tables: string[]
+          started_at: string | null
+          status: string
+          success_delta: number | null
+          trigger_source: string
+          verdict: string
+        }
+        Insert: {
+          affected_systems?: string[]
+          completed_at?: string | null
+          created_at?: string
+          cto_report?: string | null
+          cto_report_ar?: string | null
+          duration_ms?: number | null
+          financial_deviation?: number | null
+          id?: string
+          logical_deviations?: number | null
+          metadata?: Json | null
+          proposal_id?: string | null
+          request_id?: string | null
+          results?: Json
+          risk_delta?: number | null
+          rollback_ready?: boolean
+          scenarios_failed?: number
+          scenarios_passed?: number
+          scenarios_run?: number
+          simulation_config?: Json
+          snapshot_data?: Json
+          snapshot_tables?: string[]
+          started_at?: string | null
+          status?: string
+          success_delta?: number | null
+          trigger_source?: string
+          verdict?: string
+        }
+        Update: {
+          affected_systems?: string[]
+          completed_at?: string | null
+          created_at?: string
+          cto_report?: string | null
+          cto_report_ar?: string | null
+          duration_ms?: number | null
+          financial_deviation?: number | null
+          id?: string
+          logical_deviations?: number | null
+          metadata?: Json | null
+          proposal_id?: string | null
+          request_id?: string | null
+          results?: Json
+          risk_delta?: number | null
+          rollback_ready?: boolean
+          scenarios_failed?: number
+          scenarios_passed?: number
+          scenarios_run?: number
+          simulation_config?: Json
+          snapshot_data?: Json
+          snapshot_tables?: string[]
+          started_at?: string | null
+          status?: string
+          success_delta?: number | null
+          trigger_source?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_shadow_simulations_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "ai_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_shadow_simulations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "ai_execution_requests"
             referencedColumns: ["id"]
           },
         ]
