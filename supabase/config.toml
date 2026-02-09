@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.ai-ci-validator]
 verify_jwt = false
+
+[functions.ai-forecast-engine]
+verify_jwt = false
