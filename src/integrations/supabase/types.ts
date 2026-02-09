@@ -751,6 +751,252 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_execution_permissions: {
+        Row: {
+          allowed_operations: string[]
+          auto_execute_threshold: number
+          category: string
+          cooldown_minutes: number
+          created_at: string
+          daily_executions_used: number
+          description: string
+          description_ar: string | null
+          granted_by: string | null
+          id: string
+          is_enabled: boolean
+          last_reset_at: string
+          max_daily_executions: number
+          max_risk_level: string
+          permission_key: string
+          permission_key_ar: string | null
+          requires_approval: boolean
+          updated_at: string
+        }
+        Insert: {
+          allowed_operations?: string[]
+          auto_execute_threshold?: number
+          category?: string
+          cooldown_minutes?: number
+          created_at?: string
+          daily_executions_used?: number
+          description: string
+          description_ar?: string | null
+          granted_by?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_reset_at?: string
+          max_daily_executions?: number
+          max_risk_level?: string
+          permission_key: string
+          permission_key_ar?: string | null
+          requires_approval?: boolean
+          updated_at?: string
+        }
+        Update: {
+          allowed_operations?: string[]
+          auto_execute_threshold?: number
+          category?: string
+          cooldown_minutes?: number
+          created_at?: string
+          daily_executions_used?: number
+          description?: string
+          description_ar?: string | null
+          granted_by?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_reset_at?: string
+          max_daily_executions?: number
+          max_risk_level?: string
+          permission_key?: string
+          permission_key_ar?: string | null
+          requires_approval?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_execution_requests: {
+        Row: {
+          affected_entities: string[] | null
+          approved_at: string | null
+          approved_by: string | null
+          confidence_score: number
+          created_at: string
+          description: string
+          description_ar: string | null
+          estimated_impact: string | null
+          estimated_impact_ar: string | null
+          expires_at: string | null
+          id: string
+          parameters: Json
+          permission_id: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          request_type: string
+          risk_level: string
+          risk_score: number
+          rollback_data: Json | null
+          rollback_plan: string
+          rollback_plan_ar: string | null
+          source_forecast_id: string | null
+          source_proposal_id: string | null
+          status: string
+          title: string
+          title_ar: string | null
+          updated_at: string
+        }
+        Insert: {
+          affected_entities?: string[] | null
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence_score?: number
+          created_at?: string
+          description: string
+          description_ar?: string | null
+          estimated_impact?: string | null
+          estimated_impact_ar?: string | null
+          expires_at?: string | null
+          id?: string
+          parameters?: Json
+          permission_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          request_type: string
+          risk_level?: string
+          risk_score?: number
+          rollback_data?: Json | null
+          rollback_plan: string
+          rollback_plan_ar?: string | null
+          source_forecast_id?: string | null
+          source_proposal_id?: string | null
+          status?: string
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affected_entities?: string[] | null
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence_score?: number
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          estimated_impact?: string | null
+          estimated_impact_ar?: string | null
+          expires_at?: string | null
+          id?: string
+          parameters?: Json
+          permission_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          request_type?: string
+          risk_level?: string
+          risk_score?: number
+          rollback_data?: Json | null
+          rollback_plan?: string
+          rollback_plan_ar?: string | null
+          source_forecast_id?: string | null
+          source_proposal_id?: string | null
+          status?: string
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_execution_requests_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "ai_execution_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_execution_requests_source_forecast_id_fkey"
+            columns: ["source_forecast_id"]
+            isOneToOne: false
+            referencedRelation: "ai_forecasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_execution_requests_source_proposal_id_fkey"
+            columns: ["source_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "ai_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_execution_results: {
+        Row: {
+          after_state: Json | null
+          before_state: Json | null
+          completed_at: string | null
+          confidence_delta: number | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          execution_status: string
+          human_feedback: string | null
+          human_feedback_score: number | null
+          id: string
+          output: Json | null
+          request_id: string
+          rollback_reason: string | null
+          rolled_back_at: string | null
+          started_at: string
+          was_rolled_back: boolean
+        }
+        Insert: {
+          after_state?: Json | null
+          before_state?: Json | null
+          completed_at?: string | null
+          confidence_delta?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          execution_status?: string
+          human_feedback?: string | null
+          human_feedback_score?: number | null
+          id?: string
+          output?: Json | null
+          request_id: string
+          rollback_reason?: string | null
+          rolled_back_at?: string | null
+          started_at?: string
+          was_rolled_back?: boolean
+        }
+        Update: {
+          after_state?: Json | null
+          before_state?: Json | null
+          completed_at?: string | null
+          confidence_delta?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          execution_status?: string
+          human_feedback?: string | null
+          human_feedback_score?: number | null
+          id?: string
+          output?: Json | null
+          request_id?: string
+          rollback_reason?: string | null
+          rolled_back_at?: string | null
+          started_at?: string
+          was_rolled_back?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_execution_results_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "ai_execution_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_failures: {
         Row: {
           created_at: string
