@@ -1018,6 +1018,56 @@ export type Database = {
         }
         Relationships: []
       }
+      decision_history: {
+        Row: {
+          alert_severity: string | null
+          alert_title: string | null
+          alert_type: string | null
+          conversation_id: string | null
+          created_at: string
+          decided_by: string
+          decision: Database["public"]["Enums"]["ai_decision_type"]
+          id: string
+          message_id: string
+          reason: string | null
+          task_id: string | null
+        }
+        Insert: {
+          alert_severity?: string | null
+          alert_title?: string | null
+          alert_type?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          decided_by: string
+          decision: Database["public"]["Enums"]["ai_decision_type"]
+          id?: string
+          message_id: string
+          reason?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          alert_severity?: string | null
+          alert_title?: string | null
+          alert_type?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          decided_by?: string
+          decision?: Database["public"]["Enums"]["ai_decision_type"]
+          id?: string
+          message_id?: string
+          reason?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "execution_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direct_messages: {
         Row: {
           content: string
@@ -1067,6 +1117,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      execution_tasks: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          completed_at: string | null
+          completion_report: string | null
+          completion_report_ar: string | null
+          conversation_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          description_ar: string | null
+          id: string
+          progress_notes: string | null
+          severity: string | null
+          source_alert_type: string | null
+          source_message_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["execution_task_status"]
+          title: string
+          title_ar: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          completed_at?: string | null
+          completion_report?: string | null
+          completion_report_ar?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          progress_notes?: string | null
+          severity?: string | null
+          source_alert_type?: string | null
+          source_message_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["execution_task_status"]
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          completed_at?: string | null
+          completion_report?: string | null
+          completion_report_ar?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          progress_notes?: string | null
+          severity?: string | null
+          source_alert_type?: string | null
+          source_message_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["execution_task_status"]
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       external_knowledge: {
         Row: {
@@ -2734,9 +2853,16 @@ export type Database = {
         | "screen_team_owner"
         | "screen_admin_owner"
         | "engineering_lead"
+      ai_decision_type: "approve" | "defer" | "reject"
       app_role: "admin" | "moderator" | "user" | "support"
       currency_type: "nova" | "aura"
       engagement_status: "both" | "contest" | "vote" | "none"
+      execution_task_status:
+        | "pending"
+        | "in_progress"
+        | "completed"
+        | "failed"
+        | "cancelled"
       ledger_entry_type:
         | "transfer_out"
         | "transfer_in"
@@ -2943,9 +3069,17 @@ export const Constants = {
         "screen_admin_owner",
         "engineering_lead",
       ],
+      ai_decision_type: ["approve", "defer", "reject"],
       app_role: ["admin", "moderator", "user", "support"],
       currency_type: ["nova", "aura"],
       engagement_status: ["both", "contest", "vote", "none"],
+      execution_task_status: [
+        "pending",
+        "in_progress",
+        "completed",
+        "failed",
+        "cancelled",
+      ],
       ledger_entry_type: [
         "transfer_out",
         "transfer_in",

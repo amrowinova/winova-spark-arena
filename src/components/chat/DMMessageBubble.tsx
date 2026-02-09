@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { isAISystemUser } from '@/lib/aiSystemUser';
+import { AlertDecisionButtons } from './AlertDecisionButtons';
 
 export interface DMMessageData {
   id: string;
@@ -278,6 +279,15 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
                   </>
                 )}
               </Button>
+            )}
+
+            {/* Decision buttons for AI system alert messages */}
+            {message.messageType === 'system' && isAISystemUser(message.senderId) && message.content.includes('━━━━━━━━━━━━━━━━━━━━━━') && message.content.includes('Decision required') && (
+              <AlertDecisionButtons
+                messageId={message.id}
+                conversationId={message.conversationId}
+                messageContent={message.content}
+              />
             )}
 
             {/* Time, status, and quick copy */}
