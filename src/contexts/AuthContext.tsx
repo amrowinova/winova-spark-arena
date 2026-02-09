@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { logActivity, logFailure } from '@/lib/ai/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -55,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string, 
     metadata?: Record<string, unknown>
   ) => {
+    const t0 = Date.now();
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -64,23 +66,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: metadata,
         },
       });
+      logActivity({ action_type: 'auth_signup', user_id: data?.user?.id, success: !error, error_code: error?.message, duration_ms: Date.now() - t0 });
+      if (error) logFailure({ rpc_name: 'auth.signUp', error_message: error.message });
       return {
         data: data ? { user: data.user ?? null, session: data.session ?? null } : null,
         error: error as Error | null,
       };
     } catch (error) {
+      logFailure({ rpc_name: 'auth.signUp', error_message: String(error) });
       return { data: null, error: error as Error };
     }
   };
 
   const signIn = async (email: string, password: string) => {
+    const t0 = Date.now();
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+      logActivity({ action_type: 'auth_login', success: !error, error_code: error?.message, duration_ms: Date.now() - t0 });
+      if (error) logFailure({ rpc_name: 'auth.signInWithPassword', error_message: error.message });
       return { error: error as Error | null };
     } catch (error) {
+      logFailure({ rpc_name: 'auth.signInWithPassword', error_message: String(error) });
       return { error: error as Error };
     }
   };
@@ -145,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/settings`,
       });
+      logActivity({ action_type: 'auth_password_reset', success: !error, error_code: error?.message });
       return { error: error as Error | null };
     } catch (error) {
       return { error: error as Error };
@@ -152,7 +162,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    const uid = user?.id;
     await supabase.auth.signOut();
+    logActivity({ action_type: 'auth_logout', user_id: uid, success: true });
     setUser(null);
     setSession(null);
   };
