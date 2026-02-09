@@ -2327,6 +2327,51 @@ export type Database = {
         }
         Relationships: []
       }
+      authority_levels: {
+        Row: {
+          can_approve_executions: boolean
+          can_freeze_agents: boolean
+          can_modify_permissions: boolean
+          can_override_governance: boolean
+          can_veto: boolean
+          created_at: string
+          description: string | null
+          description_ar: string | null
+          id: string
+          level_name: string
+          level_name_ar: string | null
+          level_rank: number
+        }
+        Insert: {
+          can_approve_executions?: boolean
+          can_freeze_agents?: boolean
+          can_modify_permissions?: boolean
+          can_override_governance?: boolean
+          can_veto?: boolean
+          created_at?: string
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          level_name: string
+          level_name_ar?: string | null
+          level_rank: number
+        }
+        Update: {
+          can_approve_executions?: boolean
+          can_freeze_agents?: boolean
+          can_modify_permissions?: boolean
+          can_override_governance?: boolean
+          can_veto?: boolean
+          created_at?: string
+          description?: string | null
+          description_ar?: string | null
+          id?: string
+          level_name?: string
+          level_name_ar?: string | null
+          level_rank?: number
+        }
+        Relationships: []
+      }
       contest_entries: {
         Row: {
           contest_id: string
@@ -2875,6 +2920,99 @@ export type Database = {
           follower_id?: string
           following_id?: string
           id?: string
+        }
+        Relationships: []
+      }
+      freeze_controls: {
+        Row: {
+          authority_level: string
+          conversation_id: string | null
+          created_at: string
+          frozen_by: string
+          id: string
+          is_active: boolean
+          reason: string
+          reason_ar: string | null
+          target_id: string
+          target_type: string
+          unfrozen_at: string | null
+          unfrozen_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          authority_level: string
+          conversation_id?: string | null
+          created_at?: string
+          frozen_by: string
+          id?: string
+          is_active?: boolean
+          reason: string
+          reason_ar?: string | null
+          target_id: string
+          target_type: string
+          unfrozen_at?: string | null
+          unfrozen_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authority_level?: string
+          conversation_id?: string | null
+          created_at?: string
+          frozen_by?: string
+          id?: string
+          is_active?: boolean
+          reason?: string
+          reason_ar?: string | null
+          target_id?: string
+          target_type?: string
+          unfrozen_at?: string | null
+          unfrozen_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      governance_rules: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          description_ar: string | null
+          enforced_by: string
+          id: string
+          is_active: boolean
+          override_requires: string
+          rule_key: string
+          rule_key_ar: string | null
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          description_ar?: string | null
+          enforced_by?: string
+          id?: string
+          is_active?: boolean
+          override_requires?: string
+          rule_key: string
+          rule_key_ar?: string | null
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          enforced_by?: string
+          id?: string
+          is_active?: boolean
+          override_requires?: string
+          rule_key?: string
+          rule_key_ar?: string | null
+          severity?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4017,6 +4155,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      veto_events: {
+        Row: {
+          authority_level: string
+          conversation_id: string | null
+          created_at: string
+          id: string
+          original_action: string | null
+          reason: string
+          reason_ar: string | null
+          target_id: string
+          target_type: string
+          vetoed_by: string
+        }
+        Insert: {
+          authority_level: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          original_action?: string | null
+          reason: string
+          reason_ar?: string | null
+          target_id: string
+          target_type: string
+          vetoed_by: string
+        }
+        Update: {
+          authority_level?: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          original_action?: string | null
+          reason?: string
+          reason_ar?: string | null
+          target_id?: string
+          target_type?: string
+          vetoed_by?: string
         }
         Relationships: []
       }
