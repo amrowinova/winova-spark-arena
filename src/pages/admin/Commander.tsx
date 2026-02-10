@@ -7,6 +7,7 @@ import { LearningLoopChart } from '@/components/commander/LearningLoopChart';
 import { EmergencyControls } from '@/components/commander/EmergencyControls';
 import { GovernanceTierLegend } from '@/components/commander/GovernanceTierLegend';
 import { AuthorityTierCard } from '@/components/commander/AuthorityTierCard';
+import { GhostArmySection } from '@/components/commander/GhostArmySection';
 
 export default function Commander() {
   const { language } = useLanguage();
@@ -38,6 +39,9 @@ export default function Commander() {
             <EmergencyControls />
           </div>
         </div>
+
+        {/* 5. Ghost Army — Sovereign Stress Test */}
+        <GhostArmySection />
       </div>
     </div>
   );

@@ -86,3 +86,12 @@ verify_jwt = false
 
 [functions.ai-executive-understanding]
 verify_jwt = false
+
+[functions.ghost-army-provision]
+verify_jwt = false
+
+[functions.ghost-army-simulate]
+verify_jwt = false
+
+[functions.ghost-army-cleanup]
+verify_jwt = false
