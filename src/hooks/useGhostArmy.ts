@@ -59,6 +59,7 @@ export function useGhostArmy() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSocializing, setIsSocializing] = useState(false);
   const [status, setStatus] = useState<GhostArmyStatus>({
     provisioned: 0, referralLinks: 0, lastSimulation: null, lastAnalysis: null,
   });
@@ -154,8 +155,28 @@ export function useGhostArmy() {
     }
   };
 
+  const socialSimulate = async (chatCount = 30, messagesPerChat = 4) => {
+    setIsSocializing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ghost-army-social', {
+        body: { chat_count: chatCount, messages_per_chat: messagesPerChat },
+      });
+      if (error) throw error;
+      const s = data.summary;
+      toast({
+        title: `🧠 Sentient Social Complete`,
+        description: `${s.conversations_created} conversations, ${s.messages_sent} messages, ${s.duration_ms}ms`,
+      });
+      return data;
+    } catch (err: any) {
+      toast({ title: 'Social Simulation Failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsSocializing(false);
+    }
+  };
+
   return {
-    status, isProvisioning, isSimulating, isCleaning, isAnalyzing,
-    checkStatus, provision, simulate, analyze, cleanup,
+    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing,
+    checkStatus, provision, simulate, analyze, cleanup, socialSimulate,
   };
 }
