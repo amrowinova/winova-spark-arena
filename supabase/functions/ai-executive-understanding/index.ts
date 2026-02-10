@@ -7,23 +7,20 @@ const corsHeaders = {
 
 const AI_SYSTEM_USER_ID = '00000000-0000-0000-0000-a10000000001';
 
-// ─── Quality Gate ────────────────────────────────────
-// An EUL report is INVALID if any field is a raw operational log
+// ─── CEO-Level Quality Gate ────────────────────────────
+// Extended banned vocabulary — covers both operational AND technical terms
 const BANNED_PHRASES = [
-  'scan completed',
-  'agent executed',
-  'rows affected',
-  'query returned',
-  'function invoked',
-  'pipeline finished',
-  'job ran successfully',
-  'cron triggered',
-  'SELECT ',
-  'INSERT ',
-  'UPDATE ',
-  'duration_ms',
-  'status: success',
-  'status: failed',
+  // Operational logs
+  'scan completed', 'agent executed', 'rows affected', 'query returned',
+  'function invoked', 'pipeline finished', 'job ran successfully',
+  'cron triggered', 'status: success', 'status: failed',
+  // SQL / technical
+  'SELECT ', 'INSERT ', 'UPDATE ', 'DELETE ', 'duration_ms',
+  // System vocabulary banned from CEO view
+  'signals', 'pipeline', 'scan', 'execution', 'database', 'table',
+  'rpc', 'function', 'orchestration', 'agent', 'subsystem', 'cron',
+  'webhook', 'trigger', 'query', 'endpoint', 'schema', 'migration',
+  'payload', 'thinking stream', 'phase ', 'step ',
 ];
 
 function validateCognitiveQuality(report: {
@@ -49,7 +46,7 @@ function validateCognitiveQuality(report: {
     const lower = field.value?.toLowerCase() || '';
     for (const phrase of BANNED_PHRASES) {
       if (lower.includes(phrase.toLowerCase())) {
-        errors.push(`${field.name}: contains operational jargon "${phrase}" — rewrite in executive language`);
+        errors.push(`${field.name}: contains banned vocabulary "${phrase}" — rewrite in CEO business language`);
       }
     }
   }
@@ -67,25 +64,41 @@ async function generateEUL(
 ): Promise<any> {
   const AI_GATEWAY = Deno.env.get('AI_GATEWAY_URL') || `${Deno.env.get('SUPABASE_URL')}/functions/v1/ai-gateway`;
 
-  const systemPrompt = `You are the Executive Understanding Layer (EUL) for WINOVA.
-Your job: translate raw agent outputs into cognitive insights for the CEO.
+  const systemPrompt = `You are the Executive Understanding Layer for WINOVA, a fintech company.
+You translate operational outputs into CEO-level cognitive insights.
 
-RULES:
-- NEVER use database terms, table names, column names, SQL, or technical pipeline steps
-- NEVER say "scan completed" or "agent executed" — these are banned
-- Speak as if briefing a CEO who controls a fintech platform
-- Every response must answer 4 questions:
-  1. What NEW PATTERNS did we discover? (behavioral, financial, operational)
-  2. What changed about the OWNER MODEL? (risk appetite, preferences, decision patterns)
-  3. What DECISIONS will be different NEXT TIME because of this run?
-  4. Were any RISKS reduced or increased?
+## ABSOLUTE RULES (PERMANENT)
+
+1. NEVER use these words: signals, pipeline, scan, execution, database, table, RPC, function,
+   orchestration, agent, subsystem, cron, webhook, trigger, query, endpoint, schema, migration, payload.
+
+2. NEVER say "scan completed", "agent executed", "job ran" — these are BANNED.
+
+3. Speak as if briefing the CEO of a fintech company, NOT a developer.
+
+4. Translate ALL technology into BUSINESS IMPACT:
+   - Instead of "3 agents failed" → "3 key processes are underperforming, which could slow down user growth"
+   - Instead of "query returned 0 rows" → "no new patterns were detected in this review cycle"
+
+5. Every response must answer 4 questions:
+   - What NEW PATTERNS did we discover? (behavioral, financial, operational)
+   - What changed about how we understand the OWNER'S preferences?
+   - What DECISIONS will be different NEXT TIME because of this?
+   - Were any RISKS reduced or increased?
+
+6. If nothing meaningful was found, say exactly:
+   "No new patterns detected. Your preferences remain unchanged. Risk levels are stable."
+
+7. If data is insufficient, say so. NEVER hallucinate.
+
+8. Priority = CLARITY OVER COMPLEXITY.
 
 OUTPUT FORMAT (JSON):
 {
-  "patterns_discovered": "...",
-  "owner_model_changes": "...",
-  "future_decision_impact": "...",
-  "risk_delta": "...",
+  "patterns_discovered": "Business-language description of new patterns",
+  "owner_model_changes": "How owner preferences were updated",
+  "future_decision_impact": "What will change in future recommendations",
+  "risk_delta": "How risk levels changed",
   "executive_summary": "One paragraph CEO briefing",
   "executive_summary_ar": "Arabic version",
   "confidence_score": 70
@@ -93,18 +106,18 @@ OUTPUT FORMAT (JSON):
 
 EXAMPLE of VALID output:
 {
-  "patterns_discovered": "Users who trade P2P more than 5 times per day have a 3x higher dispute rate. This pattern was not previously tracked.",
-  "owner_model_changes": "You consistently reject proposals that touch financial balances without simulation. This preference is now weighted at 95%.",
-  "future_decision_impact": "Next time a performance optimization is proposed, I will require a simulation first because you rejected 3 similar proposals without one.",
-  "risk_delta": "Fraud risk decreased by 15% after flagging 2 suspicious orders. However, P2P dispute response time increased, creating moderate support risk.",
-  "executive_summary": "This run identified a high-frequency trading pattern linked to disputes and reinforced your preference for simulation-first execution.",
-  "executive_summary_ar": "هذا التشغيل اكتشف نمط تداول عالي التكرار مرتبط بالنزاعات وعزز تفضيلك للتنفيذ بعد المحاكاة.",
+  "patterns_discovered": "Users who trade more than 5 times daily have a 3x higher dispute rate. This pattern was not previously tracked and could impact our support costs.",
+  "owner_model_changes": "You consistently reject proposals that touch financial balances without testing first. This preference is now weighted at 95% in our recommendation model.",
+  "future_decision_impact": "Next time a performance improvement is proposed, I will require testing first because you rejected 3 similar proposals without it.",
+  "risk_delta": "Fraud risk decreased by 15% after flagging 2 suspicious orders. However, dispute response time increased, creating moderate support cost risk.",
+  "executive_summary": "This review identified a high-frequency trading pattern linked to disputes and reinforced your preference for test-first improvements.",
+  "executive_summary_ar": "هذه المراجعة اكتشفت نمط تداول عالي التكرار مرتبط بالنزاعات وعززت تفضيلك للتحسينات بعد الاختبار.",
   "confidence_score": 82
 }`;
 
-  const userPrompt = `Agent: ${agentFunction}
-Run ID: ${runId}
-Trigger: ${triggerType}
+  const userPrompt = `Component: ${agentFunction}
+Run: ${runId}
+Type: ${triggerType}
 
 Raw Output:
 ${JSON.stringify(rawOutput, null, 2).substring(0, 3000)}
@@ -112,7 +125,7 @@ ${JSON.stringify(rawOutput, null, 2).substring(0, 3000)}
 Owner Context:
 ${JSON.stringify(ownerContext, null, 2).substring(0, 1000)}
 
-Generate the Executive Understanding Report. JSON only.`;
+Generate the Executive Understanding Report. JSON only. CEO language only.`;
 
   try {
     const res = await fetch(AI_GATEWAY, {
@@ -132,55 +145,53 @@ Generate the Executive Understanding Report. JSON only.`;
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content || data?.content || '';
     
-    // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
-    throw new Error('No JSON found in LLM response');
+    throw new Error('No JSON found in response');
   } catch (err) {
-    console.error('[EUL] LLM generation failed:', err);
+    console.error('[EUL] Generation failed:', err);
     return null;
   }
 }
 
-// ─── Fallback: Deterministic EUL ─────────────────────
+// ─── Fallback: Deterministic EUL (CEO language) ──────
 function generateFallbackEUL(agentFunction: string, rawOutput: any): any {
   const hasErrors = JSON.stringify(rawOutput).includes('error') || JSON.stringify(rawOutput).includes('failed');
-  const hasSuccess = JSON.stringify(rawOutput).includes('success');
 
   return {
     patterns_discovered: hasErrors
-      ? `The ${agentFunction} agent encountered issues during this run. This may indicate an emerging reliability pattern that needs monitoring.`
-      : `The ${agentFunction} agent completed its cycle. No new behavioral patterns were detected in this run.`,
-    owner_model_changes: 'No changes to the owner preference model were triggered by this run.',
+      ? `The ${agentFunction} process encountered issues during this cycle. This may indicate an emerging reliability concern that needs monitoring.`
+      : `No new patterns were detected in this review cycle.`,
+    owner_model_changes: 'No changes to your preference model were identified.',
     future_decision_impact: hasErrors
-      ? 'If this failure pattern repeats, I will recommend reducing this agent\'s autonomy level and escalating for manual review.'
-      : 'No decision changes are needed based on this run\'s outcomes.',
+      ? 'If this issue repeats, I will recommend reducing its autonomy and escalating for your review.'
+      : 'No changes to future recommendations are needed based on this cycle.',
     risk_delta: hasErrors
-      ? 'Operational risk slightly increased due to agent reliability concerns.'
-      : 'Risk levels remain unchanged. System operating within normal parameters.',
+      ? 'Operational reliability risk slightly increased. Monitoring closely.'
+      : 'Risk levels remain stable.',
     executive_summary: hasErrors
-      ? `The ${agentFunction} agent had issues during its run. I\'m tracking this to see if it becomes a pattern. If it happens again, I\'ll recommend intervention.`
-      : `The ${agentFunction} agent completed its work normally. Nothing requires your attention right now.`,
+      ? `The ${agentFunction} process had issues. I\'m tracking this — if it happens again, I\'ll recommend intervention.`
+      : 'All systems are stable. Nothing requires your decision.',
     executive_summary_ar: hasErrors
-      ? `واجه وكيل ${agentFunction} مشاكل أثناء تشغيله. أتابع هذا لمعرفة ما إذا كان سيصبح نمطاً. إذا تكرر، سأوصي بالتدخل.`
-      : `أكمل وكيل ${agentFunction} عمله بشكل طبيعي. لا يوجد ما يتطلب انتباهك الآن.`,
+      ? `واجهت عملية ${agentFunction} مشاكل. أتابع الأمر — إذا تكرر سأوصي بالتدخل.`
+      : 'جميع الأنظمة مستقرة. لا شيء يتطلب قرارك.',
     confidence_score: hasErrors ? 55 : 65,
   };
 }
 
-// ─── Post EUL to DM ──────────────────────────────────
+// ─── Post EUL to DM (CEO language only) ──────────────
 async function postEULToDM(sb: any, report: any, agentFunction: string) {
-  const content = `🧠 **تقرير الفهم التنفيذي** | ${agentFunction}
+  const content = `🧠 **تقرير الفهم التنفيذي**
 
 📊 **أنماط جديدة:**
 ${report.patterns_discovered}
 
-🎯 **تغييرات نموذج المالك:**
+🎯 **تحديثات التفضيلات:**
 ${report.owner_model_changes}
 
-🔮 **تأثير على القرارات القادمة:**
+🔮 **تأثير على التوصيات القادمة:**
 ${report.future_decision_impact}
 
 ⚖️ **تغير المخاطر:**
@@ -209,13 +220,13 @@ ${report.executive_summary_ar || report.executive_summary}
     }
   }
 
-  // Also post to AI Chat Room
-  const { data: agent } = await sb.from('ai_agents').select('id').eq('is_active', true).limit(1).single();
-  if (agent) {
+  // Internal log only
+  const { data: agentRecord } = await sb.from('ai_agents').select('id').eq('is_active', true).limit(1).single();
+  if (agentRecord) {
     await sb.from('ai_chat_room').insert({
-      agent_id: agent.id,
-      content: `🧠 **Executive Understanding Report** | ${agentFunction}\n\n${report.executive_summary}`,
-      content_ar: `🧠 **تقرير الفهم التنفيذي** | ${agentFunction}\n\n${report.executive_summary_ar || report.executive_summary}`,
+      agent_id: agentRecord.id,
+      content: `🧠 Executive Understanding Report\n\n${report.executive_summary}`,
+      content_ar: `🧠 تقرير الفهم التنفيذي\n\n${report.executive_summary_ar || report.executive_summary}`,
       message_type: 'executive_understanding',
       message_category: report.confidence_score >= 75 ? 'info' : 'warning',
       is_summary: true,
@@ -247,14 +258,14 @@ Deno.serve(async (req) => {
 
     if (!agent_function || !run_id) {
       return new Response(JSON.stringify({
-        error: 'Missing agent_function or run_id',
+        error: 'Missing required parameters',
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Load owner context for LLM
+    // Load owner context
     const [prefsResult, constitutionResult, correctionsResult] = await Promise.all([
       sb.from('owner_preferences').select('*').limit(10),
       sb.from('owner_constitution').select('rule_key, rule_en').eq('is_active', true),
@@ -280,12 +291,11 @@ Deno.serve(async (req) => {
     const validation = validateCognitiveQuality(eulData);
 
     if (!validation.valid) {
-      console.warn('[EUL] Quality gate failed, using fallback:', validation.errors);
+      console.warn('[EUL] Quality gate failed, sanitizing:', validation.errors);
       eulData = generateFallbackEUL(agent_function, raw_output);
-      // Re-validate fallback (should always pass)
       const recheck = validateCognitiveQuality(eulData);
       if (!recheck.valid) {
-        console.error('[EUL] Even fallback failed quality gate');
+        console.error('[EUL] Fallback also failed quality gate');
       }
     }
 
@@ -325,7 +335,7 @@ Deno.serve(async (req) => {
       console.error('[EUL] DM post failed:', err)
     );
 
-    // Log to knowledge_memory
+    // Log to knowledge memory
     await sb.from('knowledge_memory').insert({
       source: 'ai',
       event_type: 'eul_generated',
@@ -338,8 +348,6 @@ Deno.serve(async (req) => {
         report_id: report?.id,
       },
     });
-
-    console.log(`[EUL] Report generated: agent=${agent_function}, valid=${validation.valid}, confidence=${eulData.confidence_score}, ${durationMs}ms`);
 
     return new Response(JSON.stringify({
       success: true,
