@@ -13,6 +13,8 @@ export interface GhostArmyStatus {
     critical_issues: number;
     duration_ms: number;
     avg_chat_latency_ms: number;
+    chat_delivered?: number;
+    chat_attempted?: number;
     referral_links_tested: number;
     fraud_tests_run: number;
     results: any[];
