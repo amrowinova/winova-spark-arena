@@ -466,6 +466,30 @@ Deno.serve(async (req) => {
     const warnings = results.filter(r => r.status === 'warning');
     const criticals = failures.filter(r => r.severity === 'critical');
 
+    // ═══ LOG INCIDENTS ═══
+    const incidentRows = results
+      .filter(r => r.status === 'fail' || r.status === 'warning')
+      .map(r => ({
+        actor_username: r.test.match(/:\s*(ghost_agent_\w+)/)?.[1] || 'ghost_system',
+        is_ghost: true,
+        screen: 'commander/ghost-army',
+        feature: r.category,
+        action_type: r.test,
+        error_message: r.what_happened,
+        error_code: r.status,
+        severity: r.severity,
+        category: r.category,
+        endpoint: scenario,
+        flow: r.category.replace(/_/g, ' '),
+        root_cause: r.recommended_action,
+        latency_ms: r.latency_ms || null,
+        metadata: { why: r.why_it_matters, scenario, safe_mode: safeMode },
+      }));
+
+    if (incidentRows.length > 0) {
+      await adminClient.from('system_incidents').insert(incidentRows);
+    }
+
     const summary = {
       scenario,
       safe_mode: safeMode,

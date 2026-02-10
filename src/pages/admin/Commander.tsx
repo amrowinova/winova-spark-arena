@@ -8,6 +8,7 @@ import { EmergencyControls } from '@/components/commander/EmergencyControls';
 import { GovernanceTierLegend } from '@/components/commander/GovernanceTierLegend';
 import { AuthorityTierCard } from '@/components/commander/AuthorityTierCard';
 import { GhostArmySection } from '@/components/commander/GhostArmySection';
+import { SystemIncidentsMonitor } from '@/components/commander/SystemIncidentsMonitor';
 
 export default function Commander() {
   const { language } = useLanguage();
@@ -40,7 +41,10 @@ export default function Commander() {
           </div>
         </div>
 
-        {/* 5. Ghost Army — Sovereign Stress Test */}
+        {/* 5. System Incidents Monitor */}
+        <SystemIncidentsMonitor />
+
+        {/* 6. Ghost Army — Sovereign Stress Test */}
         <GhostArmySection />
       </div>
     </div>
