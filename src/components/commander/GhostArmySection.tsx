@@ -6,9 +6,10 @@ import { useGhostArmy, SimulationScenario } from '@/hooks/useGhostArmy';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { BehavioralMetricsGrid } from './ghost-army/BehavioralMetricsGrid';
 import { SimulationResultsList } from './ghost-army/SimulationResultsList';
+import { SocialStream } from './ghost-army/SocialStream';
 import {
   Play, Trash2, Users, Loader2, TreePine, Search,
-  MessageSquare, Wallet, Network, Trophy, Shield, Heart, ShoppingCart,
+  MessageSquare, Wallet, Network, Trophy, Shield, Heart, ShoppingCart, Brain,
 } from 'lucide-react';
 
 const SCENARIOS: { id: SimulationScenario; icon: React.ReactNode; label: string; labelAr: string }[] = [
@@ -26,12 +27,12 @@ export function GhostArmySection() {
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const {
-    status, isProvisioning, isSimulating, isCleaning, isAnalyzing,
-    checkStatus, provision, simulate, analyze, cleanup,
+    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing,
+    checkStatus, provision, simulate, analyze, cleanup, socialSimulate,
   } = useGhostArmy();
 
   const [lastResults, setLastResults] = useState<any[] | null>(null);
-  const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis'>('behavioral');
+  const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis' | 'social'>('behavioral');
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario>('full');
   const [safeMode, setSafeMode] = useState(true);
   const [liveMode, setLiveMode] = useState(false);
@@ -43,7 +44,12 @@ export function GhostArmySection() {
     if (data?.results) setLastResults(data.results);
   };
 
-  const isAnyRunning = isProvisioning || isSimulating || isCleaning || isAnalyzing;
+  const handleSocial = async () => {
+    await socialSimulate(30, 4);
+    setActiveTab('social');
+  };
+
+  const isAnyRunning = isProvisioning || isSimulating || isCleaning || isAnalyzing || isSocializing;
 
   return (
     <Card className="border-primary/20">
@@ -64,6 +70,10 @@ export function GhostArmySection() {
           <Button size="sm" onClick={() => provision(200)} disabled={isAnyRunning || status.provisioned >= 200} className="gap-1.5">
             {isProvisioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Users className="h-3.5 w-3.5" />}
             {isAr ? 'نشر 200 عميل' : 'Deploy 200 Agents'}
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleSocial} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5">
+            {isSocializing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Brain className="h-3.5 w-3.5" />}
+            {isAr ? 'محاكاة اجتماعية ذكية' : 'Sentient Social'}
           </Button>
           <Button size="sm" variant="outline" onClick={analyze} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5">
             {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
@@ -121,13 +131,17 @@ export function GhostArmySection() {
         )}
 
         {/* Tab Switcher */}
-        {(status.lastSimulation || status.lastAnalysis) && (
+        {(status.lastSimulation || status.lastAnalysis || status.provisioned > 0) && (
           <div className="flex gap-1">
             <Button size="sm" variant={activeTab === 'behavioral' ? 'default' : 'ghost'} onClick={() => setActiveTab('behavioral')} className="h-7 text-xs">
-              {isAr ? 'المقاييس السلوكية' : 'Behavioral'}
+              {isAr ? 'المقاييس' : 'Behavioral'}
             </Button>
             <Button size="sm" variant={activeTab === 'results' ? 'default' : 'ghost'} onClick={() => setActiveTab('results')} className="h-7 text-xs">
-              {isAr ? 'نتائج الاختبار' : 'Test Results'}
+              {isAr ? 'النتائج' : 'Results'}
+            </Button>
+            <Button size="sm" variant={activeTab === 'social' ? 'default' : 'ghost'} onClick={() => setActiveTab('social')} className="h-7 text-xs gap-1">
+              <Brain className="h-3 w-3" />
+              {isAr ? 'البث الاجتماعي' : 'Social Stream'}
             </Button>
             <Button size="sm" variant={activeTab === 'analysis' ? 'default' : 'ghost'} onClick={() => setActiveTab('analysis')} className="h-7 text-xs">
               {isAr ? 'تقرير المراقب' : 'Spy Report'}
@@ -145,38 +159,14 @@ export function GhostArmySection() {
           <SimulationResultsList results={lastResults} isAr={isAr} />
         )}
 
+        {/* Social Stream */}
+        {activeTab === 'social' && (
+          <SocialStream isAr={isAr} />
+        )}
+
         {/* Spy Analysis */}
         {activeTab === 'analysis' && status.lastAnalysis && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Badge variant={
-                status.lastAnalysis.overall_health === 'HEALTHY' ? 'default' :
-                status.lastAnalysis.overall_health === 'NEEDS_ATTENTION' ? 'secondary' : 'destructive'
-              } className="text-xs">{status.lastAnalysis.overall_health}</Badge>
-              <span className="text-xs text-muted-foreground">Depth: {status.lastAnalysis.hierarchy_depth} levels</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <MiniStat icon="И" value={status.lastAnalysis.financial_overview.total_nova} label="Total Nova" />
-              <MiniStat icon="✦" value={status.lastAnalysis.financial_overview.total_aura} label="Total Aura" />
-              <MiniStat icon="Ø" value={status.lastAnalysis.financial_overview.avg_balance} label="Avg Balance" />
-            </div>
-            {status.lastAnalysis.critical_findings.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-destructive">{isAr ? 'مشاكل حرجة:' : 'Critical Findings:'}</p>
-                {status.lastAnalysis.critical_findings.map((f: string, i: number) => (
-                  <p key={i} className="text-xs text-muted-foreground pl-2 border-l-2 border-destructive/30">{f}</p>
-                ))}
-              </div>
-            )}
-            {status.lastAnalysis.recommendations.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-primary">{isAr ? 'التوصيات:' : 'Recommendations:'}</p>
-                {status.lastAnalysis.recommendations.map((r: string, i: number) => (
-                  <p key={i} className="text-xs text-muted-foreground pl-2 border-l-2 border-primary/30">→ {r}</p>
-                ))}
-              </div>
-            )}
-          </div>
+          <SpyAnalysisView status={status} isAr={isAr} />
         )}
 
         {/* Empty state */}
@@ -189,6 +179,41 @@ export function GhostArmySection() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function SpyAnalysisView({ status, isAr }: { status: any; isAr: boolean }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Badge variant={
+          status.lastAnalysis.overall_health === 'HEALTHY' ? 'default' :
+          status.lastAnalysis.overall_health === 'NEEDS_ATTENTION' ? 'secondary' : 'destructive'
+        } className="text-xs">{status.lastAnalysis.overall_health}</Badge>
+        <span className="text-xs text-muted-foreground">Depth: {status.lastAnalysis.hierarchy_depth} levels</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <MiniStat icon="И" value={status.lastAnalysis.financial_overview.total_nova} label="Total Nova" />
+        <MiniStat icon="✦" value={status.lastAnalysis.financial_overview.total_aura} label="Total Aura" />
+        <MiniStat icon="Ø" value={status.lastAnalysis.financial_overview.avg_balance} label="Avg Balance" />
+      </div>
+      {status.lastAnalysis.critical_findings.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-destructive">{isAr ? 'مشاكل حرجة:' : 'Critical Findings:'}</p>
+          {status.lastAnalysis.critical_findings.map((f: string, i: number) => (
+            <p key={i} className="text-xs text-muted-foreground pl-2 border-l-2 border-destructive/30">{f}</p>
+          ))}
+        </div>
+      )}
+      {status.lastAnalysis.recommendations.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-primary">{isAr ? 'التوصيات:' : 'Recommendations:'}</p>
+          {status.lastAnalysis.recommendations.map((r: string, i: number) => (
+            <p key={i} className="text-xs text-muted-foreground pl-2 border-l-2 border-primary/30">→ {r}</p>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
