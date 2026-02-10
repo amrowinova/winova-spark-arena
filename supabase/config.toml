@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.ai-problem-to-patch]
 verify_jwt = false
+
+[functions.ai-decision-learner]
+verify_jwt = false

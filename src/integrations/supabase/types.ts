@@ -2875,6 +2875,144 @@ export type Database = {
         }
         Relationships: []
       }
+      ceo_decision_history: {
+        Row: {
+          context_snapshot: Json | null
+          created_at: string
+          decision: string
+          decision_reason: string | null
+          id: string
+          modification_notes: string | null
+          request_id: string | null
+          request_title: string
+          request_title_ar: string | null
+          request_type: string
+          response_time_ms: number | null
+          risk_level: string
+          services_affected: string[] | null
+          suggested_fix: string | null
+          urgency: string
+        }
+        Insert: {
+          context_snapshot?: Json | null
+          created_at?: string
+          decision: string
+          decision_reason?: string | null
+          id?: string
+          modification_notes?: string | null
+          request_id?: string | null
+          request_title: string
+          request_title_ar?: string | null
+          request_type: string
+          response_time_ms?: number | null
+          risk_level?: string
+          services_affected?: string[] | null
+          suggested_fix?: string | null
+          urgency?: string
+        }
+        Update: {
+          context_snapshot?: Json | null
+          created_at?: string
+          decision?: string
+          decision_reason?: string | null
+          id?: string
+          modification_notes?: string | null
+          request_id?: string | null
+          request_title?: string
+          request_title_ar?: string | null
+          request_type?: string
+          response_time_ms?: number | null
+          risk_level?: string
+          services_affected?: string[] | null
+          suggested_fix?: string | null
+          urgency?: string
+        }
+        Relationships: []
+      }
+      ceo_decision_patterns: {
+        Row: {
+          conditions: Json
+          confidence: number
+          created_at: string
+          id: string
+          is_active: boolean
+          last_validated_at: string | null
+          pattern_description: string
+          pattern_description_ar: string | null
+          pattern_key: string
+          pattern_type: string
+          sample_count: number
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json
+          confidence?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_validated_at?: string | null
+          pattern_description: string
+          pattern_description_ar?: string | null
+          pattern_key: string
+          pattern_type?: string
+          sample_count?: number
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json
+          confidence?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_validated_at?: string | null
+          pattern_description?: string
+          pattern_description_ar?: string | null
+          pattern_key?: string
+          pattern_type?: string
+          sample_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ceo_prediction_scores: {
+        Row: {
+          approval_probability: number
+          created_at: string
+          fast_track_eligible: boolean
+          id: string
+          matching_patterns: string[] | null
+          predicted_decision: string
+          reasoning: string
+          reasoning_ar: string | null
+          request_id: string
+          similar_past_decisions: string[] | null
+        }
+        Insert: {
+          approval_probability?: number
+          created_at?: string
+          fast_track_eligible?: boolean
+          id?: string
+          matching_patterns?: string[] | null
+          predicted_decision: string
+          reasoning: string
+          reasoning_ar?: string | null
+          request_id: string
+          similar_past_decisions?: string[] | null
+        }
+        Update: {
+          approval_probability?: number
+          created_at?: string
+          fast_track_eligible?: boolean
+          id?: string
+          matching_patterns?: string[] | null
+          predicted_decision?: string
+          reasoning?: string
+          reasoning_ar?: string | null
+          request_id?: string
+          similar_past_decisions?: string[] | null
+        }
+        Relationships: []
+      }
       commander_reviews: {
         Row: {
           agents_scanned: number | null
