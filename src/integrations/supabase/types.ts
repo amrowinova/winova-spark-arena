@@ -5356,6 +5356,75 @@ export type Database = {
         }
         Relationships: []
       }
+      system_incidents: {
+        Row: {
+          action_type: string
+          actor_user_id: string | null
+          actor_username: string | null
+          category: string | null
+          created_at: string
+          endpoint: string | null
+          error_code: string | null
+          error_message: string | null
+          feature: string | null
+          flow: string | null
+          frequency: number | null
+          id: string
+          is_ghost: boolean | null
+          latency_ms: number | null
+          metadata: Json | null
+          root_cause: string | null
+          screen: string | null
+          severity: string
+          target_user_id: string | null
+          target_username: string | null
+        }
+        Insert: {
+          action_type: string
+          actor_user_id?: string | null
+          actor_username?: string | null
+          category?: string | null
+          created_at?: string
+          endpoint?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          feature?: string | null
+          flow?: string | null
+          frequency?: number | null
+          id?: string
+          is_ghost?: boolean | null
+          latency_ms?: number | null
+          metadata?: Json | null
+          root_cause?: string | null
+          screen?: string | null
+          severity?: string
+          target_user_id?: string | null
+          target_username?: string | null
+        }
+        Update: {
+          action_type?: string
+          actor_user_id?: string | null
+          actor_username?: string | null
+          category?: string | null
+          created_at?: string
+          endpoint?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          feature?: string | null
+          flow?: string | null
+          frequency?: number | null
+          id?: string
+          is_ghost?: boolean | null
+          latency_ms?: number | null
+          metadata?: Json | null
+          root_cause?: string | null
+          screen?: string | null
+          severity?: string
+          target_user_id?: string | null
+          target_username?: string | null
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           created_at: string
