@@ -3965,6 +3965,126 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_constitution: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          rule_ar: string
+          rule_en: string
+          rule_key: string
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          rule_ar: string
+          rule_en: string
+          rule_key: string
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          rule_ar?: string
+          rule_en?: string
+          rule_key?: string
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      owner_corrections: {
+        Row: {
+          correction: string
+          correction_ar: string | null
+          correction_type: string
+          created_at: string
+          id: string
+          lesson_learned: string | null
+          lesson_learned_ar: string | null
+          original_output: string
+          preferences_updated: string[] | null
+          source_id: string | null
+          source_type: string
+        }
+        Insert: {
+          correction: string
+          correction_ar?: string | null
+          correction_type?: string
+          created_at?: string
+          id?: string
+          lesson_learned?: string | null
+          lesson_learned_ar?: string | null
+          original_output: string
+          preferences_updated?: string[] | null
+          source_id?: string | null
+          source_type: string
+        }
+        Update: {
+          correction?: string
+          correction_ar?: string | null
+          correction_type?: string
+          created_at?: string
+          id?: string
+          lesson_learned?: string | null
+          lesson_learned_ar?: string | null
+          original_output?: string
+          preferences_updated?: string[] | null
+          source_id?: string | null
+          source_type?: string
+        }
+        Relationships: []
+      }
+      owner_preferences: {
+        Row: {
+          category: string
+          confidence: number
+          created_at: string
+          description_ar: string | null
+          description_en: string | null
+          id: string
+          is_active: boolean
+          preference_key: string
+          sample_count: number
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          category?: string
+          confidence?: number
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          is_active?: boolean
+          preference_key: string
+          sample_count?: number
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          category?: string
+          confidence?: number
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          is_active?: boolean
+          preference_key?: string
+          sample_count?: number
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       p2p_dispute_files: {
         Row: {
           created_at: string

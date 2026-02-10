@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.ai-decision-learner]
 verify_jwt = false
+
+[functions.ai-owner-intelligence]
+verify_jwt = false
