@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.ai-commander]
 verify_jwt = false
+
+[functions.ai-executive-understanding]
+verify_jwt = false
