@@ -87,6 +87,7 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch (_) {}
     const scenario: string = body.scenario || 'full';
     const safeMode: boolean = body.safe_mode !== false;
+    const persistData: boolean = body.persist === true;
 
     const runSuite = (name: string) => scenario === 'full' || scenario === name;
 
@@ -670,25 +671,21 @@ Deno.serve(async (req) => {
       impact_scope: 'platform_wide',
     });
 
-    // Cleanup ghost test data (tagged for reversibility)
-    await adminClient.from('direct_messages').delete().like('content', '%[GHOST_TEST]%');
-    await adminClient.from('p2p_ratings').delete().like('comment', '%[GHOST_TEST]%');
-
-    // Clean up ghost P2P orders
-    const ghostUserIds = ghosts.map(g => g.user_id);
-    await adminClient.from('p2p_orders').delete()
-      .in('creator_id', ghostUserIds)
-      .in('status', ['open', 'cancelled', 'completed', 'disputed', 'matched']);
-
-    // Clean ghost conversations
-    await adminClient.from('conversations').delete()
-      .in('participant1_id', ghostUserIds)
-      .in('participant2_id', ghostUserIds);
-
-    // Clean ghost follows
-    await adminClient.from('follows').delete()
-      .in('follower_id', ghostUserIds)
-      .in('following_id', ghostUserIds);
+    // Cleanup ghost test data only in SAFE mode
+    if (!persistData) {
+      await adminClient.from('direct_messages').delete().like('content', '%[GHOST_TEST]%');
+      await adminClient.from('p2p_ratings').delete().like('comment', '%[GHOST_TEST]%');
+      const ghostUserIds = ghosts.map(g => g.user_id);
+      await adminClient.from('p2p_orders').delete()
+        .in('creator_id', ghostUserIds)
+        .in('status', ['open', 'cancelled', 'completed', 'disputed', 'matched']);
+      await adminClient.from('conversations').delete()
+        .in('participant1_id', ghostUserIds)
+        .in('participant2_id', ghostUserIds);
+      await adminClient.from('follows').delete()
+        .in('follower_id', ghostUserIds)
+        .in('following_id', ghostUserIds);
+    }
 
     return new Response(JSON.stringify({ success: true, summary, results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

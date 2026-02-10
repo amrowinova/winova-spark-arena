@@ -34,11 +34,12 @@ export function GhostArmySection() {
   const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis'>('behavioral');
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario>('full');
   const [safeMode, setSafeMode] = useState(true);
+  const [liveMode, setLiveMode] = useState(false);
 
   useEffect(() => { checkStatus(); }, []);
 
   const handleSimulate = async () => {
-    const data = await simulate(selectedScenario, safeMode);
+    const data = await simulate(selectedScenario, safeMode, liveMode);
     if (data?.results) setLastResults(data.results);
   };
 
@@ -95,6 +96,26 @@ export function GhostArmySection() {
                 <input type="checkbox" checked={safeMode} onChange={e => setSafeMode(e.target.checked)} className="rounded" />
                 {isAr ? 'الوضع الآمن' : 'Safe Mode'}
               </label>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setLiveMode(false)}
+                  disabled={isAnyRunning}
+                  className={`text-[10px] px-2 py-0.5 rounded-l-md border transition-colors ${
+                    !liveMode ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border'
+                  }`}
+                >
+                  {isAr ? '🧹 تنظيف' : '🧹 SAFE'}
+                </button>
+                <button
+                  onClick={() => setLiveMode(true)}
+                  disabled={isAnyRunning}
+                  className={`text-[10px] px-2 py-0.5 rounded-r-md border transition-colors ${
+                    liveMode ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-card text-muted-foreground border-border'
+                  }`}
+                >
+                  {isAr ? '🏙️ مباشر' : '🏙️ LIVE'}
+                </button>
+              </div>
             </div>
           </div>
         )}

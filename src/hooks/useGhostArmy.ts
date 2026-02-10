@@ -91,11 +91,11 @@ export function useGhostArmy() {
     }
   };
 
-  const simulate = async (scenario: SimulationScenario = 'full', safeMode = true) => {
+  const simulate = async (scenario: SimulationScenario = 'full', safeMode = true, persist = false) => {
     setIsSimulating(true);
     try {
       const { data, error } = await supabase.functions.invoke('ghost-army-simulate', {
-        body: { scenario, safe_mode: safeMode },
+        body: { scenario, safe_mode: safeMode, persist },
       });
       if (error) throw error;
       setStatus(prev => ({
