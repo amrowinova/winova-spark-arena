@@ -112,6 +112,12 @@ const INTENT_MAP: Record<string, { agent: string; intent: string }> = {
   'تحسين': { agent: 'ai-code-engineer', intent: 'code_improve' },
   'code': { agent: 'ai-code-engineer', intent: 'code_search' },
   'كود': { agent: 'ai-code-engineer', intent: 'code_search' },
+  'diagnose': { agent: 'ai-problem-to-patch', intent: 'problem_scan' },
+  'تشخيص': { agent: 'ai-problem-to-patch', intent: 'problem_scan' },
+  'patch': { agent: 'ai-problem-to-patch', intent: 'problem_scan' },
+  'problems': { agent: 'ai-problem-to-patch', intent: 'problem_scan' },
+  'مشاكل': { agent: 'ai-problem-to-patch', intent: 'problem_scan' },
+  'autonomous fix': { agent: 'ai-problem-to-patch', intent: 'problem_scan' },
 };
 
 // ─── DM Helper ────────────────────────────────────────
