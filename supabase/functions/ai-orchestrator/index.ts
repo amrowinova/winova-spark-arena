@@ -123,6 +123,12 @@ const INTENT_MAP: Record<string, { agent: string; intent: string }> = {
   'predict': { agent: 'ai-decision-learner', intent: 'decision_prediction' },
   'alignment': { agent: 'ai-decision-learner', intent: 'decision_learning' },
   'محاذاة': { agent: 'ai-decision-learner', intent: 'decision_learning' },
+  'constitution': { agent: 'ai-owner-intelligence', intent: 'constitution_check' },
+  'دستور': { agent: 'ai-owner-intelligence', intent: 'constitution_check' },
+  'intelligence': { agent: 'ai-owner-intelligence', intent: 'owner_brief' },
+  'ذكاء': { agent: 'ai-owner-intelligence', intent: 'owner_brief' },
+  'brief': { agent: 'ai-owner-intelligence', intent: 'owner_brief' },
+  'تقرير': { agent: 'ai-owner-intelligence', intent: 'owner_brief' },
 };
 
 // ─── DM Helper ────────────────────────────────────────
