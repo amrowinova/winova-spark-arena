@@ -24,34 +24,22 @@ Deno.serve(async (req) => {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (!user) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id);
+      const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
       if (!roles?.some((r: any) => r.role === 'admin')) {
         return new Response(JSON.stringify({ error: 'Admin only' }), {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
 
-    // Find all ghost profiles
     const { data: ghosts } = await supabase
-      .from('profiles')
-      .select('user_id, username')
-      .like('username', 'ghost_agent_%');
+      .from('profiles').select('user_id, username').like('username', 'ghost_agent_%');
 
     if (!ghosts || ghosts.length === 0) {
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'No ghost agents found.',
-        deleted: 0,
-      }), {
+      return new Response(JSON.stringify({ success: true, message: 'No ghost agents found.', deleted: 0 }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -60,56 +48,53 @@ Deno.serve(async (req) => {
     let deletedCount = 0;
     const errors: string[] = [];
 
-    // Delete related data first (order matters for FK constraints)
+    // Delete related data (order matters for FK constraints)
     const cleanupTables = [
-      'contest_participants',
-      'contest_votes',
-      'direct_messages',
-      'wallets',
-      'user_roles',
-      'follows',
-      'notifications',
-      'spotlight_points',
+      'contest_participants', 'contest_votes', 'direct_messages',
+      'team_members', 'wallets', 'user_roles', 'follows',
+      'notifications', 'spotlight_points',
     ];
 
     for (const table of cleanupTables) {
       try {
-        await supabase.from(table).delete().in('user_id', ghostUserIds);
+        if (table === 'team_members') {
+          // Clean both leader and member sides
+          await supabase.from(table).delete().in('leader_id', ghostUserIds);
+          await supabase.from(table).delete().in('member_id', ghostUserIds);
+        } else if (table === 'direct_messages') {
+          await supabase.from(table).delete().in('sender_id', ghostUserIds);
+          await supabase.from(table).delete().in('receiver_id', ghostUserIds);
+        } else {
+          await supabase.from(table).delete().in('user_id', ghostUserIds);
+        }
       } catch (err) {
-        // Table might not exist or no matching rows — fine
+        // Table might not exist or no rows
       }
     }
 
+    // Delete ghost test messages
+    await supabase.from('direct_messages').delete().like('content', '%[GHOST_TEST]%');
+
     // Delete profiles
     const { error: profileDeleteError } = await supabase
-      .from('profiles')
-      .delete()
-      .like('username', 'ghost_agent_%');
-
-    if (profileDeleteError) {
-      errors.push(`Profiles: ${profileDeleteError.message}`);
-    }
+      .from('profiles').delete().like('username', 'ghost_agent_%');
+    if (profileDeleteError) errors.push(`Profiles: ${profileDeleteError.message}`);
 
     // Delete auth users
     for (const ghost of ghosts) {
       try {
         const { error } = await supabase.auth.admin.deleteUser(ghost.user_id);
-        if (error) {
-          errors.push(`Auth ${ghost.username}: ${error.message}`);
-        } else {
-          deletedCount++;
-        }
+        if (error) errors.push(`Auth ${ghost.username}: ${error.message}`);
+        else deletedCount++;
       } catch (err) {
         errors.push(`Auth ${ghost.username}: ${String(err)}`);
       }
     }
 
-    // Clean up ghost army proposals
-    await supabase
-      .from('ai_proposals')
-      .delete()
+    // Clean ghost proposals
+    await supabase.from('ai_proposals').delete()
       .eq('proposal_type', 'system_diagnostic')
-      .like('title', '%Ghost Army%');
+      .or('title.like.%Ghost Army%,title.like.%Digital Forest%,title.like.%Spy Agent%');
 
     return new Response(JSON.stringify({
       success: true,
@@ -121,8 +106,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

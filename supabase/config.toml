@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.ghost-army-cleanup]
 verify_jwt = false
+
+[functions.ghost-army-analyze]
+verify_jwt = false
