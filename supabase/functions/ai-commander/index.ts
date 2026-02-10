@@ -2,24 +2,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * ═══════════════════════════════════════════════════════════════
- * AI COMMANDER — CHIEF OF STAFF (UNIFIED)
+ * AI COMMANDER — CHIEF OF STAFF (CEO-LEVEL COMMUNICATION)
  * ═══════════════════════════════════════════════════════════════
  *
- * The SINGLE communication bridge between ALL AI agents and the Owner.
- * No other agent speaks directly to the Owner.
+ * The SINGLE communication bridge between ALL AI subsystems and the Owner.
+ * Speaks as an executive partner — NEVER as an engineer.
  *
- * Combines:
- * - Executive Briefings (intelligence aggregation, LLM synthesis)
- * - Workforce Management (lifecycle states, escalation engine)
- * - Decision Learner integration (prediction scores)
- * - Constitution enforcement
- *
- * Modes:
- *   'critical'         → 1h lookback, immediate escalation
- *   'hourly'           → 3h lookback, operational update
- *   'daily'            → 24h lookback, strategic overview
- *   'workforce_review' → Agent lifecycle management only
- *   'full'             → Workforce + Briefing combined
+ * COMMUNICATION RULES (PERMANENT):
+ * - No operational vocabulary (signals, pipeline, scan, execution, database, 
+ *   table, RPC, function, orchestration, agent, subsystem, cron, webhook,
+ *   trigger, query, endpoint)
+ * - Every message = business impact
+ * - Format: What happened → Why it matters → Recommendation → Consequence of inaction
+ * - If nothing important: "All systems are stable. Nothing requires your decision."
+ * - No thinking streams, phases, or internal steps in CEO view
+ * - If unsure → "insufficient data" — never hallucinate
+ * - Priority = CLARITY OVER COMPLEXITY
+ * - Protects Owner's time: if info doesn't change a decision, DON'T show it
  *
  * Authority: RECOMMENDS ONLY. Owner decides.
  * ═══════════════════════════════════════════════════════════════
@@ -31,55 +30,71 @@ const corsHeaders = {
 };
 
 const AI_SYSTEM_USER_ID = '00000000-0000-0000-0000-a10000000001';
-const COMMANDER_NAME = 'AI Commander';
-const COMMANDER_NAME_AR = 'القائد الأعلى';
 
 // ═══════════════════════════════════════════════════════
-// THINKING STREAM
+// CEO-BANNED VOCABULARY — these words NEVER appear in owner-facing output
+// ═══════════════════════════════════════════════════════
+const CEO_BANNED_WORDS = [
+  'signals', 'pipeline', 'scan', 'execution', 'database', 'table', 'rpc',
+  'function', 'orchestration', 'agent', 'subsystem', 'cron', 'webhook',
+  'trigger', 'query', 'endpoint', 'schema', 'migration', 'payload',
+  'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'duration_ms', 'rows affected',
+  'scan completed', 'agent executed', 'job ran', 'cron triggered',
+  'pipeline finished', 'query returned', 'function invoked',
+];
+
+function sanitizeCEOMessage(text: string): string {
+  let sanitized = text;
+  // Replace technical terms with business equivalents
+  const replacements: Record<string, string> = {
+    'agents': 'team members',
+    'agent': 'team member',
+    'subsystems': 'departments',
+    'subsystem': 'department',
+    'pipeline': 'process',
+    'signals': 'indicators',
+    'execution': 'operation',
+    'database': 'system',
+    'webhook': 'notification',
+    'endpoint': 'service',
+    'cron': 'scheduled task',
+    'RPC': 'service call',
+  };
+  for (const [term, replacement] of Object.entries(replacements)) {
+    sanitized = sanitized.replace(new RegExp(`\\b${term}\\b`, 'gi'), replacement);
+  }
+  return sanitized;
+}
+
+function validateCEOLanguage(text: string): { clean: boolean; violations: string[] } {
+  const violations: string[] = [];
+  const lower = text.toLowerCase();
+  for (const word of CEO_BANNED_WORDS) {
+    if (lower.includes(word.toLowerCase())) {
+      violations.push(word);
+    }
+  }
+  return { clean: violations.length === 0, violations };
+}
+
+// ═══════════════════════════════════════════════════════
+// INTERNAL LOG — goes to ai_chat_room only, never to CEO DM
 // ═══════════════════════════════════════════════════════
 
-const PHASES = [
-  { key: 'command_received',   emoji: '📩', en: 'Command received',        ar: 'تم استلام الأمر' },
-  { key: 'understanding',      emoji: '🧠', en: 'Understanding context',   ar: 'فهم السياق' },
-  { key: 'planning',           emoji: '📋', en: 'Planning briefing',       ar: 'تخطيط الإحاطة' },
-  { key: 'collecting_data',    emoji: '📡', en: 'Collecting intelligence',  ar: 'جمع المعلومات' },
-  { key: 'analyzing',          emoji: '🔬', en: 'Analyzing & filtering',   ar: 'تحليل وتصفية' },
-  { key: 'building',           emoji: '🏗️', en: 'Building briefing',       ar: 'بناء الإحاطة' },
-  { key: 'validating',         emoji: '✅', en: 'Validating accuracy',     ar: 'التحقق من الدقة' },
-  { key: 'preparing_output',   emoji: '📝', en: 'Preparing delivery',      ar: 'إعداد التسليم' },
-  { key: 'completed',          emoji: '🏁', en: 'Briefing delivered',      ar: 'تم تسليم الإحاطة' },
-] as const;
-
-type PhaseKey = typeof PHASES[number]['key'];
-
-async function streamPhase(sb: any, agentId: string, phaseKey: PhaseKey, detail?: string, detailAr?: string): Promise<void> {
-  const phase = PHASES.find(p => p.key === phaseKey)!;
-  const idx = PHASES.findIndex(p => p.key === phaseKey);
-  const progress = `[${idx + 1}/${PHASES.length}]`;
-
-  const content = [
-    `${phase.emoji} **${phase.en}** ${progress}`,
-    `🎖️ ${COMMANDER_NAME} (Chief of Staff)`,
-    detail ? `→ ${detail}` : null,
-  ].filter(Boolean).join('\n');
-
-  const contentAr = [
-    `${phase.emoji} **${phase.ar}** ${progress}`,
-    `🎖️ ${COMMANDER_NAME_AR} (رئيس الأركان)`,
-    detailAr || detail ? `→ ${detailAr || detail}` : null,
-  ].filter(Boolean).join('\n');
-
+async function logInternal(sb: any, agentId: string, content: string, contentAr: string, category = 'info') {
   await sb.from('ai_chat_room').insert({
     agent_id: agentId,
     content,
     content_ar: contentAr,
-    message_type: 'thinking_stream',
-    message_category: phaseKey === 'completed' ? 'success' : 'info',
+    message_type: 'internal_log',
+    message_category: category,
     is_summary: false,
   });
 }
 
 async function postToDM(sb: any, content: string, messageType = 'commander_briefing') {
+  // Sanitize before sending to CEO
+  const cleanContent = sanitizeCEOMessage(content);
   const { data: convos } = await sb
     .from('conversations')
     .select('id')
@@ -90,7 +105,7 @@ async function postToDM(sb: any, content: string, messageType = 'commander_brief
       await sb.from('direct_messages').insert({
         conversation_id: c.id,
         sender_id: AI_SYSTEM_USER_ID,
-        content,
+        content: cleanContent,
         message_type: messageType,
         is_read: false,
       });
@@ -99,7 +114,7 @@ async function postToDM(sb: any, content: string, messageType = 'commander_brief
 }
 
 // ═══════════════════════════════════════════════════════
-// WORKFORCE LIFECYCLE ENGINE (merged from executive-commander)
+// WORKFORCE LIFECYCLE ENGINE
 // ═══════════════════════════════════════════════════════
 
 const LIFECYCLE_STATES = ['healthy', 'watch', 'warning', 'probation', 'disabled'] as const;
@@ -126,12 +141,10 @@ interface AgentMetrics {
 
 async function calculateAgentMetrics(sb: any): Promise<AgentMetrics[]> {
   const now = new Date();
-
   const [{ data: schedules }, { data: agents }] = await Promise.all([
     sb.from('agent_schedules').select('agent_function, last_run_at, last_status, consecutive_failures, last_duration_ms, run_count, fail_count, is_enabled'),
     sb.from('ai_agents').select('id, agent_name, lifecycle_state, status'),
   ]);
-
   if (!schedules?.length) return [];
   const agentMap = new Map((agents || []).map((a: any) => [a.agent_name, a]));
 
@@ -216,7 +229,6 @@ function evaluateEscalations(metrics: AgentMetrics[]): Escalation[] {
 async function applyEscalations(sb: any, agentId: string, escalations: Escalation[]): Promise<void> {
   for (const esc of escalations) {
     const now = new Date().toISOString();
-
     await sb.from('ai_agents').update({
       lifecycle_state: esc.to_state,
       lifecycle_changed_at: now,
@@ -228,15 +240,14 @@ async function applyEscalations(sb: any, agentId: string, escalations: Escalatio
     if (esc.to_state === 'disabled') {
       await sb.from('agent_schedules').update({ is_enabled: false, updated_at: now }).eq('agent_function', esc.agent_function);
       await sb.from('ai_evolution_proposals').insert({
-        missing_capability: `Replacement for disabled agent: ${esc.agent_function}`,
-        missing_capability_ar: `بديل للوكيل المعطل: ${esc.agent_function}`,
-        reason: `Agent disabled due to: ${esc.reason}. Needs improved version or replacement.`,
-        reason_ar: `تم تعطيل الوكيل بسبب: ${esc.reason_ar}. يحتاج نسخة محسنة أو بديل.`,
+        missing_capability: `Replacement for disabled component: ${esc.agent_function}`,
+        missing_capability_ar: `بديل للمكون المعطل: ${esc.agent_function}`,
+        reason: `Component disabled due to: ${esc.reason}. Needs improved version or replacement.`,
+        reason_ar: `تم تعطيل المكون بسبب: ${esc.reason_ar}. يحتاج نسخة محسنة أو بديل.`,
         urgency: 'high', status: 'pending', confidence: 0.9,
       });
     }
 
-    // Log lifecycle event
     const { data: agentRecord } = await sb.from('ai_agents').select('id').eq('agent_name', esc.agent_function).limit(1).single();
     if (agentRecord) {
       await sb.from('ai_agent_lifecycle').insert({
@@ -313,95 +324,99 @@ async function collectIntelligence(sb: any, lookbackHours: number) {
 }
 
 // ═══════════════════════════════════════════════════════
-// AGENT PERFORMANCE ANALYSIS (for briefing)
-// ═══════════════════════════════════════════════════════
-
-function analyzeAgentPerformance(schedules: any[]) {
-  const now = Date.now();
-  return (schedules || []).map(s => {
-    const totalRuns = s.run_count || 0;
-    const totalFails = s.fail_count || 0;
-    const successRate = totalRuns > 0 ? Math.round(((totalRuns - totalFails) / totalRuns) * 100) : 100;
-    const hoursSinceRun = s.last_run_at ? (now - new Date(s.last_run_at).getTime()) / 3600000 : 999;
-    const consec = s.consecutive_failures || 0;
-
-    let status: string = 'healthy';
-    let rec = 'Operating normally';
-    let recAr = 'يعمل بشكل طبيعي';
-
-    if (!s.is_enabled) {
-      status = 'dead'; rec = 'Agent disabled — needs replacement or reactivation'; recAr = 'الوكيل معطل — يحتاج استبدال أو إعادة تفعيل';
-    } else if (consec >= 5 || successRate < 30) {
-      status = 'failing'; rec = `Critical: ${consec} consecutive failures. Recommend immediate investigation`; recAr = `حرج: ${consec} إخفاقات متتالية. يوصى بتحقيق فوري`;
-    } else if (consec >= 2 || successRate < 70 || hoursSinceRun > 48) {
-      status = 'degraded'; rec = 'Performance degraded — monitor closely'; recAr = 'أداء متدهور — مراقبة دقيقة';
-    }
-
-    return { name: s.agent_function, status, consecutiveFailures: consec, successRate, lastRun: s.last_run_at, recommendation: rec, recommendationAr: recAr };
-  });
-}
-
-// ═══════════════════════════════════════════════════════
-// AI-POWERED EXECUTIVE BRIEFING GENERATOR
+// CEO-LEVEL EXECUTIVE BRIEFING GENERATOR
 // ═══════════════════════════════════════════════════════
 
 async function generateCommanderBriefing(apiKey: string, intel: any, mode: string, workforceReport?: { en: string; ar: string }) {
-  const constitutionRules = (intel.ownerConstitution || []).map((r: any) => `${r.rule_key}: ${r.description}`).join('\n');
-  const agentPerf = analyzeAgentPerformance(intel.agentSchedules);
-  const failingAgents = agentPerf.filter(a => a.status === 'failing' || a.status === 'dead');
-  const degradedAgents = agentPerf.filter(a => a.status === 'degraded');
-  const signalCount = intel.executionRequests.length + intel.analysisLogs.length +
+  const constitutionRules = (intel.ownerConstitution || []).map((r: any) => `${r.rule_key}: ${r.rule_en}`).join('\n');
+
+  // Summarize workforce health in business terms
+  const schedules = intel.agentSchedules || [];
+  const now = Date.now();
+  const failingComponents: string[] = [];
+  const degradedComponents: string[] = [];
+  for (const s of schedules) {
+    const totalRuns = s.run_count || 0;
+    const totalFails = s.fail_count || 0;
+    const successRate = totalRuns > 0 ? Math.round(((totalRuns - totalFails) / totalRuns) * 100) : 100;
+    const consec = s.consecutive_failures || 0;
+    if (!s.is_enabled || consec >= 5 || successRate < 30) failingComponents.push(s.agent_function);
+    else if (consec >= 2 || successRate < 70) degradedComponents.push(s.agent_function);
+  }
+
+  const totalIssues = intel.executionRequests.length + intel.analysisLogs.length +
     intel.codeChanges.length + intel.evolutionProposals.length +
     intel.failures.length + intel.forecasts.length + intel.pendingProposals.length;
 
-  const prompt = `You are the AI COMMANDER — Chief of Staff of WINOVA AI system.
-You are the SINGLE communication bridge between ALL AI agents and the CEO (Amro).
-No other agent speaks directly to the Owner. You are the CEO's trusted executive partner.
+  const prompt = `You are Amro's Chief of Staff at WINOVA, a fintech company.
+You are his most trusted executive partner. You protect his time and give him clarity.
 
 ## YOUR IDENTITY
-- You speak like a trusted Chief of Staff reporting to a CEO
-- No technical jargon. No database terms. No raw logs. No pipeline steps.
-- Decision-oriented: Problem → Impact → Recommendation → Confidence
-- You address the owner as "Amro" directly
+- You speak like a senior executive briefing the CEO of a fintech company
+- You are NOT an engineer. You do NOT speak in technical terms.
+- You address him as "Amro" directly
 - Bilingual: English + Arabic
 
-## OWNER CONSTITUTION (Immutable Rules)
+## ABSOLUTE COMMUNICATION RULES (PERMANENT — OVERRIDES EVERYTHING)
+
+BANNED VOCABULARY — these words MUST NEVER appear in your output:
+signals, pipeline, scan, execution, database, table, RPC, function, orchestration,
+agent, subsystem, cron, webhook, trigger, query, endpoint, schema, migration,
+payload, duration_ms, rows, SELECT, INSERT, UPDATE, DELETE
+
+Instead of "3 agents failed" → "3 key processes are underperforming, which could slow down user growth or delay transactions."
+Instead of "scan completed" → NEVER say this. Describe the BUSINESS OUTCOME.
+Instead of "signals processed" → "indicators reviewed"
+
+EVERY item must answer:
+1. What happened (in business terms)
+2. Why it matters to WINOVA (revenue, users, risk, reputation)
+3. What I recommend you do
+4. What will happen if we ignore it
+
+If NOTHING important exists, say EXACTLY:
+"All systems are stable. Nothing requires your decision."
+
+If you have INSUFFICIENT DATA, say so. NEVER make things up.
+
+STYLE: Clear, short, confident, decision-ready.
+Do NOT show internal processing steps, thinking phases, or operational traces.
+If information does not change a decision, DO NOT include it.
+
+## OWNER CONSTITUTION
 ${constitutionRules || 'No constitution loaded — flag this as critical'}
 
-## INTELLIGENCE COLLECTED (Last ${mode === 'critical' ? '1 hour' : mode === 'hourly' ? '3 hours' : '24 hours'})
+## BUSINESS INTELLIGENCE (Last ${mode === 'critical' ? '1 hour' : mode === 'hourly' ? '3 hours' : '24 hours'})
 
-### Execution Requests: ${intel.executionRequests.length}
-${JSON.stringify(intel.executionRequests.slice(0, 10).map((r: any) => ({ title: r.title, title_ar: r.title_ar, status: r.status, risk: r.risk_level, urgency: r.urgency })), null, 2)}
+### Pending Decisions: ${intel.pendingProposals.length}
+${JSON.stringify(intel.pendingProposals.slice(0, 5).map((p: any) => ({ title: p.title, priority: p.priority })), null, 2)}
 
-### Analysis Findings: ${intel.analysisLogs.length}
-${JSON.stringify(intel.analysisLogs.slice(0, 8).map((l: any) => ({ title: l.title, severity: l.severity, status: l.status, area: l.affected_area })), null, 2)}
+### Risk Findings: ${intel.analysisLogs.length}
+${JSON.stringify(intel.analysisLogs.slice(0, 8).map((l: any) => ({ title: l.title, severity: l.severity, area: l.affected_area })), null, 2)}
 
-### Code Changes: ${intel.codeChanges.length}
-${JSON.stringify(intel.codeChanges.slice(0, 5).map((c: any) => ({ title: c.pr_title, status: c.status, risk: c.risk_level, confidence: c.confidence_score })), null, 2)}
+### Improvement Proposals: ${intel.executionRequests.length}
+${JSON.stringify(intel.executionRequests.slice(0, 10).map((r: any) => ({ title: r.title, status: r.status, risk: r.risk_level, urgency: r.urgency })), null, 2)}
 
-### Evolution Proposals: ${intel.evolutionProposals.length}
-${JSON.stringify(intel.evolutionProposals.slice(0, 5).map((e: any) => ({ capability: e.missing_capability, urgency: e.urgency, status: e.status })), null, 2)}
+### Code Improvements: ${intel.codeChanges.length}
+${JSON.stringify(intel.codeChanges.slice(0, 5).map((c: any) => ({ title: c.pr_title, status: c.status, risk: c.risk_level })), null, 2)}
+
+### Growth Opportunities: ${intel.evolutionProposals.length}
+${JSON.stringify(intel.evolutionProposals.slice(0, 5).map((e: any) => ({ capability: e.missing_capability, urgency: e.urgency })), null, 2)}
 
 ### Forecasts: ${intel.forecasts.length}
 ${JSON.stringify(intel.forecasts.slice(0, 5).map((f: any) => ({ title: f.title, confidence: f.confidence_score })), null, 2)}
 
-### Recent Failures: ${intel.failures.length}
-${JSON.stringify(intel.failures.slice(0, 5).map((f: any) => ({ rpc: f.rpc_name, error: f.error_message?.substring(0, 80) })), null, 2)}
+### Operational Issues: ${intel.failures.length} recurring problems detected
+${failingComponents.length > 0 ? `Critical: ${failingComponents.join(', ')} are not functioning` : 'No critical failures'}
+${degradedComponents.length > 0 ? `Degraded: ${degradedComponents.join(', ')} need attention` : ''}
 
-### Pending Proposals Awaiting Approval: ${intel.pendingProposals.length}
-${JSON.stringify(intel.pendingProposals.slice(0, 5).map((p: any) => ({ title: p.title, priority: p.priority })), null, 2)}
-
-### Agent Workforce Health
-Failing: ${failingAgents.map(a => a.name).join(', ') || 'None'}
-Degraded: ${degradedAgents.map(a => a.name).join(', ') || 'None'}
-Total agents: ${agentPerf.length}
-${workforceReport ? `\n### Workforce Lifecycle Changes\n${workforceReport.en}` : ''}
-
-### CEO Prediction Scores (from Decision Learner)
+### Owner Decision Patterns
 ${JSON.stringify(intel.predictionScores.slice(0, 5).map((s: any) => ({ request: s.request_id, probability: s.approval_probability, fast_track: s.fast_track_eligible })), null, 2)}
 
+${workforceReport ? `### Team Health Summary\n${workforceReport.en}` : ''}
+
 ## YOUR MISSION
-Produce a CEO briefing. Address Amro directly. Structure:
+Produce a CEO briefing. Structure:
 
 1. **🚨 CRITICAL** — Needs immediate CEO action (max 3)
 2. **⚠️ IMPORTANT** — Significant but not urgent (max 3)
@@ -409,25 +424,25 @@ Produce a CEO briefing. Address Amro directly. Structure:
 4. **💤 CAN WAIT** — Low priority, informational (max 3)
 
 EACH item MUST include:
-- problem/problem_ar: What happened (1 sentence)
-- impact/impact_ar: Why it matters to the business
-- proposed_solution/proposed_solution_ar: Specific action
+- problem/problem_ar: What happened (business language, 1 sentence)
+- impact/impact_ar: Why it matters to revenue, users, or risk
+- proposed_solution/proposed_solution_ar: What you recommend
+- consequence/consequence_ar: What happens if ignored
 - risk: critical/high/medium/low
 - recommendation: approve/reject/investigate/ignore/defer
-- urgency: immediate/today/this_week/can_wait
-- responsible: Which agent or system
 - confidence: 0-100
 
 ALSO include:
 - workforce_status: { summary, summary_ar, failing: [], improving: [], needs_replacement: [] }
 - pending_decisions: Count
-- overall_health: 🟢/🟡/🔴 with one sentence
+- overall_health: 🟢/🟡/🔴 with one business-language sentence
 - constitution_alerts: Any rule violations detected
 
 Rules:
-- Max 12 items total. If no signals: "All systems operating normally."
+- Max 12 items total
+- If no actionable items: respond with greeting + "All systems are stable. Nothing requires your decision."
 - NO hallucinations — say "insufficient data" if unsure
-- Reference constitution rules where relevant
+- ZERO technical vocabulary. You are a business executive.
 
 Respond with valid JSON only (no markdown fences).`;
 
@@ -437,7 +452,7 @@ Respond with valid JSON only (no markdown fences).`;
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "You are the AI Commander — Chief of Staff. You produce structured CEO briefings. Respond ONLY with valid JSON." },
+        { role: "system", content: "You are a Chief of Staff briefing a fintech CEO. You speak in pure business language. NEVER use technical terms. Respond ONLY with valid JSON." },
         { role: "user", content: prompt },
       ],
       temperature: 0.15,
@@ -455,28 +470,28 @@ Respond with valid JSON only (no markdown fences).`;
 }
 
 // ═══════════════════════════════════════════════════════
-// FORMAT BRIEFING FOR DELIVERY
+// FORMAT BRIEFING FOR CEO DELIVERY
 // ═══════════════════════════════════════════════════════
 
 function formatBriefingForDM(briefing: any): { en: string; ar: string } {
   const recEmoji: Record<string, string> = { approve: '✅', reject: '❌', investigate: '🔍', ignore: '💤', defer: '⏳' };
 
-  let en = `🎖️ **AI COMMANDER — CHIEF OF STAFF BRIEFING**\n`;
+  let en = `🎖️ **Chief of Staff — Briefing for Amro**\n`;
   en += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   en += `${briefing.greeting || 'Amro, here is what you need to know.'}\n\n`;
   en += `${briefing.overall_health || ''}\n`;
-  en += `📊 Signals: ${briefing.signals_processed || 0} | Pending decisions: ${briefing.pending_decisions || 0}\n\n`;
+  en += `📊 Pending decisions: ${briefing.pending_decisions || 0}\n\n`;
 
-  let ar = `🎖️ **القائد الأعلى — إحاطة رئيس الأركان**\n`;
+  let ar = `🎖️ **رئيس الأركان — إحاطة لعمرو**\n`;
   ar += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   ar += `${briefing.greeting_ar || 'عمرو، هذا ما تحتاج معرفته الآن.'}\n\n`;
   ar += `${briefing.overall_health_ar || ''}\n`;
-  ar += `📊 الإشارات: ${briefing.signals_processed || 0} | قرارات معلقة: ${briefing.pending_decisions || 0}\n\n`;
+  ar += `📊 قرارات معلقة: ${briefing.pending_decisions || 0}\n\n`;
 
   const sections = [
-    { key: 'critical', emoji: '🚨', title_en: 'CRITICAL — Needs Immediate Action', title_ar: 'حرج — يحتاج إجراء فوري' },
+    { key: 'critical', emoji: '🚨', title_en: 'CRITICAL — Needs Your Decision Now', title_ar: 'حرج — يحتاج قرارك الآن' },
     { key: 'important', emoji: '⚠️', title_en: 'IMPORTANT', title_ar: 'مهم' },
-    { key: 'improvements', emoji: '📌', title_en: 'IMPROVEMENTS', title_ar: 'تحسينات' },
+    { key: 'improvements', emoji: '📌', title_en: 'IMPROVEMENTS & OPPORTUNITIES', title_ar: 'تحسينات وفرص' },
     { key: 'can_wait', emoji: '💤', title_en: 'CAN WAIT', title_ar: 'يمكن الانتظار' },
   ];
 
@@ -486,44 +501,53 @@ function formatBriefingForDM(briefing: any): { en: string; ar: string } {
     ar += `**${sec.emoji} ${sec.title_ar}**\n`;
 
     if (items.length === 0) {
-      en += `✅ Clear.\n\n`;
+      en += `✅ Nothing here.\n\n`;
       ar += `✅ لا شيء.\n\n`;
     } else {
       for (const item of items) {
         const recIcon = recEmoji[item.recommendation] || '📋';
-        en += `• **${item.problem}**\n  Impact: ${item.impact}\n  Solution: ${item.proposed_solution}\n  ${recIcon} **${(item.recommendation || '').toUpperCase()}** | Risk: ${item.risk} | Confidence: ${item.confidence}%\n  Responsible: ${item.responsible}\n\n`;
-        ar += `• **${item.problem_ar}**\n  التأثير: ${item.impact_ar}\n  الحل: ${item.proposed_solution_ar}\n  ${recIcon} **${(item.recommendation || '').toUpperCase()}** | المخاطر: ${item.risk} | الثقة: ${item.confidence}%\n  المسؤول: ${item.responsible}\n\n`;
+        en += `• **${item.problem}**\n`;
+        en += `  Why it matters: ${item.impact}\n`;
+        en += `  Recommendation: ${item.proposed_solution}\n`;
+        if (item.consequence) en += `  If ignored: ${item.consequence}\n`;
+        en += `  ${recIcon} **${(item.recommendation || '').toUpperCase()}** | Risk: ${item.risk} | Confidence: ${item.confidence}%\n\n`;
+
+        ar += `• **${item.problem_ar || item.problem}**\n`;
+        ar += `  لماذا يهم: ${item.impact_ar || item.impact}\n`;
+        ar += `  التوصية: ${item.proposed_solution_ar || item.proposed_solution}\n`;
+        if (item.consequence_ar || item.consequence) ar += `  إذا تجاهلنا: ${item.consequence_ar || item.consequence}\n`;
+        ar += `  ${recIcon} **${(item.recommendation || '').toUpperCase()}** | المخاطر: ${item.risk} | الثقة: ${item.confidence}%\n\n`;
       }
     }
   }
 
-  // Workforce status
+  // Workforce status (in business terms)
   const ws = briefing.workforce_status;
   if (ws) {
-    en += `**👥 WORKFORCE STATUS**\n${ws.summary || ''}\n`;
-    ar += `**👥 حالة القوى العاملة**\n${ws.summary_ar || ''}\n`;
-    if (ws.failing?.length > 0) { en += `🔴 Failing: ${ws.failing.join(', ')}\n`; ar += `🔴 فاشل: ${ws.failing.join(', ')}\n`; }
+    en += `**👥 TEAM STATUS**\n${ws.summary || 'Team operating normally.'}\n`;
+    ar += `**👥 حالة الفريق**\n${ws.summary_ar || 'الفريق يعمل بشكل طبيعي.'}\n`;
+    if (ws.failing?.length > 0) { en += `🔴 Need attention: ${ws.failing.join(', ')}\n`; ar += `🔴 يحتاج اهتمام: ${ws.failing.join(', ')}\n`; }
     if (ws.needs_replacement?.length > 0) { en += `⚡ Needs replacement: ${ws.needs_replacement.join(', ')}\n`; ar += `⚡ يحتاج استبدال: ${ws.needs_replacement.join(', ')}\n`; }
     en += '\n'; ar += '\n';
   }
 
   // Constitution alerts
   if (briefing.constitution_alerts?.length > 0) {
-    en += `**⚖️ CONSTITUTION ALERTS**\n`;
-    ar += `**⚖️ تنبيهات الدستور**\n`;
+    en += `**⚖️ GOVERNANCE ALERTS**\n`;
+    ar += `**⚖️ تنبيهات الحوكمة**\n`;
     for (const alert of briefing.constitution_alerts) {
-      en += `• Rule "${alert.rule}": ${alert.violation}\n`;
-      ar += `• القاعدة "${alert.rule}": ${alert.violation_ar}\n`;
+      en += `• ${alert.rule}: ${alert.violation}\n`;
+      ar += `• ${alert.rule}: ${alert.violation_ar || alert.violation}\n`;
     }
   }
 
-  en += `\n🎖️ _AI Commander — Your Chief of Staff_`;
-  ar += `\n🎖️ _القائد الأعلى — رئيس أركانك_`;
+  en += `\n🎖️ _Your Chief of Staff_`;
+  ar += `\n🎖️ _رئيس أركانك_`;
   return { en, ar };
 }
 
 // ═══════════════════════════════════════════════════════
-// WORKFORCE REPORT (for standalone workforce reviews)
+// WORKFORCE REPORT (business language)
 // ═══════════════════════════════════════════════════════
 
 function buildWorkforceReport(metrics: AgentMetrics[], escalations: Escalation[]): { en: string; ar: string } {
@@ -535,27 +559,27 @@ function buildWorkforceReport(metrics: AgentMetrics[], escalations: Escalation[]
 
   const hasIssues = counts.watch + counts.warning + counts.probation + counts.disabled > 0;
 
-  let en = `🎖️ **COMMANDER — WORKFORCE REVIEW**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  let ar = `🎖️ **القائد — مراجعة القوى العاملة**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  let en = `🎖️ **Chief of Staff — Team Review**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  let ar = `🎖️ **رئيس الأركان — مراجعة الفريق**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
 
   if (!hasIssues) {
-    en += `\n✅ **Workforce stable.** All ${metrics.length} agents healthy.\n`;
-    ar += `\n✅ **القوى العاملة مستقرة.** جميع الوكلاء (${metrics.length}) بصحة جيدة.\n`;
+    en += `\n✅ **All systems are stable.** Nothing requires your decision.\n`;
+    ar += `\n✅ **جميع الأنظمة مستقرة.** لا شيء يتطلب قرارك.\n`;
   } else {
-    en += `\n📊 **Workforce Status**\n✅ Healthy: ${counts.healthy}\n`;
-    ar += `\n📊 **حالة القوى العاملة**\n✅ صحي: ${counts.healthy}\n`;
-    if (counts.watch > 0) { en += `👀 Watch: ${counts.watch}\n`; ar += `👀 مراقبة: ${counts.watch}\n`; }
-    if (counts.warning > 0) { en += `⚠️ Warning: ${counts.warning}\n`; ar += `⚠️ تحذير: ${counts.warning}\n`; }
-    if (counts.probation > 0) { en += `🚨 Probation: ${counts.probation}\n`; ar += `🚨 تحت المراقبة: ${counts.probation}\n`; }
-    if (counts.disabled > 0) { en += `❌ Disabled: ${counts.disabled}\n`; ar += `❌ معطل: ${counts.disabled}\n`; }
+    en += `\n📊 **Team Health**\n✅ Operating well: ${counts.healthy}\n`;
+    ar += `\n📊 **صحة الفريق**\n✅ يعمل بشكل جيد: ${counts.healthy}\n`;
+    if (counts.watch > 0) { en += `👀 Under observation: ${counts.watch}\n`; ar += `👀 تحت المراقبة: ${counts.watch}\n`; }
+    if (counts.warning > 0) { en += `⚠️ Needs attention: ${counts.warning}\n`; ar += `⚠️ يحتاج اهتمام: ${counts.warning}\n`; }
+    if (counts.probation > 0) { en += `🚨 At risk: ${counts.probation}\n`; ar += `🚨 في خطر: ${counts.probation}\n`; }
+    if (counts.disabled > 0) { en += `❌ Shut down: ${counts.disabled}\n`; ar += `❌ متوقف: ${counts.disabled}\n`; }
   }
 
   if (escalations.length > 0) {
-    en += `\n**📋 State Changes:**\n`;
-    ar += `\n**📋 تغييرات الحالة:**\n`;
+    en += `\n**📋 Changes:**\n`;
+    ar += `\n**📋 التغييرات:**\n`;
     for (const e of escalations) {
-      en += `• ${e.agent_function}: ${e.from_state} → **${e.to_state}** (${e.reason})\n`;
-      ar += `• ${e.agent_function}: ${e.from_state} → **${e.to_state}** (${e.reason_ar})\n`;
+      en += `• ${e.agent_function}: moved to **${e.to_state}** — ${e.reason}\n`;
+      ar += `• ${e.agent_function}: انتقل إلى **${e.to_state}** — ${e.reason_ar}\n`;
     }
   }
 
@@ -580,32 +604,21 @@ Deno.serve(async (req) => {
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const body = await req.json().catch(() => ({}));
 
-    // Modes: 'critical' (1h), 'hourly' (3h), 'daily' (24h), 'workforce_review', 'full' (both)
     const mode: string = body.mode || 'hourly';
     const lookbackHours = mode === 'critical' ? 1 : mode === 'hourly' ? 3 : 24;
 
     const { data: agent } = await sb.from('ai_agents').select('id').eq('is_active', true).limit(1).single();
-    if (!agent) throw new Error("No active AI agent found");
+    if (!agent) throw new Error("No active AI component found");
     const agentId = agent.id;
 
-    // ═══ WORKFORCE MANAGEMENT (always runs) ═══
-    await streamPhase(sb, agentId, 'command_received',
-      `${mode.toUpperCase()} review initiated`, `بدأت مراجعة ${mode}`);
-
-    await streamPhase(sb, agentId, 'collecting_data',
-      'Calculating agent metrics...', 'حساب مقاييس الوكلاء...');
+    // ═══ WORKFORCE MANAGEMENT (internal only — no CEO-facing output) ═══
+    await logInternal(sb, agentId, `Commander ${mode} review started`, `بدأت مراجعة ${mode} للقائد`);
 
     const metrics = await calculateAgentMetrics(sb);
     await storeMetricsSnapshot(sb, metrics);
 
-    await streamPhase(sb, agentId, 'analyzing',
-      `Evaluating ${metrics.length} agents...`, `تقييم ${metrics.length} وكيل...`);
-
     const escalations = evaluateEscalations(metrics);
-
     if (escalations.length > 0) {
-      await streamPhase(sb, agentId, 'building',
-        `Applying ${escalations.length} state change(s)`, `تطبيق ${escalations.length} تغيير(ات) حالة`);
       await applyEscalations(sb, agentId, escalations);
     }
 
@@ -634,49 +647,49 @@ Deno.serve(async (req) => {
 
     // If workforce-only mode, deliver and exit
     if (mode === 'workforce_review') {
-      await postToDM(sb, workforceReport.ar, 'workforce_review');
+      // Only post to CEO if there are issues worth knowing
+      const hasIssues = counts.watch + counts.warning + counts.probation + counts.disabled > 0;
+      if (hasIssues) {
+        await postToDM(sb, workforceReport.ar, 'workforce_review');
+      }
       await sb.from('ai_chat_room').insert({
         agent_id: agentId, content: workforceReport.en, content_ar: workforceReport.ar,
         message_type: 'workforce_review', message_category: escalations.some(e => ['warning', 'probation', 'disabled'].includes(e.to_state)) ? 'warning' : 'success', is_summary: true,
       });
 
-      await streamPhase(sb, agentId, 'completed',
-        `Workforce review complete. ${metrics.length} agents, ${escalations.length} changes.`,
-        `اكتملت مراجعة القوى العاملة. ${metrics.length} وكيل، ${escalations.length} تغيير.`);
+      await logInternal(sb, agentId,
+        `Team review complete. ${metrics.length} reviewed, ${escalations.length} changes.`,
+        `اكتملت مراجعة الفريق. ${metrics.length} تمت مراجعتهم، ${escalations.length} تغيير.`);
 
-      return new Response(JSON.stringify({ success: true, mode, agents_reviewed: metrics.length, escalations: escalations.length, duration_ms: Date.now() - t0 }), {
+      return new Response(JSON.stringify({ success: true, mode, reviewed: metrics.length, escalations: escalations.length, duration_ms: Date.now() - t0 }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // ═══ EXECUTIVE BRIEFING (for all other modes) ═══
-    await streamPhase(sb, agentId, 'planning',
-      'Reading all subsystem outputs...', 'قراءة جميع مخرجات الأنظمة الفرعية...');
-
+    // ═══ EXECUTIVE BRIEFING ═══
     const intel = await collectIntelligence(sb, lookbackHours);
 
-    const totalSignals = intel.executionRequests.length + intel.analysisLogs.length +
+    const totalIndicators = intel.executionRequests.length + intel.analysisLogs.length +
       intel.codeChanges.length + intel.evolutionProposals.length +
       intel.failures.length + intel.forecasts.length + intel.pendingProposals.length;
 
-    await streamPhase(sb, agentId, 'analyzing',
-      `Processing ${totalSignals} signals from ${intel.agentSchedules.length} agents...`,
-      `معالجة ${totalSignals} إشارة من ${intel.agentSchedules.length} وكيل...`);
-
-    await streamPhase(sb, agentId, 'building',
-      `Generating executive briefing...`, `إنشاء الإحاطة التنفيذية...`);
+    await logInternal(sb, agentId,
+      `Reviewed ${totalIndicators} indicators from ${intel.agentSchedules.length} components`,
+      `تمت مراجعة ${totalIndicators} مؤشر من ${intel.agentSchedules.length} مكون`);
 
     const briefing = await generateCommanderBriefing(apiKey, intel, mode, workforceReport);
-
-    await streamPhase(sb, agentId, 'validating',
-      'Checking against constitution...', 'التحقق من الدستور...');
-
-    await streamPhase(sb, agentId, 'preparing_output',
-      'Delivering briefing to owner...', 'تسليم الإحاطة للمالك...');
-
     const formatted = formatBriefingForDM(briefing);
 
-    // Deliver to Owner DM + Chat Room
+    // Sanitize and validate before delivery
+    const enCheck = validateCEOLanguage(formatted.en);
+    const arCheck = validateCEOLanguage(formatted.ar);
+    if (!enCheck.clean || !arCheck.clean) {
+      console.warn('[Commander] CEO language violations detected, sanitizing:', [...enCheck.violations, ...arCheck.violations]);
+      formatted.en = sanitizeCEOMessage(formatted.en);
+      formatted.ar = sanitizeCEOMessage(formatted.ar);
+    }
+
+    // Deliver to CEO DM + internal log
     await Promise.all([
       postToDM(sb, formatted.ar, 'commander_briefing'),
       sb.from('ai_chat_room').insert({
@@ -688,7 +701,7 @@ Deno.serve(async (req) => {
       sb.from('ai_activity_stream').insert({
         action_type: 'commander_briefing', entity_type: 'system', success: true,
         duration_ms: Date.now() - t0, role: 'commander',
-        before_state: { mode, lookback_hours: lookbackHours, signals: totalSignals },
+        before_state: { mode, lookback_hours: lookbackHours, indicators: totalIndicators },
         after_state: {
           critical_count: briefing.sections?.critical?.length || 0,
           important_count: briefing.sections?.important?.length || 0,
@@ -698,22 +711,18 @@ Deno.serve(async (req) => {
       }),
     ]);
 
-    await streamPhase(sb, agentId, 'completed',
-      `Briefing delivered. ${totalSignals} signals → ${(briefing.sections?.critical?.length || 0) + (briefing.sections?.important?.length || 0)} actionable items`,
-      `تم تسليم الإحاطة. ${totalSignals} إشارة → ${(briefing.sections?.critical?.length || 0) + (briefing.sections?.important?.length || 0)} عنصر قابل للتنفيذ`);
-
     // Memory
     await sb.from('agent_memory').insert({
       agent_function: 'ai-commander',
       memory_type: 'decision',
-      content: `Commander briefing (${mode}): ${totalSignals} signals, ${escalations.length} workforce changes, ${briefing.sections?.critical?.length || 0} critical items`,
+      content: `Briefing (${mode}): ${totalIndicators} reviewed, ${escalations.length} team changes, ${briefing.sections?.critical?.length || 0} critical items`,
       importance: briefing.sections?.critical?.length > 0 ? 9 : 5,
       tags: ['commander', 'briefing', mode],
     });
 
     return new Response(JSON.stringify({
-      success: true, mode, signals_processed: totalSignals,
-      agents_reviewed: metrics.length, escalations: escalations.length,
+      success: true, mode, indicators_reviewed: totalIndicators,
+      team_reviewed: metrics.length, escalations: escalations.length,
       critical_items: briefing.sections?.critical?.length || 0,
       important_items: briefing.sections?.important?.length || 0,
       pending_decisions: briefing.pending_decisions,
