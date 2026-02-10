@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.ai-owner-intelligence]
 verify_jwt = false
+
+[functions.ai-commander]
+verify_jwt = false

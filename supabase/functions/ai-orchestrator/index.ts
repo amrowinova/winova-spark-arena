@@ -127,8 +127,14 @@ const INTENT_MAP: Record<string, { agent: string; intent: string }> = {
   'دستور': { agent: 'ai-owner-intelligence', intent: 'constitution_check' },
   'intelligence': { agent: 'ai-owner-intelligence', intent: 'owner_brief' },
   'ذكاء': { agent: 'ai-owner-intelligence', intent: 'owner_brief' },
-  'brief': { agent: 'ai-owner-intelligence', intent: 'owner_brief' },
-  'تقرير': { agent: 'ai-owner-intelligence', intent: 'owner_brief' },
+  'brief': { agent: 'ai-commander', intent: 'commander_briefing' },
+  'تقرير': { agent: 'ai-commander', intent: 'commander_briefing' },
+  'briefing': { agent: 'ai-commander', intent: 'commander_briefing' },
+  'إحاطة': { agent: 'ai-commander', intent: 'commander_briefing' },
+  'chief': { agent: 'ai-commander', intent: 'commander_briefing' },
+  'رئيس أركان': { agent: 'ai-commander', intent: 'commander_briefing' },
+  'status': { agent: 'ai-commander', intent: 'commander_briefing' },
+  'حالة': { agent: 'ai-commander', intent: 'commander_briefing' },
 };
 
 // ─── DM Helper ────────────────────────────────────────
