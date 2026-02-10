@@ -1,13 +1,32 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * CEO DECISION LEARNER v2 — Permanent Intelligence Layer
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Continuously learns from Amro's decisions to build a predictive model:
+ * - Ingests approvals, rejections, delays, modifications, corrections
+ * - Detects behavioral patterns (risk tolerance, urgency bias, type preferences)
+ * - Updates persistent CEO behavioral model dimensions
+ * - Generates approval probability scores for pending requests
+ * - Tracks prediction accuracy to improve over time
+ * - Updates communication preferences based on response patterns
+ *
+ * Goal: Reduce CEO interruptions by 80% while improving accuracy.
+ * ═══════════════════════════════════════════════════════════════
+ */
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const AI_SYSTEM_USER_ID = '00000000-0000-0000-0000-a10000000001';
+
+// ═══════════════════════════════════════════════════════
+// PATTERN DETECTION (expanded)
+// ═══════════════════════════════════════════════════════
 
 interface DecisionRecord {
   request_type: string;
@@ -15,37 +34,41 @@ interface DecisionRecord {
   decision: string;
   urgency: string;
   services_affected: string[];
+  response_time_ms: number | null;
+  emotional_signal: string | null;
+  was_modified: boolean;
 }
 
-// ─── Pattern Detection ───────────────────────────────
-function detectPatterns(decisions: DecisionRecord[]): Array<{
-  key: string;
-  description: string;
-  descriptionAr: string;
-  type: string;
-  conditions: Record<string, any>;
-  confidence: number;
-  sampleCount: number;
-}> {
-  const patterns: ReturnType<typeof detectPatterns> = [];
+function detectPatterns(decisions: DecisionRecord[]) {
+  const patterns: Array<{
+    key: string;
+    description: string;
+    descriptionAr: string;
+    type: string;
+    conditions: Record<string, any>;
+    confidence: number;
+    sampleCount: number;
+  }> = [];
+
   if (decisions.length < 3) return patterns;
 
   // Pattern 1: Risk-level approval rates
-  const riskGroups: Record<string, { approved: number; total: number }> = {};
+  const riskGroups: Record<string, { approved: number; rejected: number; total: number }> = {};
   for (const d of decisions) {
-    if (!riskGroups[d.risk_level]) riskGroups[d.risk_level] = { approved: 0, total: 0 };
+    if (!riskGroups[d.risk_level]) riskGroups[d.risk_level] = { approved: 0, rejected: 0, total: 0 };
     riskGroups[d.risk_level].total++;
     if (d.decision === 'approved') riskGroups[d.risk_level].approved++;
+    if (d.decision === 'rejected') riskGroups[d.risk_level].rejected++;
   }
   for (const [risk, stats] of Object.entries(riskGroups)) {
     if (stats.total >= 3) {
       const rate = stats.approved / stats.total;
       patterns.push({
         key: `risk_${risk}_approval_rate`,
-        description: `CEO approves ${Math.round(rate * 100)}% of ${risk}-risk requests (n=${stats.total})`,
-        descriptionAr: `المدير يوافق على ${Math.round(rate * 100)}% من الطلبات ذات المخاطر ${risk} (ن=${stats.total})`,
+        description: `Approval rate for ${risk}-risk items: ${Math.round(rate * 100)}% (based on ${stats.total} decisions)`,
+        descriptionAr: `معدل الموافقة على العناصر ذات المخاطر ${risk}: ${Math.round(rate * 100)}% (بناءً على ${stats.total} قرار)`,
         type: 'threshold',
-        conditions: { risk_level: risk, approval_rate: rate },
+        conditions: { risk_level: risk, approval_rate: rate, rejection_rate: stats.rejected / stats.total },
         confidence: Math.min(0.95, 0.5 + (stats.total * 0.05)),
         sampleCount: stats.total,
       });
@@ -64,8 +87,8 @@ function detectPatterns(decisions: DecisionRecord[]): Array<{
       const rate = stats.approved / stats.total;
       patterns.push({
         key: `type_${type}_preference`,
-        description: `CEO approval rate for "${type}": ${Math.round(rate * 100)}% (n=${stats.total})`,
-        descriptionAr: `معدل موافقة المدير على "${type}": ${Math.round(rate * 100)}% (ن=${stats.total})`,
+        description: `Preference for "${type}" requests: ${Math.round(rate * 100)}% approval (${stats.total} decisions)`,
+        descriptionAr: `تفضيل لطلبات "${type}": ${Math.round(rate * 100)}% موافقة (${stats.total} قرار)`,
         type: 'preference',
         conditions: { request_type: type, approval_rate: rate },
         confidence: Math.min(0.9, 0.4 + (stats.total * 0.06)),
@@ -86,8 +109,8 @@ function detectPatterns(decisions: DecisionRecord[]): Array<{
       const rate = stats.approved / stats.total;
       patterns.push({
         key: `urgency_${urgency}_bias`,
-        description: `CEO approves ${Math.round(rate * 100)}% of ${urgency}-urgency items (n=${stats.total})`,
-        descriptionAr: `المدير يوافق على ${Math.round(rate * 100)}% من العناصر ذات الأولوية ${urgency} (ن=${stats.total})`,
+        description: `${urgency} urgency items: ${Math.round(rate * 100)}% approval (${stats.total} decisions)`,
+        descriptionAr: `عناصر بأولوية ${urgency}: ${Math.round(rate * 100)}% موافقة (${stats.total} قرار)`,
         type: 'bias',
         conditions: { urgency, approval_rate: rate },
         confidence: Math.min(0.85, 0.4 + (stats.total * 0.05)),
@@ -96,52 +119,174 @@ function detectPatterns(decisions: DecisionRecord[]): Array<{
     }
   }
 
+  // Pattern 4: Response speed — fast approvals vs slow rejections
+  const withTiming = decisions.filter(d => d.response_time_ms && d.response_time_ms > 0);
+  if (withTiming.length >= 5) {
+    const approvedTimes = withTiming.filter(d => d.decision === 'approved').map(d => d.response_time_ms!);
+    const rejectedTimes = withTiming.filter(d => d.decision === 'rejected').map(d => d.response_time_ms!);
+    if (approvedTimes.length >= 2 && rejectedTimes.length >= 2) {
+      const avgApprove = approvedTimes.reduce((a, b) => a + b, 0) / approvedTimes.length;
+      const avgReject = rejectedTimes.reduce((a, b) => a + b, 0) / rejectedTimes.length;
+      patterns.push({
+        key: 'response_speed_pattern',
+        description: `Average approval response: ${Math.round(avgApprove / 60000)}min. Average rejection: ${Math.round(avgReject / 60000)}min.`,
+        descriptionAr: `متوسط وقت الموافقة: ${Math.round(avgApprove / 60000)} دقيقة. متوسط وقت الرفض: ${Math.round(avgReject / 60000)} دقيقة.`,
+        type: 'timing',
+        conditions: { avg_approve_ms: avgApprove, avg_reject_ms: avgReject },
+        confidence: Math.min(0.8, 0.3 + (withTiming.length * 0.04)),
+        sampleCount: withTiming.length,
+      });
+    }
+  }
+
+  // Pattern 5: Modification tendency — does CEO modify before approving?
+  const modified = decisions.filter(d => d.was_modified);
+  if (decisions.length >= 5) {
+    const modRate = modified.length / decisions.length;
+    patterns.push({
+      key: 'modification_tendency',
+      description: `CEO modifies ${Math.round(modRate * 100)}% of approved items before finalizing`,
+      descriptionAr: `الرئيس يعدل ${Math.round(modRate * 100)}% من العناصر المعتمدة قبل الإنهاء`,
+      type: 'behavior',
+      conditions: { modification_rate: modRate },
+      confidence: Math.min(0.85, 0.4 + (decisions.length * 0.03)),
+      sampleCount: decisions.length,
+    });
+  }
+
   return patterns;
 }
 
-// ─── Prediction Scoring ──────────────────────────────
+// ═══════════════════════════════════════════════════════
+// BEHAVIORAL MODEL UPDATER
+// ═══════════════════════════════════════════════════════
+
+async function updateBehavioralModel(sb: any, decisions: DecisionRecord[], patterns: any[]) {
+  const now = new Date().toISOString();
+
+  // Risk tolerance: based on high-risk approval rate
+  const highRiskPattern = patterns.find((p: any) => p.key === 'risk_high_approval_rate' || p.key === 'risk_critical_approval_rate');
+  if (highRiskPattern) {
+    const riskTolerance = highRiskPattern.conditions.approval_rate;
+    await sb.from('ceo_behavioral_model').update({
+      current_value: Math.round(riskTolerance * 100) / 100,
+      confidence: highRiskPattern.confidence,
+      sample_count: highRiskPattern.sampleCount,
+      last_updated_at: now,
+    }).eq('dimension', 'risk_tolerance');
+  }
+
+  // Speed preference: based on response times
+  const speedPattern = patterns.find((p: any) => p.key === 'response_speed_pattern');
+  if (speedPattern) {
+    // Fast responder = high speed preference (< 30min avg = 0.8+)
+    const avgMs = speedPattern.conditions.avg_approve_ms;
+    const speedValue = Math.max(0.1, Math.min(0.95, 1 - (avgMs / (2 * 3600000)))); // normalize to 2h scale
+    await sb.from('ceo_behavioral_model').update({
+      current_value: Math.round(speedValue * 100) / 100,
+      confidence: speedPattern.confidence,
+      sample_count: speedPattern.sampleCount,
+      last_updated_at: now,
+    }).eq('dimension', 'speed_preference');
+  }
+
+  // Delegation level: based on modification rate + overall approval rate
+  const modPattern = patterns.find((p: any) => p.key === 'modification_tendency');
+  if (modPattern) {
+    // High modification = low delegation (wants control)
+    const delegationValue = Math.max(0.1, 1 - modPattern.conditions.modification_rate);
+    await sb.from('ceo_behavioral_model').update({
+      current_value: Math.round(delegationValue * 100) / 100,
+      confidence: modPattern.confidence,
+      sample_count: modPattern.sampleCount,
+      last_updated_at: now,
+    }).eq('dimension', 'delegation_level');
+  }
+
+  // Financial caution: based on financial-type rejection rate
+  const finPattern = patterns.find((p: any) => p.key === 'type_financial_preference' || p.key === 'type_finance_preference');
+  if (finPattern) {
+    const caution = 1 - finPattern.conditions.approval_rate; // higher rejection = higher caution
+    await sb.from('ceo_behavioral_model').update({
+      current_value: Math.max(0.5, Math.round(caution * 100) / 100), // never below 0.5 for safety
+      confidence: finPattern.confidence,
+      sample_count: finPattern.sampleCount,
+      last_updated_at: now,
+    }).eq('dimension', 'financial_caution');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PREDICTION SCORING (enhanced)
+// ═══════════════════════════════════════════════════════
+
 function predictApproval(
   request: { request_type: string; risk_level: string; urgency: string; services_affected: string[] },
   patterns: Array<{ pattern_key: string; conditions: any; confidence: number }>,
-  history: DecisionRecord[],
-): { probability: number; reasoning: string; reasoningAr: string; matchingPatterns: string[]; predictedDecision: string; similarIds: string[] } {
-  let score = 0.5; // base
+  behavioralModel: Array<{ dimension: string; current_value: number; confidence: number }>,
+): {
+  probability: number;
+  reasoning: string;
+  reasoningAr: string;
+  matchingPatterns: string[];
+  predictedDecision: string;
+  routingAction: 'auto_proceed' | 'recommend' | 'escalate';
+  confidence: number;
+} {
+  let score = 0.5;
   const matchingPatterns: string[] = [];
   const reasons: string[] = [];
   const reasonsAr: string[] = [];
+  let totalWeight = 0;
 
-  // Apply risk pattern
+  // Apply risk pattern (weight: 0.35)
   const riskPattern = patterns.find(p => p.pattern_key === `risk_${request.risk_level}_approval_rate`);
   if (riskPattern) {
     const rate = riskPattern.conditions.approval_rate;
-    score = score * 0.4 + rate * 0.6;
+    score = score * 0.65 + rate * 0.35;
+    totalWeight += 0.35;
     matchingPatterns.push(riskPattern.pattern_key);
-    reasons.push(`Risk "${request.risk_level}" has ${Math.round(rate * 100)}% historical approval`);
-    reasonsAr.push(`المخاطر "${request.risk_level}" لديها ${Math.round(rate * 100)}% موافقة تاريخية`);
+    reasons.push(`${request.risk_level}-risk items have ${Math.round(rate * 100)}% historical approval`);
+    reasonsAr.push(`العناصر ذات المخاطر ${request.risk_level} لديها ${Math.round(rate * 100)}% موافقة تاريخية`);
   }
 
-  // Apply type pattern
+  // Apply type pattern (weight: 0.3)
   const typePattern = patterns.find(p => p.pattern_key === `type_${request.request_type}_preference`);
   if (typePattern) {
     const rate = typePattern.conditions.approval_rate;
-    score = score * 0.5 + rate * 0.5;
+    score = score * 0.7 + rate * 0.3;
+    totalWeight += 0.3;
     matchingPatterns.push(typePattern.pattern_key);
-    reasons.push(`Type "${request.request_type}" approved ${Math.round(rate * 100)}% historically`);
-    reasonsAr.push(`النوع "${request.request_type}" موافق عليه ${Math.round(rate * 100)}% تاريخياً`);
+    reasons.push(`"${request.request_type}" type approved ${Math.round(rate * 100)}% of the time`);
+    reasonsAr.push(`نوع "${request.request_type}" موافق عليه ${Math.round(rate * 100)}% من الوقت`);
   }
 
-  // Apply urgency pattern
+  // Apply urgency pattern (weight: 0.2)
   const urgencyPattern = patterns.find(p => p.pattern_key === `urgency_${request.urgency}_bias`);
   if (urgencyPattern) {
     const rate = urgencyPattern.conditions.approval_rate;
-    score = score * 0.7 + rate * 0.3;
+    score = score * 0.8 + rate * 0.2;
+    totalWeight += 0.2;
     matchingPatterns.push(urgencyPattern.pattern_key);
   }
 
-  // Find similar past decisions
-  const similar = history.filter(h =>
-    h.request_type === request.request_type || h.risk_level === request.risk_level
-  ).slice(0, 5);
+  // Apply behavioral model adjustments (weight: 0.15)
+  const riskTolerance = behavioralModel.find(b => b.dimension === 'risk_tolerance');
+  const financialCaution = behavioralModel.find(b => b.dimension === 'financial_caution');
+
+  if (riskTolerance && request.risk_level === 'high') {
+    score *= (0.5 + riskTolerance.current_value * 0.5);
+    totalWeight += 0.1;
+  }
+
+  // Financial requests get extra caution from model
+  const isFinancial = request.request_type?.includes('financ') || 
+    request.services_affected?.some(s => s.includes('wallet') || s.includes('payment') || s.includes('balance'));
+  if (isFinancial && financialCaution) {
+    score *= (1 - financialCaution.current_value * 0.3); // reduce probability for high caution
+    reasons.push('Financial operation — extra caution applied per your preference model');
+    reasonsAr.push('عملية مالية — حذر إضافي مطبق حسب نموذج تفضيلاتك');
+  }
 
   if (reasons.length === 0) {
     reasons.push('Insufficient decision history — using base probability');
@@ -151,17 +296,84 @@ function predictApproval(
   const clampedScore = Math.max(0.05, Math.min(0.95, score));
   const predictedDecision = clampedScore >= 0.7 ? 'approve' : clampedScore <= 0.3 ? 'reject' : 'uncertain';
 
+  // Determine routing action based on PREDICTION_ROUTING governance rule
+  let routingAction: 'auto_proceed' | 'recommend' | 'escalate';
+  if (clampedScore >= 0.85 && request.risk_level !== 'critical' && !isFinancial) {
+    routingAction = 'auto_proceed';
+  } else if (clampedScore >= 0.5) {
+    routingAction = 'recommend';
+  } else {
+    routingAction = 'escalate';
+  }
+
+  // Overall confidence = pattern coverage + behavioral model confidence
+  const overallConfidence = Math.min(0.95, totalWeight > 0 ? totalWeight + 0.2 : 0.3);
+
   return {
     probability: Math.round(clampedScore * 100) / 100,
     reasoning: reasons.join('. '),
     reasoningAr: reasonsAr.join('. '),
     matchingPatterns,
     predictedDecision,
-    similarIds: [], // filled from DB ids
+    routingAction,
+    confidence: Math.round(overallConfidence * 100) / 100,
   };
 }
 
-// ─── DM Helper ───────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+// ACCURACY TRACKER — validates past predictions
+// ═══════════════════════════════════════════════════════
+
+async function validatePastPredictions(sb: any): Promise<{ validated: number; accuracy: number }> {
+  // Find decided requests that have predictions
+  const { data: decided } = await sb
+    .from('ai_execution_requests')
+    .select('id, status')
+    .in('status', ['approved', 'rejected'])
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (!decided?.length) return { validated: 0, accuracy: 0 };
+
+  let validated = 0;
+  let correct = 0;
+
+  for (const req of decided) {
+    const { data: prediction } = await sb
+      .from('ceo_prediction_scores')
+      .select('id, predicted_decision, approval_probability')
+      .eq('request_id', req.id)
+      .limit(1);
+
+    if (!prediction?.length) continue;
+
+    const pred = prediction[0];
+    const actualApproved = req.status === 'approved';
+    const predictedApprove = pred.predicted_decision === 'approve' || pred.approval_probability >= 0.5;
+    const wasCorrect = actualApproved === predictedApprove;
+
+    // Update decision history with prediction accuracy
+    await sb.from('ceo_decision_history')
+      .update({
+        prediction_was_correct: wasCorrect,
+        predicted_probability: pred.approval_probability,
+      })
+      .eq('request_id', req.id);
+
+    if (wasCorrect) correct++;
+    validated++;
+  }
+
+  return {
+    validated,
+    accuracy: validated > 0 ? Math.round((correct / validated) * 100) : 0,
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// DM HELPER (CEO language)
+// ═══════════════════════════════════════════════════════
+
 async function postToDM(sb: any, content: string, messageType = 'system') {
   const { data: convos } = await sb
     .from('conversations')
@@ -181,11 +393,24 @@ async function postToDM(sb: any, content: string, messageType = 'system') {
   }
 }
 
-// ─── Main Logic ──────────────────────────────────────
-async function run(sb: any): Promise<{ patternsUpdated: number; predictionsGenerated: number; decisionsIngested: number }> {
-  const result = { patternsUpdated: 0, predictionsGenerated: 0, decisionsIngested: 0 };
+// ═══════════════════════════════════════════════════════
+// MAIN RUN
+// ═══════════════════════════════════════════════════════
 
-  // STEP 1: Ingest recent decisions from execution requests
+async function run(sb: any): Promise<{
+  decisionsIngested: number;
+  patternsUpdated: number;
+  predictionsGenerated: number;
+  modelDimensionsUpdated: number;
+  predictionAccuracy: number;
+  autoProceeded: number;
+}> {
+  const result = {
+    decisionsIngested: 0, patternsUpdated: 0, predictionsGenerated: 0,
+    modelDimensionsUpdated: 0, predictionAccuracy: 0, autoProceeded: 0,
+  };
+
+  // STEP 1: Ingest new decisions
   const { data: recentRequests } = await sb
     .from('ai_execution_requests')
     .select('id, title, title_ar, request_type, risk_level, status, parameters, approved_at, rejected_at, approved_by, created_at')
@@ -195,19 +420,26 @@ async function run(sb: any): Promise<{ patternsUpdated: number; predictionsGener
 
   if (recentRequests?.length) {
     for (const req of recentRequests) {
-      // Check if already ingested
       const { data: existing } = await sb
         .from('ceo_decision_history')
         .select('id')
         .eq('request_id', req.id)
         .limit(1);
-
       if (existing?.length) continue;
 
       const decision = req.status === 'approved' ? 'approved' : 'rejected';
-      const responseTime = req.approved_at || req.rejected_at
-        ? new Date(req.approved_at || req.rejected_at).getTime() - new Date(req.created_at).getTime()
+      const decisionTime = req.approved_at || req.rejected_at;
+      const responseTime = decisionTime
+        ? new Date(decisionTime).getTime() - new Date(req.created_at).getTime()
         : null;
+
+      // Detect emotional signals from response speed + modifications
+      let emotionalSignal: string | null = null;
+      if (responseTime) {
+        if (responseTime < 60000) emotionalSignal = 'immediate'; // < 1min = strong opinion
+        else if (responseTime < 300000) emotionalSignal = 'confident'; // < 5min
+        else if (responseTime > 86400000) emotionalSignal = 'hesitant'; // > 24h = reluctant
+      }
 
       await sb.from('ceo_decision_history').insert({
         request_id: req.id,
@@ -220,16 +452,18 @@ async function run(sb: any): Promise<{ patternsUpdated: number; predictionsGener
         suggested_fix: req.parameters?.suggested_fix,
         decision,
         response_time_ms: responseTime,
+        emotional_signal: emotionalSignal,
+        was_modified: req.parameters?.was_modified || false,
         context_snapshot: { source: 'ai_execution_requests', parameters: req.parameters },
       });
       result.decisionsIngested++;
     }
   }
 
-  // STEP 2: Detect patterns from all history
+  // STEP 2: Detect patterns from full history
   const { data: allHistory } = await sb
     .from('ceo_decision_history')
-    .select('request_type, risk_level, decision, urgency, services_affected')
+    .select('request_type, risk_level, decision, urgency, services_affected, response_time_ms, emotional_signal, was_modified')
     .order('created_at', { ascending: false })
     .limit(500);
 
@@ -250,9 +484,17 @@ async function run(sb: any): Promise<{ patternsUpdated: number; predictionsGener
       }, { onConflict: 'pattern_key' });
       result.patternsUpdated++;
     }
+
+    // STEP 3: Update behavioral model
+    await updateBehavioralModel(sb, allHistory, patterns);
+    result.modelDimensionsUpdated = patterns.length;
   }
 
-  // STEP 3: Score pending requests
+  // STEP 4: Validate past predictions (accuracy tracking)
+  const accuracy = await validatePastPredictions(sb);
+  result.predictionAccuracy = accuracy.accuracy;
+
+  // STEP 5: Score pending requests with routing
   const { data: pendingRequests } = await sb
     .from('ai_execution_requests')
     .select('id, title, title_ar, request_type, risk_level, parameters')
@@ -261,13 +503,12 @@ async function run(sb: any): Promise<{ patternsUpdated: number; predictionsGener
     .limit(20);
 
   if (pendingRequests?.length) {
-    const { data: activePatterns } = await sb
-      .from('ceo_decision_patterns')
-      .select('pattern_key, conditions, confidence')
-      .eq('is_active', true);
+    const [{ data: activePatterns }, { data: behavioralModel }] = await Promise.all([
+      sb.from('ceo_decision_patterns').select('pattern_key, conditions, confidence').eq('is_active', true),
+      sb.from('ceo_behavioral_model').select('dimension, current_value, confidence'),
+    ]);
 
     for (const req of pendingRequests) {
-      // Skip if already scored
       const { data: existingScore } = await sb
         .from('ceo_prediction_scores')
         .select('id')
@@ -283,7 +524,7 @@ async function run(sb: any): Promise<{ patternsUpdated: number; predictionsGener
           services_affected: req.parameters?.affected_services || [],
         },
         activePatterns || [],
-        allHistory || [],
+        behavioralModel || [],
       );
 
       await sb.from('ceo_prediction_scores').insert({
@@ -293,51 +534,59 @@ async function run(sb: any): Promise<{ patternsUpdated: number; predictionsGener
         reasoning: prediction.reasoning,
         reasoning_ar: prediction.reasoningAr,
         matching_patterns: prediction.matchingPatterns,
-        fast_track_eligible: prediction.probability >= 0.85 && req.risk_level !== 'critical',
+        fast_track_eligible: prediction.routingAction === 'auto_proceed',
       });
-
       result.predictionsGenerated++;
 
-      // Post to DM for fast-track candidates
-      if (prediction.probability >= 0.85 && req.risk_level !== 'critical') {
-        const msg = [
-          `🎯 **طلب مرشح للموافقة السريعة**`,
-          `📌 ${req.title_ar || req.title}`,
-          `📊 احتمال الموافقة: ${Math.round(prediction.probability * 100)}%`,
-          `🔍 ${prediction.reasoningAr}`,
-          `⚡ المخاطر: ${req.risk_level}`,
-          `✅ مؤهل للمسار السريع`,
-        ].join('\n');
-        await postToDM(sb, msg, 'prediction');
+      // Route based on prediction
+      if (prediction.routingAction === 'auto_proceed') {
+        // Auto-approve with notification (non-financial, non-critical, high confidence)
+        await sb.from('ai_execution_requests')
+          .update({ status: 'approved', approved_at: new Date().toISOString() })
+          .eq('id', req.id);
+
+        const msg = `✅ **تمت الموافقة التلقائية**\n📌 ${req.title_ar || req.title}\n📊 الثقة: ${Math.round(prediction.probability * 100)}%\n🔍 ${prediction.reasoningAr}\n\n_تمت الموافقة تلقائياً بناءً على نموذج تفضيلاتك. يمكنك التراجع في أي وقت._`;
+        await postToDM(sb, msg, 'auto_approval');
+        result.autoProceeded++;
+      } else if (prediction.routingAction === 'escalate') {
+        // Escalate — needs CEO attention
+        const msg = `🔴 **يحتاج قرارك**\n📌 ${req.title_ar || req.title}\n📊 احتمال الموافقة: ${Math.round(prediction.probability * 100)}% (منخفض)\n🔍 ${prediction.reasoningAr}\n⚡ المخاطر: ${req.risk_level}\n\n_هذا الطلب لا يتطابق مع أنماط قراراتك السابقة. يحتاج مراجعتك._`;
+        await postToDM(sb, msg, 'escalation');
       }
+      // 'recommend' items are shown in the next Commander briefing naturally
     }
   }
 
-  // STEP 4: Post summary
-  if (result.decisionsIngested > 0 || result.predictionsGenerated > 0) {
-    const summary = [
-      `🧠 **محرك تعلم القرارات**`,
-      `📥 قرارات جديدة مسجلة: ${result.decisionsIngested}`,
-      `🔮 توقعات ولّدت: ${result.predictionsGenerated}`,
-      `📐 أنماط محدّثة: ${result.patternsUpdated}`,
-      `📊 إجمالي السجل: ${allHistory?.length || 0} قرار`,
-    ].join('\n');
-    await postToDM(sb, summary, 'learning_report');
+  // STEP 6: CEO-language summary (only if meaningful changes)
+  if (result.decisionsIngested > 0 || result.autoProceeded > 0 || result.predictionsGenerated > 0) {
+    const summaryParts: string[] = [`🧠 **تحديث نموذج القرارات**`];
+    if (result.decisionsIngested > 0) summaryParts.push(`📥 تم تسجيل ${result.decisionsIngested} قرار جديد في نموذج تفضيلاتك`);
+    if (result.patternsUpdated > 0) summaryParts.push(`📐 تم تحديث ${result.patternsUpdated} نمط سلوكي`);
+    if (result.autoProceeded > 0) summaryParts.push(`✅ تمت الموافقة التلقائية على ${result.autoProceeded} طلب منخفض المخاطر`);
+    if (accuracy.validated > 0) summaryParts.push(`🎯 دقة التوقعات: ${result.predictionAccuracy}% (${accuracy.validated} توقع تم التحقق منه)`);
+
+    // Only notify CEO if there were auto-approvals (they should know)
+    if (result.autoProceeded > 0) {
+      await postToDM(sb, summaryParts.join('\n'), 'learning_report');
+    }
   }
 
   // Memory
   await sb.from('agent_memory').insert({
     agent_function: 'ai-decision-learner',
     memory_type: 'decision',
-    content: `Decision learner cycle: ingested=${result.decisionsIngested}, patterns=${result.patternsUpdated}, predictions=${result.predictionsGenerated}`,
-    importance: 5,
-    tags: ['decision_learning', 'ceo_alignment'],
+    content: `Learning cycle: decisions=${result.decisionsIngested}, patterns=${result.patternsUpdated}, predictions=${result.predictionsGenerated}, auto_approved=${result.autoProceeded}, accuracy=${result.predictionAccuracy}%`,
+    importance: result.autoProceeded > 0 ? 8 : 5,
+    tags: ['decision_learning', 'ceo_alignment', 'prediction'],
   });
 
   return result;
 }
 
-// ─── HTTP Handler ────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+// HTTP HANDLER
+// ═══════════════════════════════════════════════════════
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -345,7 +594,7 @@ Deno.serve(async (req) => {
 
   const t0 = Date.now();
   try {
-    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const result = await run(sb);
 
     return new Response(JSON.stringify({
@@ -356,7 +605,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('[Decision Learner] Error:', error);
+    console.error('[Decision Learner v2] Error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown',
