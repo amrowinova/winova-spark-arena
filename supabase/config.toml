@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.ai-code-engineer]
 verify_jwt = false
+
+[functions.ai-problem-to-patch]
+verify_jwt = false
