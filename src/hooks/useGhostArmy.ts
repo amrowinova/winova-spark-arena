@@ -2,7 +2,25 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export type SimulationScenario = 'full' | 'wallet' | 'chat' | 'referral' | 'contest' | 'fraud';
+export type SimulationScenario = 'full' | 'wallet' | 'chat' | 'referral' | 'contest' | 'fraud' | 'social' | 'p2p';
+
+export interface BehavioralMetrics {
+  follows_created: number;
+  follows_failed: number;
+  p2p_orders_created: number;
+  p2p_orders_accepted: number;
+  p2p_orders_cancelled: number;
+  p2p_orders_completed: number;
+  p2p_disputes: number;
+  ratings_submitted: number;
+  ratings_positive: number;
+  ratings_negative: number;
+  profiles_viewed: number;
+  chats_started: number;
+  messages_sent: number;
+  referrals_attempted: number;
+  referrals_succeeded: number;
+}
 
 export interface GhostArmyStatus {
   provisioned: number;
@@ -10,17 +28,20 @@ export interface GhostArmyStatus {
   lastSimulation: {
     scenario?: SimulationScenario;
     safe_mode?: boolean;
+    agents_tested?: number;
     total_tests: number;
     passed: number;
     failed: number;
     warnings: number;
     critical_issues: number;
     duration_ms: number;
-    avg_chat_latency_ms: number;
+    behavioral?: BehavioralMetrics;
+    // Legacy fields
+    avg_chat_latency_ms?: number;
     chat_delivered?: number;
     chat_attempted?: number;
-    referral_links_tested: number;
-    fraud_tests_run: number;
+    referral_links_tested?: number;
+    fraud_tests_run?: number;
     results: any[];
   } | null;
   lastAnalysis: {
@@ -45,10 +66,8 @@ export function useGhostArmy() {
   const checkStatus = async () => {
     const { count } = await supabase
       .from('profiles').select('id', { count: 'exact', head: true }).like('username', 'ghost_agent_%');
-    
     const { count: refLinks } = await supabase
       .from('team_members').select('id', { count: 'exact', head: true });
-
     setStatus(prev => ({ ...prev, provisioned: count || 0, referralLinks: refLinks || 0 }));
   };
 
@@ -61,7 +80,7 @@ export function useGhostArmy() {
       if (error) throw error;
       toast({
         title: '🌲 Digital Forest Deployed',
-        description: `Created: ${data.summary.created}, Referral links: ${data.summary.referral_links}, Circular blocked: ${data.summary.circular_blocked}`,
+        description: `Created: ${data.summary.created}, Referral links: ${data.summary.referral_links}`,
       });
       await checkStatus();
       return data;
@@ -84,10 +103,12 @@ export function useGhostArmy() {
         lastSimulation: data.summary ? { ...data.summary, results: data.results } : null,
       }));
       const emoji = data.summary.critical_issues > 0 ? '🔴' : data.summary.failed > 0 ? '🟡' : '🟢';
-      const scenarioLabel = scenario === 'full' ? 'Full' : scenario.charAt(0).toUpperCase() + scenario.slice(1);
+      const label = scenario.charAt(0).toUpperCase() + scenario.slice(1);
+      const bm = data.summary.behavioral;
+      const extra = bm ? ` | ${bm.p2p_orders_completed} trades, ${bm.follows_created} follows` : '';
       toast({
-        title: `${emoji} ${scenarioLabel} Mission Complete`,
-        description: `${data.summary.passed} passed, ${data.summary.failed} failed, ${data.summary.duration_ms}ms`,
+        title: `${emoji} ${label} Mission Complete`,
+        description: `${data.summary.passed} passed, ${data.summary.failed} failed, ${data.summary.duration_ms}ms${extra}`,
       });
       return data;
     } catch (err: any) {
