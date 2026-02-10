@@ -571,6 +571,12 @@ async function run(sb: any): Promise<{
     }
   }
 
+  // ═══ INTELLIGENCE METRICS ═══
+  await computeAndStoreIntelligenceMetrics(sb, result);
+
+  // ═══ CAPTURE LEARNING SIGNALS ═══
+  await captureLearningSignals(sb);
+
   // Memory
   await sb.from('agent_memory').insert({
     agent_function: 'ai-decision-learner',
@@ -581,6 +587,183 @@ async function run(sb: any): Promise<{
   });
 
   return result;
+}
+
+// ═══════════════════════════════════════════════════════
+// INTELLIGENCE METRICS COMPUTATION
+// ═══════════════════════════════════════════════════════
+
+async function computeAndStoreIntelligenceMetrics(sb: any, cycleResult: any) {
+  const today = new Date().toISOString().split('T')[0];
+
+  // Gather all verified predictions
+  const { data: verifiedPredictions } = await sb
+    .from('ceo_decision_history')
+    .select('prediction_was_correct, predicted_probability')
+    .not('prediction_was_correct', 'is', null)
+    .limit(500);
+
+  const verified = verifiedPredictions || [];
+  const correctPredictions = verified.filter((v: any) => v.prediction_was_correct).length;
+  const totalPredictions = verified.length;
+  const predictionAccuracy = totalPredictions > 0 ? Math.round((correctPredictions / totalPredictions) * 100) : 0;
+
+  // Confidence vs correctness: avg confidence of wrong predictions (lower = better calibration)
+  const wrongPredictions = verified.filter((v: any) => !v.prediction_was_correct && v.predicted_probability);
+  const avgWrongConfidence = wrongPredictions.length > 0
+    ? wrongPredictions.reduce((sum: number, v: any) => sum + (v.predicted_probability || 0.5), 0) / wrongPredictions.length
+    : 0;
+  const confidenceVsCorrectness = wrongPredictions.length > 0 ? Math.round((1 - avgWrongConfidence) * 100) : 100;
+
+  // Reversal rate: auto-approved items that were later overridden
+  const { data: autoApproved } = await sb
+    .from('ai_execution_requests')
+    .select('id, status')
+    .eq('auto_approved', true)
+    .limit(200);
+  const totalAuto = (autoApproved || []).length;
+  const reversedAuto = (autoApproved || []).filter((a: any) => a.status === 'rejected' || a.status === 'reversed').length;
+  const reversalRate = totalAuto > 0 ? Math.round((reversedAuto / totalAuto) * 100) : 0;
+
+  // Auto-approval success rate
+  const successfulAuto = totalAuto - reversedAuto;
+  const autoSuccessRate = totalAuto > 0 ? Math.round((successfulAuto / totalAuto) * 100) : 100;
+
+  // Count escalations and ignored items
+  const { count: escalationCount } = await sb
+    .from('learning_signals')
+    .select('id', { count: 'exact', head: true })
+    .eq('signal_type', 'override');
+  const { count: ignoredCount } = await sb
+    .from('learning_signals')
+    .select('id', { count: 'exact', head: true })
+    .eq('signal_type', 'ignored');
+
+  // Top mistakes: patterns where predictions were consistently wrong
+  const { data: patterns } = await sb
+    .from('ceo_decision_patterns')
+    .select('pattern_key, conditions, confidence')
+    .eq('is_active', true)
+    .order('confidence', { ascending: true })
+    .limit(5);
+
+  const topMistakes = (patterns || [])
+    .filter((p: any) => p.confidence < 0.5)
+    .map((p: any) => ({ pattern: p.pattern_key, confidence: p.confidence }));
+
+  // Misunderstood areas: behavioral model dimensions with low confidence
+  const { data: behavModel } = await sb
+    .from('ceo_behavioral_model')
+    .select('dimension, current_value, confidence')
+    .order('confidence', { ascending: true })
+    .limit(5);
+
+  const misunderstoodAreas = (behavModel || [])
+    .filter((b: any) => b.confidence < 0.5)
+    .map((b: any) => ({ area: b.dimension, confidence: b.confidence, value: b.current_value }));
+
+  // Upsert daily metrics
+  await sb.from('intelligence_metrics').upsert({
+    metric_date: today,
+    prediction_accuracy: predictionAccuracy,
+    confidence_vs_correctness: confidenceVsCorrectness,
+    reversal_rate: reversalRate,
+    auto_approval_success_rate: autoSuccessRate,
+    total_predictions: totalPredictions,
+    correct_predictions: correctPredictions,
+    total_auto_actions: totalAuto,
+    successful_auto_actions: successfulAuto,
+    total_reversals: reversedAuto,
+    total_escalations: escalationCount || 0,
+    total_ignored: ignoredCount || 0,
+    top_mistakes: topMistakes,
+    misunderstood_areas: misunderstoodAreas,
+  }, { onConflict: 'metric_date' });
+}
+
+// ═══════════════════════════════════════════════════════
+// LEARNING SIGNAL CAPTURE (all 7 types)
+// ═══════════════════════════════════════════════════════
+
+async function captureLearningSignals(sb: any) {
+  const since = new Date(Date.now() - 6 * 3600000).toISOString(); // last 6h
+
+  // 1. Approvals
+  const { data: approvals } = await sb
+    .from('ai_execution_requests')
+    .select('id, title, risk_level, approved_at')
+    .eq('status', 'approved')
+    .gte('approved_at', since)
+    .limit(50);
+  for (const a of (approvals || [])) {
+    await sb.from('learning_signals').upsert({
+      signal_type: 'approval', source_entity: 'ai_execution_requests', source_id: a.id,
+      context: { title: a.title, risk_level: a.risk_level }, weight: 1.0,
+    }, { onConflict: 'signal_type,source_id', ignoreDuplicates: true }).catch(() => {});
+  }
+
+  // 2. Rejections
+  const { data: rejections } = await sb
+    .from('ai_execution_requests')
+    .select('id, title, risk_level, rejected_at')
+    .eq('status', 'rejected')
+    .gte('rejected_at', since)
+    .limit(50);
+  for (const r of (rejections || [])) {
+    await sb.from('learning_signals').upsert({
+      signal_type: 'rejection', source_entity: 'ai_execution_requests', source_id: r.id,
+      context: { title: r.title, risk_level: r.risk_level }, weight: 1.5,
+    }, { onConflict: 'signal_type,source_id', ignoreDuplicates: true }).catch(() => {});
+  }
+
+  // 3. Edits (proposals that were modified)
+  const { data: edited } = await sb
+    .from('ai_proposals')
+    .select('id, title')
+    .eq('status', 'approved')
+    .gte('updated_at', since)
+    .limit(50);
+  // Note: edits have higher learning weight — CEO corrected the proposal
+  for (const e of (edited || [])) {
+    await sb.from('learning_signals').insert({
+      signal_type: 'edit', source_entity: 'ai_proposals', source_id: e.id,
+      context: { title: e.title }, weight: 2.0,
+    }).catch(() => {});
+  }
+
+  // 4. Delays (pending for >24h = signal of hesitation)
+  const dayAgo = new Date(Date.now() - 86400000).toISOString();
+  const { data: delayed } = await sb
+    .from('ai_execution_requests')
+    .select('id, title')
+    .eq('status', 'pending')
+    .lte('created_at', dayAgo)
+    .limit(20);
+  for (const d of (delayed || [])) {
+    await sb.from('learning_signals').insert({
+      signal_type: 'delay', source_entity: 'ai_execution_requests', source_id: d.id,
+      context: { title: d.title }, weight: 0.8,
+    }).catch(() => {});
+  }
+
+  // 5-7: Overrides, reversals, ignored — tracked via knowledge_decisions
+  const { data: decisions } = await sb
+    .from('knowledge_decisions')
+    .select('id, decision_type, context')
+    .gte('created_at', since)
+    .limit(50);
+  for (const dec of (decisions || [])) {
+    let signalType: string | null = null;
+    if (dec.decision_type === 'override') signalType = 'override';
+    else if (dec.decision_type === 'reversal') signalType = 'reversal';
+    else if (dec.decision_type === 'ignored') signalType = 'ignored';
+    if (signalType) {
+      await sb.from('learning_signals').insert({
+        signal_type: signalType, source_entity: 'knowledge_decisions', source_id: dec.id,
+        context: dec.context || {}, weight: signalType === 'reversal' ? 2.5 : 1.0,
+      }).catch(() => {});
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════

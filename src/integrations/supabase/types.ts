@@ -3897,6 +3897,63 @@ export type Database = {
         }
         Relationships: []
       }
+      intelligence_metrics: {
+        Row: {
+          auto_approval_success_rate: number | null
+          confidence_vs_correctness: number | null
+          correct_predictions: number | null
+          created_at: string
+          id: string
+          metric_date: string
+          misunderstood_areas: Json | null
+          prediction_accuracy: number | null
+          reversal_rate: number | null
+          successful_auto_actions: number | null
+          top_mistakes: Json | null
+          total_auto_actions: number | null
+          total_escalations: number | null
+          total_ignored: number | null
+          total_predictions: number | null
+          total_reversals: number | null
+        }
+        Insert: {
+          auto_approval_success_rate?: number | null
+          confidence_vs_correctness?: number | null
+          correct_predictions?: number | null
+          created_at?: string
+          id?: string
+          metric_date?: string
+          misunderstood_areas?: Json | null
+          prediction_accuracy?: number | null
+          reversal_rate?: number | null
+          successful_auto_actions?: number | null
+          top_mistakes?: Json | null
+          total_auto_actions?: number | null
+          total_escalations?: number | null
+          total_ignored?: number | null
+          total_predictions?: number | null
+          total_reversals?: number | null
+        }
+        Update: {
+          auto_approval_success_rate?: number | null
+          confidence_vs_correctness?: number | null
+          correct_predictions?: number | null
+          created_at?: string
+          id?: string
+          metric_date?: string
+          misunderstood_areas?: Json | null
+          prediction_accuracy?: number | null
+          reversal_rate?: number | null
+          successful_auto_actions?: number | null
+          top_mistakes?: Json | null
+          total_auto_actions?: number | null
+          total_escalations?: number | null
+          total_ignored?: number | null
+          total_predictions?: number | null
+          total_reversals?: number | null
+        }
+        Relationships: []
+      }
       knowledge_decisions: {
         Row: {
           created_at: string | null
@@ -4028,6 +4085,39 @@ export type Database = {
           rule_key?: string | null
           sample_count?: number | null
           status?: string | null
+        }
+        Relationships: []
+      }
+      learning_signals: {
+        Row: {
+          context: Json | null
+          created_at: string
+          id: string
+          processed: boolean | null
+          signal_type: string
+          source_entity: string | null
+          source_id: string | null
+          weight: number | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          processed?: boolean | null
+          signal_type: string
+          source_entity?: string | null
+          source_id?: string | null
+          weight?: number | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          processed?: boolean | null
+          signal_type?: string
+          source_entity?: string | null
+          source_id?: string | null
+          weight?: number | null
         }
         Relationships: []
       }
