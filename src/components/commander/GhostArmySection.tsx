@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { useGhostArmy } from '@/hooks/useGhostArmy';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
-  Ghost, Play, Trash2, Users, ShieldAlert, CheckCircle2,
-  AlertTriangle, Loader2, TreePine, Search, MessageSquare, Skull,
+  Play, Trash2, Users, ShieldAlert, CheckCircle2,
+  AlertTriangle, Loader2, TreePine, Search, MessageSquare, Skull, Target,
 } from 'lucide-react';
 
 export function GhostArmySection() {
@@ -19,6 +19,7 @@ export function GhostArmySection() {
 
   const [lastResults, setLastResults] = useState<any[] | null>(null);
   const [activeTab, setActiveTab] = useState<'results' | 'analysis'>('results');
+  const [expandedResult, setExpandedResult] = useState<number | null>(null);
 
   useEffect(() => { checkStatus(); }, []);
 
@@ -93,7 +94,7 @@ export function GhostArmySection() {
               <MiniStat icon={<CheckCircle2 className="h-3.5 w-3.5 text-success" />} value={status.lastSimulation.passed} label={isAr ? 'نجح' : 'Passed'} />
               <MiniStat icon={<AlertTriangle className="h-3.5 w-3.5 text-warning" />} value={status.lastSimulation.failed} label={isAr ? 'فشل' : 'Failed'} highlight={status.lastSimulation.failed > 0} />
               <MiniStat icon={<ShieldAlert className="h-3.5 w-3.5 text-destructive" />} value={status.lastSimulation.critical_issues} label={isAr ? 'حرج' : 'Critical'} highlight={status.lastSimulation.critical_issues > 0} />
-              <MiniStat icon={<MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />} value={`${status.lastSimulation.avg_chat_latency_ms}ms`} label={isAr ? 'وقت الدردشة' : 'Chat Latency'} />
+              <MiniStat icon={<MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />} value={`${status.lastSimulation.chat_delivered ?? (status.lastSimulation.avg_chat_latency_ms ? '—' : 0)}/${status.lastSimulation.chat_attempted ?? 20}`} label={isAr ? 'رسائل مُسلّمة' : 'Chat Delivered'} />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <MiniStat icon={<TreePine className="h-3.5 w-3.5 text-primary" />} value={status.lastSimulation.referral_links_tested} label={isAr ? 'روابط الإحالة' : 'Referral Links'} />
@@ -101,28 +102,68 @@ export function GhostArmySection() {
               <MiniStat icon={<Play className="h-3.5 w-3.5 text-muted-foreground" />} value={`${status.lastSimulation.duration_ms}ms`} label={isAr ? 'المدة' : 'Duration'} />
             </div>
 
+            {/* Executive-grade results list */}
             {lastResults && lastResults.length > 0 && (
-              <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                {lastResults.map((r: any, i: number) => (
-                  <div key={i} className={`flex items-start gap-2 text-xs rounded-md px-2.5 py-1.5 border ${
-                    r.status === 'fail' ? 'border-destructive/30 bg-destructive/5' :
-                    r.status === 'warning' ? 'border-warning/30 bg-warning/5' : 'border-border bg-card'
-                  }`}>
-                    <span className="mt-0.5 shrink-0">{categoryIcons[r.category] || '📋'}</span>
-                    <div className="min-w-0">
-                      <span className="font-medium">{r.test}</span>
-                      <span className="text-muted-foreground ml-1.5">[{r.category}]</span>
-                      {r.latency_ms && <span className="text-muted-foreground ml-1">({r.latency_ms}ms)</span>}
-                      <p className="text-muted-foreground mt-0.5 break-words">{r.detail}</p>
+              <div className="space-y-1.5 max-h-80 overflow-y-auto">
+                {lastResults.map((r: any, i: number) => {
+                  const isExpanded = expandedResult === i;
+                  const hasExecFields = r.what_happened && r.why_it_matters && r.recommended_action;
+
+                  return (
+                    <div
+                      key={i}
+                      className={`rounded-md border transition-colors ${
+                        r.status === 'fail' ? 'border-destructive/30 bg-destructive/5' :
+                        r.status === 'warning' ? 'border-warning/30 bg-warning/5' : 'border-border bg-card'
+                      }`}
+                    >
+                      <div
+                        className="flex items-start gap-2 text-xs px-2.5 py-1.5 cursor-pointer"
+                        onClick={() => setExpandedResult(isExpanded ? null : i)}
+                      >
+                        <span className="mt-0.5 shrink-0">{categoryIcons[r.category] || '📋'}</span>
+                        <div className="min-w-0 flex-1">
+                          <span className="font-medium">{r.test}</span>
+                          {r.latency_ms != null && <span className="text-muted-foreground ml-1">({r.latency_ms}ms)</span>}
+                        </div>
+                        <Badge variant="outline" className={`text-[9px] shrink-0 ${
+                          r.severity === 'critical' ? 'border-destructive/50 text-destructive' :
+                          r.severity === 'high' ? 'border-warning/50 text-warning' : ''
+                        }`}>
+                          {r.status === 'pass' ? '✓' : r.status === 'fail' ? '✗' : '⚠'} {r.severity}
+                        </Badge>
+                      </div>
+
+                      {/* Executive Detail — Problem → Impact → Action */}
+                      {isExpanded && hasExecFields && (
+                        <div className="px-2.5 pb-2.5 space-y-1.5 border-t border-border/50 mt-1 pt-2">
+                          <div className="text-[11px]">
+                            <span className="font-semibold text-foreground">{isAr ? 'ما حدث: ' : 'What happened: '}</span>
+                            <span className="text-muted-foreground">{r.what_happened}</span>
+                          </div>
+                          <div className="text-[11px]">
+                            <span className="font-semibold text-foreground">{isAr ? 'الأثر: ' : 'Impact: '}</span>
+                            <span className="text-muted-foreground">{r.why_it_matters}</span>
+                          </div>
+                          <div className="text-[11px] flex items-start gap-1">
+                            <Target className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-semibold text-primary">{isAr ? 'الإجراء: ' : 'Action: '}</span>
+                              <span>{r.recommended_action}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Fallback for old results without exec fields */}
+                      {isExpanded && !hasExecFields && (
+                        <div className="px-2.5 pb-2 text-[11px] text-muted-foreground">
+                          {r.detail}
+                        </div>
+                      )}
                     </div>
-                    <Badge variant="outline" className={`text-[9px] shrink-0 ${
-                      r.severity === 'critical' ? 'border-destructive/50 text-destructive' :
-                      r.severity === 'high' ? 'border-warning/50 text-warning' : ''
-                    }`}>
-                      {r.severity}
-                    </Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -152,7 +193,7 @@ export function GhostArmySection() {
             {status.lastAnalysis.critical_findings.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-destructive">{isAr ? 'مشاكل حرجة:' : 'Critical Findings:'}</p>
-                {status.lastAnalysis.critical_findings.map((f, i) => (
+                {status.lastAnalysis.critical_findings.map((f: string, i: number) => (
                   <p key={i} className="text-xs text-muted-foreground pl-2 border-l-2 border-destructive/30">{f}</p>
                 ))}
               </div>
@@ -161,7 +202,7 @@ export function GhostArmySection() {
             {status.lastAnalysis.recommendations.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-primary">{isAr ? 'التوصيات:' : 'Recommendations:'}</p>
-                {status.lastAnalysis.recommendations.map((r, i) => (
+                {status.lastAnalysis.recommendations.map((r: string, i: number) => (
                   <p key={i} className="text-xs text-muted-foreground pl-2 border-l-2 border-primary/30">→ {r}</p>
                 ))}
               </div>
