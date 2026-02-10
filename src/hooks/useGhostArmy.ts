@@ -61,7 +61,9 @@ export function useGhostArmy() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSocializing, setIsSocializing] = useState(false);
   const [isEconomyRunning, setIsEconomyRunning] = useState(false);
+  const [isChaosRunning, setIsChaosRunning] = useState(false);
   const [economyMetrics, setEconomyMetrics] = useState<any>(null);
+  const [chaosResults, setChaosResults] = useState<any>(null);
   const [status, setStatus] = useState<GhostArmyStatus>({
     provisioned: 0, referralLinks: 0, lastSimulation: null, lastAnalysis: null,
   });
@@ -199,9 +201,30 @@ export function useGhostArmy() {
     }
   };
 
+  const chaosSimulate = async () => {
+    setIsChaosRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ghost-army-chaos');
+      if (error) throw error;
+      setChaosResults(data);
+      const s = data.summary;
+      const emoji = s.critical_breaches > 0 ? '🔴' : s.breaches > 0 ? '🟡' : '🟢';
+      toast({
+        title: `${emoji} Chaos Test: ${s.immune_score}% Immune`,
+        description: `${s.defenses} defended, ${s.breaches} breached (${s.critical_breaches} critical)`,
+        variant: s.critical_breaches > 0 ? 'destructive' : undefined,
+      });
+      return data;
+    } catch (err: any) {
+      toast({ title: 'Chaos Simulation Failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsChaosRunning(false);
+    }
+  };
+
   return {
-    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing, isEconomyRunning,
-    economyMetrics,
-    checkStatus, provision, simulate, analyze, cleanup, socialSimulate, economySimulate,
+    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing, isEconomyRunning, isChaosRunning,
+    economyMetrics, chaosResults,
+    checkStatus, provision, simulate, analyze, cleanup, socialSimulate, economySimulate, chaosSimulate,
   };
 }

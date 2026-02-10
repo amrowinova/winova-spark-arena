@@ -9,7 +9,7 @@ import { SimulationResultsList } from './ghost-army/SimulationResultsList';
 import { SocialStream } from './ghost-army/SocialStream';
 import {
   Play, Trash2, Users, Loader2, TreePine, Search,
-  MessageSquare, Wallet, Network, Trophy, Shield, Heart, ShoppingCart, Brain, Landmark,
+  MessageSquare, Wallet, Network, Trophy, Shield, Heart, ShoppingCart, Brain, Landmark, Zap,
 } from 'lucide-react';
 
 const SCENARIOS: { id: SimulationScenario; icon: React.ReactNode; label: string; labelAr: string }[] = [
@@ -27,13 +27,13 @@ export function GhostArmySection() {
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const {
-    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing, isEconomyRunning,
-    economyMetrics,
-    checkStatus, provision, simulate, analyze, cleanup, socialSimulate, economySimulate,
+    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing, isEconomyRunning, isChaosRunning,
+    economyMetrics, chaosResults,
+    checkStatus, provision, simulate, analyze, cleanup, socialSimulate, economySimulate, chaosSimulate,
   } = useGhostArmy();
 
   const [lastResults, setLastResults] = useState<any[] | null>(null);
-  const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis' | 'social' | 'economy'>('behavioral');
+  const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis' | 'social' | 'economy' | 'chaos'>('behavioral');
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario>('full');
   const [safeMode, setSafeMode] = useState(true);
   const [liveMode, setLiveMode] = useState(false);
@@ -55,7 +55,12 @@ export function GhostArmySection() {
     setActiveTab('economy');
   };
 
-  const isAnyRunning = isProvisioning || isSimulating || isCleaning || isAnalyzing || isSocializing || isEconomyRunning;
+  const handleChaos = async () => {
+    await chaosSimulate();
+    setActiveTab('chaos');
+  };
+
+  const isAnyRunning = isProvisioning || isSimulating || isCleaning || isAnalyzing || isSocializing || isEconomyRunning || isChaosRunning;
 
   return (
     <Card className="border-primary/20">
@@ -84,6 +89,10 @@ export function GhostArmySection() {
           <Button size="sm" variant="outline" onClick={handleEconomy} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5 border-primary/40">
             {isEconomyRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Landmark className="h-3.5 w-3.5" />}
             {isAr ? '🏙️ اقتصاد ذاتي' : '🏙️ Autonomous Economy'}
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleChaos} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10">
+            {isChaosRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+            {isAr ? '⚡ فوضى محكومة' : '⚡ Controlled Chaos'}
           </Button>
           <Button size="sm" variant="outline" onClick={analyze} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5">
             {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
@@ -157,6 +166,10 @@ export function GhostArmySection() {
               <Landmark className="h-3 w-3" />
               {isAr ? 'الاقتصاد' : 'Economy'}
             </Button>
+            <Button size="sm" variant={activeTab === 'chaos' ? 'default' : 'ghost'} onClick={() => setActiveTab('chaos')} className="h-7 text-xs gap-1">
+              <Zap className="h-3 w-3" />
+              {isAr ? 'الفوضى' : 'Chaos'}
+            </Button>
             <Button size="sm" variant={activeTab === 'analysis' ? 'default' : 'ghost'} onClick={() => setActiveTab('analysis')} className="h-7 text-xs">
               {isAr ? 'تقرير المراقب' : 'Spy Report'}
             </Button>
@@ -185,6 +198,16 @@ export function GhostArmySection() {
         {activeTab === 'economy' && !economyMetrics && (
           <p className="text-xs text-muted-foreground">
             {isAr ? 'اضغط "اقتصاد ذاتي" لبدء محاكاة السوق.' : 'Click "Autonomous Economy" to start the marketplace simulation.'}
+          </p>
+        )}
+
+        {/* Chaos Results */}
+        {activeTab === 'chaos' && chaosResults && (
+          <ChaosResultsView data={chaosResults} isAr={isAr} />
+        )}
+        {activeTab === 'chaos' && !chaosResults && (
+          <p className="text-xs text-muted-foreground">
+            {isAr ? 'اضغط "فوضى محكومة" لاختبار الجهاز المناعي.' : 'Click "Controlled Chaos" to stress-test the immune system.'}
           </p>
         )}
 
@@ -237,6 +260,53 @@ function SpyAnalysisView({ status, isAr }: { status: any; isAr: boolean }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ChaosResultsView({ data, isAr }: { data: any; isAr: boolean }) {
+  const s = data.summary;
+  const results = data.results || [];
+
+  return (
+    <div className="space-y-3">
+      {/* Immune Score */}
+      <div className="flex items-center gap-3">
+        <div className={`text-3xl font-black ${
+          s.immune_score === 100 ? 'text-primary' : s.immune_score >= 80 ? 'text-yellow-500' : 'text-destructive'
+        }`}>
+          {s.immune_score}%
+        </div>
+        <div>
+          <p className="text-sm font-medium">{isAr ? 'نسبة المناعة' : 'Immune Score'}</p>
+          <p className="text-[10px] text-muted-foreground">
+            {s.defenses} {isAr ? 'صد' : 'defended'} / {s.total_attacks} {isAr ? 'هجمة' : 'attacks'} • {s.duration_ms}ms
+          </p>
+        </div>
+      </div>
+
+      {/* Attack Results */}
+      <div className="space-y-1.5 max-h-64 overflow-y-auto">
+        {results.map((r: any, i: number) => (
+          <div key={i} className={`flex items-start gap-2 p-2 rounded-md border text-xs ${
+            r.blocked ? 'border-primary/20 bg-primary/5' : 'border-destructive/30 bg-destructive/5'
+          }`}>
+            <span className="text-base mt-0.5">{r.blocked ? '🛡️' : '💥'}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-medium">{r.attack}</span>
+                <Badge variant={r.blocked ? 'secondary' : 'destructive'} className="text-[9px] h-4">
+                  {r.category}
+                </Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{r.detail}</p>
+              <p className="text-[10px] mt-0.5 font-mono">
+                {r.blocked ? '✅' : '❌'} {r.defense_mechanism}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
