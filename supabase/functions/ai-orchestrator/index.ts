@@ -118,6 +118,11 @@ const INTENT_MAP: Record<string, { agent: string; intent: string }> = {
   'problems': { agent: 'ai-problem-to-patch', intent: 'problem_scan' },
   'مشاكل': { agent: 'ai-problem-to-patch', intent: 'problem_scan' },
   'autonomous fix': { agent: 'ai-problem-to-patch', intent: 'problem_scan' },
+  'learn': { agent: 'ai-decision-learner', intent: 'decision_learning' },
+  'تعلم': { agent: 'ai-decision-learner', intent: 'decision_learning' },
+  'predict': { agent: 'ai-decision-learner', intent: 'decision_prediction' },
+  'alignment': { agent: 'ai-decision-learner', intent: 'decision_learning' },
+  'محاذاة': { agent: 'ai-decision-learner', intent: 'decision_learning' },
 };
 
 // ─── DM Helper ────────────────────────────────────────
