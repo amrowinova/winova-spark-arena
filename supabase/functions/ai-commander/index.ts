@@ -289,7 +289,7 @@ async function collectIntelligence(sb: any, lookbackHours: number) {
     codeChanges, evolutionProposals, agentSchedules,
     failures, forecasts, healthChecks,
     pendingProposals, commanderReviews, ownerConstitution,
-    predictionScores,
+    predictionScores, behavioralModel, commProfile, predictionAccuracy,
   ] = await Promise.all([
     sb.from('ai_execution_requests').select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(30),
     sb.from('ai_analysis_logs').select('*, ai_agents!ai_analysis_logs_agent_id_fkey(agent_name, agent_name_ar)').gte('created_at', since).order('created_at', { ascending: false }).limit(30),
@@ -304,7 +304,15 @@ async function collectIntelligence(sb: any, lookbackHours: number) {
     sb.from('commander_reviews').select('*').order('created_at', { ascending: false }).limit(3),
     sb.from('owner_constitution').select('*').eq('is_active', true),
     sb.from('ceo_prediction_scores').select('*').order('created_at', { ascending: false }).limit(10),
+    sb.from('ceo_behavioral_model').select('dimension, dimension_ar, current_value, confidence, description_en'),
+    sb.from('ceo_communication_profile').select('preference_key, value, confidence').eq('is_active', true),
+    sb.from('ceo_decision_history').select('prediction_was_correct').not('prediction_was_correct', 'is', null).limit(100),
   ]);
+
+  // Calculate prediction accuracy
+  const accuracyRecords = predictionAccuracy.data || [];
+  const correctCount = accuracyRecords.filter((r: any) => r.prediction_was_correct === true).length;
+  const accuracyPct = accuracyRecords.length > 0 ? Math.round((correctCount / accuracyRecords.length) * 100) : 0;
 
   return {
     executionRequests: executionRequests.data || [],
@@ -320,6 +328,10 @@ async function collectIntelligence(sb: any, lookbackHours: number) {
     commanderReviews: commanderReviews.data || [],
     ownerConstitution: ownerConstitution.data || [],
     predictionScores: predictionScores.data || [],
+    behavioralModel: behavioralModel.data || [],
+    commProfile: commProfile.data || [],
+    predictionAccuracy: accuracyPct,
+    predictionSampleSize: accuracyRecords.length,
   };
 }
 
@@ -386,6 +398,31 @@ If information does not change a decision, DO NOT include it.
 ## OWNER CONSTITUTION
 ${constitutionRules || 'No constitution loaded — flag this as critical'}
 
+## CEO BEHAVIORAL MODEL (Learned from ${intel.predictionSampleSize || 0} past decisions)
+${JSON.stringify((intel.behavioralModel || []).map((b: any) => ({
+  dimension: b.dimension,
+  value: b.current_value,
+  confidence: b.confidence,
+  meaning: b.description_en,
+})), null, 2)}
+
+## CEO COMMUNICATION PREFERENCES
+${JSON.stringify((intel.commProfile || []).map((p: any) => ({
+  preference: p.preference_key,
+  value: p.value,
+  confidence: p.confidence,
+})), null, 2)}
+
+## PREDICTION INTELLIGENCE
+- Overall prediction accuracy: ${intel.predictionAccuracy}% (${intel.predictionSampleSize} verified predictions)
+- Items auto-approved by prediction model (high confidence, low risk): shown separately
+${JSON.stringify(intel.predictionScores.slice(0, 5).map((s: any) => ({
+  probability: s.approval_probability,
+  predicted: s.predicted_decision,
+  fast_track: s.fast_track_eligible,
+  reasoning: s.reasoning,
+})), null, 2)}
+
 ## BUSINESS INTELLIGENCE (Last ${mode === 'critical' ? '1 hour' : mode === 'hourly' ? '3 hours' : '24 hours'})
 
 ### Pending Decisions: ${intel.pendingProposals.length}
@@ -410,12 +447,15 @@ ${JSON.stringify(intel.forecasts.slice(0, 5).map((f: any) => ({ title: f.title, 
 ${failingComponents.length > 0 ? `Critical: ${failingComponents.join(', ')} are not functioning` : 'No critical failures'}
 ${degradedComponents.length > 0 ? `Degraded: ${degradedComponents.join(', ')} need attention` : ''}
 
-### Owner Decision Patterns
-${JSON.stringify(intel.predictionScores.slice(0, 5).map((s: any) => ({ request: s.request_id, probability: s.approval_probability, fast_track: s.fast_track_eligible })), null, 2)}
-
 ${workforceReport ? `### Team Health Summary\n${workforceReport.en}` : ''}
 
 ## YOUR MISSION
+You are a STRATEGIC PARTNER, not a reporter. Use the CEO behavioral model to:
+1. Filter out items the CEO would ignore (based on historical patterns)
+2. Prioritize items matching CEO's risk tolerance and preferences
+3. Include prediction confidence for each recommendation
+4. Only escalate what truly needs a human decision
+
 Produce a CEO briefing. Structure:
 
 1. **🚨 CRITICAL** — Needs immediate CEO action (max 3)
@@ -431,18 +471,23 @@ EACH item MUST include:
 - risk: critical/high/medium/low
 - recommendation: approve/reject/investigate/ignore/defer
 - confidence: 0-100
+- prediction_note: Why you think the CEO will approve/reject (based on behavioral model)
 
 ALSO include:
 - workforce_status: { summary, summary_ar, failing: [], improving: [], needs_replacement: [] }
-- pending_decisions: Count
+- pending_decisions: Count of items that ACTUALLY need CEO input (exclude auto-handled)
+- auto_handled: Count of items resolved without CEO (prediction-routed)
 - overall_health: 🟢/🟡/🔴 with one business-language sentence
+- prediction_accuracy: Current model accuracy percentage
 - constitution_alerts: Any rule violations detected
+- learning_update: One sentence about what the model learned recently
 
 Rules:
 - Max 12 items total
-- If no actionable items: respond with greeting + "All systems are stable. Nothing requires your decision."
-- NO hallucinations — say "insufficient data" if unsure
-- ZERO technical vocabulary. You are a business executive.
+- ONLY show items that would change a CEO decision. Protect his time.
+- If no actionable items: "All systems are stable. Nothing requires your decision."
+- NO hallucinations — "insufficient data" if unsure
+- ZERO technical vocabulary. You are a strategic executive partner.
 
 Respond with valid JSON only (no markdown fences).`;
 
@@ -480,13 +525,23 @@ function formatBriefingForDM(briefing: any): { en: string; ar: string } {
   en += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   en += `${briefing.greeting || 'Amro, here is what you need to know.'}\n\n`;
   en += `${briefing.overall_health || ''}\n`;
-  en += `📊 Pending decisions: ${briefing.pending_decisions || 0}\n\n`;
+  en += `📊 Needs your decision: ${briefing.pending_decisions || 0}`;
+  if (briefing.auto_handled) en += ` | Auto-handled: ${briefing.auto_handled}`;
+  if (briefing.prediction_accuracy) en += ` | Model accuracy: ${briefing.prediction_accuracy}%`;
+  en += `\n`;
+  if (briefing.learning_update) en += `🧠 ${briefing.learning_update}\n`;
+  en += `\n`;
 
   let ar = `🎖️ **رئيس الأركان — إحاطة لعمرو**\n`;
   ar += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   ar += `${briefing.greeting_ar || 'عمرو، هذا ما تحتاج معرفته الآن.'}\n\n`;
   ar += `${briefing.overall_health_ar || ''}\n`;
-  ar += `📊 قرارات معلقة: ${briefing.pending_decisions || 0}\n\n`;
+  ar += `📊 يحتاج قرارك: ${briefing.pending_decisions || 0}`;
+  if (briefing.auto_handled) ar += ` | تمت معالجته تلقائياً: ${briefing.auto_handled}`;
+  if (briefing.prediction_accuracy) ar += ` | دقة النموذج: ${briefing.prediction_accuracy}%`;
+  ar += `\n`;
+  if (briefing.learning_update) ar += `🧠 ${briefing.learning_update}\n`;
+  ar += `\n`;
 
   const sections = [
     { key: 'critical', emoji: '🚨', title_en: 'CRITICAL — Needs Your Decision Now', title_ar: 'حرج — يحتاج قرارك الآن' },

@@ -2875,14 +2875,98 @@ export type Database = {
         }
         Relationships: []
       }
+      ceo_behavioral_model: {
+        Row: {
+          confidence: number
+          created_at: string
+          current_value: number
+          description_ar: string | null
+          description_en: string | null
+          dimension: string
+          dimension_ar: string | null
+          historical_values: Json | null
+          id: string
+          last_updated_at: string
+          sample_count: number
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          current_value?: number
+          description_ar?: string | null
+          description_en?: string | null
+          dimension: string
+          dimension_ar?: string | null
+          historical_values?: Json | null
+          id?: string
+          last_updated_at?: string
+          sample_count?: number
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          current_value?: number
+          description_ar?: string | null
+          description_en?: string | null
+          dimension?: string
+          dimension_ar?: string | null
+          historical_values?: Json | null
+          id?: string
+          last_updated_at?: string
+          sample_count?: number
+        }
+        Relationships: []
+      }
+      ceo_communication_profile: {
+        Row: {
+          confidence: number
+          created_at: string
+          evidence: Json | null
+          id: string
+          is_active: boolean
+          preference_key: string
+          preference_key_ar: string | null
+          sample_count: number
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          is_active?: boolean
+          preference_key: string
+          preference_key_ar?: string | null
+          sample_count?: number
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          is_active?: boolean
+          preference_key?: string
+          preference_key_ar?: string | null
+          sample_count?: number
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       ceo_decision_history: {
         Row: {
           context_snapshot: Json | null
           created_at: string
           decision: string
           decision_reason: string | null
+          emotional_signal: string | null
           id: string
           modification_notes: string | null
+          predicted_probability: number | null
+          prediction_was_correct: boolean | null
           request_id: string | null
           request_title: string
           request_title_ar: string | null
@@ -2892,14 +2976,18 @@ export type Database = {
           services_affected: string[] | null
           suggested_fix: string | null
           urgency: string
+          was_modified: boolean | null
         }
         Insert: {
           context_snapshot?: Json | null
           created_at?: string
           decision: string
           decision_reason?: string | null
+          emotional_signal?: string | null
           id?: string
           modification_notes?: string | null
+          predicted_probability?: number | null
+          prediction_was_correct?: boolean | null
           request_id?: string | null
           request_title: string
           request_title_ar?: string | null
@@ -2909,14 +2997,18 @@ export type Database = {
           services_affected?: string[] | null
           suggested_fix?: string | null
           urgency?: string
+          was_modified?: boolean | null
         }
         Update: {
           context_snapshot?: Json | null
           created_at?: string
           decision?: string
           decision_reason?: string | null
+          emotional_signal?: string | null
           id?: string
           modification_notes?: string | null
+          predicted_probability?: number | null
+          prediction_was_correct?: boolean | null
           request_id?: string | null
           request_title?: string
           request_title_ar?: string | null
@@ -2926,6 +3018,7 @@ export type Database = {
           services_affected?: string[] | null
           suggested_fix?: string | null
           urgency?: string
+          was_modified?: boolean | null
         }
         Relationships: []
       }
