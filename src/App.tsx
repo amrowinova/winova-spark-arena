@@ -53,6 +53,7 @@ import AdminProposals from "./pages/admin/AdminProposals";
 import ControlTower from "./pages/admin/ControlTower";
 import StrategicBrain from "./pages/admin/StrategicBrain";
 import Evolution from "./pages/admin/Evolution";
+import Commander from "./pages/admin/Commander";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
@@ -128,6 +129,7 @@ const App = () => (
                             <Route path="/admin/control-tower" element={<AdminGuard><ControlTower /></AdminGuard>} />
                             <Route path="/admin/strategic-brain" element={<AdminGuard><StrategicBrain /></AdminGuard>} />
                             <Route path="/admin/evolution" element={<AdminGuard><Evolution /></AdminGuard>} />
+                            <Route path="/admin/commander" element={<AdminGuard><Commander /></AdminGuard>} />
                             
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />
