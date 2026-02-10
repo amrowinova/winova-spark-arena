@@ -60,6 +60,8 @@ export function useGhostArmy() {
   const [isCleaning, setIsCleaning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSocializing, setIsSocializing] = useState(false);
+  const [isEconomyRunning, setIsEconomyRunning] = useState(false);
+  const [economyMetrics, setEconomyMetrics] = useState<any>(null);
   const [status, setStatus] = useState<GhostArmyStatus>({
     provisioned: 0, referralLinks: 0, lastSimulation: null, lastAnalysis: null,
   });
@@ -175,8 +177,31 @@ export function useGhostArmy() {
     }
   };
 
+  const economySimulate = async (tradeCount = 30, seedAmount = 10, cycles = 1) => {
+    setIsEconomyRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ghost-army-economy', {
+        body: { trade_count: tradeCount, seed_amount: seedAmount, cycles },
+      });
+      if (error) throw error;
+      const s = data.summary;
+      setEconomyMetrics(s);
+      const emoji = s.escrows_released > 0 ? '🏙️' : '⚠️';
+      toast({
+        title: `${emoji} Autonomous Economy Complete`,
+        description: `${s.escrows_released} trades, ${s.total_nova_traded}И traded, ${s.ratings_submitted} ratings`,
+      });
+      return data;
+    } catch (err: any) {
+      toast({ title: 'Economy Simulation Failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsEconomyRunning(false);
+    }
+  };
+
   return {
-    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing,
-    checkStatus, provision, simulate, analyze, cleanup, socialSimulate,
+    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing, isEconomyRunning,
+    economyMetrics,
+    checkStatus, provision, simulate, analyze, cleanup, socialSimulate, economySimulate,
   };
 }
