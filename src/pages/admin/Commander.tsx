@@ -6,6 +6,7 @@ import { DecisionFeed } from '@/components/commander/DecisionFeed';
 import { LearningLoopChart } from '@/components/commander/LearningLoopChart';
 import { EmergencyControls } from '@/components/commander/EmergencyControls';
 import { GovernanceTierLegend } from '@/components/commander/GovernanceTierLegend';
+import { AuthorityTierCard } from '@/components/commander/AuthorityTierCard';
 
 export default function Commander() {
   const { language } = useLanguage();
@@ -23,10 +24,13 @@ export default function Commander() {
         {/* 1. Commander Briefing — always first */}
         <CommanderBriefing />
 
-        {/* 2. Decision Feed — the core */}
+        {/* 2. Authority Level — earned autonomy */}
+        <AuthorityTierCard />
+
+        {/* 3. Decision Feed — the core */}
         <DecisionFeed />
 
-        {/* 3. Learning Loop + Governance side by side */}
+        {/* 4. Learning Loop + Governance side by side */}
         <div className="grid md:grid-cols-2 gap-4">
           <LearningLoopChart />
           <div className="space-y-4">

@@ -2,12 +2,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCommanderBriefing } from '@/hooks/useCommander';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Shield, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle2, Clock, ChevronUp } from 'lucide-react';
+import { useAuthorityTier } from '@/hooks/useAuthorityTier';
 
 export function CommanderBriefing() {
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const { data, isLoading } = useCommanderBriefing();
+  const { currentLevel, currentDef } = useAuthorityTier();
 
   if (isLoading || !data) {
     return (
@@ -45,11 +47,15 @@ export function CommanderBriefing() {
     <Card className="border-primary/20">
       <CardContent className="p-5 space-y-4">
         {/* Status Line */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Shield className="h-5 w-5 text-primary" />
           <span className="font-semibold text-sm">
             {isAr ? 'ملخص القائد' : 'Commander Briefing'}
           </span>
+          <Badge variant="outline" className="text-[10px] gap-1">
+            <ChevronUp className="h-2.5 w-2.5" />
+            L{currentLevel} {isAr ? currentDef.nameAr : currentDef.name}
+          </Badge>
           {data.criticalItems > 0 && (
             <Badge variant="destructive" className="text-[10px]">
               {data.criticalItems} {isAr ? 'حرج' : 'CRITICAL'}

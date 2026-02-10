@@ -2833,6 +2833,99 @@ export type Database = {
         }
         Relationships: []
       }
+      authority_promotion_log: {
+        Row: {
+          accuracy_trend: number | null
+          action: string
+          approved_by: string | null
+          created_at: string
+          decision_similarity: number | null
+          from_level: number
+          id: string
+          override_frequency: number | null
+          reason: string
+          reason_ar: string | null
+          reversal_rate: number | null
+          to_level: number
+          triggered_by: string
+        }
+        Insert: {
+          accuracy_trend?: number | null
+          action: string
+          approved_by?: string | null
+          created_at?: string
+          decision_similarity?: number | null
+          from_level: number
+          id?: string
+          override_frequency?: number | null
+          reason: string
+          reason_ar?: string | null
+          reversal_rate?: number | null
+          to_level: number
+          triggered_by?: string
+        }
+        Update: {
+          accuracy_trend?: number | null
+          action?: string
+          approved_by?: string | null
+          created_at?: string
+          decision_similarity?: number | null
+          from_level?: number
+          id?: string
+          override_frequency?: number | null
+          reason?: string
+          reason_ar?: string | null
+          reversal_rate?: number | null
+          to_level?: number
+          triggered_by?: string
+        }
+        Relationships: []
+      }
+      authority_tier_state: {
+        Row: {
+          accuracy_at_change: number | null
+          created_at: string
+          current_level: number
+          id: string
+          last_demoted_at: string | null
+          last_promoted_at: string | null
+          override_count_at_change: number | null
+          promoted_by: string | null
+          reason: string
+          reason_ar: string | null
+          reversal_rate_at_change: number | null
+          updated_at: string
+        }
+        Insert: {
+          accuracy_at_change?: number | null
+          created_at?: string
+          current_level?: number
+          id?: string
+          last_demoted_at?: string | null
+          last_promoted_at?: string | null
+          override_count_at_change?: number | null
+          promoted_by?: string | null
+          reason?: string
+          reason_ar?: string | null
+          reversal_rate_at_change?: number | null
+          updated_at?: string
+        }
+        Update: {
+          accuracy_at_change?: number | null
+          created_at?: string
+          current_level?: number
+          id?: string
+          last_demoted_at?: string | null
+          last_promoted_at?: string | null
+          override_count_at_change?: number | null
+          promoted_by?: string | null
+          reason?: string
+          reason_ar?: string | null
+          reversal_rate_at_change?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       autonomy_caps: {
         Row: {
           cap_key: string
