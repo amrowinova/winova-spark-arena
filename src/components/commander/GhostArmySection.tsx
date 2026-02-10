@@ -9,7 +9,7 @@ import { SimulationResultsList } from './ghost-army/SimulationResultsList';
 import { SocialStream } from './ghost-army/SocialStream';
 import {
   Play, Trash2, Users, Loader2, TreePine, Search,
-  MessageSquare, Wallet, Network, Trophy, Shield, Heart, ShoppingCart, Brain,
+  MessageSquare, Wallet, Network, Trophy, Shield, Heart, ShoppingCart, Brain, Landmark,
 } from 'lucide-react';
 
 const SCENARIOS: { id: SimulationScenario; icon: React.ReactNode; label: string; labelAr: string }[] = [
@@ -27,12 +27,13 @@ export function GhostArmySection() {
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const {
-    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing,
-    checkStatus, provision, simulate, analyze, cleanup, socialSimulate,
+    status, isProvisioning, isSimulating, isCleaning, isAnalyzing, isSocializing, isEconomyRunning,
+    economyMetrics,
+    checkStatus, provision, simulate, analyze, cleanup, socialSimulate, economySimulate,
   } = useGhostArmy();
 
   const [lastResults, setLastResults] = useState<any[] | null>(null);
-  const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis' | 'social'>('behavioral');
+  const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis' | 'social' | 'economy'>('behavioral');
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario>('full');
   const [safeMode, setSafeMode] = useState(true);
   const [liveMode, setLiveMode] = useState(false);
@@ -49,7 +50,12 @@ export function GhostArmySection() {
     setActiveTab('social');
   };
 
-  const isAnyRunning = isProvisioning || isSimulating || isCleaning || isAnalyzing || isSocializing;
+  const handleEconomy = async () => {
+    await economySimulate(30, 10, 1);
+    setActiveTab('economy');
+  };
+
+  const isAnyRunning = isProvisioning || isSimulating || isCleaning || isAnalyzing || isSocializing || isEconomyRunning;
 
   return (
     <Card className="border-primary/20">
@@ -74,6 +80,10 @@ export function GhostArmySection() {
           <Button size="sm" variant="outline" onClick={handleSocial} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5">
             {isSocializing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Brain className="h-3.5 w-3.5" />}
             {isAr ? 'محاكاة اجتماعية ذكية' : 'Sentient Social'}
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleEconomy} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5 border-primary/40">
+            {isEconomyRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Landmark className="h-3.5 w-3.5" />}
+            {isAr ? '🏙️ اقتصاد ذاتي' : '🏙️ Autonomous Economy'}
           </Button>
           <Button size="sm" variant="outline" onClick={analyze} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5">
             {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
@@ -143,6 +153,10 @@ export function GhostArmySection() {
               <Brain className="h-3 w-3" />
               {isAr ? 'البث الاجتماعي' : 'Social Stream'}
             </Button>
+            <Button size="sm" variant={activeTab === 'economy' ? 'default' : 'ghost'} onClick={() => setActiveTab('economy')} className="h-7 text-xs gap-1">
+              <Landmark className="h-3 w-3" />
+              {isAr ? 'الاقتصاد' : 'Economy'}
+            </Button>
             <Button size="sm" variant={activeTab === 'analysis' ? 'default' : 'ghost'} onClick={() => setActiveTab('analysis')} className="h-7 text-xs">
               {isAr ? 'تقرير المراقب' : 'Spy Report'}
             </Button>
@@ -162,6 +176,16 @@ export function GhostArmySection() {
         {/* Social Stream */}
         {activeTab === 'social' && (
           <SocialStream isAr={isAr} />
+        )}
+
+        {/* Economy Metrics */}
+        {activeTab === 'economy' && economyMetrics && (
+          <EconomyMetricsView metrics={economyMetrics} isAr={isAr} />
+        )}
+        {activeTab === 'economy' && !economyMetrics && (
+          <p className="text-xs text-muted-foreground">
+            {isAr ? 'اضغط "اقتصاد ذاتي" لبدء محاكاة السوق.' : 'Click "Autonomous Economy" to start the marketplace simulation.'}
+          </p>
         )}
 
         {/* Spy Analysis */}
@@ -212,6 +236,46 @@ function SpyAnalysisView({ status, isAr }: { status: any; isAr: boolean }) {
             <p key={i} className="text-xs text-muted-foreground pl-2 border-l-2 border-primary/30">→ {r}</p>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+function EconomyMetricsView({ metrics, isAr }: { metrics: any; isAr: boolean }) {
+  const stats = [
+    { icon: '💰', value: metrics.wallets_seeded, label: isAr ? 'محافظ مموّلة' : 'Wallets Seeded' },
+    { icon: '📦', value: metrics.sell_orders_created, label: isAr ? 'طلبات بيع' : 'Sell Orders' },
+    { icon: '🤝', value: metrics.orders_executed, label: isAr ? 'تم المطابقة' : 'Matched' },
+    { icon: '💳', value: metrics.payments_confirmed, label: isAr ? 'دفع مؤكد' : 'Paid' },
+    { icon: '✅', value: metrics.escrows_released, label: isAr ? 'تم التحرير' : 'Released' },
+    { icon: '⭐', value: metrics.ratings_submitted, label: isAr ? 'تقييمات' : 'Ratings' },
+    { icon: 'И', value: metrics.total_nova_traded, label: isAr ? 'نوڤا متداولة' : 'Nova Traded' },
+    { icon: '⏱', value: `${(metrics.duration_ms / 1000).toFixed(1)}s`, label: isAr ? 'المدة' : 'Duration' },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-4 gap-2">
+        {stats.map((s, i) => (
+          <MiniStat key={i} icon={s.icon} value={s.value} label={s.label} />
+        ))}
+      </div>
+      {metrics.errors && metrics.errors.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-destructive">
+            {isAr ? `أخطاء (${metrics.errors.length}):` : `Errors (${metrics.errors.length}):`}
+          </p>
+          <div className="max-h-32 overflow-y-auto space-y-0.5">
+            {metrics.errors.slice(0, 10).map((err: string, i: number) => (
+              <p key={i} className="text-[10px] text-muted-foreground pl-2 border-l-2 border-destructive/30 font-mono">{err}</p>
+            ))}
+          </div>
+        </div>
+      )}
+      {(!metrics.errors || metrics.errors.length === 0) && metrics.escrows_released > 0 && (
+        <p className="text-xs text-primary font-medium">
+          {isAr ? '✅ سوق حي بدون أخطاء' : '✅ Living marketplace — zero errors'}
+        </p>
       )}
     </div>
   );
