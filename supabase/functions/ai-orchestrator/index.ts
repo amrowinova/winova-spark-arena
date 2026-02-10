@@ -195,9 +195,41 @@ async function dispatchAgent(agentFunction: string, payload: Record<string, any>
       body: JSON.stringify(payload),
     });
     const body = await res.json().catch(() => ({}));
-    return { success: res.ok, status: res.status, body, durationMs: Date.now() - t0 };
+    const result = { success: res.ok, status: res.status, body, durationMs: Date.now() - t0 };
+
+    // ─── EUL: Executive Understanding Layer (mandatory post-run) ───
+    // Skip EUL for EUL itself to prevent recursion
+    if (agentFunction !== 'ai-executive-understanding') {
+      triggerEUL(agentFunction, payload.command_id || payload.schedule_id || crypto.randomUUID(), payload.triggered_by || 'unknown', body).catch(err =>
+        console.error(`[Orchestrator] EUL trigger failed for ${agentFunction}:`, err)
+      );
+    }
+
+    return result;
   } catch (err) {
     return { success: false, status: 0, body: { error: err instanceof Error ? err.message : 'Unknown' }, durationMs: Date.now() - t0 };
+  }
+}
+
+// ─── EUL Trigger (fire-and-forget) ────────────────────
+async function triggerEUL(agentFunction: string, runId: string, triggerType: string, rawOutput: any): Promise<void> {
+  const url = `${SUPABASE_URL}/functions/v1/ai-executive-understanding`;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        agent_function: agentFunction,
+        run_id: runId,
+        trigger_type: triggerType,
+        raw_output: rawOutput,
+      }),
+    });
+  } catch (err) {
+    console.error('[EUL-Trigger] Failed:', err);
   }
 }
 

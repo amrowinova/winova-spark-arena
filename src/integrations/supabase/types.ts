@@ -3394,6 +3394,60 @@ export type Database = {
         }
         Relationships: []
       }
+      executive_understanding_reports: {
+        Row: {
+          agent_function: string
+          confidence_score: number | null
+          created_at: string
+          duration_ms: number | null
+          executive_summary: string
+          executive_summary_ar: string | null
+          future_decision_impact: string
+          id: string
+          is_valid: boolean
+          owner_model_changes: string
+          patterns_discovered: string
+          risk_delta: string
+          run_id: string
+          trigger_type: string
+          validation_errors: string[] | null
+        }
+        Insert: {
+          agent_function: string
+          confidence_score?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          executive_summary: string
+          executive_summary_ar?: string | null
+          future_decision_impact?: string
+          id?: string
+          is_valid?: boolean
+          owner_model_changes?: string
+          patterns_discovered?: string
+          risk_delta?: string
+          run_id: string
+          trigger_type?: string
+          validation_errors?: string[] | null
+        }
+        Update: {
+          agent_function?: string
+          confidence_score?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          executive_summary?: string
+          executive_summary_ar?: string | null
+          future_decision_impact?: string
+          id?: string
+          is_valid?: boolean
+          owner_model_changes?: string
+          patterns_discovered?: string
+          risk_delta?: string
+          run_id?: string
+          trigger_type?: string
+          validation_errors?: string[] | null
+        }
+        Relationships: []
+      }
       external_access_requests: {
         Row: {
           approved_at: string | null
