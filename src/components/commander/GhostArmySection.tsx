@@ -4,14 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useGhostArmy, SimulationScenario } from '@/hooks/useGhostArmy';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { BehavioralMetricsGrid } from './ghost-army/BehavioralMetricsGrid';
+import { SimulationResultsList } from './ghost-army/SimulationResultsList';
 import {
-  Play, Trash2, Users, ShieldAlert, CheckCircle2,
-  AlertTriangle, Loader2, TreePine, Search, MessageSquare, Skull, Target,
-  Wallet, Network, Trophy, Shield,
+  Play, Trash2, Users, Loader2, TreePine, Search,
+  MessageSquare, Wallet, Network, Trophy, Shield, Heart, ShoppingCart,
 } from 'lucide-react';
 
 const SCENARIOS: { id: SimulationScenario; icon: React.ReactNode; label: string; labelAr: string }[] = [
   { id: 'full', icon: <Play className="h-3 w-3" />, label: 'Full', labelAr: 'كامل' },
+  { id: 'social', icon: <Heart className="h-3 w-3" />, label: 'Social', labelAr: 'اجتماعي' },
+  { id: 'p2p', icon: <ShoppingCart className="h-3 w-3" />, label: 'P2P Trade', labelAr: 'تداول' },
   { id: 'wallet', icon: <Wallet className="h-3 w-3" />, label: 'Wallet', labelAr: 'المحفظة' },
   { id: 'chat', icon: <MessageSquare className="h-3 w-3" />, label: 'Chat', labelAr: 'الدردشة' },
   { id: 'referral', icon: <Network className="h-3 w-3" />, label: 'Referral', labelAr: 'الإحالة' },
@@ -28,8 +31,7 @@ export function GhostArmySection() {
   } = useGhostArmy();
 
   const [lastResults, setLastResults] = useState<any[] | null>(null);
-  const [activeTab, setActiveTab] = useState<'results' | 'analysis'>('results');
-  const [expandedResult, setExpandedResult] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis'>('behavioral');
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario>('full');
   const [safeMode, setSafeMode] = useState(true);
 
@@ -42,12 +44,6 @@ export function GhostArmySection() {
 
   const isAnyRunning = isProvisioning || isSimulating || isCleaning || isAnalyzing;
 
-  const categoryIcons: Record<string, string> = {
-    RLS_Security: '🔒', Data_Integrity: '📊', Financial_Safety: '💰',
-    Referral_Integrity: '🌳', Chat_Stress: '💬', Fraud_Simulation: '🕵️',
-    Performance: '⚡', Feature_Test: '🧪',
-  };
-
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
@@ -57,11 +53,6 @@ export function GhostArmySection() {
           {status.provisioned > 0 && (
             <Badge variant="secondary" className="text-[10px]">
               {status.provisioned} {isAr ? 'عميل' : 'agents'}
-            </Badge>
-          )}
-          {status.referralLinks > 0 && (
-            <Badge variant="outline" className="text-[10px]">
-              {status.referralLinks} {isAr ? 'رابط' : 'links'}
             </Badge>
           )}
         </CardTitle>
@@ -83,22 +74,15 @@ export function GhostArmySection() {
           </Button>
         </div>
 
-        {/* Scenario-Based Missions */}
+        {/* Scenario Missions */}
         {status.provisioned > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">{isAr ? 'اختر المهمة:' : 'Select Mission:'}</p>
             <div className="flex flex-wrap gap-1.5">
               {SCENARIOS.map(s => (
-                <Button
-                  key={s.id}
-                  size="sm"
-                  variant={selectedScenario === s.id ? 'default' : 'outline'}
-                  onClick={() => setSelectedScenario(s.id)}
-                  disabled={isAnyRunning}
-                  className="h-7 text-xs gap-1"
-                >
-                  {s.icon}
-                  {isAr ? s.labelAr : s.label}
+                <Button key={s.id} size="sm" variant={selectedScenario === s.id ? 'default' : 'outline'}
+                  onClick={() => setSelectedScenario(s.id)} disabled={isAnyRunning} className="h-7 text-xs gap-1">
+                  {s.icon} {isAr ? s.labelAr : s.label}
                 </Button>
               ))}
             </div>
@@ -118,6 +102,9 @@ export function GhostArmySection() {
         {/* Tab Switcher */}
         {(status.lastSimulation || status.lastAnalysis) && (
           <div className="flex gap-1">
+            <Button size="sm" variant={activeTab === 'behavioral' ? 'default' : 'ghost'} onClick={() => setActiveTab('behavioral')} className="h-7 text-xs">
+              {isAr ? 'المقاييس السلوكية' : 'Behavioral'}
+            </Button>
             <Button size="sm" variant={activeTab === 'results' ? 'default' : 'ghost'} onClick={() => setActiveTab('results')} className="h-7 text-xs">
               {isAr ? 'نتائج الاختبار' : 'Test Results'}
             </Button>
@@ -127,109 +114,31 @@ export function GhostArmySection() {
           </div>
         )}
 
-        {/* Simulation Results */}
-        {activeTab === 'results' && status.lastSimulation && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <MiniStat icon={<CheckCircle2 className="h-3.5 w-3.5 text-success" />} value={status.lastSimulation.passed} label={isAr ? 'نجح' : 'Passed'} />
-              <MiniStat icon={<AlertTriangle className="h-3.5 w-3.5 text-warning" />} value={status.lastSimulation.failed} label={isAr ? 'فشل' : 'Failed'} highlight={status.lastSimulation.failed > 0} />
-              <MiniStat icon={<ShieldAlert className="h-3.5 w-3.5 text-destructive" />} value={status.lastSimulation.critical_issues} label={isAr ? 'حرج' : 'Critical'} highlight={status.lastSimulation.critical_issues > 0} />
-              <MiniStat icon={<MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />} value={`${status.lastSimulation.chat_delivered ?? (status.lastSimulation.avg_chat_latency_ms ? '—' : 0)}/${status.lastSimulation.chat_attempted ?? 20}`} label={isAr ? 'رسائل مُسلّمة' : 'Chat Delivered'} />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <MiniStat icon={<TreePine className="h-3.5 w-3.5 text-primary" />} value={status.lastSimulation.referral_links_tested} label={isAr ? 'روابط الإحالة' : 'Referral Links'} />
-              <MiniStat icon={<Skull className="h-3.5 w-3.5 text-destructive" />} value={status.lastSimulation.fraud_tests_run} label={isAr ? 'اختبار احتيال' : 'Fraud Tests'} />
-              <MiniStat icon={<Play className="h-3.5 w-3.5 text-muted-foreground" />} value={`${status.lastSimulation.duration_ms}ms`} label={isAr ? 'المدة' : 'Duration'} />
-            </div>
-
-            {/* Executive-grade results list */}
-            {lastResults && lastResults.length > 0 && (
-              <div className="space-y-1.5 max-h-80 overflow-y-auto">
-                {lastResults.map((r: any, i: number) => {
-                  const isExpanded = expandedResult === i;
-                  const hasExecFields = r.what_happened && r.why_it_matters && r.recommended_action;
-
-                  return (
-                    <div
-                      key={i}
-                      className={`rounded-md border transition-colors ${
-                        r.status === 'fail' ? 'border-destructive/30 bg-destructive/5' :
-                        r.status === 'warning' ? 'border-warning/30 bg-warning/5' : 'border-border bg-card'
-                      }`}
-                    >
-                      <div
-                        className="flex items-start gap-2 text-xs px-2.5 py-1.5 cursor-pointer"
-                        onClick={() => setExpandedResult(isExpanded ? null : i)}
-                      >
-                        <span className="mt-0.5 shrink-0">{categoryIcons[r.category] || '📋'}</span>
-                        <div className="min-w-0 flex-1">
-                          <span className="font-medium">{r.test}</span>
-                          {r.latency_ms != null && <span className="text-muted-foreground ml-1">({r.latency_ms}ms)</span>}
-                        </div>
-                        <Badge variant="outline" className={`text-[9px] shrink-0 ${
-                          r.severity === 'critical' ? 'border-destructive/50 text-destructive' :
-                          r.severity === 'high' ? 'border-warning/50 text-warning' : ''
-                        }`}>
-                          {r.status === 'pass' ? '✓' : r.status === 'fail' ? '✗' : '⚠'} {r.severity}
-                        </Badge>
-                      </div>
-
-                      {/* Executive Detail — Problem → Impact → Action */}
-                      {isExpanded && hasExecFields && (
-                        <div className="px-2.5 pb-2.5 space-y-1.5 border-t border-border/50 mt-1 pt-2">
-                          <div className="text-[11px]">
-                            <span className="font-semibold text-foreground">{isAr ? 'ما حدث: ' : 'What happened: '}</span>
-                            <span className="text-muted-foreground">{r.what_happened}</span>
-                          </div>
-                          <div className="text-[11px]">
-                            <span className="font-semibold text-foreground">{isAr ? 'الأثر: ' : 'Impact: '}</span>
-                            <span className="text-muted-foreground">{r.why_it_matters}</span>
-                          </div>
-                          <div className="text-[11px] flex items-start gap-1">
-                            <Target className="h-3 w-3 text-primary shrink-0 mt-0.5" />
-                            <div>
-                              <span className="font-semibold text-primary">{isAr ? 'الإجراء: ' : 'Action: '}</span>
-                              <span>{r.recommended_action}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Fallback for old results without exec fields */}
-                      {isExpanded && !hasExecFields && (
-                        <div className="px-2.5 pb-2 text-[11px] text-muted-foreground">
-                          {r.detail}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+        {/* Behavioral Metrics */}
+        {activeTab === 'behavioral' && status.lastSimulation?.behavioral && (
+          <BehavioralMetricsGrid metrics={status.lastSimulation.behavioral} isAr={isAr} simulation={status.lastSimulation} />
         )}
 
-        {/* Spy Agent Analysis */}
+        {/* Test Results */}
+        {activeTab === 'results' && lastResults && lastResults.length > 0 && (
+          <SimulationResultsList results={lastResults} isAr={isAr} />
+        )}
+
+        {/* Spy Analysis */}
         {activeTab === 'analysis' && status.lastAnalysis && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Badge variant={
                 status.lastAnalysis.overall_health === 'HEALTHY' ? 'default' :
                 status.lastAnalysis.overall_health === 'NEEDS_ATTENTION' ? 'secondary' : 'destructive'
-              } className="text-xs">
-                {status.lastAnalysis.overall_health}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                Depth: {status.lastAnalysis.hierarchy_depth} levels
-              </span>
+              } className="text-xs">{status.lastAnalysis.overall_health}</Badge>
+              <span className="text-xs text-muted-foreground">Depth: {status.lastAnalysis.hierarchy_depth} levels</span>
             </div>
-
             <div className="grid grid-cols-3 gap-2">
-              <MiniStat icon={<span className="text-xs">И</span>} value={status.lastAnalysis.financial_overview.total_nova} label="Total Nova" />
-              <MiniStat icon={<span className="text-xs">✦</span>} value={status.lastAnalysis.financial_overview.total_aura} label="Total Aura" />
-              <MiniStat icon={<span className="text-xs">Ø</span>} value={status.lastAnalysis.financial_overview.avg_balance} label="Avg Balance" />
+              <MiniStat icon="И" value={status.lastAnalysis.financial_overview.total_nova} label="Total Nova" />
+              <MiniStat icon="✦" value={status.lastAnalysis.financial_overview.total_aura} label="Total Aura" />
+              <MiniStat icon="Ø" value={status.lastAnalysis.financial_overview.avg_balance} label="Avg Balance" />
             </div>
-
             {status.lastAnalysis.critical_findings.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-destructive">{isAr ? 'مشاكل حرجة:' : 'Critical Findings:'}</p>
@@ -238,7 +147,6 @@ export function GhostArmySection() {
                 ))}
               </div>
             )}
-
             {status.lastAnalysis.recommendations.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-primary">{isAr ? 'التوصيات:' : 'Recommendations:'}</p>
@@ -263,12 +171,10 @@ export function GhostArmySection() {
   );
 }
 
-function MiniStat({ icon, value, label, highlight }: {
-  icon: React.ReactNode; value: string | number; label: string; highlight?: boolean;
-}) {
+function MiniStat({ icon, value, label }: { icon: string; value: string | number; label: string }) {
   return (
-    <div className={`rounded-lg border p-2.5 ${highlight ? 'border-destructive/30 bg-destructive/5' : 'bg-card'}`}>
-      <div className="flex items-center gap-1 mb-0.5">{icon}</div>
+    <div className="rounded-lg border p-2.5 bg-card">
+      <div className="flex items-center gap-1 mb-0.5"><span className="text-xs">{icon}</span></div>
       <p className="text-lg font-bold">{value}</p>
       <p className="text-[10px] text-muted-foreground">{label}</p>
     </div>
