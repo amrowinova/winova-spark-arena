@@ -8,6 +8,7 @@ import { NeedsApprovalSection } from '@/components/control-tower/NeedsApprovalSe
 import { AIPerformanceSection } from '@/components/control-tower/AIPerformanceSection';
 import { RiskRadarSection } from '@/components/control-tower/RiskRadarSection';
 import { QuestionsSection } from '@/components/control-tower/QuestionsSection';
+import { IntelligenceDashboardSection } from '@/components/control-tower/IntelligenceDashboardSection';
 import { Badge } from '@/components/ui/badge';
 import { Eye } from 'lucide-react';
 
@@ -32,6 +33,9 @@ export default function ControlTower() {
           </span>
           <Badge variant="outline" className="text-[10px] ms-auto">READ ONLY</Badge>
         </div>
+
+        {/* Row 0: Intelligence Dashboard */}
+        <IntelligenceDashboardSection />
 
         {/* Row 1: Live Mind + Needs Approval */}
         <div className="grid md:grid-cols-2 gap-4">
