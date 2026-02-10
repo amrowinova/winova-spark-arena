@@ -2,12 +2,22 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useGhostArmy } from '@/hooks/useGhostArmy';
+import { useGhostArmy, SimulationScenario } from '@/hooks/useGhostArmy';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   Play, Trash2, Users, ShieldAlert, CheckCircle2,
   AlertTriangle, Loader2, TreePine, Search, MessageSquare, Skull, Target,
+  Wallet, Network, Trophy, Shield,
 } from 'lucide-react';
+
+const SCENARIOS: { id: SimulationScenario; icon: React.ReactNode; label: string; labelAr: string }[] = [
+  { id: 'full', icon: <Play className="h-3 w-3" />, label: 'Full', labelAr: 'كامل' },
+  { id: 'wallet', icon: <Wallet className="h-3 w-3" />, label: 'Wallet', labelAr: 'المحفظة' },
+  { id: 'chat', icon: <MessageSquare className="h-3 w-3" />, label: 'Chat', labelAr: 'الدردشة' },
+  { id: 'referral', icon: <Network className="h-3 w-3" />, label: 'Referral', labelAr: 'الإحالة' },
+  { id: 'contest', icon: <Trophy className="h-3 w-3" />, label: 'Contest', labelAr: 'المسابقة' },
+  { id: 'fraud', icon: <Shield className="h-3 w-3" />, label: 'Fraud', labelAr: 'الاحتيال' },
+];
 
 export function GhostArmySection() {
   const { language } = useLanguage();
@@ -20,11 +30,13 @@ export function GhostArmySection() {
   const [lastResults, setLastResults] = useState<any[] | null>(null);
   const [activeTab, setActiveTab] = useState<'results' | 'analysis'>('results');
   const [expandedResult, setExpandedResult] = useState<number | null>(null);
+  const [selectedScenario, setSelectedScenario] = useState<SimulationScenario>('full');
+  const [safeMode, setSafeMode] = useState(true);
 
   useEffect(() => { checkStatus(); }, []);
 
   const handleSimulate = async () => {
-    const data = await simulate();
+    const data = await simulate(selectedScenario, safeMode);
     if (data?.results) setLastResults(data.results);
   };
 
@@ -61,19 +73,47 @@ export function GhostArmySection() {
             {isProvisioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Users className="h-3.5 w-3.5" />}
             {isAr ? 'نشر 200 عميل' : 'Deploy 200 Agents'}
           </Button>
-          <Button size="sm" variant="secondary" onClick={handleSimulate} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5">
-            {isSimulating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-            {isAr ? 'اختبار الضغط' : 'Stress Test'}
-          </Button>
           <Button size="sm" variant="outline" onClick={analyze} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5">
             {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-            {isAr ? 'تحليل العميل المراقب' : 'Spy Agent Analysis'}
+            {isAr ? 'تحليل المراقب' : 'Spy Analysis'}
           </Button>
           <Button size="sm" variant="destructive" onClick={cleanup} disabled={isAnyRunning || status.provisioned === 0} className="gap-1.5">
             {isCleaning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
             {isAr ? 'تنظيف' : 'Purge'}
           </Button>
         </div>
+
+        {/* Scenario-Based Missions */}
+        {status.provisioned > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">{isAr ? 'اختر المهمة:' : 'Select Mission:'}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {SCENARIOS.map(s => (
+                <Button
+                  key={s.id}
+                  size="sm"
+                  variant={selectedScenario === s.id ? 'default' : 'outline'}
+                  onClick={() => setSelectedScenario(s.id)}
+                  disabled={isAnyRunning}
+                  className="h-7 text-xs gap-1"
+                >
+                  {s.icon}
+                  {isAr ? s.labelAr : s.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <Button size="sm" variant="secondary" onClick={handleSimulate} disabled={isAnyRunning} className="gap-1.5">
+                {isSimulating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                {isAr ? 'تشغيل المهمة' : `Run ${SCENARIOS.find(s => s.id === selectedScenario)?.label} Mission`}
+              </Button>
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                <input type="checkbox" checked={safeMode} onChange={e => setSafeMode(e.target.checked)} className="rounded" />
+                {isAr ? 'الوضع الآمن' : 'Safe Mode'}
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* Tab Switcher */}
         {(status.lastSimulation || status.lastAnalysis) && (

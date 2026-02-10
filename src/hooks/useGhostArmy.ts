@@ -2,10 +2,14 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export type SimulationScenario = 'full' | 'wallet' | 'chat' | 'referral' | 'contest' | 'fraud';
+
 export interface GhostArmyStatus {
   provisioned: number;
   referralLinks: number;
   lastSimulation: {
+    scenario?: SimulationScenario;
+    safe_mode?: boolean;
     total_tests: number;
     passed: number;
     failed: number;
@@ -68,19 +72,22 @@ export function useGhostArmy() {
     }
   };
 
-  const simulate = async () => {
+  const simulate = async (scenario: SimulationScenario = 'full', safeMode = true) => {
     setIsSimulating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ghost-army-simulate');
+      const { data, error } = await supabase.functions.invoke('ghost-army-simulate', {
+        body: { scenario, safe_mode: safeMode },
+      });
       if (error) throw error;
       setStatus(prev => ({
         ...prev,
         lastSimulation: data.summary ? { ...data.summary, results: data.results } : null,
       }));
       const emoji = data.summary.critical_issues > 0 ? '🔴' : data.summary.failed > 0 ? '🟡' : '🟢';
+      const scenarioLabel = scenario === 'full' ? 'Full' : scenario.charAt(0).toUpperCase() + scenario.slice(1);
       toast({
-        title: `${emoji} Digital Forest Stress Test`,
-        description: `${data.summary.passed} passed, ${data.summary.failed} failed, ${data.summary.fraud_tests_run} fraud tests, Chat: ${data.summary.avg_chat_latency_ms}ms`,
+        title: `${emoji} ${scenarioLabel} Mission Complete`,
+        description: `${data.summary.passed} passed, ${data.summary.failed} failed, ${data.summary.duration_ms}ms`,
       });
       return data;
     } catch (err: any) {
