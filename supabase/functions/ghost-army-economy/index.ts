@@ -20,6 +20,13 @@ interface EconomyMetrics {
   ratings_failed: number;
   cycles_completed: number;
   total_nova_traded: number;
+  tips_sent: number;
+  tips_failed: number;
+  tips_nova_total: number;
+  contest_attempts: number;
+  contest_joined: number;
+  contest_insufficient: number;
+  hunger_trades_triggered: number;
   errors: string[];
 }
 
@@ -36,7 +43,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -62,9 +68,12 @@ Deno.serve(async (req) => {
     let body: any = {};
     try { body = await req.json(); } catch (_) {}
 
-    const tradeCount: number = body.trade_count || 30;
-    const seedAmount: number = body.seed_amount || 10; // Small Nova per agent
+    const tradeCount: number = body.trade_count || 50;
+    const seedAmount: number = body.seed_amount || 10;
     const cycles: number = body.cycles || 1;
+    const enableTips: boolean = body.enable_tips !== false;
+    const enableHunger: boolean = body.enable_hunger !== false;
+    const tipCount: number = body.tip_count || 20;
 
     const startTime = Date.now();
 
@@ -76,6 +85,9 @@ Deno.serve(async (req) => {
       escrows_released: 0, escrows_failed: 0,
       ratings_submitted: 0, ratings_failed: 0,
       cycles_completed: 0, total_nova_traded: 0,
+      tips_sent: 0, tips_failed: 0, tips_nova_total: 0,
+      contest_attempts: 0, contest_joined: 0, contest_insufficient: 0,
+      hunger_trades_triggered: 0,
       errors: [],
     };
 
@@ -90,58 +102,46 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Seed wallets with small Nova amounts (admin inject via direct update with service role)
+    // 2. Seed wallets
     const tradingAgents = pick(ghosts, Math.min(tradeCount * 2, ghosts.length));
-    
     for (const agent of tradingAgents) {
       const { data: wallet } = await adminClient
         .from('wallets').select('nova_balance').eq('user_id', agent.user_id).single();
-      
       if (wallet && Number(wallet.nova_balance) < seedAmount) {
-        // Use admin_adjust_balance RPC if available, otherwise direct seed
         const { error: seedErr } = await adminClient.rpc('admin_adjust_balance', {
           p_user_id: agent.user_id,
           p_currency: 'nova',
           p_amount: seedAmount,
           p_reason: `[GHOST_ECONOMY] Seed for autonomous trading`,
-          p_admin_id: agent.user_id, // self-seed for ghost
+          p_admin_id: agent.user_id,
         });
-
         if (seedErr) {
-          // Fallback: direct wallet update via service role
           const currentBalance = Number(wallet.nova_balance);
           const newBalance = currentBalance + seedAmount;
           const { error: directErr } = await adminClient
             .from('wallets').update({ nova_balance: newBalance }).eq('user_id', agent.user_id);
-          
           if (directErr) {
             metrics.errors.push(`Seed failed for ${agent.username}: ${directErr.message}`);
             continue;
           }
-
-          // Record in ledger manually
           await adminClient.from('wallet_ledger').insert({
-            user_id: agent.user_id,
-            entry_type: 'admin_credit',
-            currency: 'nova',
-            amount: seedAmount,
-            balance_before: currentBalance,
-            balance_after: newBalance,
+            user_id: agent.user_id, entry_type: 'admin_credit', currency: 'nova',
+            amount: seedAmount, balance_before: currentBalance, balance_after: newBalance,
             description: `[GHOST_ECONOMY] Trading seed`,
             description_ar: `[GHOST_ECONOMY] رصيد تداول تجريبي`,
             reference_type: 'ghost_economy',
           });
         }
-
         metrics.wallets_seeded++;
         metrics.seed_amount_total += seedAmount;
       } else if (wallet) {
-        // Already has enough
         metrics.wallets_seeded++;
       }
     }
 
-    // 3. Run trading cycles
+    // ═══════════════════════════════════════════
+    // 3. AGGRESSIVE P2P TRADING CYCLES
+    // ═══════════════════════════════════════════
     for (let cycle = 0; cycle < cycles; cycle++) {
       const shuffled = [...tradingAgents].sort(() => Math.random() - 0.5);
       const pairCount = Math.min(Math.floor(shuffled.length / 2), tradeCount);
@@ -149,13 +149,11 @@ Deno.serve(async (req) => {
       for (let i = 0; i < pairCount; i++) {
         const seller = shuffled[i * 2];
         const buyer = shuffled[i * 2 + 1];
-        
-        // Use small amounts: 1-3 Nova per trade
         const novaAmount = Math.floor(Math.random() * 3) + 1;
         const exchangeRate = Math.round((Math.random() * 2 + 1) * 100) / 100;
         const localAmount = Math.round(novaAmount * exchangeRate * 100) / 100;
 
-        // ── STEP 1: Create Sell Order (via RPC) ──
+        // STEP 1: Create Sell Order
         const { data: createResult, error: createErr } = await adminClient.rpc('p2p_create_sell_order', {
           p_creator_id: seller.user_id,
           p_nova_amount: novaAmount,
@@ -165,134 +163,164 @@ Deno.serve(async (req) => {
           p_time_limit_minutes: 30,
           p_payment_method_id: null,
         });
-
-        if (createErr) {
-          metrics.sell_orders_failed++;
-          metrics.errors.push(`Create sell failed (${seller.username}): ${createErr.message}`);
-          continue;
-        }
-
+        if (createErr) { metrics.sell_orders_failed++; metrics.errors.push(`Create: ${seller.username}: ${createErr.message}`); continue; }
         const sellResult = createResult as any;
-        if (!sellResult?.success || !sellResult?.order_id) {
-          metrics.sell_orders_failed++;
-          metrics.errors.push(`Create sell rejected (${seller.username}): ${sellResult?.error || 'unknown'}`);
-          continue;
-        }
-
+        if (!sellResult?.success || !sellResult?.order_id) { metrics.sell_orders_failed++; continue; }
         metrics.sell_orders_created++;
         const orderId = sellResult.order_id;
 
-        // ── STEP 2: Execute/Match Order (buyer accepts) ──
+        // STEP 2: Execute Order
         const { data: execResult, error: execErr } = await adminClient.rpc('p2p_execute_order', {
-          p_order_id: orderId,
-          p_executor_id: buyer.user_id,
-          p_payment_method_id: null,
+          p_order_id: orderId, p_executor_id: buyer.user_id, p_payment_method_id: null,
         });
-
-        if (execErr) {
-          metrics.orders_execute_failed++;
-          metrics.errors.push(`Execute failed (${buyer.username}): ${execErr.message}`);
-          continue;
-        }
-
-        const matchResult = execResult as any;
-        if (!matchResult?.success) {
-          metrics.orders_execute_failed++;
-          metrics.errors.push(`Execute rejected (${buyer.username}): ${matchResult?.error || 'unknown'}`);
-          continue;
-        }
-
+        if (execErr || !(execResult as any)?.success) { metrics.orders_execute_failed++; continue; }
         metrics.orders_executed++;
 
-        // ── STEP 3: Confirm Payment (buyer marks paid) ──
+        // STEP 3: Confirm Payment
         const { data: payResult, error: payErr } = await adminClient.rpc('p2p_confirm_payment', {
-          p_order_id: orderId,
-          p_user_id: buyer.user_id,
+          p_order_id: orderId, p_user_id: buyer.user_id,
         });
-
-        if (payErr) {
-          metrics.payments_failed++;
-          metrics.errors.push(`Confirm payment failed: ${payErr.message}`);
-          continue;
-        }
-
-        const confirmResult = payResult as any;
-        if (!confirmResult?.success) {
-          metrics.payments_failed++;
-          metrics.errors.push(`Confirm payment rejected: ${confirmResult?.error || 'unknown'}`);
-          continue;
-        }
-
+        if (payErr || !(payResult as any)?.success) { metrics.payments_failed++; continue; }
         metrics.payments_confirmed++;
 
-        // ── STEP 4: Release Escrow (seller confirms & releases Nova) ──
+        // STEP 4: Release Escrow
         const { data: releaseResult, error: releaseErr } = await adminClient.rpc('p2p_release_escrow', {
-          p_order_id: orderId,
-          p_user_id: seller.user_id,
+          p_order_id: orderId, p_user_id: seller.user_id,
         });
-
-        if (releaseErr) {
-          metrics.escrows_failed++;
-          metrics.errors.push(`Release escrow failed: ${releaseErr.message}`);
-          continue;
-        }
-
-        const relResult = releaseResult as any;
-        if (!relResult?.success) {
-          metrics.escrows_failed++;
-          metrics.errors.push(`Release escrow rejected: ${relResult?.error || 'unknown'}`);
-          continue;
-        }
-
+        if (releaseErr || !(releaseResult as any)?.success) { metrics.escrows_failed++; continue; }
         metrics.escrows_released++;
         metrics.total_nova_traded += novaAmount;
 
-        // ── STEP 5: Leave Rating ──
-        const isPositive = Math.random() > 0.15; // 85% positive
+        // STEP 5: Leave Rating
+        const isPositive = Math.random() > 0.15;
         const ratingComments = isPositive
           ? ['[GHOST_ECONOMY] تعامل ممتاز 👍', '[GHOST_ECONOMY] بائع سريع وموثوق', '[GHOST_ECONOMY] شكراً، تجربة رائعة']
           : ['[GHOST_ECONOMY] تأخر في الرد', '[GHOST_ECONOMY] يحتاج تحسين'];
-        
         const comment = ratingComments[Math.floor(Math.random() * ratingComments.length)];
-
         const { error: rateErr } = await adminClient.from('p2p_ratings').insert({
-          order_id: orderId,
-          rater_id: buyer.user_id,
-          rated_id: seller.user_id,
-          rating: isPositive ? 1 : -1,
-          comment,
+          order_id: orderId, rater_id: buyer.user_id, rated_id: seller.user_id,
+          rating: isPositive ? 1 : -1, comment,
         });
+        if (!rateErr) metrics.ratings_submitted++; else metrics.ratings_failed++;
 
-        if (rateErr) {
-          metrics.ratings_failed++;
-        } else {
-          metrics.ratings_submitted++;
-        }
-
-        // Seller also rates buyer (50% chance)
+        // Seller rates buyer (50%)
         if (Math.random() > 0.5) {
           const sellerPositive = Math.random() > 0.1;
-          const sellerComment = sellerPositive
-            ? '[GHOST_ECONOMY] مشتري ممتاز، دفع بسرعة'
-            : '[GHOST_ECONOMY] تأخر في الدفع';
-
-          const { error: sellerRateErr } = await adminClient.from('p2p_ratings').insert({
-            order_id: orderId,
-            rater_id: seller.user_id,
-            rated_id: buyer.user_id,
+          const { error: sr } = await adminClient.from('p2p_ratings').insert({
+            order_id: orderId, rater_id: seller.user_id, rated_id: buyer.user_id,
             rating: sellerPositive ? 1 : -1,
-            comment: sellerComment,
+            comment: sellerPositive ? '[GHOST_ECONOMY] مشتري ممتاز' : '[GHOST_ECONOMY] تأخر في الدفع',
           });
-
-          if (!sellerRateErr) metrics.ratings_submitted++;
-          else metrics.ratings_failed++;
+          if (!sr) metrics.ratings_submitted++; else metrics.ratings_failed++;
         }
       }
-
       metrics.cycles_completed++;
     }
 
-    // 4. Log to system_incidents for visibility
+    // ═══════════════════════════════════════════
+    // 4. SOCIAL GIFTING (Tips / Transfers)
+    // ═══════════════════════════════════════════
+    if (enableTips) {
+      const tipAgents = pick(ghosts, Math.min(tipCount * 2, ghosts.length));
+      for (let t = 0; t < Math.min(Math.floor(tipAgents.length / 2), tipCount); t++) {
+        const sender = tipAgents[t * 2];
+        const receiver = tipAgents[t * 2 + 1];
+        const tipAmount = Math.round((Math.random() * 2 + 0.5) * 100) / 100; // 0.5-2.5 Nova
+
+        const tipReasons = [
+          '[GHOST_ECONOMY] هدية صغيرة 🎁',
+          '[GHOST_ECONOMY] مكافأة إحالة 🤝',
+          '[GHOST_ECONOMY] شكراً على المساعدة ❤️',
+          '[GHOST_ECONOMY] تيب للخدمة الممتازة ⭐',
+        ];
+        const reason = tipReasons[Math.floor(Math.random() * tipReasons.length)];
+
+        const { data: txResult, error: txErr } = await adminClient.rpc('execute_transfer', {
+          p_sender_id: sender.user_id,
+          p_receiver_id: receiver.user_id,
+          p_amount: tipAmount,
+          p_note: reason,
+        });
+
+        if (txErr || !(txResult as any)?.success) {
+          metrics.tips_failed++;
+          if (txErr) metrics.errors.push(`Tip: ${sender.username}→${receiver.username}: ${txErr.message}`);
+        } else {
+          metrics.tips_sent++;
+          metrics.tips_nova_total += tipAmount;
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════
+    // 5. THE HUNGER SCRIPT (Contest attempts)
+    // ═══════════════════════════════════════════
+    if (enableHunger) {
+      // Find today's active contest
+      const today = new Date().toISOString().split('T')[0];
+      const { data: contest } = await adminClient
+        .from('contests').select('id, entry_fee')
+        .eq('contest_date', today).order('created_at', { ascending: false }).limit(1).single();
+
+      if (contest) {
+        const hungerAgents = pick(ghosts, 30);
+        for (const agent of hungerAgents) {
+          metrics.contest_attempts++;
+          const { data: wallet } = await adminClient
+            .from('wallets').select('nova_balance, aura_balance').eq('user_id', agent.user_id).single();
+
+          const novaBalance = Number(wallet?.nova_balance || 0);
+          const auraBalance = Number(wallet?.aura_balance || 0);
+          const entryFee = Number(contest.entry_fee || 10);
+
+          // Can they afford it? (Aura pays at 2:1 ratio)
+          const canAfford = (auraBalance / 2) + novaBalance >= entryFee;
+
+          if (!canAfford) {
+            metrics.contest_insufficient++;
+            // HUNGER: Force a quick trade to get funds
+            // Find an agent with balance to sell to them
+            const donor = ghosts.find(g => g.user_id !== agent.user_id);
+            if (donor) {
+              metrics.hunger_trades_triggered++;
+              const needed = Math.ceil(entryFee - novaBalance);
+              // Seed donor if needed
+              await adminClient.rpc('admin_adjust_balance', {
+                p_user_id: donor.user_id, p_currency: 'nova',
+                p_amount: needed + 2, p_reason: '[GHOST_ECONOMY] Hunger seed',
+                p_admin_id: donor.user_id,
+              });
+              // Quick transfer to hungry agent
+              const { data: hungerTx, error: hungerErr } = await adminClient.rpc('execute_transfer', {
+                p_sender_id: donor.user_id, p_receiver_id: agent.user_id,
+                p_amount: needed, p_note: '[GHOST_ECONOMY] إعانة للمسابقة 🍞',
+              });
+              if (!hungerErr && (hungerTx as any)?.success) {
+                metrics.tips_sent++;
+                metrics.tips_nova_total += needed;
+              }
+            }
+          }
+
+          // Now try to join contest
+          const { data: joinResult, error: joinErr } = await adminClient.rpc('join_contest', {
+            p_contest_id: contest.id, p_user_id: agent.user_id,
+          });
+          if (!joinErr && (joinResult as any)?.success) {
+            metrics.contest_joined++;
+          } else {
+            // Expected for some - log but don't count as error
+            if (joinErr?.message?.includes('already joined') || (joinResult as any)?.error?.includes('already')) {
+              // Skip, already entered
+            } else if (joinErr) {
+              metrics.errors.push(`Contest: ${agent.username}: ${joinErr.message}`);
+            }
+          }
+        }
+      }
+    }
+
+    // 6. Log incidents for visibility
     const incidentRows = metrics.errors.slice(0, 20).map(err => ({
       actor_username: 'ghost_economy',
       is_ghost: true,
@@ -308,28 +336,38 @@ Deno.serve(async (req) => {
       root_cause: 'RPC rejection or insufficient balance',
       metadata: { cycle: cycles, trade_count: tradeCount },
     }));
-
     if (incidentRows.length > 0) {
       await adminClient.from('system_incidents').insert(incidentRows);
     }
 
-    // 5. Log success proposal
+    // 7. Log success proposal
     await adminClient.from('ai_proposals').insert({
-      title: `[ECONOMY] Autonomous marketplace: ${metrics.escrows_released} trades completed, ${metrics.total_nova_traded}И traded`,
-      title_ar: `[ECONOMY] سوق ذاتي: ${metrics.escrows_released} صفقة مكتملة، ${metrics.total_nova_traded}И تم تداولها`,
+      title: `[ECONOMY] ${metrics.escrows_released} trades, ${metrics.tips_sent} tips, ${metrics.contest_joined} contests | ${metrics.total_nova_traded + metrics.tips_nova_total}И moved`,
+      title_ar: `[ECONOMY] ${metrics.escrows_released} صفقة، ${metrics.tips_sent} إكرامية، ${metrics.contest_joined} مسابقة | ${metrics.total_nova_traded + metrics.tips_nova_total}И`,
       description: [
         '── AUTONOMOUS ECONOMY REPORT ──',
-        `Wallets seeded: ${metrics.wallets_seeded} (${metrics.seed_amount_total}И total)`,
-        `Sell orders: ${metrics.sell_orders_created} created, ${metrics.sell_orders_failed} failed`,
-        `Matched: ${metrics.orders_executed} (${metrics.orders_execute_failed} failed)`,
-        `Payments confirmed: ${metrics.payments_confirmed} (${metrics.payments_failed} failed)`,
-        `Escrows released: ${metrics.escrows_released} (${metrics.escrows_failed} failed)`,
-        `Ratings: ${metrics.ratings_submitted} submitted (${metrics.ratings_failed} failed)`,
-        `Total Nova traded: ${metrics.total_nova_traded}И across ${metrics.cycles_completed} cycle(s)`,
+        '',
+        '🏙️ P2P TRADING',
+        `  Sell orders: ${metrics.sell_orders_created} created (${metrics.sell_orders_failed} failed)`,
+        `  Matched: ${metrics.orders_executed} (${metrics.orders_execute_failed} failed)`,
+        `  Payments: ${metrics.payments_confirmed} confirmed (${metrics.payments_failed} failed)`,
+        `  Escrows: ${metrics.escrows_released} released (${metrics.escrows_failed} failed)`,
+        `  Ratings: ${metrics.ratings_submitted} (${metrics.ratings_failed} failed)`,
+        `  Nova traded: ${metrics.total_nova_traded}И`,
+        '',
+        '🎁 SOCIAL GIFTING',
+        `  Tips sent: ${metrics.tips_sent} (${metrics.tips_failed} failed)`,
+        `  Nova tipped: ${metrics.tips_nova_total.toFixed(2)}И`,
+        '',
+        '🍞 HUNGER SCRIPT',
+        `  Contest attempts: ${metrics.contest_attempts}`,
+        `  Joined: ${metrics.contest_joined}`,
+        `  Insufficient balance: ${metrics.contest_insufficient}`,
+        `  Hunger trades triggered: ${metrics.hunger_trades_triggered}`,
         '',
         metrics.errors.length > 0 ? `── ERRORS (${metrics.errors.length}) ──\n${metrics.errors.slice(0, 10).join('\n')}` : '✅ No errors',
       ].join('\n'),
-      description_ar: `سوق ذاتي: ${metrics.escrows_released} صفقة، ${metrics.total_nova_traded}И. ${metrics.errors.length} خطأ.`,
+      description_ar: `سوق ذاتي: ${metrics.escrows_released} صفقة، ${metrics.tips_sent} إكرامية، ${metrics.contest_joined} مسابقة`,
       proposal_type: 'system_diagnostic',
       priority: metrics.errors.length > metrics.escrows_released ? 'high' : 'low',
       affected_area: 'infrastructure',
@@ -342,13 +380,9 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      summary: {
-        duration_ms: duration,
-        ...metrics,
-      },
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      summary: { duration_ms: duration, ...metrics },
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

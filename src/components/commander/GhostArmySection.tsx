@@ -7,9 +7,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { BehavioralMetricsGrid } from './ghost-army/BehavioralMetricsGrid';
 import { SimulationResultsList } from './ghost-army/SimulationResultsList';
 import { SocialStream } from './ghost-army/SocialStream';
+import { LiveTransactionFeed } from './ghost-army/LiveTransactionFeed';
 import {
   Play, Trash2, Users, Loader2, TreePine, Search,
-  MessageSquare, Wallet, Network, Trophy, Shield, Heart, ShoppingCart, Brain, Landmark, Zap,
+  MessageSquare, Wallet, Network, Trophy, Shield, Heart, ShoppingCart, Brain, Landmark, Zap, Radio,
 } from 'lucide-react';
 
 const SCENARIOS: { id: SimulationScenario; icon: React.ReactNode; label: string; labelAr: string }[] = [
@@ -33,7 +34,7 @@ export function GhostArmySection() {
   } = useGhostArmy();
 
   const [lastResults, setLastResults] = useState<any[] | null>(null);
-  const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis' | 'social' | 'economy' | 'chaos'>('behavioral');
+  const [activeTab, setActiveTab] = useState<'behavioral' | 'results' | 'analysis' | 'social' | 'economy' | 'chaos' | 'live'>('behavioral');
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario>('full');
   const [safeMode, setSafeMode] = useState(true);
   const [liveMode, setLiveMode] = useState(false);
@@ -51,7 +52,7 @@ export function GhostArmySection() {
   };
 
   const handleEconomy = async () => {
-    await economySimulate(30, 10, 1);
+    await economySimulate(50, 10, 1, true, true, 20);
     setActiveTab('economy');
   };
 
@@ -170,6 +171,10 @@ export function GhostArmySection() {
               <Zap className="h-3 w-3" />
               {isAr ? 'الفوضى' : 'Chaos'}
             </Button>
+            <Button size="sm" variant={activeTab === 'live' ? 'default' : 'ghost'} onClick={() => setActiveTab('live')} className="h-7 text-xs gap-1">
+              <Radio className="h-3 w-3" />
+              {isAr ? 'بث مباشر' : 'Live Feed'}
+            </Button>
             <Button size="sm" variant={activeTab === 'analysis' ? 'default' : 'ghost'} onClick={() => setActiveTab('analysis')} className="h-7 text-xs">
               {isAr ? 'تقرير المراقب' : 'Spy Report'}
             </Button>
@@ -209,6 +214,11 @@ export function GhostArmySection() {
           <p className="text-xs text-muted-foreground">
             {isAr ? 'اضغط "فوضى محكومة" لاختبار الجهاز المناعي.' : 'Click "Controlled Chaos" to stress-test the immune system.'}
           </p>
+        )}
+
+        {/* Live Transaction Feed */}
+        {activeTab === 'live' && (
+          <LiveTransactionFeed isAr={isAr} />
         )}
 
         {/* Spy Analysis */}
@@ -313,14 +323,18 @@ function ChaosResultsView({ data, isAr }: { data: any; isAr: boolean }) {
 
 function EconomyMetricsView({ metrics, isAr }: { metrics: any; isAr: boolean }) {
   const stats = [
-    { icon: '💰', value: metrics.wallets_seeded, label: isAr ? 'محافظ مموّلة' : 'Wallets Seeded' },
     { icon: '📦', value: metrics.sell_orders_created, label: isAr ? 'طلبات بيع' : 'Sell Orders' },
     { icon: '🤝', value: metrics.orders_executed, label: isAr ? 'تم المطابقة' : 'Matched' },
-    { icon: '💳', value: metrics.payments_confirmed, label: isAr ? 'دفع مؤكد' : 'Paid' },
     { icon: '✅', value: metrics.escrows_released, label: isAr ? 'تم التحرير' : 'Released' },
-    { icon: '⭐', value: metrics.ratings_submitted, label: isAr ? 'تقييمات' : 'Ratings' },
     { icon: 'И', value: metrics.total_nova_traded, label: isAr ? 'نوڤا متداولة' : 'Nova Traded' },
+    { icon: '🎁', value: metrics.tips_sent || 0, label: isAr ? 'إكراميات' : 'Tips Sent' },
+    { icon: '💸', value: `${(metrics.tips_nova_total || 0).toFixed(1)}И`, label: isAr ? 'نوڤا إكراميات' : 'Nova Tipped' },
+    { icon: '🏆', value: metrics.contest_joined || 0, label: isAr ? 'مسابقات' : 'Contests' },
+    { icon: '🍞', value: metrics.hunger_trades_triggered || 0, label: isAr ? 'تداولات جوع' : 'Hunger Trades' },
+    { icon: '⭐', value: metrics.ratings_submitted, label: isAr ? 'تقييمات' : 'Ratings' },
+    { icon: '💰', value: metrics.wallets_seeded, label: isAr ? 'محافظ مموّلة' : 'Wallets Seeded' },
     { icon: '⏱', value: `${(metrics.duration_ms / 1000).toFixed(1)}s`, label: isAr ? 'المدة' : 'Duration' },
+    { icon: '🔄', value: metrics.cycles_completed, label: isAr ? 'دورات' : 'Cycles' },
   ];
 
   return (

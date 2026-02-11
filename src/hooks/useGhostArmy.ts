@@ -179,11 +179,11 @@ export function useGhostArmy() {
     }
   };
 
-  const economySimulate = async (tradeCount = 30, seedAmount = 10, cycles = 1) => {
+  const economySimulate = async (tradeCount = 50, seedAmount = 10, cycles = 1, enableTips = true, enableHunger = true, tipCount = 20) => {
     setIsEconomyRunning(true);
     try {
       const { data, error } = await supabase.functions.invoke('ghost-army-economy', {
-        body: { trade_count: tradeCount, seed_amount: seedAmount, cycles },
+        body: { trade_count: tradeCount, seed_amount: seedAmount, cycles, enable_tips: enableTips, enable_hunger: enableHunger, tip_count: tipCount },
       });
       if (error) throw error;
       const s = data.summary;
@@ -191,7 +191,7 @@ export function useGhostArmy() {
       const emoji = s.escrows_released > 0 ? '🏙️' : '⚠️';
       toast({
         title: `${emoji} Autonomous Economy Complete`,
-        description: `${s.escrows_released} trades, ${s.total_nova_traded}И traded, ${s.ratings_submitted} ratings`,
+        description: `${s.escrows_released} trades, ${s.tips_sent} tips, ${s.contest_joined} contests | ${s.total_nova_traded + s.tips_nova_total}И moved`,
       });
       return data;
     } catch (err: any) {
