@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.ghost-army-analyze]
 verify_jwt = false
+
+[functions.load-simulation]
+verify_jwt = false
