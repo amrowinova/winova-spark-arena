@@ -260,6 +260,15 @@ export function useDisputeArbitration(orderId: string | null) {
         is_system_message: true,
         message_type: 'dispute_resolved',
       });
+      // Auto-send rating prompt
+      await supabase.from('p2p_messages').insert({
+        order_id: orderId,
+        sender_id: user.id,
+        content: 'The dispute has been resolved by Support ⚖️\nYour feedback matters. How would you rate the agent\'s decision?\n\n👍 Fair\n👎 Unfair',
+        content_ar: 'تم حل النزاع بواسطة فريق الدعم ⚖️\nرأيك يهمنا. كيف تقيّم قرار موظف الدعم؟\n\n👍 عادل\n👎 غير عادل',
+        is_system_message: true,
+        message_type: 'rating_prompt',
+      });
       fetchCaseData();
     }
     return result;
@@ -288,6 +297,15 @@ export function useDisputeArbitration(orderId: string | null) {
         content_ar: '⚖️ قرار الدعم: تم إرجاع Nova للبائع. تم إلغاء الصفقة.',
         is_system_message: true,
         message_type: 'dispute_resolved',
+      });
+      // Auto-send rating prompt
+      await supabase.from('p2p_messages').insert({
+        order_id: orderId,
+        sender_id: user.id,
+        content: 'The dispute has been resolved by Support ⚖️\nYour feedback matters. How would you rate the agent\'s decision?\n\n👍 Fair\n👎 Unfair',
+        content_ar: 'تم حل النزاع بواسطة فريق الدعم ⚖️\nرأيك يهمنا. كيف تقيّم قرار موظف الدعم؟\n\n👍 عادل\n👎 غير عادل',
+        is_system_message: true,
+        message_type: 'rating_prompt',
       });
       fetchCaseData();
     }

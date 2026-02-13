@@ -15,7 +15,8 @@ export type P2PSystemMessageType =
   | 'dispute_opened'
   | 'support_joined'
   | 'dispute_resolved'
-  | 'order_expired';
+  | 'order_expired'
+  | 'rating_prompt';
 
 export interface P2PSystemMessageTemplate {
   type: P2PSystemMessageType;
@@ -143,6 +144,15 @@ export const P2P_SYSTEM_MESSAGES: Record<P2PSystemMessageType, P2PSystemMessageT
       ar: '⏰ انتهى الوقت – تم إعادة الطلب إلى السوق\n🔄 لم تكتمل الصفقة في الوقت المحدد',
     }),
     icon: '⏰',
+  },
+
+  rating_prompt: {
+    type: 'rating_prompt',
+    getContent: () => ({
+      en: 'The dispute has been resolved by Support ⚖️\nYour feedback matters. How would you rate the agent\'s decision?\n\n👍 Fair\n👎 Unfair',
+      ar: 'تم حل النزاع بواسطة فريق الدعم ⚖️\nرأيك يهمنا. كيف تقيّم قرار موظف الدعم؟\n\n👍 عادل\n👎 غير عادل',
+    }),
+    icon: '⚖️',
   },
 };
 

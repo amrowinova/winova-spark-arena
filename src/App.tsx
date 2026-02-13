@@ -44,6 +44,7 @@ import SupportTicketDetail from "./pages/support/SupportTicketDetail";
 import SupportDisputes from "./pages/support/SupportDisputes";
 import SupportDisputeDetail from "./pages/support/SupportDisputeDetail";
 import SupportUsers from "./pages/support/SupportUsers";
+import SupportStaffRatings from "./pages/support/SupportStaffRatings";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -121,7 +122,8 @@ const App = () => (
                             <Route path="/support/disputes" element={<SupportGuard><SupportDisputes /></SupportGuard>} />
                             <Route path="/support/disputes/:orderId" element={<SupportGuard><SupportDisputeDetail /></SupportGuard>} />
                             <Route path="/support/users" element={<SupportGuard><SupportUsers /></SupportGuard>} />
-                            
+                            <Route path="/support/staff-ratings" element={<SupportGuard><SupportStaffRatings /></SupportGuard>} />
+
                             {/* Admin Panel routes - require admin role */}
                             <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
                             <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />

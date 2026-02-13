@@ -5334,6 +5334,64 @@ export type Database = {
           },
         ]
       }
+      support_agent_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          is_locked: boolean
+          note: string | null
+          order_id: string
+          rater_id: string
+          rating: string
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          note?: string | null
+          order_id: string
+          rater_id: string
+          rating: string
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          note?: string | null
+          order_id?: string
+          rater_id?: string
+          rating?: string
+          staff_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_agent_ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_agent_ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_agent_ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_messages: {
         Row: {
           content: string
@@ -6017,6 +6075,20 @@ export type Database = {
         }
         Relationships: []
       }
+      support_staff_metrics: {
+        Row: {
+          cases_handled: number | null
+          escalations: number | null
+          fraud_flags: number | null
+          negative_ratings: number | null
+          positive_pct: number | null
+          positive_ratings: number | null
+          staff_id: string | null
+          staff_name: string | null
+          total_ratings: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_adjust_balance: {
@@ -6352,6 +6424,10 @@ export type Database = {
           p_type?: string
         }
         Returns: undefined
+      }
+      submit_support_agent_rating: {
+        Args: { p_note?: string; p_order_id: string; p_rating: string }
+        Returns: Json
       }
       support_claim_dispute: { Args: { p_order_id: string }; Returns: Json }
       support_get_dispute_case: { Args: { p_order_id: string }; Returns: Json }
