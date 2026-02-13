@@ -256,10 +256,10 @@ export default function AdminDashboard() {
             <Button 
               variant="outline" 
               className="h-auto py-3 flex-col gap-1"
-              onClick={() => navigate('/support')}
+              onClick={() => navigate('/support/disputes')}
             >
               <Shield className="w-5 h-5" />
-              <span className="text-xs">{isRTL ? 'لوحة الدعم' : 'Support Panel'}</span>
+              <span className="text-xs">{isRTL ? 'النزاعات والدعم' : 'Disputes & Support'}</span>
             </Button>
             <Button 
               variant="outline" 

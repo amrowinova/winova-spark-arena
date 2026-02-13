@@ -161,24 +161,6 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                     {isRTL ? 'الإدارة' : 'Management'}
                   </p>
                   
-                  {isStaff && (
-                    <button
-                      onClick={() => handleNavigation('/support')}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
-                        location.pathname.startsWith('/support')
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'hover:bg-muted text-foreground'
-                      )}
-                    >
-                      <span className="text-base">🛡️</span>
-                      <Shield className="h-5 w-5" />
-                      <span className="font-medium text-sm">
-                        {isRTL ? 'لوحة الدعم' : 'Support Panel'}
-                      </span>
-                    </button>
-                  )}
-                  
                   {isAdmin && (
                     <button
                       onClick={() => handleNavigation('/admin')}
