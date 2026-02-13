@@ -14,7 +14,8 @@ import {
   Users,
   MessageSquare,
   Search,
-  Filter
+  Filter,
+  Star,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
@@ -137,6 +138,15 @@ export default function SupportDashboard() {
           >
             <Users className="w-4 h-4 me-2" />
             {isRTL ? 'المستخدمين' : 'Users'}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex-1"
+            onClick={() => navigate('/support/staff-ratings')}
+          >
+            <Star className="w-4 h-4 me-2" />
+            {isRTL ? 'التقييمات' : 'Ratings'}
           </Button>
         </div>
 

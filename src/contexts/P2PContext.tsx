@@ -50,7 +50,8 @@ export interface P2PSystemMessage {
     | 'awaiting_buyer_payment'
     | 'buyer_paid'
     | 'sell_order_created'
-    | 'order_cancelled';
+    | 'order_cancelled'
+    | 'rating_prompt';
   content: string;
   contentAr: string;
   time: string;

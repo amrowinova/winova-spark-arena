@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
-import { 
+import { Scale } from 'lucide-react';
+import { DisputeRatingPrompt } from '@/components/chat/DisputeRatingPrompt';
+import {
   Clock, 
   CheckCircle, 
   AlertTriangle, 
@@ -149,6 +151,11 @@ const typeConfig: Record<string, {
     colorClass: 'text-primary',
     bgClass: 'bg-primary/10 border-primary/20',
   },
+  rating_prompt: {
+    icon: Scale,
+    colorClass: 'text-primary',
+    bgClass: 'bg-primary/10 border-primary/20',
+  },
 };
 
 // Default config for unknown types
@@ -165,6 +172,21 @@ export function P2PSystemMessage({ message }: P2PSystemMessageProps) {
   const Icon = config.icon;
 
   const content = language === 'ar' ? message.contentAr : message.content;
+
+  // Special rendering for rating prompt - show interactive widget
+  if (message.type === 'rating_prompt') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex justify-center my-3 w-full"
+      >
+        <div className="w-full max-w-sm">
+          <DisputeRatingPrompt orderId={message.orderId} />
+        </div>
+      </motion.div>
+    );
+  }
 
   // Special rendering for completion summary card
   if (message.type === 'completion_summary' && message.orderDetails) {
