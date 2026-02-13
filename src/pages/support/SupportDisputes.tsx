@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Search, 
@@ -12,10 +14,14 @@ import {
   User,
   CheckCircle,
   Gavel,
+  UserCheck,
+  ArrowUpCircle,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
+
+type FilterTab = 'all' | 'unassigned' | 'mine' | 'escalated';
 
 interface P2PDispute {
   id: string;
@@ -27,19 +33,25 @@ interface P2PDispute {
   created_at: string;
   creator_id: string;
   executor_id: string | null;
+  assigned_to: string | null;
+  assigned_at: string | null;
   creator_name: string;
   creator_avatar: string | null;
   executor_name: string | null;
   executor_avatar: string | null;
+  assigned_name: string | null;
+  is_escalated: boolean;
 }
 
 export default function SupportDisputes() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const isRTL = language === 'ar';
   const [disputes, setDisputes] = useState<P2PDispute[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
 
   useEffect(() => {
     fetchDisputes();
@@ -60,41 +72,52 @@ export default function SupportDisputes() {
       return;
     }
 
-    const disputesWithProfiles = await Promise.all(
-      (orders || []).map(async (order) => {
-        const { data: creatorProfile } = await supabase
-          .from('profiles')
-          .select('name, avatar_url')
-          .eq('user_id', order.creator_id)
-          .single();
+    // Gather all user IDs we need profiles for
+    const userIds = new Set<string>();
+    (orders || []).forEach(o => {
+      userIds.add(o.creator_id);
+      if (o.executor_id) userIds.add(o.executor_id);
+      if (o.assigned_to) userIds.add(o.assigned_to);
+    });
 
-        let executorProfile = null;
-        if (order.executor_id) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('name, avatar_url')
-            .eq('user_id', order.executor_id)
-            .single();
-          executorProfile = data;
-        }
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, name, avatar_url')
+      .in('user_id', Array.from(userIds));
 
-        return {
-          id: order.id,
-          order_type: order.order_type,
-          status: order.status,
-          nova_amount: order.nova_amount,
-          local_amount: order.local_amount,
-          country: order.country,
-          created_at: order.created_at,
-          creator_id: order.creator_id,
-          executor_id: order.executor_id,
-          creator_name: creatorProfile?.name || 'Unknown',
-          creator_avatar: creatorProfile?.avatar_url,
-          executor_name: executorProfile?.name,
-          executor_avatar: executorProfile?.avatar_url,
-        } as P2PDispute;
-      })
+    const profileMap = new Map(
+      (profiles || []).map(p => [p.user_id, p])
     );
+
+    // Check which orders have been escalated (via audit log)
+    const orderIds = (orders || []).map(o => o.id);
+    const { data: escalations } = await supabase
+      .from('p2p_dispute_actions')
+      .select('order_id')
+      .in('order_id', orderIds)
+      .eq('action_type', 'escalate');
+
+    const escalatedSet = new Set((escalations || []).map(e => e.order_id));
+
+    const disputesWithProfiles: P2PDispute[] = (orders || []).map(order => ({
+      id: order.id,
+      order_type: order.order_type,
+      status: order.status,
+      nova_amount: order.nova_amount,
+      local_amount: order.local_amount,
+      country: order.country,
+      created_at: order.created_at,
+      creator_id: order.creator_id,
+      executor_id: order.executor_id,
+      assigned_to: order.assigned_to ?? null,
+      assigned_at: order.assigned_at ?? null,
+      creator_name: profileMap.get(order.creator_id)?.name || 'Unknown',
+      creator_avatar: profileMap.get(order.creator_id)?.avatar_url ?? null,
+      executor_name: order.executor_id ? (profileMap.get(order.executor_id)?.name ?? null) : null,
+      executor_avatar: order.executor_id ? (profileMap.get(order.executor_id)?.avatar_url ?? null) : null,
+      assigned_name: order.assigned_to ? (profileMap.get(order.assigned_to)?.name ?? null) : null,
+      is_escalated: escalatedSet.has(order.id),
+    }));
 
     setDisputes(disputesWithProfiles);
     setIsLoading(false);
@@ -102,11 +125,32 @@ export default function SupportDisputes() {
 
   const activeDisputes = disputes.filter(d => d.status === 'disputed');
 
-  const filteredDisputes = disputes.filter(d =>
+  // Apply filter tab
+  const tabFiltered = disputes.filter(d => {
+    switch (activeFilter) {
+      case 'unassigned': return d.status === 'disputed' && !d.assigned_to;
+      case 'mine': return d.assigned_to === user?.id;
+      case 'escalated': return d.is_escalated && d.status === 'disputed';
+      default: return true;
+    }
+  });
+
+  const filteredDisputes = tabFiltered.filter(d =>
     d.creator_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     d.executor_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     d.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const unassignedCount = disputes.filter(d => d.status === 'disputed' && !d.assigned_to).length;
+  const mineCount = disputes.filter(d => d.assigned_to === user?.id).length;
+  const escalatedCount = disputes.filter(d => d.is_escalated && d.status === 'disputed').length;
+
+  const filters: { key: FilterTab; label: string; count: number }[] = [
+    { key: 'all', label: isRTL ? 'الكل' : 'All', count: disputes.length },
+    { key: 'unassigned', label: isRTL ? 'غير مُعيّن' : 'Unassigned', count: unassignedCount },
+    { key: 'mine', label: isRTL ? 'قضاياي' : 'Mine', count: mineCount },
+    { key: 'escalated', label: isRTL ? 'مُصعّد' : 'Escalated', count: escalatedCount },
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -115,6 +159,27 @@ export default function SupportDisputes() {
       />
 
       <div className="flex-1 p-4 space-y-4 overflow-y-auto pb-20">
+        {/* Filter Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {filters.map(f => (
+            <Button
+              key={f.key}
+              variant={activeFilter === f.key ? 'default' : 'outline'}
+              size="sm"
+              className="shrink-0"
+              onClick={() => setActiveFilter(f.key)}
+            >
+              {f.key === 'unassigned' && <AlertTriangle className="w-3.5 h-3.5 me-1" />}
+              {f.key === 'mine' && <UserCheck className="w-3.5 h-3.5 me-1" />}
+              {f.key === 'escalated' && <ArrowUpCircle className="w-3.5 h-3.5 me-1" />}
+              {f.label}
+              <Badge variant="secondary" className="ms-1.5 text-[10px] px-1.5 py-0 h-4">
+                {f.count}
+              </Badge>
+            </Button>
+          ))}
+        </div>
+
         {/* Search */}
         <div className="relative">
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -199,9 +264,27 @@ export default function SupportDisputes() {
                 </div>
 
                 <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                  <span className="text-xs text-muted-foreground font-mono">
-                    #{dispute.id.slice(0, 8)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-mono">
+                      #{dispute.id.slice(0, 8)}
+                    </span>
+                    {dispute.assigned_name ? (
+                      <Badge variant="outline" className="text-[10px] py-0 h-4">
+                        <UserCheck className="w-3 h-3 me-0.5" />
+                        {dispute.assigned_name}
+                      </Badge>
+                    ) : dispute.status === 'disputed' ? (
+                      <Badge variant="destructive" className="text-[10px] py-0 h-4">
+                        {isRTL ? 'غير مُعيّن' : 'Unassigned'}
+                      </Badge>
+                    ) : null}
+                    {dispute.is_escalated && (
+                      <Badge variant="outline" className="text-[10px] py-0 h-4 border-orange-500 text-orange-500">
+                        <ArrowUpCircle className="w-3 h-3 me-0.5" />
+                        {isRTL ? 'مُصعّد' : 'Escalated'}
+                      </Badge>
+                    )}
+                  </div>
                   <span className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(dispute.created_at), {
                       addSuffix: true,

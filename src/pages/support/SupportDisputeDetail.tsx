@@ -34,8 +34,9 @@ import {
   MessageSquare,
   Gavel,
   Scale,
+  UserCheck,
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 
 type ConfirmAction = 'release' | 'refund' | 'fraud' | null;
@@ -53,6 +54,10 @@ export default function SupportDisputeDetail() {
     auditLog,
     isLoading,
     error,
+    isAssignedToMe,
+    isUnassigned,
+    assignedTo,
+    claimCase,
     releaseToBuyer,
     refundSeller,
     markFraud,
@@ -66,6 +71,7 @@ export default function SupportDisputeDetail() {
   const [fraudNote, setFraudNote] = useState('');
   const [fraudTarget, setFraudTarget] = useState<'buyer' | 'seller'>('buyer');
   const [isActing, setIsActing] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
   const [showProofDialog, setShowProofDialog] = useState(false);
   const [showEscalateDialog, setShowEscalateDialog] = useState(false);
   const [showFraudDialog, setShowFraudDialog] = useState(false);
@@ -104,6 +110,14 @@ export default function SupportDisputeDetail() {
 
   const { order, buyer, seller, buyer_wallet, seller_wallet } = caseData;
   const isResolved = order.status === 'completed' || order.status === 'cancelled';
+  // Staff can act if they claimed the case OR if they are admin
+  const canAct = isAssignedToMe && !isResolved;
+
+  const handleClaimCase = async () => {
+    setIsClaiming(true);
+    await claimCase();
+    setIsClaiming(false);
+  };
 
   const handleConfirmAction = async () => {
     setIsActing(true);
@@ -171,6 +185,36 @@ export default function SupportDisputeDetail() {
           {order.status.toUpperCase()}
         </Badge>
       </div>
+
+      {/* Claim Banner */}
+      {!isResolved && isUnassigned && (
+        <div className="px-4 py-3 bg-muted/50 border-b flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            {isRTL ? 'هذه القضية غير مُعيّنة بعد' : 'This case is unassigned'}
+          </span>
+          <Button size="sm" onClick={handleClaimCase} disabled={isClaiming}>
+            {isClaiming && <Loader2 className="w-4 h-4 me-1 animate-spin" />}
+            <UserCheck className="w-4 h-4 me-1" />
+            {isRTL ? 'استلام القضية' : 'Claim Case'}
+          </Button>
+        </div>
+      )}
+      {!isResolved && assignedTo && !isAssignedToMe && (
+        <div className="px-4 py-3 bg-muted/50 border-b flex items-center gap-2">
+          <Lock className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            {isRTL ? 'هذه القضية مُعيّنة لموظف آخر — للقراءة فقط' : 'This case is assigned to another staff — read only'}
+          </span>
+        </div>
+      )}
+      {!isResolved && isAssignedToMe && (
+        <div className="px-4 py-2 bg-primary/10 border-b flex items-center gap-2">
+          <UserCheck className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium text-primary">
+            {isRTL ? 'أنت المسؤول عن هذه القضية' : 'You are assigned to this case'}
+          </span>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         {/* Order Summary */}
@@ -347,7 +391,7 @@ export default function SupportDisputeDetail() {
         </Card>
 
         {/* Arbitration Actions */}
-        {!isResolved && (
+        {canAct && (
           <Card className="mx-4 mt-3 p-4 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <Gavel className="w-5 h-5 text-primary" />

@@ -4585,6 +4585,8 @@ export type Database = {
       }
       p2p_orders: {
         Row: {
+          assigned_at: string | null
+          assigned_to: string | null
           cancellation_reason: string | null
           cancelled_by: string | null
           completed_at: string | null
@@ -4606,6 +4608,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_at?: string | null
+          assigned_to?: string | null
           cancellation_reason?: string | null
           cancelled_by?: string | null
           completed_at?: string | null
@@ -4627,6 +4631,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_at?: string | null
+          assigned_to?: string | null
           cancellation_reason?: string | null
           cancelled_by?: string | null
           completed_at?: string | null
@@ -6347,6 +6353,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      support_claim_dispute: { Args: { p_order_id: string }; Returns: Json }
       support_get_dispute_case: { Args: { p_order_id: string }; Returns: Json }
       support_log_dispute_action: {
         Args: {
