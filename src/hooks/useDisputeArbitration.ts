@@ -32,6 +32,8 @@ export interface DisputeOrder {
   matched_at: string | null;
   completed_at: string | null;
   updated_at: string;
+  assigned_to: string | null;
+  assigned_at: string | null;
 }
 
 export interface DisputeCaseData {
@@ -53,7 +55,6 @@ export interface DisputeMessage {
   is_system_message: boolean;
   message_type: string;
   created_at: string;
-  // joined
   sender_name?: string;
   sender_avatar?: string;
 }
@@ -78,6 +79,12 @@ export function useDisputeArbitration(orderId: string | null) {
   const [auditLog, setAuditLog] = useState<DisputeAuditEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Derived: is this case assigned to current user?
+  const isAssignedToMe = caseData?.order.assigned_to === user?.id;
+  const isUnassigned = !caseData?.order.assigned_to;
+  const assignedTo = caseData?.order.assigned_to ?? null;
+  const assignedAt = caseData?.order.assigned_at ?? null;
 
   // Fetch case data via RPC
   const fetchCaseData = useCallback(async () => {
@@ -121,7 +128,6 @@ export function useDisputeArbitration(orderId: string | null) {
       return;
     }
 
-    // Join with profiles
     const userIds = new Set((data || []).map(m => m.sender_id));
     const { data: profiles } = await supabase
       .from('profiles')
@@ -156,7 +162,6 @@ export function useDisputeArbitration(orderId: string | null) {
       return;
     }
 
-    // Join staff names
     const staffIds = new Set((data || []).map(a => a.staff_id));
     const { data: profiles } = await supabase
       .from('profiles')
@@ -214,6 +219,23 @@ export function useDisputeArbitration(orderId: string | null) {
     fetchAuditLog();
   };
 
+  // Claim case
+  const claimCase = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!orderId || !user) return { success: false, error: 'Missing data' };
+
+    const { data, error: rpcError } = await supabase.rpc('support_claim_dispute', {
+      p_order_id: orderId,
+    });
+
+    if (rpcError) return { success: false, error: rpcError.message };
+    const result = data as unknown as { success: boolean; error?: string };
+    if (result.success) {
+      fetchCaseData();
+      fetchAuditLog();
+    }
+    return result;
+  };
+
   // Release to buyer (complete trade)
   const releaseToBuyer = async (): Promise<{ success: boolean; error?: string }> => {
     if (!orderId || !user) return { success: false, error: 'Missing data' };
@@ -230,7 +252,6 @@ export function useDisputeArbitration(orderId: string | null) {
     const result = data as unknown as { success: boolean; error?: string };
     if (result.success) {
       await logAction('release_to_buyer', prevStatus, 'completed', 'Dispute resolved — Nova released to buyer');
-      // Send system message
       await supabase.from('p2p_messages').insert({
         order_id: orderId,
         sender_id: user.id,
@@ -277,7 +298,6 @@ export function useDisputeArbitration(orderId: string | null) {
   const markFraud = async (targetUserId: string, note: string): Promise<{ success: boolean; error?: string }> => {
     if (!orderId || !user) return { success: false, error: 'Missing data' };
 
-    // Freeze wallet
     const { error: freezeError } = await supabase
       .from('wallets')
       .update({
@@ -346,7 +366,12 @@ export function useDisputeArbitration(orderId: string | null) {
     auditLog,
     isLoading,
     error,
+    isAssignedToMe,
+    isUnassigned,
+    assignedTo,
+    assignedAt,
     refetch: fetchCaseData,
+    claimCase,
     releaseToBuyer,
     refundSeller,
     markFraud,
