@@ -6257,6 +6257,10 @@ export type Database = {
         Args: { p_points: number; p_source: string; p_user_id: string }
         Returns: undefined
       }
+      run_load_simulation: {
+        Args: { p_intensity?: string; p_transfer_count?: number }
+        Returns: Json
+      }
       search_messages: {
         Args: {
           p_conversation_id?: string
