@@ -46,8 +46,39 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  // SECURITY: Validate caller is internal (service-role or admin)
+  const authHeader = req.headers.get('Authorization');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  // Allow service_role calls (from orchestrator/cron) and admin user calls
+  const bearerToken = authHeader?.replace('Bearer ', '') || '';
+  const isServiceRole = bearerToken === serviceRoleKey;
+  
+  if (!isServiceRole) {
+    // Check if it's an admin user
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const tempClient = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const { data: { user } } = await tempClient.auth.getUser(bearerToken);
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const { data: roles } = await tempClient.from('user_roles').select('role').eq('user_id', user.id);
+    if (!roles?.some((r: any) => r.role === 'admin')) {
+      return new Response(JSON.stringify({ error: 'Admin or service role only' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   const now = ksaNow();
