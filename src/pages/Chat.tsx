@@ -15,6 +15,7 @@ import { useP2P, P2PChat, P2PMessage } from '@/contexts/P2PContext';
 import { useSupport } from '@/contexts/SupportContext';
 import { useDirectMessages, DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useUserSearch, SearchedUser } from '@/hooks/useUserSearch';
+import { useTeamChat, TeamConversation, TeamMessage } from '@/hooks/useTeamChat';
 import { useChatListPresence, useGlobalPresence } from '@/hooks/useChatListPresence';
 import { useCanAccessAIControlRoom } from '@/hooks/useAIControlRoom';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
@@ -34,6 +35,7 @@ import { ChatSearchResults, ConversationResult, UserResult } from '@/components/
 import { SupportChatView } from '@/components/chat/SupportChatView';
 import { UserSearchSheet } from '@/components/chat/UserSearchSheet';
 import { AIRoomView } from '@/components/chat/AIRoomView';
+import { TeamChatView } from '@/components/chat/TeamChatView';
 import { RankBadge } from '@/components/common/RankBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCountryFlag } from '@/lib/countryFlags';
@@ -111,6 +113,15 @@ function ChatContent() {
     getOrCreateConversation,
     setActiveConversation: setActiveDMConversationId,
   } = useDirectMessages();
+
+  // Team Chat hook
+  const {
+    conversations: teamConversationsData,
+    messages: teamMessages,
+    fetchMessages: fetchTeamMessages,
+    sendMessage: sendTeamMessage,
+    fetchMembers: fetchTeamMembers,
+  } = useTeamChat();
   
   // User search hook for inline search
   const { results: userSearchResults, isSearching: isUserSearching, searchUsers, clearResults: clearUserSearch } = useUserSearch();
@@ -146,6 +157,8 @@ function ChatContent() {
   const [showSupportChat, setShowSupportChat] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [showAIControlRoom, setShowAIControlRoom] = useState(false);
+  const [activeTeamConversation, setActiveTeamConversation] = useState<TeamConversation | null>(null);
+  const [activeTeamMembers, setActiveTeamMembers] = useState<TeamChatMember[]>([]);
   
   // Check if user can access AI Control Room
   const { data: canAccessAI } = useCanAccessAIControlRoom();
@@ -355,11 +368,28 @@ function ChatContent() {
     pinnedMessages: [],
   } : null;
 
-  // Combine all conversations - Real DMs + Support + AI Control Room + P2P (remove mock DMs from conversations)
+  // Convert real team conversations from database
+  const realTeamConversations: Conversation[] = teamConversationsData.map(tc => ({
+    id: `team-${tc.id}`,
+    type: 'team' as const,
+    name: tc.userRole === 'leader'
+      ? (language === 'ar' ? 'فريقي' : 'My Team')
+      : (language === 'ar' ? `فريق ${tc.leaderName}` : `${tc.leaderName}'s Team`),
+    nameAr: tc.userRole === 'leader' ? 'فريقي' : `فريق ${tc.leaderName}`,
+    avatar: '👥',
+    lastMessage: tc.lastMessage || (language === 'ar' ? 'ابدأ المحادثة' : 'Start chatting'),
+    time: tc.lastMessageAt
+      ? new Date(tc.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '',
+    unread: tc.unreadCount,
+    messages: [],
+    pinnedMessages: [],
+    teamMembers: [],
+    dmConversationId: tc.id, // reuse field to store team conv ID
+  }));
+
   // Sort DMs by lastMessageAt to ensure newest conversation is at top
-  const teamConversations = conversations.filter(c => c.type === 'team');
   const sortedDMConversations = [...realDMConversations].sort((a, b) => {
-    // Support always stays at top of Private tab for visibility
     const aTime = (a as any).dmConversationId 
       ? dmConversations.find(d => d.id === (a as any).dmConversationId)?.lastMessageAt || ''
       : '';
@@ -374,7 +404,7 @@ function ChatContent() {
     ...(aiControlRoomConversation ? [aiControlRoomConversation] : []),
     supportConversation, 
     ...sortedDMConversations, 
-    ...teamConversations, 
+    ...realTeamConversations, 
     ...p2pConversations
   ];
   
@@ -686,6 +716,36 @@ function ChatContent() {
       }
     }
     
+    // Handle real team conversations from database
+    if (conv.type === 'team' && conv.id.startsWith('team-')) {
+      const teamConvId = conv.id.replace('team-', '');
+      const teamConv = teamConversationsData.find(tc => tc.id === teamConvId);
+      if (teamConv) {
+        fetchTeamMessages(teamConvId);
+        // Fetch members async
+        fetchTeamMembers(teamConvId).then(members => {
+          setActiveTeamMembers(members.map(m => ({
+            id: m.id,
+            name: m.name,
+            nameAr: m.name,
+            username: m.username,
+            rank: m.rank as any,
+            active: m.isActive,
+            avatar: '👤',
+            directCount: 0,
+            activityRanking: m.isActive ? 0 : 999,
+          })));
+        });
+        setActiveTeamConversation(teamConv);
+        setActiveChat(null);
+        setActiveP2PChat(null);
+        setActiveDMConversation(null);
+        setShowAIControlRoom(false);
+        setShowSupportChat(false);
+        return;
+      }
+    }
+
     // Handle mock team/other chats
     setActiveChat(conv);
     setActiveP2PChat(null);
@@ -697,7 +757,9 @@ function ChatContent() {
     setActiveChat(null);
     setActiveP2PChat(null);
     setActiveDMConversation(null);
-    setActiveDMConversationId(null); // Clear active conversation tracking
+    setActiveDMConversationId(null);
+    setActiveTeamConversation(null);
+    setActiveTeamMembers([]);
     setShowP2PDetails(false);
     setShowSupportChat(false);
     setShowAIControlRoom(false);
@@ -762,6 +824,22 @@ function ChatContent() {
     return (
       <AppLayout title={language === 'ar' ? 'دعم Winova' : 'Winova Support'} showNav={false} showHeader={false}>
         <SupportChatView onBack={handleBackFromChat} />
+      </AppLayout>
+    );
+  }
+
+  // Active Team Chat View
+  if (activeTeamConversation) {
+    const convMessages = teamMessages[activeTeamConversation.id] || [];
+    return (
+      <AppLayout title={language === 'ar' ? 'الفريق' : 'Team'} showNav={false} showHeader={false}>
+        <TeamChatView
+          conversation={activeTeamConversation}
+          messages={convMessages}
+          members={activeTeamMembers}
+          onBack={handleBackFromChat}
+          onSendMessage={sendTeamMessage}
+        />
       </AppLayout>
     );
   }
