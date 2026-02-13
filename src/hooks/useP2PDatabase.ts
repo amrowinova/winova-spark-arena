@@ -541,66 +541,26 @@ export function useP2PDatabase() {
     }
   }, [user, fetchOrders]);
 
-  // Expire order (auto-cancel when timer runs out)
-  const expireOrder = useCallback(async (orderId: string) => {
+  // Expire order via atomic server RPC — NO client-side status mutation
+  const expireOrder = useCallback(async (orderId: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
-      // Get the order to check if it's still active
-      const { data: orderData, error: fetchError } = await supabase
-        .from('p2p_orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
+      const { data, error } = await supabase.rpc('p2p_expire_order', { p_order_id: orderId });
 
-      if (fetchError || !orderData) return false;
-
-      // Only expire orders in awaiting_payment status that haven't been paid
-      if (orderData.status === 'awaiting_payment') {
-        // Reset order to open (return to market)
-        const { error } = await supabase
-          .from('p2p_orders')
-          .update({
-            status: 'open',
-            executor_id: null,
-            matched_at: null,
-          } as P2POrderUpdate)
-          .eq('id', orderId)
-          .eq('status', 'awaiting_payment');
-
-        if (error) throw error;
-
-        // Add system message with proper template
-        const msg = generateSystemMessage('order_expired', {});
-        await sendSystemMessage(orderId, 'order_expired', msg.content, msg.contentAr);
-
-        fetchOrders();
-        return true;
+      if (error) {
+        console.error('RPC p2p_expire_order error:', error);
+        return false;
       }
 
-      // For paid orders, we don't auto-cancel - this goes to dispute if needed
-      if (orderData.status === 'payment_sent') {
-        // Auto-open dispute
-        const msg = generateSystemMessage('dispute_opened', { 
-          reason: 'Timer expired during payment confirmation' 
-        });
-        await sendSystemMessage(orderId, 'dispute_opened', msg.content, msg.contentAr);
-
-        const { error } = await supabase
-          .from('p2p_orders')
-          .update({
-            status: 'disputed',
-            cancellation_reason: 'Timer expired during payment confirmation',
-          } as P2POrderUpdate)
-          .eq('id', orderId);
-
-        if (error) throw error;
-        
-        fetchOrders();
-        return true;
+      const result = data as { success: boolean; error?: string; action?: string };
+      if (!result?.success) {
+        console.error('p2p_expire_order failed:', result?.error);
+        return false;
       }
 
-      return false;
+      fetchOrders();
+      return true;
     } catch (err) {
       console.error('Error expiring order:', err);
       return false;

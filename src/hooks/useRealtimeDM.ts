@@ -60,75 +60,82 @@ export function useRealtimeDM(options: RealtimeDMOptions = {}) {
   useEffect(() => {
     if (!user) return;
 
-    // Subscribe to new messages in all conversations where user is participant
-    const channel = supabase
-      .channel('dm-realtime-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        async (payload) => {
-          const newMsg = payload.new as RealtimeMessage;
-          
-          // Skip if it's my own message
-          if (newMsg.sender_id === user.id) return;
-          
-          // Verify I'm part of this conversation
-          const { data: conv } = await supabase
-            .from('conversations')
-            .select('participant1_id, participant2_id')
-            .eq('id', newMsg.conversation_id)
-            .single();
-          
-          if (!conv) return;
-          
-          const isMyConversation = conv.participant1_id === user.id || conv.participant2_id === user.id;
-          if (!isMyConversation) return;
-          
-          // Get sender name for notification
-          const senderName = await getSenderProfile(newMsg.sender_id);
-          
-          // If user is viewing this conversation, mark as read immediately
-          if (activeConvRef.current === newMsg.conversation_id) {
-            await supabase
-              .from('direct_messages')
-              .update({ is_read: true })
-              .eq('id', newMsg.id);
-          } else {
-            // Show toast notification for new message
-            toast.message(`${senderName}`, {
-              description: newMsg.content.length > 50 
-                ? newMsg.content.substring(0, 50) + '...' 
-                : newMsg.content,
-              duration: 4000,
-            });
+    // Fetch user's conversations then subscribe with scoped filter
+    const setupChannel = async () => {
+      const { data: convs } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`);
+
+      const convIds = convs?.map(c => c.id) || [];
+      if (convIds.length === 0) return null;
+
+      const filter = `conversation_id=in.(${convIds.join(',')})`;
+
+      const channel = supabase
+        .channel('dm-realtime-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'direct_messages',
+            filter,
+          },
+          async (payload) => {
+            const newMsg = payload.new as RealtimeMessage;
+            
+            // Skip if it's my own message
+            if (newMsg.sender_id === user.id) return;
+            
+            // Get sender name for notification
+            const senderName = await getSenderProfile(newMsg.sender_id);
+            
+            // If user is viewing this conversation, mark as read immediately
+            if (activeConvRef.current === newMsg.conversation_id) {
+              await supabase
+                .from('direct_messages')
+                .update({ is_read: true })
+                .eq('id', newMsg.id);
+            } else {
+              // Show toast notification for new message
+              toast.message(`${senderName}`, {
+                description: newMsg.content.length > 50 
+                  ? newMsg.content.substring(0, 50) + '...' 
+                  : newMsg.content,
+                duration: 4000,
+              });
+            }
+            
+            // Callback for parent component
+            onNewMessage?.(newMsg, senderName);
           }
-          
-          // Callback for parent component
-          onNewMessage?.(newMsg, senderName);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'direct_messages',
-          filter: 'is_read=eq.true',
-        },
-        (payload) => {
-          const updatedMsg = payload.new as RealtimeMessage;
-          // Notify about read status change
-          onMessageRead?.(updatedMsg.conversation_id);
-        }
-      )
-      .subscribe();
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'direct_messages',
+            filter,
+          },
+          (payload) => {
+            const updatedMsg = payload.new as RealtimeMessage;
+            if (updatedMsg.is_read) {
+              onMessageRead?.(updatedMsg.conversation_id);
+            }
+          }
+        )
+        .subscribe();
+
+      return channel;
+    };
+
+    let channelRef: ReturnType<typeof supabase.channel> | null = null;
+    setupChannel().then(ch => { channelRef = ch; });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef) supabase.removeChannel(channelRef);
     };
   }, [user, onNewMessage, onMessageRead, getSenderProfile]);
 
