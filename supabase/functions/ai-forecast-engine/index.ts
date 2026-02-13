@@ -279,6 +279,35 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ── Auth Gate: Service Role or Admin ──
+  {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    if (token !== svcKey) {
+      const authClient = createClient(Deno.env.get('SUPABASE_URL')!, svcKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const { data: { user } } = await authClient.auth.getUser(token);
+      if (!user) {
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: roles } = await authClient.from('user_roles').select('role').eq('user_id', user.id);
+      if (!roles?.some((r: any) => r.role === 'admin')) {
+        return new Response(JSON.stringify({ error: 'Admin access required' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+  }
+
   const t0 = Date.now();
 
   try {
