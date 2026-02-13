@@ -5955,29 +5955,17 @@ export type Database = {
       }
     }
     Functions: {
-      admin_adjust_balance:
-        | {
-            Args: {
-              p_admin_id: string
-              p_amount: number
-              p_currency: Database["public"]["Enums"]["currency_type"]
-              p_is_credit: boolean
-              p_reason?: string
-              p_target_user_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_admin_id: string
-              p_amount: number
-              p_currency: string
-              p_is_credit: boolean
-              p_reason: string
-              p_target_user_id: string
-            }
-            Returns: Json
-          }
+      admin_adjust_balance: {
+        Args: {
+          p_admin_id: string
+          p_amount: number
+          p_currency: string
+          p_is_credit: boolean
+          p_reason: string
+          p_target_user_id: string
+        }
+        Returns: Json
+      }
       assign_referral_auto: {
         Args: { p_city?: string; p_country: string; p_new_user_id: string }
         Returns: Json
