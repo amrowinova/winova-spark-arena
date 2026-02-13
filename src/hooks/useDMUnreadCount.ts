@@ -65,44 +65,61 @@ export function useDMUnreadCount() {
     // Initial fetch
     fetchUnreadCount();
 
-    // Subscribe to realtime updates on direct_messages
-    const channel = supabase
-      .channel('dm-unread-count-v2')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        (payload) => {
-          const newMsg = payload.new as any;
-          // Only count if it's not my message
-          if (newMsg.sender_id !== user.id && !newMsg.is_read) {
-            setUnreadCount(prev => prev + 1);
-            setUnreadByConversation(prev => ({
-              ...prev,
-              [newMsg.conversation_id]: (prev[newMsg.conversation_id] || 0) + 1
-            }));
+    // Get user's conversations for scoped subscription
+    const setupChannel = async () => {
+      const { data: convs } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`);
+
+      const convIds = convs?.map(c => c.id) || [];
+      if (convIds.length === 0) return null;
+
+      const filter = `conversation_id=in.(${convIds.join(',')})`;
+
+      const channel = supabase
+        .channel('dm-unread-count-v2')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'direct_messages',
+            filter,
+          },
+          (payload) => {
+            const newMsg = payload.new as any;
+            if (newMsg.sender_id !== user.id && !newMsg.is_read) {
+              setUnreadCount(prev => prev + 1);
+              setUnreadByConversation(prev => ({
+                ...prev,
+                [newMsg.conversation_id]: (prev[newMsg.conversation_id] || 0) + 1
+              }));
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        () => {
-          // Refetch on any update (read status changes)
-          fetchUnreadCount();
-        }
-      )
-      .subscribe();
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'direct_messages',
+            filter,
+          },
+          () => {
+            fetchUnreadCount();
+          }
+        )
+        .subscribe();
+
+      return channel;
+    };
+
+    let channelRef: ReturnType<typeof supabase.channel> | null = null;
+    setupChannel().then(ch => { channelRef = ch; });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef) supabase.removeChannel(channelRef);
     };
   }, [user, fetchUnreadCount]);
 

@@ -47,83 +47,27 @@ export function useDirectMessages() {
     conversationsRef.current = conversations;
   }, [conversations]);
 
-  // Fetch all conversations with optimized queries
+  // Fetch all conversations in a SINGLE RPC call — eliminates N+1
   const fetchConversations = useCallback(async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`)
-        .order('last_message_at', { ascending: false, nullsFirst: false });
+      const { data, error } = await supabase.rpc('get_dm_conversations');
 
       if (error) throw error;
 
-      // Get all partner IDs for batch profile fetch
-      const partnerIds = (data || []).map(conv => 
-        conv.participant1_id === user.id ? conv.participant2_id : conv.participant1_id
-      );
-
-      // Batch fetch profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, name, username, avatar_url, country')
-        .in('user_id', partnerIds);
-
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-
-      // Add AI system user to profile map if needed
-      if (partnerIds.includes(AI_SYSTEM_USER_ID)) {
-        profileMap.set(AI_SYSTEM_USER_ID, {
-          user_id: AI_SYSTEM_USER_ID,
-          name: AI_SYSTEM_USER_NAME,
-          username: AI_SYSTEM_USER_USERNAME,
-          avatar_url: null,
-          country: 'Saudi Arabia',
-        });
-      }
-
-      // Build conversations with profiles
-      const conversationsWithProfiles: DMConversation[] = [];
-      
-      for (const conv of data || []) {
-        const partnerId = conv.participant1_id === user.id 
-          ? conv.participant2_id 
-          : conv.participant1_id;
-
-        const profile = profileMap.get(partnerId);
-
-        // Get last message
-        const { data: lastMsg } = await supabase
-          .from('direct_messages')
-          .select('content, created_at')
-          .eq('conversation_id', conv.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        // Count unread
-        const { count } = await supabase
-          .from('direct_messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('conversation_id', conv.id)
-          .eq('is_read', false)
-          .neq('sender_id', user.id);
-
-        conversationsWithProfiles.push({
-          id: conv.id,
-          participantId: partnerId,
-          participantName: profile?.name || 'Unknown',
-          participantUsername: profile?.username || 'unknown',
-          participantAvatar: profile?.avatar_url,
-          participantCountry: profile?.country || '',
-          lastMessage: lastMsg?.content || null,
-          lastMessageAt: lastMsg?.created_at || conv.created_at,
-          unreadCount: count || 0,
-          createdAt: conv.created_at,
-        });
-      }
+      const conversationsWithProfiles: DMConversation[] = (data || []).map((row: any) => ({
+        id: row.conversation_id,
+        participantId: row.partner_id,
+        participantName: row.partner_id === AI_SYSTEM_USER_ID ? AI_SYSTEM_USER_NAME : (row.partner_name || 'Unknown'),
+        participantUsername: row.partner_id === AI_SYSTEM_USER_ID ? AI_SYSTEM_USER_USERNAME : (row.partner_username || 'user'),
+        participantAvatar: row.partner_avatar,
+        participantCountry: row.partner_country || '',
+        lastMessage: row.last_message || null,
+        lastMessageAt: row.last_message_at || row.created_at,
+        unreadCount: Number(row.unread_count) || 0,
+        createdAt: row.created_at,
+      }));
 
       setConversations(conversationsWithProfiles);
     } catch (err) {
@@ -491,95 +435,96 @@ export function useDirectMessages() {
       }
     });
 
-    const channel = supabase
-      .channel('dm-realtime-backup')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        async (payload) => {
-          const newMsg = payload.new as any;
-          
-          // Skip messages from others - handled by event listener from notifications
-          // Only process our own messages here for optimistic UI confirmation
-          if (newMsg.sender_id !== user.id) return;
-          
-          // Our own message - already added optimistically, just skip
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        (payload) => {
-          const updatedMsg = payload.new as any;
-          
-          // DIRECT STATE UPDATE for read status
-          setMessages(prev => {
-            const convMessages = prev[updatedMsg.conversation_id];
-            if (!convMessages) return prev;
-            
-            return {
-              ...prev,
-              [updatedMsg.conversation_id]: convMessages.map(m => 
-                m.id === updatedMsg.id 
-                  ? { ...m, isRead: updatedMsg.is_read }
-                  : m
-              ),
-            };
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'conversations',
-        },
-        async (payload) => {
-          const newConv = payload.new as any;
-          
-          // Check if I'm part of this conversation
-          if (newConv.participant1_id !== user.id && newConv.participant2_id !== user.id) return;
-          
-          // Add to state immediately
-          const partnerId = newConv.participant1_id === user.id 
-            ? newConv.participant2_id 
-            : newConv.participant1_id;
-          
-          const partnerInfo = await getProfileInfo(partnerId);
-          
-          setConversations(prev => {
-            if (prev.some(c => c.id === newConv.id)) return prev;
-            
-            const conv: DMConversation = {
-              id: newConv.id,
-              participantId: partnerId,
-              participantName: partnerInfo.name,
-              participantUsername: partnerInfo.username,
-              participantAvatar: partnerInfo.avatar,
-              participantCountry: '',
-              lastMessage: null,
-              lastMessageAt: newConv.created_at,
-              unreadCount: 0,
-              createdAt: newConv.created_at,
-            };
-            
-            return [conv, ...prev];
-          });
-        }
-      )
-      .subscribe();
+    // Scoped realtime — only listen to user's conversations
+    const setupChannel = async () => {
+      const { data: convs } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`);
+
+      const convIds = convs?.map(c => c.id) || [];
+
+      const channel = supabase
+        .channel('dm-realtime-backup')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'direct_messages',
+            ...(convIds.length > 0 ? { filter: `conversation_id=in.(${convIds.join(',')})` } : {}),
+          },
+          async (payload) => {
+            const newMsg = payload.new as any;
+            // Skip messages from others - handled by event listener from notifications
+            if (newMsg.sender_id !== user.id) return;
+            // Our own message - already added optimistically, just skip
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'direct_messages',
+            ...(convIds.length > 0 ? { filter: `conversation_id=in.(${convIds.join(',')})` } : {}),
+          },
+          (payload) => {
+            const updatedMsg = payload.new as any;
+            setMessages(prev => {
+              const convMessages = prev[updatedMsg.conversation_id];
+              if (!convMessages) return prev;
+              return {
+                ...prev,
+                [updatedMsg.conversation_id]: convMessages.map(m => 
+                  m.id === updatedMsg.id 
+                    ? { ...m, isRead: updatedMsg.is_read }
+                    : m
+                ),
+              };
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'conversations',
+          },
+          async (payload) => {
+            const newConv = payload.new as any;
+            if (newConv.participant1_id !== user.id && newConv.participant2_id !== user.id) return;
+            const partnerId = newConv.participant1_id === user.id ? newConv.participant2_id : newConv.participant1_id;
+            const partnerInfo = await getProfileInfo(partnerId);
+            setConversations(prev => {
+              if (prev.some(c => c.id === newConv.id)) return prev;
+              const conv: DMConversation = {
+                id: newConv.id,
+                participantId: partnerId,
+                participantName: partnerInfo.name,
+                participantUsername: partnerInfo.username,
+                participantAvatar: partnerInfo.avatar,
+                participantCountry: '',
+                lastMessage: null,
+                lastMessageAt: newConv.created_at,
+                unreadCount: 0,
+                createdAt: newConv.created_at,
+              };
+              return [conv, ...prev];
+            });
+          }
+        )
+        .subscribe();
+
+      return channel;
+    };
+
+    let channelRef: ReturnType<typeof supabase.channel> | null = null;
+    setupChannel().then(ch => { channelRef = ch; });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef) supabase.removeChannel(channelRef);
     };
   }, [user, fetchConversations]);
 

@@ -6190,6 +6190,21 @@ export type Database = {
           total_tables: number
         }[]
       }
+      get_dm_conversations: {
+        Args: never
+        Returns: {
+          conversation_id: string
+          created_at: string
+          last_message: string
+          last_message_at: string
+          partner_avatar: string
+          partner_country: string
+          partner_id: string
+          partner_name: string
+          partner_username: string
+          unread_count: number
+        }[]
+      }
       get_index_usage_stats: {
         Args: never
         Returns: {
@@ -6298,7 +6313,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin_user: { Args: never; Returns: boolean }
+      is_admin_user:
+        | { Args: never; Returns: boolean }
+        | { Args: { check_user_id: string }; Returns: boolean }
       is_real_user: { Args: { p_user_id: string }; Returns: boolean }
       is_support_staff: { Args: { _user_id: string }; Returns: boolean }
       is_wallet_frozen: { Args: { _user_id: string }; Returns: boolean }
@@ -6354,6 +6371,7 @@ export type Database = {
         }
         Returns: Json
       }
+      p2p_expire_order: { Args: { p_order_id: string }; Returns: Json }
       p2p_extend_time: {
         Args: { p_minutes?: number; p_order_id: string }
         Returns: Json
@@ -6414,17 +6432,27 @@ export type Database = {
           sender_name: string
         }[]
       }
-      send_ai_alert_to_admins: {
-        Args: {
-          p_action: string
-          p_body: string
-          p_confidence: number
-          p_severity: string
-          p_title: string
-          p_type?: string
-        }
-        Returns: undefined
-      }
+      send_ai_alert_to_admins:
+        | {
+            Args: {
+              p_agent_id: string
+              p_content: string
+              p_content_ar: string
+              p_metadata?: Json
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_action: string
+              p_body: string
+              p_confidence: number
+              p_severity: string
+              p_title: string
+              p_type?: string
+            }
+            Returns: undefined
+          }
       submit_support_agent_rating: {
         Args: { p_note?: string; p_order_id: string; p_rating: string }
         Returns: Json

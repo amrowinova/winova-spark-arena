@@ -77,15 +77,27 @@ export function useChatNotifications(options: UseChatNotificationsOptions = {}) 
   useEffect(() => {
     if (!user || !enabled) return;
 
-    const channel = supabase
-      .channel('chat-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages',
-        },
+    // First get user's conversation IDs for scoped filtering
+    const fetchAndSubscribe = async () => {
+      const { data: convs } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`);
+
+      const convIds = convs?.map(c => c.id) || [];
+      if (convIds.length === 0) return null;
+
+      // Subscribe with filter — only MY conversations
+      const ch = supabase
+        .channel('chat-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'direct_messages',
+            filter: `conversation_id=in.(${convIds.join(',')})`,
+          },
         async (payload) => {
           const newMsg = payload.new as NewMessagePayload;
           
@@ -169,11 +181,17 @@ export function useChatNotifications(options: UseChatNotificationsOptions = {}) 
           // Callback for parent component
           onNewMessage?.(newMsg, sender.name);
         }
-      )
-      .subscribe();
+        )
+        .subscribe();
+
+      return ch;
+    };
+
+    let channelRef: ReturnType<typeof supabase.channel> | null = null;
+    fetchAndSubscribe().then(ch => { channelRef = ch; });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef) supabase.removeChannel(channelRef);
     };
   }, [user, enabled, getSenderProfile, onNewMessage]);
 }
