@@ -167,7 +167,7 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                         onClick={() => handleNavigation('/admin')}
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
-                          location.pathname.startsWith('/admin') && !location.pathname.startsWith('/admin/command-center')
+                          location.pathname.startsWith('/admin') && !location.pathname.startsWith('/admin/commander')
                             ? 'bg-primary text-primary-foreground' 
                             : 'hover:bg-muted text-foreground'
                         )}
@@ -179,10 +179,10 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                         </span>
                       </button>
                       <button
-                        onClick={() => handleNavigation('/admin/command-center')}
+                        onClick={() => handleNavigation('/admin/commander')}
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
-                          location.pathname.startsWith('/admin/command-center')
+                          location.pathname.startsWith('/admin/commander')
                             ? 'bg-primary text-primary-foreground' 
                             : 'hover:bg-muted text-foreground'
                         )}
