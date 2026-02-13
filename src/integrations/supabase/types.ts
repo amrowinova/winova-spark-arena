@@ -6222,6 +6222,18 @@ export type Database = {
         }
         Returns: Json
       }
+      emit_team_event: {
+        Args: {
+          p_event_type: string
+          p_message: string
+          p_message_ar?: string
+          p_notif_title?: string
+          p_notif_title_ar?: string
+          p_notify?: boolean
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       execute_transfer: {
         Args: {
           p_amount: number
