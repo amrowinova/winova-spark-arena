@@ -5547,6 +5547,56 @@ export type Database = {
         }
         Relationships: []
       }
+      team_conversation_members: {
+        Row: {
+          conversation_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "team_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          leader_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          leader_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          leader_id?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           created_at: string
@@ -5570,6 +5620,41 @@ export type Database = {
           member_id?: string
         }
         Relationships: []
+      }
+      team_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          message_type: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "team_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
@@ -6252,6 +6337,22 @@ export type Database = {
           total_size: string
         }[]
       }
+      get_team_conversations: {
+        Args: { p_user_id: string }
+        Returns: {
+          conversation_id: string
+          last_message: string
+          last_message_at: string
+          last_message_type: string
+          leader_avatar_url: string
+          leader_id: string
+          leader_name: string
+          leader_username: string
+          member_count: number
+          unread_count: number
+          user_role: string
+        }[]
+      }
       get_team_hierarchy: {
         Args: { p_leader_id: string; p_max_depth?: number }
         Returns: {
@@ -6318,6 +6419,14 @@ export type Database = {
         | { Args: { check_user_id: string }; Returns: boolean }
       is_real_user: { Args: { p_user_id: string }; Returns: boolean }
       is_support_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_team_leader: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_team_member: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_wallet_frozen: { Args: { _user_id: string }; Returns: boolean }
       join_contest: {
         Args: { p_contest_id: string; p_entry_fee: number; p_user_id: string }
@@ -6469,6 +6578,10 @@ export type Database = {
           p_previous_status?: string
         }
         Returns: Json
+      }
+      team_chat_enroll_member: {
+        Args: { p_leader_id: string; p_new_user_id: string }
+        Returns: undefined
       }
       update_last_seen: { Args: { p_user_id: string }; Returns: undefined }
     }
