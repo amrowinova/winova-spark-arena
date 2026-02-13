@@ -6356,6 +6356,7 @@ export type Database = {
         | "admin_credit"
         | "admin_debit"
         | "conversion"
+        | "genesis_credit"
       p2p_order_status:
         | "open"
         | "matched"
@@ -6574,6 +6575,7 @@ export const Constants = {
         "admin_credit",
         "admin_debit",
         "conversion",
+        "genesis_credit",
       ],
       p2p_order_status: [
         "open",
