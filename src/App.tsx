@@ -42,6 +42,7 @@ import NotFound from "./pages/NotFound";
 import SupportDashboard from "./pages/support/SupportDashboard";
 import SupportTicketDetail from "./pages/support/SupportTicketDetail";
 import SupportDisputes from "./pages/support/SupportDisputes";
+import SupportDisputeDetail from "./pages/support/SupportDisputeDetail";
 import SupportUsers from "./pages/support/SupportUsers";
 
 // Admin Pages
@@ -118,6 +119,7 @@ const App = () => (
                             <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />
                             <Route path="/support/ticket/:ticketId" element={<SupportGuard><SupportTicketDetail /></SupportGuard>} />
                             <Route path="/support/disputes" element={<SupportGuard><SupportDisputes /></SupportGuard>} />
+                            <Route path="/support/disputes/:orderId" element={<SupportGuard><SupportDisputeDetail /></SupportGuard>} />
                             <Route path="/support/users" element={<SupportGuard><SupportUsers /></SupportGuard>} />
                             
                             {/* Admin Panel routes - require admin role */}

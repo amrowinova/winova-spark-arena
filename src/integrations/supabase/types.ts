@@ -4415,6 +4415,64 @@ export type Database = {
         }
         Relationships: []
       }
+      p2p_dispute_actions: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          new_status: string | null
+          note: string | null
+          order_id: string
+          previous_status: string | null
+          staff_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          note?: string | null
+          order_id: string
+          previous_status?: string | null
+          staff_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          note?: string | null
+          order_id?: string
+          previous_status?: string | null
+          staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "p2p_dispute_actions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "p2p_dispute_actions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "p2p_dispute_actions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_orders_with_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       p2p_dispute_files: {
         Row: {
           created_at: string
@@ -6288,6 +6346,18 @@ export type Database = {
           p_type?: string
         }
         Returns: undefined
+      }
+      support_get_dispute_case: { Args: { p_order_id: string }; Returns: Json }
+      support_log_dispute_action: {
+        Args: {
+          p_action_type: string
+          p_metadata?: Json
+          p_new_status?: string
+          p_note?: string
+          p_order_id: string
+          p_previous_status?: string
+        }
+        Returns: Json
       }
       update_last_seen: { Args: { p_user_id: string }; Returns: undefined }
     }
