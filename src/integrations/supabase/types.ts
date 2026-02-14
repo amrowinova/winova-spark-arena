@@ -6452,6 +6452,7 @@ export type Database = {
         Args: { p_order_id: string; p_reason?: string; p_user_id: string }
         Returns: Json
       }
+      p2p_cleanup_stale_orders: { Args: never; Returns: Json }
       p2p_confirm_payment: {
         Args: { p_order_id: string; p_user_id: string }
         Returns: Json
