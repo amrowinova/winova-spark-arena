@@ -264,10 +264,10 @@ export default function AdminDashboard() {
             <Button 
               variant="outline" 
               className="h-auto py-3 flex-col gap-1"
-              onClick={() => navigate('/support/disputes')}
+              onClick={() => navigate('/admin/p2p')}
             >
-              <AlertTriangle className="w-5 h-5" />
-              <span className="text-xs">{isRTL ? 'النزاعات' : 'Disputes'}</span>
+              <ArrowLeftRight className="w-5 h-5" />
+              <span className="text-xs">{isRTL ? 'برج P2P' : 'P2P Tower'}</span>
             </Button>
             <Button 
               variant="outline" 
