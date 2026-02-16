@@ -34,14 +34,10 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
     }
   }, [lastAuthEvent, requireAuth, navigate]);
 
-  // Mark initial load as complete after first auth check
+  // Mark initial load as complete immediately after first auth check
   useEffect(() => {
     if (!isLoading && !initialLoadCompletedRef.current) {
-      // Reduced delay for faster response
-      const timer = setTimeout(() => {
-        initialLoadCompletedRef.current = true;
-      }, 300);
-      return () => clearTimeout(timer);
+      initialLoadCompletedRef.current = true;
     }
   }, [isLoading]);
 
@@ -71,9 +67,7 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
 
   useEffect(() => {
     if (!isLoading && !user && !isAuthTransitioning && !authFlowOpen && initialLoadCompletedRef.current) {
-      // Reduced delay
-      const timer = setTimeout(checkAndShowModal, 200);
-      return () => clearTimeout(timer);
+      checkAndShowModal();
     }
   }, [user, isLoading, isAuthTransitioning, authFlowOpen, checkAndShowModal]);
 

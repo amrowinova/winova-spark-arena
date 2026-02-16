@@ -229,9 +229,13 @@ export function ContestJoinCard({
               <span className="text-xs font-semibold text-foreground">
                 {language === 'ar' ? 'المرحلة الأولى' : 'Stage 1'}
               </span>
-              {stage === 'stage1' && (
+              {stage === 'stage1' ? (
                 <span className="text-[10px] px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full">
                   {language === 'ar' ? 'الآن' : 'Now'}
+                </span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">
+                  {language === 'ar' ? 'تبدأ 2:00 م' : 'Starts 2:00 PM'}
                 </span>
               )}
             </div>
@@ -254,9 +258,13 @@ export function ContestJoinCard({
               <span className="text-xs font-semibold text-foreground">
                 {language === 'ar' ? 'المرحلة النهائية' : 'Final Stage'}
               </span>
-              {stage === 'final' && (
+              {stage === 'final' ? (
                 <span className="text-[10px] px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full">
                   {language === 'ar' ? 'الآن' : 'Now'}
+                </span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">
+                  {language === 'ar' ? 'تبدأ 8:00 م · ساعتين · أعلى 5 يفوزون' : 'Starts 8:00 PM · 2 hours · Top 5 win'}
                 </span>
               )}
             </div>
