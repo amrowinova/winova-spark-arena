@@ -103,11 +103,13 @@ export default function HomePage() {
   // Fetch real contest data
   const fetchContestData = useCallback(async () => {
     try {
+      // Use same query as Contests page: fetch today's or most recent contest
       const ksaToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
       const { data: contestData } = await supabase
         .from('contests')
         .select('id, prize_pool, current_participants')
-        .eq('contest_date', ksaToday)
+        .lte('contest_date', ksaToday)
+        .order('contest_date', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
