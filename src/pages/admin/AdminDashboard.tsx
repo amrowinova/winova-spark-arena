@@ -17,7 +17,8 @@ import {
   BarChart3,
   RefreshCcw,
   Crown,
-  UserPlus
+  UserPlus,
+  Cpu
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -271,11 +272,19 @@ export default function AdminDashboard() {
             </Button>
             <Button 
               variant="outline" 
-              className="h-auto py-3 flex-col gap-1 col-span-2"
+              className="h-auto py-3 flex-col gap-1"
               onClick={() => navigate('/admin/wallets')}
             >
               <Wallet className="w-5 h-5" />
               <span className="text-xs">{isRTL ? 'المحافظ' : 'Wallets'}</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/ai-core')}
+            >
+              <Cpu className="w-5 h-5 text-primary" />
+              <span className="text-xs">{isRTL ? 'نواة AI' : 'AI Core'}</span>
             </Button>
           </div>
         </Card>

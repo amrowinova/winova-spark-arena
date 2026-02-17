@@ -1118,6 +1118,220 @@ export type Database = {
           },
         ]
       }
+      ai_core_conversations: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          model: string | null
+          status: string
+          system_prompt: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          model?: string | null
+          status?: string
+          system_prompt?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          model?: string | null
+          status?: string
+          system_prompt?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_core_executions: {
+        Row: {
+          action_type: string
+          approved_at: string | null
+          approved_by: string | null
+          conversation_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          input: Json | null
+          output: Json | null
+          requires_approval: boolean | null
+          status: string
+        }
+        Insert: {
+          action_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          requires_approval?: boolean | null
+          status?: string
+        }
+        Update: {
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          requires_approval?: boolean | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_core_executions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_core_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_core_files: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          message_id: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          message_id?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_core_files_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_core_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_core_files_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_core_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_core_memory: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          embedding_id: string | null
+          id: string
+          importance: number | null
+          key: string
+          source: string | null
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          embedding_id?: string | null
+          id?: string
+          importance?: number | null
+          key: string
+          source?: string | null
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          embedding_id?: string | null
+          id?: string
+          importance?: number | null
+          key?: string
+          source?: string | null
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_core_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          role: string
+          tokens_used: number | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role: string
+          tokens_used?: number | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_core_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_core_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_discussion_sessions: {
         Row: {
           action_items: Json | null
