@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.load-simulation]
 verify_jwt = false
+
+[functions.ai-core-chat]
+verify_jwt = false
