@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -58,6 +58,45 @@ export function useAICore() {
   const [executions, setExecutions] = useState<ExecutionLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const currentConvRef = useRef<string | null>(null);
+
+  // Keep ref in sync
+  useEffect(() => {
+    currentConvRef.current = currentConversation;
+  }, [currentConversation]);
+
+  // Realtime subscription for ai_core_messages
+  useEffect(() => {
+    const channel = supabase
+      .channel('ai-core-messages-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ai_core_messages' },
+        (payload) => {
+          const newMsg = payload.new as any;
+          if (newMsg.conversation_id === currentConvRef.current) {
+            setMessages(prev => {
+              // Avoid duplicates
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              // Remove temp messages for this role if the real one arrived
+              const filtered = prev.filter(m => !m.id.startsWith('temp-') && !m.id.startsWith('user-') && !m.id.startsWith('resp-'));
+              return [...filtered, {
+                id: newMsg.id,
+                role: newMsg.role,
+                content: newMsg.content,
+                created_at: newMsg.created_at,
+                tokens_used: newMsg.tokens_used,
+              }].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -104,21 +143,25 @@ export function useAICore() {
         loadConversations();
       }
 
-      const assistantMsg: Message = {
-        id: `resp-${Date.now()}`,
-        role: 'assistant',
-        content: res.message,
-        created_at: new Date().toISOString(),
-        tokens_used: res.tokens_used,
-      };
-      setMessages(prev => [...prev.filter(m => m.id !== tempMsg.id), { ...tempMsg, id: `user-${Date.now()}` }, assistantMsg]);
+      // Realtime will handle adding the real messages, but as fallback:
+      // Remove temp and add real messages if realtime hasn't caught up
+      setMessages(prev => {
+        const hasReal = prev.some(m => !m.id.startsWith('temp-') && !m.id.startsWith('resp-') && !m.id.startsWith('user-'));
+        if (!hasReal) {
+          // Fallback: load messages from server
+          if (res.conversation_id || currentConversation) {
+            loadMessages(res.conversation_id || currentConversation!);
+          }
+        }
+        return prev;
+      });
     } catch (e: any) {
       toast.error(e.message || 'Failed to send message');
       setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
     } finally {
       setIsSending(false);
     }
-  }, [currentConversation, loadConversations]);
+  }, [currentConversation, loadConversations, loadMessages]);
 
   const newConversation = useCallback(() => {
     setCurrentConversation(null);

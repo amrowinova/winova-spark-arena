@@ -17,41 +17,8 @@ import {
   Clock, Loader2, FileCode, Database, Terminal, Cpu
 } from 'lucide-react';
 import { useAICore } from '@/hooks/useAICore';
+import { AICoreMessageBubble } from '@/components/admin/AICoreMessageBubble';
 import { format } from 'date-fns';
-
-function CodeBlock({ code, language }: { code: string; language?: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <div className="relative my-2 rounded-lg bg-muted/50 border overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-muted border-b">
-        <span className="text-xs text-muted-foreground font-mono">{language || 'code'}</span>
-        <Button variant="ghost" size="sm" className="h-6 px-2" onClick={copy}>
-          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-        </Button>
-      </div>
-      <pre className="p-3 overflow-x-auto text-xs"><code>{code}</code></pre>
-    </div>
-  );
-}
-
-function parseContent(content: string) {
-  const parts: { type: 'text' | 'code'; content: string; language?: string }[] = [];
-  const regex = /```(\w+)?\n([\s\S]*?)```/g;
-  let lastIndex = 0;
-  let match;
-  while ((match = regex.exec(content)) !== null) {
-    if (match.index > lastIndex) parts.push({ type: 'text', content: content.slice(lastIndex, match.index) });
-    parts.push({ type: 'code', content: match[2], language: match[1] });
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < content.length) parts.push({ type: 'text', content: content.slice(lastIndex) });
-  return parts;
-}
 
 export default function AICore() {
   const { language } = useLanguage();
@@ -201,34 +168,7 @@ export default function AICore() {
                 )}
                 <div className="space-y-4">
                   {messages.map((msg) => (
-                    <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                      {msg.role === 'assistant' && (
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Bot className="w-4 h-4 text-primary" />
-                        </div>
-                      )}
-                      <div className={`max-w-[85%] rounded-lg p-3 ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                        {msg.role === 'assistant' ? (
-                          parseContent(msg.content).map((part, i) =>
-                            part.type === 'code' ? (
-                              <CodeBlock key={i} code={part.content} language={part.language} />
-                            ) : (
-                              <p key={i} className="text-sm whitespace-pre-wrap">{part.content}</p>
-                            )
-                          )
-                        ) : (
-                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                        )}
-                        {msg.tokens_used && (
-                          <p className="text-[10px] mt-1 opacity-60">{msg.tokens_used} tokens</p>
-                        )}
-                      </div>
-                      {msg.role === 'user' && (
-                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                          <User className="w-4 h-4" />
-                        </div>
-                      )}
-                    </div>
+                    <AICoreMessageBubble key={msg.id} message={msg} />
                   ))}
                   {isSending && (
                     <div className="flex gap-3">
