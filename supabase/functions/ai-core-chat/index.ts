@@ -90,7 +90,11 @@ serve(async (req) => {
             Authorization: `Bearer ${AI_SERVER_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ model: "llama3-70b-8192", messages, stream: false }),
+          body: JSON.stringify({
+            model: "llama3-8b-8192",
+            messages,
+            temperature: 0.7,
+          }),
         });
 
         if (!aiResponse.ok) {
