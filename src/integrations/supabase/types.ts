@@ -2028,6 +2028,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_memory: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: number
+          importance: number
+          key: string
+          last_used: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          id?: number
+          importance?: number
+          key: string
+          last_used?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: number
+          importance?: number
+          key?: string
+          last_used?: string
+        }
+        Relationships: []
+      }
       ai_money_flow: {
         Row: {
           amount: number

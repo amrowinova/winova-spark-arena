@@ -69,14 +69,34 @@ serve(async (req) => {
         // Fetch conversation history
         const { data: history } = await adminDb.from("ai_core_messages").select("role, content").eq("conversation_id", convId).order("created_at", { ascending: true }).limit(50);
 
-        // Fetch relevant memory
-        const { data: memories } = await adminDb.from("ai_core_memory").select("key, content, category").order("importance", { ascending: false }).limit(10);
+        // Fetch relevant memory from ai_memory (new memory layer)
+        let aiMemoryContext = "";
+        try {
+          const { data: aiMemories } = await adminDb
+            .from("ai_memory")
+            .select("category, content")
+            .order("importance", { ascending: false })
+            .limit(10);
+          if (aiMemories?.length) {
+            aiMemoryContext = `\n\nRelevant long-term memory:\n${aiMemories.map(m => `[${m.category}] ${m.content}`).join("\n")}`;
+            // Update last_used for retrieved memories
+            const memIds = aiMemories.map((m: any) => m.id).filter(Boolean);
+            if (memIds.length) {
+              adminDb.from("ai_memory").update({ last_used: new Date().toISOString() }).in("id", memIds).then(() => {});
+            }
+          }
+        } catch (e) {
+          console.warn("Memory retrieval failed (non-blocking):", e);
+        }
 
-        const memoryContext = memories?.length
-          ? `\n\n[LONG-TERM MEMORY]\n${memories.map(m => `[${m.category}] ${m.key}: ${m.content}`).join("\n")}`
+        // Fetch legacy ai_core_memory too
+        const { data: legacyMemories } = await adminDb.from("ai_core_memory").select("key, content, category").order("importance", { ascending: false }).limit(10);
+
+        const legacyMemoryContext = legacyMemories?.length
+          ? `\n\n[LEGACY MEMORY]\n${legacyMemories.map(m => `[${m.category}] ${m.key}: ${m.content}`).join("\n")}`
           : "";
 
-        const systemMsg = (system_prompt || "You are a private AI assistant for the platform owner. You can generate applications, websites, backend code, and deployment scripts. Always provide complete, production-ready code.") + memoryContext;
+        const systemMsg = (system_prompt || "You are a private AI assistant for the platform owner. You can generate applications, websites, backend code, and deployment scripts. Always provide complete, production-ready code.") + aiMemoryContext + legacyMemoryContext;
 
         const messages = [
           { role: "system", content: systemMsg },
@@ -319,6 +339,27 @@ serve(async (req) => {
       case "update_title": {
         const { conversation_id: cid, title } = body;
         await adminDb.from("ai_core_conversations").update({ title }).eq("id", cid);
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // === AI Memory Layer actions ===
+      case "ai_memory_list": {
+        const { data, error } = await adminDb.from("ai_memory").select("*").order("importance", { ascending: false }).limit(200);
+        if (error) throw error;
+        return new Response(JSON.stringify({ data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "ai_memory_delete": {
+        const { id: memId } = body;
+        const { error } = await adminDb.from("ai_memory").delete().eq("id", memId);
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "ai_memory_boost": {
+        const { id: boostId, importance: newImp } = body;
+        const { error } = await adminDb.from("ai_memory").update({ importance: Math.min(1, Math.max(0, newImp)) }).eq("id", boostId);
+        if (error) throw error;
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 

@@ -145,6 +145,44 @@ Return ONLY valid JSON:
 
     console.log("ai-evaluator: evaluation stored, composite_score:", composite_score);
 
+    // STEP 3: Auto-store improvements into ai_memory
+    try {
+      if (composite_score < 0.65 && improvement_note) {
+        await adminDb.from("ai_memory").insert({
+          category: "improvement",
+          key: "auto_feedback",
+          content: improvement_note,
+          importance: 0.8,
+        });
+        console.log("ai-evaluator: stored improvement memory (low score)");
+      } else if (composite_score > 0.85) {
+        await adminDb.from("ai_memory").insert({
+          category: "strategy",
+          key: "high_quality_pattern",
+          content: `High-quality response (score: ${composite_score}). ${improvement_note || "Strong relevance, clarity, and technical depth with low hallucination risk."}`,
+          importance: 0.7,
+        });
+        console.log("ai-evaluator: stored strategy memory (high score)");
+      }
+
+      // STEP 5: Prevent memory explosion - cap at 2000 rows
+      const { count } = await adminDb.from("ai_memory").select("*", { count: "exact", head: true });
+      if (count && count > 2000) {
+        const excess = count - 2000;
+        const { data: toDelete } = await adminDb
+          .from("ai_memory")
+          .select("id")
+          .order("importance", { ascending: true })
+          .limit(excess);
+        if (toDelete?.length) {
+          await adminDb.from("ai_memory").delete().in("id", toDelete.map(r => r.id));
+          console.log(`ai-evaluator: pruned ${toDelete.length} low-importance memories`);
+        }
+      }
+    } catch (memErr) {
+      console.warn("ai-evaluator: memory auto-store failed (non-blocking):", memErr);
+    }
+
     return new Response(JSON.stringify({
       evaluation: {
         relevance,

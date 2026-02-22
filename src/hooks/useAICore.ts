@@ -39,6 +39,16 @@ interface MemoryEntry {
   updated_at: string;
 }
 
+interface AIMemoryEntry {
+  id: number;
+  category: string;
+  key: string;
+  content: string;
+  importance: number;
+  last_used: string;
+  created_at: string;
+}
+
 interface ExecutionLog {
   id: string;
   action_type: string;
@@ -65,6 +75,7 @@ export function useAICore() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
+  const [aiMemories, setAIMemories] = useState<AIMemoryEntry[]>([]);
   const [executions, setExecutions] = useState<ExecutionLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -280,11 +291,43 @@ export function useAICore() {
     }
   }, [currentConversation, loadExecutions]);
 
+  // === AI Memory Layer functions ===
+  const loadAIMemory = useCallback(async () => {
+    try {
+      const res = await callAICore('ai_memory_list');
+      setAIMemories(res.data || []);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to load AI memory');
+    }
+  }, []);
+
+  const deleteAIMemory = useCallback(async (id: number) => {
+    try {
+      await callAICore('ai_memory_delete', { id });
+      setAIMemories(prev => prev.filter(m => m.id !== id));
+      toast.success('Memory deleted');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete memory');
+    }
+  }, []);
+
+  const boostAIMemory = useCallback(async (id: number, importance: number) => {
+    try {
+      await callAICore('ai_memory_boost', { id, importance });
+      setAIMemories(prev => prev.map(m => m.id === id ? { ...m, importance } : m));
+      toast.success('Importance updated');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to boost memory');
+    }
+  }, []);
+
   return {
     messages, conversations, currentConversation, memories, executions,
+    aiMemories,
     isLoading, isSending,
     sendMessage, loadConversations, loadMessages, newConversation, deleteConversation,
     loadMemory, addMemory, deleteMemory,
+    loadAIMemory, deleteAIMemory, boostAIMemory,
     loadExecutions, approveExecution, executeCode,
   };
 }

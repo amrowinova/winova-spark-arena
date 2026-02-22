@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Send, Bot, User, Plus, Trash2, MessageSquare, Brain, Activity,
   Copy, Check, History, Settings2, Play, Square, AlertTriangle,
-  Clock, Loader2, FileCode, Database, Terminal, Cpu
+  Clock, Loader2, FileCode, Database, Terminal, Cpu, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { useAICore } from '@/hooks/useAICore';
 import { AICoreMessageBubble } from '@/components/admin/AICoreMessageBubble';
@@ -31,14 +31,16 @@ export default function AICore() {
 
   const {
     messages, conversations, currentConversation, memories, executions,
+    aiMemories,
     isLoading, isSending,
     sendMessage, loadConversations, loadMessages, newConversation, deleteConversation,
     loadMemory, addMemory, deleteMemory,
+    loadAIMemory, deleteAIMemory, boostAIMemory,
     loadExecutions, approveExecution,
   } = useAICore();
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
-  useEffect(() => { if (activeTab === 'memory') loadMemory(); }, [activeTab, loadMemory]);
+  useEffect(() => { if (activeTab === 'memory') { loadMemory(); loadAIMemory(); } }, [activeTab, loadMemory, loadAIMemory]);
   useEffect(() => { if (activeTab === 'logs') loadExecutions(); }, [activeTab, loadExecutions]);
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -205,73 +207,120 @@ export default function AICore() {
             </Card>
           </TabsContent>
 
-          {/* Memory Tab */}
+          {/* Memory Tab - AI Memory Layer */}
           <TabsContent value="memory" className="flex-1 flex flex-col gap-3 mt-0">
+            {/* AI Memory Layer Section */}
             <div className="flex items-center justify-between">
               <h3 className="font-semibold flex items-center gap-2">
-                <Database className="w-4 h-4" />
-                {isRTL ? 'الذاكرة طويلة المدى' : 'Long-Term Memory'}
+                <Brain className="w-4 h-4" />
+                {isRTL ? 'طبقة الذاكرة' : 'AI Memory Layer'}
               </h3>
-              <Dialog open={addMemoryOpen} onOpenChange={setAddMemoryOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-1"><Plus className="w-4 h-4" />{isRTL ? 'إضافة' : 'Add'}</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{isRTL ? 'إضافة ذاكرة جديدة' : 'Add Memory Entry'}</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-3">
-                    <Input placeholder={isRTL ? 'المفتاح' : 'Key / Title'} value={newMemory.key} onChange={e => setNewMemory(p => ({ ...p, key: e.target.value }))} />
-                    <Textarea placeholder={isRTL ? 'المحتوى' : 'Content'} value={newMemory.content} onChange={e => setNewMemory(p => ({ ...p, content: e.target.value }))} rows={4} />
-                    <Select value={newMemory.category} onValueChange={v => setNewMemory(p => ({ ...p, category: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="general">General</SelectItem>
-                        <SelectItem value="code">Code</SelectItem>
-                        <SelectItem value="architecture">Architecture</SelectItem>
-                        <SelectItem value="deployment">Deployment</SelectItem>
-                        <SelectItem value="rules">Rules</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleAddMemory} disabled={!newMemory.key.trim() || !newMemory.content.trim()}>
-                      {isRTL ? 'حفظ' : 'Save'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Badge variant="outline" className="text-[10px]">
+                {aiMemories.length} / 2000
+              </Badge>
             </div>
 
             <ScrollArea className="flex-1">
               <div className="space-y-2">
-                {memories.length === 0 && (
+                {aiMemories.length === 0 && (
                   <Card className="p-8 text-center">
                     <Brain className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">{isRTL ? 'لا توجد ذاكرة مخزنة' : 'No memory entries yet'}</p>
+                    <p className="text-sm text-muted-foreground">{isRTL ? 'لا توجد ذاكرة' : 'No AI memory entries yet'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{isRTL ? 'ستُملأ تلقائياً من التقييمات' : 'Auto-populated from evaluations'}</p>
                   </Card>
                 )}
-                {memories.map(mem => (
-                  <Card key={mem.id} className="p-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">{mem.key}</span>
-                          <Badge variant="outline" className="text-[10px]">{mem.category}</Badge>
+                {aiMemories.map(mem => {
+                  const catColor = mem.category === 'improvement' ? 'text-yellow-500' :
+                    mem.category === 'strategy' ? 'text-green-500' :
+                    mem.category === 'error' ? 'text-destructive' : 'text-muted-foreground';
+                  return (
+                    <Card key={mem.id} className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <Badge variant="outline" className={`text-[10px] ${catColor}`}>{mem.category}</Badge>
+                            <span className="text-[10px] text-muted-foreground font-mono">imp: {mem.importance.toFixed(2)}</span>
+                            <span className="text-[10px] text-muted-foreground">{format(new Date(mem.created_at), 'MMM d, HH:mm')}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-3">{mem.content}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{mem.content}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] text-muted-foreground">{format(new Date(mem.updated_at), 'MMM d, HH:mm')}</span>
-                          {mem.tags?.map(t => <Badge key={t} variant="secondary" className="text-[9px] px-1">{t}</Badge>)}
+                        <div className="flex flex-col gap-1 shrink-0">
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" 
+                            onClick={() => boostAIMemory(mem.id, Math.min(1, mem.importance + 0.1))}>
+                            <ArrowUp className="w-3 h-3 text-green-500" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
+                            onClick={() => boostAIMemory(mem.id, Math.max(0, mem.importance - 0.1))}>
+                            <ArrowDown className="w-3 h-3 text-yellow-500" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteAIMemory(mem.id)}>
+                            <Trash2 className="w-3 h-3 text-destructive" />
+                          </Button>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteMemory(mem.id)}>
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
+
+              {/* Legacy Memory Section */}
+              {memories.length > 0 && (
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <Database className="w-3.5 h-3.5" />
+                      {isRTL ? 'الذاكرة القديمة' : 'Legacy Memory'}
+                    </h4>
+                    <Dialog open={addMemoryOpen} onOpenChange={setAddMemoryOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="gap-1 h-7"><Plus className="w-3 h-3" />{isRTL ? 'إضافة' : 'Add'}</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>{isRTL ? 'إضافة ذاكرة' : 'Add Legacy Memory'}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          <Input placeholder={isRTL ? 'المفتاح' : 'Key / Title'} value={newMemory.key} onChange={e => setNewMemory(p => ({ ...p, key: e.target.value }))} />
+                          <Textarea placeholder={isRTL ? 'المحتوى' : 'Content'} value={newMemory.content} onChange={e => setNewMemory(p => ({ ...p, content: e.target.value }))} rows={4} />
+                          <Select value={newMemory.category} onValueChange={v => setNewMemory(p => ({ ...p, category: v }))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="general">General</SelectItem>
+                              <SelectItem value="code">Code</SelectItem>
+                              <SelectItem value="architecture">Architecture</SelectItem>
+                              <SelectItem value="deployment">Deployment</SelectItem>
+                              <SelectItem value="rules">Rules</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <DialogFooter>
+                          <Button onClick={handleAddMemory} disabled={!newMemory.key.trim() || !newMemory.content.trim()}>
+                            {isRTL ? 'حفظ' : 'Save'}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <div className="space-y-2">
+                    {memories.map(mem => (
+                      <Card key={mem.id} className="p-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm">{mem.key}</span>
+                              <Badge variant="outline" className="text-[10px]">{mem.category}</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{mem.content}</p>
+                          </div>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteMemory(mem.id)}>
+                            <Trash2 className="w-3 h-3 text-destructive" />
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </ScrollArea>
           </TabsContent>
 
