@@ -1154,6 +1154,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_core_evaluations: {
+        Row: {
+          clarity: number
+          composite_score: number
+          conversation_id: string | null
+          created_at: string
+          hallucination_risk: number
+          id: number
+          improvement_note: string | null
+          message_id: string | null
+          relevance: number
+          technical_depth: number
+        }
+        Insert: {
+          clarity?: number
+          composite_score?: number
+          conversation_id?: string | null
+          created_at?: string
+          hallucination_risk?: number
+          id?: number
+          improvement_note?: string | null
+          message_id?: string | null
+          relevance?: number
+          technical_depth?: number
+        }
+        Update: {
+          clarity?: number
+          composite_score?: number
+          conversation_id?: string | null
+          created_at?: string
+          hallucination_risk?: number
+          id?: number
+          improvement_note?: string | null
+          message_id?: string | null
+          relevance?: number
+          technical_depth?: number
+        }
+        Relationships: []
+      }
       ai_core_executions: {
         Row: {
           action_type: string

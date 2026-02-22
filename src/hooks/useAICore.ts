@@ -2,12 +2,22 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface Evaluation {
+  composite_score: number;
+  relevance: number;
+  clarity: number;
+  technical_depth: number;
+  hallucination_risk: number;
+  improvement_note: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   created_at: string;
   tokens_used?: number;
+  evaluation?: Evaluation;
 }
 
 interface Conversation {
@@ -76,9 +86,7 @@ export function useAICore() {
           const newMsg = payload.new as any;
           if (newMsg.conversation_id === currentConvRef.current) {
             setMessages(prev => {
-              // Avoid duplicates
               if (prev.some(m => m.id === newMsg.id)) return prev;
-              // Remove temp messages for this role if the real one arrived
               const filtered = prev.filter(m => !m.id.startsWith('temp-') && !m.id.startsWith('user-') && !m.id.startsWith('resp-'));
               return [...filtered, {
                 id: newMsg.id,
@@ -88,6 +96,18 @@ export function useAICore() {
                 tokens_used: newMsg.tokens_used,
               }].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
             });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ai_core_evaluations' },
+        (payload) => {
+          const ev = payload.new as any;
+          if (ev.message_id) {
+            setMessages(prev => prev.map(m =>
+              m.id === ev.message_id ? { ...m, evaluation: ev } : m
+            ));
           }
         }
       )
@@ -111,7 +131,25 @@ export function useAICore() {
     setIsLoading(true);
     try {
       const res = await callAICore('conversation_messages', { conversation_id: conversationId });
-      setMessages(res.data || []);
+      const msgs = res.data || [];
+      
+      // Fetch evaluations for this conversation's messages
+      const { data: evals } = await supabase
+        .from('ai_core_evaluations')
+        .select('*')
+        .eq('conversation_id', conversationId);
+      
+      const evalMap = new Map<string, Evaluation>();
+      (evals || []).forEach((ev: any) => {
+        if (ev.message_id) evalMap.set(ev.message_id, ev);
+      });
+      
+      const enriched = msgs.map((m: any) => ({
+        ...m,
+        evaluation: evalMap.get(m.id) || undefined,
+      }));
+      
+      setMessages(enriched);
       setCurrentConversation(conversationId);
     } catch (e: any) {
       toast.error(e.message || 'Failed to load messages');

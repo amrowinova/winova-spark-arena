@@ -1,9 +1,19 @@
 import { useState } from 'react';
-import { Bot, User, Copy, Check } from 'lucide-react';
+import { Bot, User, Copy, Check, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+interface Evaluation {
+  composite_score: number;
+  relevance: number;
+  clarity: number;
+  technical_depth: number;
+  hallucination_risk: number;
+  improvement_note: string;
+}
 
 interface Message {
   id: string;
@@ -11,6 +21,7 @@ interface Message {
   content: string;
   created_at: string;
   tokens_used?: number;
+  evaluation?: Evaluation;
 }
 
 function CodeBlock({ code, language }: { code: string; language?: string }) {
@@ -32,6 +43,48 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
       </div>
       <pre className="p-3 overflow-x-auto text-xs leading-relaxed"><code>{code}</code></pre>
     </div>
+  );
+}
+
+function ScoreIndicator({ evaluation }: { evaluation: Evaluation }) {
+  const score = evaluation.composite_score;
+  const color = score > 0.75 ? 'text-green-500' : score >= 0.5 ? 'text-yellow-500' : 'text-red-500';
+  const bgColor = score > 0.75 ? 'bg-green-500/10' : score >= 0.5 ? 'bg-yellow-500/10' : 'bg-red-500/10';
+  const borderColor = score > 0.75 ? 'border-green-500/30' : score >= 0.5 ? 'border-yellow-500/30' : 'border-red-500/30';
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border ${bgColor} ${borderColor} cursor-help`}>
+            <Shield className={`w-3 h-3 ${color}`} />
+            <span className={`text-[11px] font-semibold ${color}`}>
+              {(score * 100).toFixed(0)}%
+            </span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <div className="space-y-1 text-xs">
+            <p className="font-semibold mb-1.5">Self-Evaluation</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+              <span className="text-muted-foreground">Relevance:</span>
+              <span>{(evaluation.relevance * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">Clarity:</span>
+              <span>{(evaluation.clarity * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">Technical Depth:</span>
+              <span>{(evaluation.technical_depth * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">Hallucination Risk:</span>
+              <span>{(evaluation.hallucination_risk * 100).toFixed(0)}%</span>
+            </div>
+            {evaluation.improvement_note && (
+              <p className="text-muted-foreground pt-1 border-t border-border/50 mt-1">
+                {evaluation.improvement_note}
+              </p>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -75,11 +128,9 @@ export function AICoreMessageBubble({ message }: { message: Message }) {
                   code({ className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || '');
                     const codeString = String(children).replace(/\n$/, '');
-                    // Multi-line = code block
                     if (codeString.includes('\n') || match) {
                       return <CodeBlock code={codeString} language={match?.[1]} />;
                     }
-                    // Inline code
                     return <code className="bg-background/20 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>{children}</code>;
                   },
                   pre({ children }) {
@@ -92,20 +143,25 @@ export function AICoreMessageBubble({ message }: { message: Message }) {
             </div>
           )}
 
-          {/* Copy button for AI messages */}
+          {/* Footer for AI messages */}
           {!isUser && (
-            <div className="mt-2 pt-2 border-t border-border/30 flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 gap-1 text-muted-foreground hover:text-foreground"
-                onClick={handleCopyMessage}
-              >
-                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                <span className="text-[10px]">{copied ? 'Copied' : 'Copy'}</span>
-              </Button>
-              {message.tokens_used && (
-                <span className="text-[10px] text-muted-foreground">{message.tokens_used} tokens</span>
+            <div className="mt-2 pt-2 border-t border-border/30 flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 gap-1 text-muted-foreground hover:text-foreground"
+                  onClick={handleCopyMessage}
+                >
+                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  <span className="text-[10px]">{copied ? 'Copied' : 'Copy'}</span>
+                </Button>
+                {message.tokens_used && (
+                  <span className="text-[10px] text-muted-foreground">{message.tokens_used} tokens</span>
+                )}
+              </div>
+              {message.evaluation && (
+                <ScoreIndicator evaluation={message.evaluation} />
               )}
             </div>
           )}
