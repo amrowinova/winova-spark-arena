@@ -104,3 +104,12 @@ verify_jwt = false
 
 [functions.ai-core-chat]
 verify_jwt = false
+
+[functions.ai-tool-layer]
+verify_jwt = false
+
+[functions.ai-evaluator]
+verify_jwt = false
+
+[functions.ai-memory-decay]
+verify_jwt = false

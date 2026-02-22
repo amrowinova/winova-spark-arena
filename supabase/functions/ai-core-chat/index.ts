@@ -44,7 +44,7 @@ serve(async (req) => {
 
     switch (action) {
       case "chat": {
-        const { conversation_id, message, system_prompt } = body;
+        const { conversation_id, message, system_prompt, project_id } = body;
 
         const AI_SERVER_URL = Deno.env.get("AI_CORE_SERVER_URL");
         const AI_SERVER_KEY = Deno.env.get("AI_CORE_SERVER_KEY");
@@ -69,7 +69,7 @@ serve(async (req) => {
         // Fetch conversation history
         const { data: history } = await adminDb.from("ai_core_messages").select("role, content").eq("conversation_id", convId).order("created_at", { ascending: true }).limit(50);
 
-        // Fetch relevant memory from ai_memory (new memory layer)
+        // Fetch relevant memory from ai_memory (non-blocking safe)
         let aiMemoryContext = "";
         try {
           const { data: aiMemories } = await adminDb
@@ -79,7 +79,6 @@ serve(async (req) => {
             .limit(10);
           if (aiMemories?.length) {
             aiMemoryContext = `\n\nRelevant long-term memory:\n${aiMemories.map(m => `[${m.category}] ${m.content}`).join("\n")}`;
-            // Update last_used for retrieved memories
             const memIds = aiMemories.map((m: any) => m.id).filter(Boolean);
             if (memIds.length) {
               adminDb.from("ai_memory").update({ last_used: new Date().toISOString() }).in("id", memIds).then(() => {});
@@ -91,25 +90,51 @@ serve(async (req) => {
 
         // Fetch legacy ai_core_memory too
         const { data: legacyMemories } = await adminDb.from("ai_core_memory").select("key, content, category").order("importance", { ascending: false }).limit(10);
-
         const legacyMemoryContext = legacyMemories?.length
           ? `\n\n[LEGACY MEMORY]\n${legacyMemories.map(m => `[${m.category}] ${m.key}: ${m.content}`).join("\n")}`
           : "";
 
-        const systemMsg = (system_prompt || "You are a private AI assistant for the platform owner. You can generate applications, websites, backend code, and deployment scripts. Always provide complete, production-ready code.") + aiMemoryContext + legacyMemoryContext;
+        // PHASE 2: Project context injection (optional, scoped per project)
+        let projectContext = "";
+        if (project_id) {
+          try {
+            const { data: projFiles } = await adminDb
+              .from("ai_files")
+              .select("path, content, language")
+              .eq("project_id", project_id)
+              .order("last_modified", { ascending: false })
+              .limit(20);
+            if (projFiles?.length) {
+              const truncated = projFiles.map(f => {
+                const c = f.content ? f.content.slice(0, 1500) + (f.content.length > 1500 ? "\n// ... truncated" : "") : "";
+                return `File: ${f.path}\n\`\`\`${f.language || ""}\n${c}\n\`\`\``;
+              });
+              projectContext = `\n\n[PROJECT CONTEXT]\n${truncated.join("\n\n")}`;
+            }
+          } catch (e) {
+            console.warn("Project context retrieval failed (non-blocking):", e);
+          }
+        }
 
-        const messages = [
+        // PHASE 3: Task decomposition detection
+        const buildKeywords = ["build project", "create app", "create application", "build app", "generate project", "create project"];
+        const isBuildRequest = buildKeywords.some(kw => message.toLowerCase().includes(kw));
+        const taskDecompSuffix = isBuildRequest
+          ? `\n\nIMPORTANT: The user wants to build a project. Before generating any code, you MUST first return a structured plan as a JSON code block:\n\`\`\`json\n{\n  "project_name": "",\n  "stack": "",\n  "files": [{ "path": "", "purpose": "" }],\n  "steps": ["step 1", "step 2"]\n}\n\`\`\`\nReturn this plan FIRST. Wait for approval before generating files.`
+          : "";
+
+        const systemMsg = (system_prompt || "You are a private AI assistant for the platform owner. You can generate applications, websites, backend code, and deployment scripts. Always provide complete, production-ready code.") + aiMemoryContext + legacyMemoryContext + projectContext + taskDecompSuffix;
+
+        const messages_payload = [
           { role: "system", content: systemMsg },
           ...(history || []).map(m => ({ role: m.role, content: m.content })),
         ];
 
-        // Call Groq API (OpenAI-compatible)
         const requestBody = {
           model: "llama-3.3-70b-versatile",
-          messages,
+          messages: messages_payload,
           temperature: 0.7,
         };
-        console.log("Groq request body:", JSON.stringify(requestBody));
 
         let aiResponse: Response;
         try {
@@ -129,20 +154,12 @@ serve(async (req) => {
         }
 
         const rawBody = await aiResponse.text();
-        console.log("Groq raw response status:", aiResponse.status);
-        console.log("Groq raw response body:", rawBody);
 
         if (!aiResponse.ok) {
           await adminDb.from("ai_core_executions").insert({
-            conversation_id: convId,
-            action_type: "chat",
-            input: { message },
-            output: { error: rawBody },
-            status: "failed",
-            error_message: `Groq returned ${aiResponse.status}: ${rawBody}`,
-            requires_approval: false,
+            conversation_id: convId, action_type: "chat", input: { message }, output: { error: rawBody },
+            status: "failed", error_message: `Groq returned ${aiResponse.status}: ${rawBody}`, requires_approval: false,
           });
-
           return new Response(JSON.stringify({ error: "Groq API error", status: aiResponse.status, details: rawBody, conversation_id: convId }), {
             status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -161,36 +178,24 @@ serve(async (req) => {
 
         // Store assistant message
         const { data: assistantMsg } = await adminDb.from("ai_core_messages").insert({
-          conversation_id: convId,
-          role: "assistant",
-          content: assistantContent,
-          tokens_used: tokensUsed,
+          conversation_id: convId, role: "assistant", content: assistantContent, tokens_used: tokensUsed,
         }).select("id").single();
 
         // Log execution
         await adminDb.from("ai_core_executions").insert({
-          conversation_id: convId,
-          action_type: "chat",
-          input: { message },
-          output: { tokens: tokensUsed },
-          status: "completed",
-          requires_approval: false,
+          conversation_id: convId, action_type: "chat", input: { message }, output: { tokens: tokensUsed },
+          status: "completed", requires_approval: false,
         });
 
-        // Fire-and-forget: call ai-evaluator (non-blocking)
+        // Fire-and-forget: call ai-evaluator
         const evalUrl = `${supabaseUrl}/functions/v1/ai-evaluator`;
         try {
           fetch(evalUrl, {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${serviceKey}`,
-              "Content-Type": "application/json",
-            },
+            headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-              userMessage: message,
-              aiResponse: assistantContent,
-              conversationId: convId,
-              messageId: assistantMsg?.id || null,
+              userMessage: message, aiResponse: assistantContent,
+              conversationId: convId, messageId: assistantMsg?.id || null,
             }),
           }).catch(e => console.warn("Evaluator fire-and-forget failed:", e));
         } catch (e) {
@@ -198,9 +203,7 @@ serve(async (req) => {
         }
 
         return new Response(JSON.stringify({
-          conversation_id: convId,
-          message: assistantContent,
-          tokens_used: tokensUsed,
+          conversation_id: convId, message: assistantContent, tokens_used: tokensUsed,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
