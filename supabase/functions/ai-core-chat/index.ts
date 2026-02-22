@@ -85,7 +85,7 @@ serve(async (req) => {
 
         // Call Groq API (OpenAI-compatible)
         const requestBody = {
-          model: "llama3-8b-8192",
+          model: "llama-3.3-70b-versatile",
           messages,
           temperature: 0.7,
         };
