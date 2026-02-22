@@ -140,12 +140,12 @@ serve(async (req) => {
         const tokensUsed = aiData.usage?.total_tokens || null;
 
         // Store assistant message
-        await adminDb.from("ai_core_messages").insert({
+        const { data: assistantMsg } = await adminDb.from("ai_core_messages").insert({
           conversation_id: convId,
           role: "assistant",
           content: assistantContent,
           tokens_used: tokensUsed,
-        });
+        }).select("id").single();
 
         // Log execution
         await adminDb.from("ai_core_executions").insert({
@@ -156,6 +156,26 @@ serve(async (req) => {
           status: "completed",
           requires_approval: false,
         });
+
+        // Fire-and-forget: call ai-evaluator (non-blocking)
+        const evalUrl = `${supabaseUrl}/functions/v1/ai-evaluator`;
+        try {
+          fetch(evalUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              userMessage: message,
+              aiResponse: assistantContent,
+              conversationId: convId,
+              messageId: assistantMsg?.id || null,
+            }),
+          }).catch(e => console.warn("Evaluator fire-and-forget failed:", e));
+        } catch (e) {
+          console.warn("Evaluator call setup failed:", e);
+        }
 
         return new Response(JSON.stringify({
           conversation_id: convId,
