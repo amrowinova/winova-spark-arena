@@ -83,14 +83,14 @@ serve(async (req) => {
           ...(history || []).map(m => ({ role: m.role, content: m.content })),
         ];
 
-        // Call external AI server (OpenAI-compatible API)
+        // Call Groq API (OpenAI-compatible)
         const aiResponse = await fetch(AI_SERVER_URL, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${AI_SERVER_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ messages, stream: false }),
+          body: JSON.stringify({ model: "llama3-70b-8192", messages, stream: false }),
         });
 
         if (!aiResponse.ok) {
