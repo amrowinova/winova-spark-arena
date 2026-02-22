@@ -1923,6 +1923,44 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_files: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          language: string | null
+          last_modified: string | null
+          path: string
+          project_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          language?: string | null
+          last_modified?: string | null
+          path: string
+          project_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          language?: string | null
+          last_modified?: string | null
+          path?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_forecasts: {
         Row: {
           confidence_score: number | null
@@ -2190,6 +2228,92 @@ export type Database = {
           status?: string | null
           title?: string | null
           title_ar?: string | null
+        }
+        Relationships: []
+      }
+      ai_project_executions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          code: string
+          created_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          language: string | null
+          output: string | null
+          project_id: string | null
+          requested_by: string | null
+          status: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          code: string
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          language?: string | null
+          output?: string | null
+          project_id?: string | null
+          requested_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          code?: string
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          language?: string | null
+          output?: string | null
+          project_id?: string | null
+          requested_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_project_executions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_projects: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          stack: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          stack?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          stack?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
