@@ -84,40 +84,58 @@ serve(async (req) => {
         ];
 
         // Call Groq API (OpenAI-compatible)
-        const aiResponse = await fetch(AI_SERVER_URL, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${AI_SERVER_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "llama3-8b-8192",
-            messages,
-            temperature: 0.7,
-          }),
-        });
+        const requestBody = {
+          model: "llama3-8b-8192",
+          messages,
+          temperature: 0.7,
+        };
+        console.log("Groq request body:", JSON.stringify(requestBody));
 
-        if (!aiResponse.ok) {
-          const errText = await aiResponse.text();
-          console.error("AI server error:", aiResponse.status, errText);
-
-          // Log execution failure
-          await adminDb.from("ai_core_executions").insert({
-            conversation_id: convId,
-            action_type: "chat",
-            input: { message },
-            output: { error: errText },
-            status: "failed",
-            error_message: `AI server returned ${aiResponse.status}`,
-            requires_approval: false,
+        let aiResponse: Response;
+        try {
+          aiResponse = await fetch(AI_SERVER_URL, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${AI_SERVER_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
           });
-
-          return new Response(JSON.stringify({ error: "AI server error", details: errText, conversation_id: convId }), {
+        } catch (fetchErr) {
+          console.error("Groq fetch failed:", fetchErr);
+          return new Response(JSON.stringify({ error: "Failed to reach Groq", details: String(fetchErr), conversation_id: convId }), {
             status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        const aiData = await aiResponse.json();
+        const rawBody = await aiResponse.text();
+        console.log("Groq raw response status:", aiResponse.status);
+        console.log("Groq raw response body:", rawBody);
+
+        if (!aiResponse.ok) {
+          await adminDb.from("ai_core_executions").insert({
+            conversation_id: convId,
+            action_type: "chat",
+            input: { message },
+            output: { error: rawBody },
+            status: "failed",
+            error_message: `Groq returned ${aiResponse.status}: ${rawBody}`,
+            requires_approval: false,
+          });
+
+          return new Response(JSON.stringify({ error: "Groq API error", status: aiResponse.status, details: rawBody, conversation_id: convId }), {
+            status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        let aiData: any;
+        try {
+          aiData = JSON.parse(rawBody);
+        } catch {
+          return new Response(JSON.stringify({ error: "Invalid JSON from Groq", details: rawBody, conversation_id: convId }), {
+            status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         const assistantContent = aiData.choices?.[0]?.message?.content || "No response generated.";
         const tokensUsed = aiData.usage?.total_tokens || null;
 
