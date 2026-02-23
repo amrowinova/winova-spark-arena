@@ -5558,6 +5558,127 @@ export type Database = {
           },
         ]
       }
+      research_concept_relations: {
+        Row: {
+          concept_id: string
+          created_at: string
+          id: string
+          related_concept_id: string
+          relation_type: string
+          strength_score: number
+        }
+        Insert: {
+          concept_id: string
+          created_at?: string
+          id?: string
+          related_concept_id: string
+          relation_type: string
+          strength_score?: number
+        }
+        Update: {
+          concept_id?: string
+          created_at?: string
+          id?: string
+          related_concept_id?: string
+          relation_type?: string
+          strength_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_concept_relations_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "research_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_concept_relations_related_concept_id_fkey"
+            columns: ["related_concept_id"]
+            isOneToOne: false
+            referencedRelation: "research_concepts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_concepts: {
+        Row: {
+          category: string
+          confidence_score: number
+          contradiction_flag: boolean
+          definition: string
+          first_detected_at: string
+          id: string
+          last_updated_at: string
+          name: string
+          project_id: string
+        }
+        Insert: {
+          category: string
+          confidence_score?: number
+          contradiction_flag?: boolean
+          definition: string
+          first_detected_at?: string
+          id?: string
+          last_updated_at?: string
+          name: string
+          project_id: string
+        }
+        Update: {
+          category?: string
+          confidence_score?: number
+          contradiction_flag?: boolean
+          definition?: string
+          first_detected_at?: string
+          id?: string
+          last_updated_at?: string
+          name?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_concepts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_contradictions: {
+        Row: {
+          concept_id: string
+          conflicting_statement: string
+          detected_at: string
+          id: string
+          previous_statement: string
+          resolution_status: string
+        }
+        Insert: {
+          concept_id: string
+          conflicting_statement: string
+          detected_at?: string
+          id?: string
+          previous_statement: string
+          resolution_status?: string
+        }
+        Update: {
+          concept_id?: string
+          conflicting_statement?: string
+          detected_at?: string
+          id?: string
+          previous_statement?: string
+          resolution_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_contradictions_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "research_concepts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       research_integrity_scores: {
         Row: {
           attack_resistance: number

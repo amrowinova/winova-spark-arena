@@ -33,10 +33,52 @@ interface IntegrityScore {
   created_at: string;
 }
 
+interface ResearchConcept {
+  id: string;
+  name: string;
+  category: string;
+  definition: string;
+  confidence_score: number;
+  contradiction_flag: boolean;
+  first_detected_at: string;
+  last_updated_at: string;
+}
+
+interface ConceptRelation {
+  id: string;
+  concept_id: string;
+  related_concept_id: string;
+  relation_type: string;
+  strength_score: number;
+  concept?: { name: string };
+  related?: { name: string };
+}
+
+interface Contradiction {
+  id: string;
+  concept_id: string;
+  previous_statement: string;
+  conflicting_statement: string;
+  detected_at: string;
+  resolution_status: string;
+  concept?: { name: string; category: string };
+}
+
+interface KnowledgeSummary {
+  total_concepts: number;
+  by_category: Record<string, number>;
+  contradictions_detected: number;
+  top_relations: ConceptRelation[];
+}
+
 export function useDeepResearch() {
   const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [outputs, setOutputs] = useState<ResearchOutput[]>([]);
   const [scores, setScores] = useState<IntegrityScore[]>([]);
+  const [concepts, setConcepts] = useState<ResearchConcept[]>([]);
+  const [relations, setRelations] = useState<ConceptRelation[]>([]);
+  const [contradictions, setContradictions] = useState<Contradiction[]>([]);
+  const [knowledgeSummary, setKnowledgeSummary] = useState<KnowledgeSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isResearching, setIsResearching] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -75,7 +117,7 @@ export function useDeepResearch() {
     setIsResearching(true);
     try {
       const data = await invoke({ action: 'run_research', project_id: projectId, topic });
-      toast.success(`Research complete: ${data.files_generated} files generated`);
+      toast.success(`Research complete: ${data.files_generated} files, ${data.knowledge_graph?.concepts || 0} concepts extracted`);
       return data;
     } catch (e: any) {
       toast.error(e.message || 'Research failed');
@@ -117,9 +159,46 @@ export function useDeepResearch() {
     }
   }, [invoke]);
 
+  const loadConcepts = useCallback(async (projectId: string) => {
+    try {
+      const data = await invoke({ action: 'get_concepts', project_id: projectId });
+      setConcepts(data.concepts || []);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }, [invoke]);
+
+  const loadRelations = useCallback(async (projectId: string) => {
+    try {
+      const data = await invoke({ action: 'get_relations', project_id: projectId });
+      setRelations(data.relations || []);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }, [invoke]);
+
+  const loadContradictions = useCallback(async (projectId: string) => {
+    try {
+      const data = await invoke({ action: 'get_contradictions', project_id: projectId });
+      setContradictions(data.contradictions || []);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }, [invoke]);
+
+  const loadKnowledgeSummary = useCallback(async (projectId: string) => {
+    try {
+      const data = await invoke({ action: 'get_knowledge_summary', project_id: projectId });
+      setKnowledgeSummary(data);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }, [invoke]);
+
   return {
-    projects, outputs, scores,
+    projects, outputs, scores, concepts, relations, contradictions, knowledgeSummary,
     isLoading, isResearching, isSimulating,
-    loadProjects, createProject, runResearch, runSimulation, loadOutputs, loadIntegrity,
+    loadProjects, createProject, runResearch, runSimulation,
+    loadOutputs, loadIntegrity, loadConcepts, loadRelations, loadContradictions, loadKnowledgeSummary,
   };
 }
