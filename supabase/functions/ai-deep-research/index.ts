@@ -40,8 +40,17 @@ async function verifyAdmin(req: Request, sb: any) {
   const token = authHeader.replace("Bearer ", "");
   const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   if (token === svcKey) return "service";
-  const { data: { user } } = await sb.auth.getUser(token);
-  if (!user) throw new Error("Invalid token");
+
+  // Use anon-key client with forwarded auth header for user verification
+  const anonClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { data: { user }, error } = await anonClient.auth.getUser(token);
+  if (error || !user) throw new Error("Invalid token");
+
+  // Use service-role client for admin role check (bypasses RLS)
   const { data: roles } = await sb.from("user_roles").select("role").eq("user_id", user.id);
   if (!roles?.some((r: any) => r.role === "admin")) throw new Error("Admin required");
   return user.id;
