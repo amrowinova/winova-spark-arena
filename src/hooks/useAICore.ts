@@ -259,6 +259,25 @@ export function useAICore() {
     try { await callToolLayer('execute_reject', { execution_id: executionId }); loadProjectExecutions(currentProject || undefined); toast.success('Execution rejected'); } catch (e: any) { toast.error(e.message || 'Failed to reject'); }
   }, [currentProject, loadProjectExecutions]);
 
+  // === STRATEGIC ANALYSIS ===
+  const [strategicReport, setStrategicReport] = useState<{ report: string; kpis: any } | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const runStrategicAnalysis = useCallback(async () => {
+    setIsAnalyzing(true);
+    try {
+      const res = await callAICore('strategic_analysis');
+      setStrategicReport({ report: res.report, kpis: res.kpis });
+      toast.success('Strategic analysis complete');
+      return res;
+    } catch (e: any) {
+      toast.error(e.message || 'Analysis failed');
+      return null;
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, []);
+
   // === DEPLOYMENT ===
   const generateDeployment = useCallback(async (projectId: string) => {
     try { const res = await callToolLayer('generate_deployment', { project_id: projectId }); loadProjectFiles(projectId); toast.success('Deployment artifacts generated'); return res; } catch (e: any) { toast.error(e.message || 'Failed to generate deployment'); }
@@ -278,5 +297,7 @@ export function useAICore() {
     loadProjectFiles, readFile, writeFile, deleteFile,
     loadProjectExecutions, requestExecution, approveProjectExecution, rejectProjectExecution,
     generateDeployment, setCurrentProject,
+    // Strategic Analysis
+    strategicReport, isAnalyzing, runStrategicAnalysis,
   };
 }

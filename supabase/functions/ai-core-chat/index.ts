@@ -117,13 +117,43 @@ serve(async (req) => {
         }
 
         // PHASE 3: Task decomposition detection
+        // PHASE 3: Task decomposition detection + WeNova improvement detection
         const buildKeywords = ["build project", "create app", "create application", "build app", "generate project", "create project"];
         const isBuildRequest = buildKeywords.some(kw => message.toLowerCase().includes(kw));
-        const taskDecompSuffix = isBuildRequest
-          ? `\n\nIMPORTANT: The user wants to build a project. Before generating any code, you MUST first return a structured plan as a JSON code block:\n\`\`\`json\n{\n  "project_name": "",\n  "stack": "",\n  "files": [{ "path": "", "purpose": "" }],\n  "steps": ["step 1", "step 2"]\n}\n\`\`\`\nReturn this plan FIRST. Wait for approval before generating files.`
-          : "";
+        const improveKeywords = ["improve", "optimize", "fix", "change", "add feature", "update", "refactor", "redesign", "enhance"];
+        const isImprovementRequest = improveKeywords.some(kw => message.toLowerCase().includes(kw));
+        
+        let taskDecompSuffix = "";
+        if (isBuildRequest) {
+          taskDecompSuffix = `\n\nIMPORTANT: The user wants to build a project. Before generating any code, you MUST first return a structured plan as a JSON code block:\n\`\`\`json\n{\n  "project_name": "",\n  "stack": "",\n  "files": [{ "path": "", "purpose": "" }],\n  "steps": ["step 1", "step 2"]\n}\n\`\`\`\nReturn this plan FIRST. Wait for approval before generating files.`;
+        } else if (isImprovementRequest) {
+          taskDecompSuffix = `\n\nIMPORTANT: This is a WeNova improvement request. You MUST generate the following structured documents:
+1. **PRD.md** — Clear product requirements with user stories and acceptance criteria.
+2. **Financial_Impact.md** — How this change affects Nova velocity, Aura issuance, retention, revenue. Mark financial rule changes as "⚠️ REQUIRES FOUNDER APPROVAL".
+3. **Technical_Changes.md** — Files to modify, architecture impact, risk level.
+4. **Migration.sql** — Only if database changes are needed.
+5. **UI_Changes.md** — Only if frontend changes are needed.
 
-        const systemMsg = (system_prompt || "You are a private AI assistant for the platform owner. You can generate applications, websites, backend code, and deployment scripts. Always provide complete, production-ready code.") + aiMemoryContext + legacyMemoryContext + projectContext + taskDecompSuffix;
+Present ALL documents in clearly labeled markdown code blocks. Do NOT execute anything. Wait for Founder approval.`;
+        }
+
+        const WENOVA_MASTER_PROMPT = `You are the Private AI Core operating in SINGLE-PROJECT MASTER MODE.
+Your sole mission is to optimize and improve the WeNova platform. Do NOT create unrelated projects unless explicitly requested by the Founder.
+
+CORE RULES:
+1. Every improvement request MUST generate structured implementation files stored in the "WeNova Core" project:
+   - PRD.md (Product Requirements Document)
+   - Financial_Impact.md (Economic analysis of the change)
+   - Technical_Changes.md (Architecture and code changes)
+   - Migration.sql (if database changes needed)
+   - UI_Changes.md (if frontend changes needed)
+2. NEVER execute code automatically. Always wait for Founder approval after generating files.
+3. All economic/financial rule changes MUST be marked as "⚠️ REQUIRES FOUNDER APPROVAL" in Financial_Impact.md.
+4. Focus on KPIs: User Retention, Nova Velocity, Aura Issuance Rate, Promotion Conversion Rate.
+5. When asked for strategic analysis, generate weekly_strategy_report.md with KPI trends and recommendations.
+6. You are an executive partner — never hallucinate data. Say "insufficient data" when uncertain.`;
+
+        const systemMsg = (system_prompt || WENOVA_MASTER_PROMPT) + aiMemoryContext + legacyMemoryContext + projectContext + taskDecompSuffix;
 
         const messages_payload = [
           { role: "system", content: systemMsg },
@@ -343,6 +373,106 @@ serve(async (req) => {
         const { conversation_id: cid, title } = body;
         await adminDb.from("ai_core_conversations").update({ title }).eq("id", cid);
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // === Strategic Analysis Mode ===
+      case "strategic_analysis": {
+        // Gather KPI data from the platform
+        const now = new Date();
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const weekAgoStr = weekAgo.toISOString();
+
+        // Fetch KPI data points
+        const [profilesRes, walletsRes, contestsRes, p2pRes, insightsRes] = await Promise.all([
+          adminDb.from("profiles").select("id, rank, created_at, last_active_at").limit(1000),
+          adminDb.from("wallets").select("nova_balance, aura_balance, updated_at").limit(1000),
+          adminDb.from("contest_entries").select("id, created_at").gte("created_at", weekAgoStr).limit(500),
+          adminDb.from("p2p_orders").select("id, status, created_at").gte("created_at", weekAgoStr).limit(500),
+          adminDb.from("ai_strategic_insights").select("*").gte("created_at", weekAgoStr).order("created_at", { ascending: false }).limit(50),
+        ]);
+
+        const profiles = profilesRes.data || [];
+        const wallets = walletsRes.data || [];
+        const recentContests = contestsRes.data || [];
+        const recentP2P = p2pRes.data || [];
+        const recentInsights = insightsRes.data || [];
+
+        // Calculate KPIs
+        const totalUsers = profiles.length;
+        const activeThisWeek = profiles.filter((p: any) => p.last_active_at && new Date(p.last_active_at) >= weekAgo).length;
+        const retentionRate = totalUsers > 0 ? ((activeThisWeek / totalUsers) * 100).toFixed(1) : "0";
+        const rankDistribution: Record<string, number> = {};
+        profiles.forEach((p: any) => { rankDistribution[p.rank || "subscriber"] = (rankDistribution[p.rank || "subscriber"] || 0) + 1; });
+        const totalNova = wallets.reduce((s: number, w: any) => s + (w.nova_balance || 0), 0);
+        const totalAura = wallets.reduce((s: number, w: any) => s + (w.aura_balance || 0), 0);
+        const promotionConversions = Object.entries(rankDistribution).filter(([k]) => k !== "subscriber").reduce((s, [, v]) => s + v, 0);
+        const promotionRate = totalUsers > 0 ? ((promotionConversions / totalUsers) * 100).toFixed(1) : "0";
+
+        const reportDate = now.toISOString().split("T")[0];
+        const reportContent = `# WeNova Weekly Strategy Report
+## Date: ${reportDate}
+## Period: ${weekAgo.toISOString().split("T")[0]} → ${reportDate}
+
+---
+
+### 📊 Key Performance Indicators
+
+| KPI | Value | Status |
+|-----|-------|--------|
+| Total Users | ${totalUsers} | ${totalUsers > 100 ? "✅ Growing" : "⚠️ Early Stage"} |
+| Weekly Active Users | ${activeThisWeek} | ${Number(retentionRate) > 30 ? "✅ Healthy" : "⚠️ Needs Attention"} |
+| Retention Rate | ${retentionRate}% | ${Number(retentionRate) > 50 ? "✅" : Number(retentionRate) > 25 ? "⚠️" : "🔴"} |
+| Nova Velocity (Total) | ${totalNova.toLocaleString()} Nova | 📈 |
+| Aura Issuance (Total) | ${totalAura.toLocaleString()} Aura | 📈 |
+| Promotion Conversion | ${promotionRate}% | ${Number(promotionRate) > 10 ? "✅" : "⚠️"} |
+| Contest Entries (7d) | ${recentContests.length} | ${recentContests.length > 20 ? "✅" : "⚠️"} |
+| P2P Orders (7d) | ${recentP2P.length} | ${recentP2P.length > 10 ? "✅" : "⚠️"} |
+
+### 📈 Rank Distribution
+${Object.entries(rankDistribution).map(([rank, count]) => `- **${rank}**: ${count} users (${((count / totalUsers) * 100).toFixed(1)}%)`).join("\n")}
+
+### 🧠 AI Insights This Week
+- Total insights generated: ${recentInsights.length}
+${recentInsights.slice(0, 5).map((i: any) => `- [${i.severity}] ${i.insight_type}: ${(i.description || "").slice(0, 100)}`).join("\n")}
+
+### 🎯 Recommendations
+1. ${Number(retentionRate) < 30 ? "**CRITICAL**: Retention below 30%. Consider push notifications, daily rewards, or streak mechanics." : "Retention is healthy. Maintain engagement loops."}
+2. ${recentContests.length < 20 ? "**Contest engagement low**. Consider prize pool visibility or countdown urgency." : "Contest engagement is strong."}
+3. ${Number(promotionRate) < 10 ? "**Promotion conversion low**. Review rank requirements or add progress indicators." : "Promotion funnel is converting well."}
+4. ${recentP2P.length < 10 ? "**P2P marketplace needs activation**. Consider onboarding tutorials or initial liquidity injection." : "P2P market is active."}
+
+### ⚠️ Items Requiring Founder Approval
+- Any financial rule changes based on this analysis
+- Nova/Aura emission rate adjustments
+- Rank threshold modifications
+
+---
+*Generated by WeNova AI Core — Single-Project Master Mode*
+*Report stored in WeNova Core project*`;
+
+        // Try to store in WeNova Core project
+        let storedProjectId = null;
+        try {
+          const { data: wenovaProject } = await adminDb.from("ai_projects").select("id").eq("name", "WeNova Core").single();
+          if (wenovaProject) {
+            storedProjectId = wenovaProject.id;
+            await adminDb.from("ai_files").upsert({
+              project_id: wenovaProject.id,
+              path: `reports/weekly_strategy_report_${reportDate}.md`,
+              content: reportContent,
+              language: "markdown",
+              last_modified: now.toISOString(),
+            }, { onConflict: "project_id,path" });
+          }
+        } catch (e) {
+          console.warn("Could not store report in project (non-blocking):", e);
+        }
+
+        return new Response(JSON.stringify({
+          report: reportContent,
+          kpis: { totalUsers, activeThisWeek, retentionRate, totalNova, totalAura, promotionRate, contestEntries: recentContests.length, p2pOrders: recentP2P.length },
+          stored_in_project: storedProjectId,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       // === AI Memory Layer actions ===
