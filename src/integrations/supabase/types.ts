@@ -5558,6 +5558,220 @@ export type Database = {
           },
         ]
       }
+      research_integrity_scores: {
+        Row: {
+          attack_resistance: number
+          created_at: string
+          failure_report: string | null
+          id: string
+          liquidity_robustness: number
+          mathematical_consistency: number
+          overall_score: number
+          project_id: string
+          regulatory_feasibility: number
+          simulation_id: string | null
+        }
+        Insert: {
+          attack_resistance?: number
+          created_at?: string
+          failure_report?: string | null
+          id?: string
+          liquidity_robustness?: number
+          mathematical_consistency?: number
+          overall_score?: number
+          project_id: string
+          regulatory_feasibility?: number
+          simulation_id?: string | null
+        }
+        Update: {
+          attack_resistance?: number
+          created_at?: string
+          failure_report?: string | null
+          id?: string
+          liquidity_robustness?: number
+          mathematical_consistency?: number
+          overall_score?: number
+          project_id?: string
+          regulatory_feasibility?: number
+          simulation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_integrity_scores_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_integrity_scores_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "research_simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_outputs: {
+        Row: {
+          content: string
+          created_at: string
+          file_name: string
+          file_type: string
+          id: string
+          project_id: string
+          version: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          file_name: string
+          file_type: string
+          id?: string
+          project_id: string
+          version?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          file_name?: string
+          file_type?: string
+          id?: string
+          project_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_outputs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_projects: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      research_simulations: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          id: string
+          parameters: Json | null
+          project_id: string
+          results: Json | null
+          scenario: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          parameters?: Json | null
+          project_id: string
+          results?: Json | null
+          scenario: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          parameters?: Json | null
+          project_id?: string
+          results?: Json | null
+          scenario?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_simulations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_sources: {
+        Row: {
+          citation: string | null
+          created_at: string
+          id: string
+          is_verified: boolean
+          output_id: string | null
+          project_id: string
+          source_type: string
+          title: string
+          url: string | null
+        }
+        Insert: {
+          citation?: string | null
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          output_id?: string | null
+          project_id: string
+          source_type?: string
+          title: string
+          url?: string | null
+        }
+        Update: {
+          citation?: string | null
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          output_id?: string | null
+          project_id?: string
+          source_type?: string
+          title?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_sources_output_id_fkey"
+            columns: ["output_id"]
+            isOneToOne: false
+            referencedRelation: "research_outputs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_sources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sandbox_executions: {
         Row: {
           approved_at: string | null

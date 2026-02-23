@@ -18,7 +18,8 @@ import {
   RefreshCcw,
   Crown,
   UserPlus,
-  Cpu
+  Cpu,
+  FlaskConical
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -285,6 +286,14 @@ export default function AdminDashboard() {
             >
               <Cpu className="w-5 h-5 text-primary" />
               <span className="text-xs">{isRTL ? 'نواة AI' : 'AI Core'}</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/research')}
+            >
+              <FlaskConical className="w-5 h-5 text-primary" />
+              <span className="text-xs">{isRTL ? 'مختبر البحث' : 'Deep Research Lab'}</span>
             </Button>
           </div>
         </Card>

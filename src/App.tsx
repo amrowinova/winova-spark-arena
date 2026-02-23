@@ -58,6 +58,7 @@ import Evolution from "./pages/admin/Evolution";
 import Commander from "./pages/admin/Commander";
 import AdminP2P from "./pages/admin/AdminP2P";
 import AICore from "./pages/admin/AICore";
+import DeepResearch from "./pages/admin/DeepResearch";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
@@ -138,6 +139,7 @@ const App = () => (
                             <Route path="/admin/commander" element={<AdminGuard><Commander /></AdminGuard>} />
                             <Route path="/admin/p2p" element={<AdminGuard><AdminP2P /></AdminGuard>} />
                             <Route path="/admin/ai-core" element={<AdminGuard><AICore /></AdminGuard>} />
+                            <Route path="/admin/research" element={<AdminGuard><DeepResearch /></AdminGuard>} />
                             
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />
