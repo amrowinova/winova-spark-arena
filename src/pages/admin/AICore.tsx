@@ -15,7 +15,7 @@ import {
   Send, Bot, User, Plus, Trash2, MessageSquare, Brain, Activity,
   Copy, Check, History, Settings2, Play, Square, AlertTriangle,
   Clock, Loader2, FileCode, Database, Terminal, Cpu, ArrowUp, ArrowDown,
-  FolderOpen, File, Rocket, X, Eye, Download, Shield
+  FolderOpen, File, Rocket, X, Eye, Download, Shield, BarChart3, Target
 } from 'lucide-react';
 import { useAICore } from '@/hooks/useAICore';
 import { AICoreMessageBubble } from '@/components/admin/AICoreMessageBubble';
@@ -49,6 +49,8 @@ export default function AICore() {
     loadProjectFiles, readFile, writeFile, deleteFile,
     loadProjectExecutions, requestExecution, approveProjectExecution, rejectProjectExecution,
     generateDeployment, setCurrentProject,
+    // Strategic Analysis
+    strategicReport, isAnalyzing, runStrategicAnalysis,
   } = useAICore();
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
@@ -94,9 +96,13 @@ export default function AICore() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Cpu className="w-5 h-5 text-primary" />
-              <span className="font-semibold text-sm">{isRTL ? 'نظام الذكاء الخاص' : 'Private AI Operating System'}</span>
+              <span className="font-semibold text-sm">{isRTL ? 'وضع المشروع الرئيسي — WeNova' : 'Single-Project Master Mode — WeNova'}</span>
             </div>
             <div className="flex items-center gap-2">
+              <Badge variant="default" className="text-[10px] gap-1">
+                <Target className="w-3 h-3" />
+                WeNova Only
+              </Badge>
               {currentProject && (
                 <Badge variant="outline" className="text-[10px] gap-1">
                   <FolderOpen className="w-3 h-3" />
@@ -110,10 +116,14 @@ export default function AICore() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="grid grid-cols-5 mb-4">
+          <TabsList className="grid grid-cols-6 mb-4">
             <TabsTrigger value="chat" className="gap-1 text-xs">
               <MessageSquare className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{isRTL ? 'محادثة' : 'Chat'}</span>
+            </TabsTrigger>
+            <TabsTrigger value="strategy" className="gap-1 text-xs">
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{isRTL ? 'استراتيجية' : 'Strategy'}</span>
             </TabsTrigger>
             <TabsTrigger value="projects" className="gap-1 text-xs">
               <FolderOpen className="w-3.5 h-3.5" />
@@ -237,6 +247,78 @@ export default function AICore() {
                 </div>
               </div>
             </Card>
+          </TabsContent>
+
+          {/* Strategy Tab */}
+          <TabsContent value="strategy" className="flex-1 flex flex-col gap-3 mt-0">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                {isRTL ? 'التحليل الاستراتيجي' : 'Strategic Analysis Mode'}
+              </h3>
+              <Button size="sm" className="gap-1" onClick={runStrategicAnalysis} disabled={isAnalyzing}>
+                {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <BarChart3 className="w-3 h-3" />}
+                {isRTL ? 'تحليل الآن' : 'Run Analysis'}
+              </Button>
+            </div>
+
+            <Card className="p-3 border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2 mb-1">
+                <Target className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">{isRTL ? 'وضع المشروع الواحد' : 'Single-Project Master Mode'}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isRTL 
+                  ? 'الذكاء يركز حصرياً على تحسين WeNova. كل تغيير يتطلب موافقة المؤسس. لا تعديلات مالية تلقائية.'
+                  : 'AI focuses exclusively on optimizing WeNova. Every change requires Founder approval. No automatic financial modifications.'}
+              </p>
+            </Card>
+
+            {strategicReport ? (
+              <ScrollArea className="flex-1">
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium">{isRTL ? 'التقرير الأسبوعي' : 'Weekly Strategy Report'}</h4>
+                    <Badge variant="outline" className="text-[10px]">{isRTL ? 'محفوظ في WeNova Core' : 'Stored in WeNova Core'}</Badge>
+                  </div>
+
+                  {/* KPI Cards */}
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {[
+                      { label: isRTL ? 'المستخدمون' : 'Users', value: strategicReport.kpis.totalUsers },
+                      { label: isRTL ? 'نشط أسبوعياً' : 'Weekly Active', value: strategicReport.kpis.activeThisWeek },
+                      { label: isRTL ? 'الاحتفاظ' : 'Retention', value: `${strategicReport.kpis.retentionRate}%` },
+                      { label: isRTL ? 'نوفا الكلي' : 'Total Nova', value: Number(strategicReport.kpis.totalNova).toLocaleString() },
+                      { label: isRTL ? 'أورا الكلي' : 'Total Aura', value: Number(strategicReport.kpis.totalAura).toLocaleString() },
+                      { label: isRTL ? 'تحويل الترقية' : 'Promotion Rate', value: `${strategicReport.kpis.promotionRate}%` },
+                      { label: isRTL ? 'مسابقات' : 'Contests (7d)', value: strategicReport.kpis.contestEntries },
+                      { label: isRTL ? 'P2P' : 'P2P (7d)', value: strategicReport.kpis.p2pOrders },
+                    ].map((kpi, i) => (
+                      <Card key={i} className="p-2 text-center">
+                        <p className="text-lg font-bold">{kpi.value}</p>
+                        <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Full Report */}
+                  <pre className="text-xs font-mono whitespace-pre-wrap bg-muted p-3 rounded-lg overflow-auto max-h-[400px]">{strategicReport.report}</pre>
+                </Card>
+              </ScrollArea>
+            ) : (
+              <Card className="flex-1 flex items-center justify-center p-8">
+                <div className="text-center">
+                  <BarChart3 className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                  <h4 className="font-medium mb-1">{isRTL ? 'لم يتم تشغيل التحليل بعد' : 'No analysis run yet'}</h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {isRTL ? 'اضغط "تحليل الآن" لتوليد التقرير الاستراتيجي الأسبوعي' : 'Click "Run Analysis" to generate the weekly strategic report'}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isRTL ? 'يحلل: الاحتفاظ، سرعة نوفا، إصدار أورا، تحويل الترقيات' : 'Analyzes: Retention, Nova velocity, Aura issuance, Promotion conversion'}
+                  </p>
+                </div>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Projects Tab */}
