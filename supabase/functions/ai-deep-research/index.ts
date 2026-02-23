@@ -25,12 +25,13 @@ const RESEARCH_DOMAINS = {
   fraud_risk: ["Chargebacks", "Dispute logic", "Fraud scoring"],
 };
 
-const VALIDATION_CHECKS = [
-  "conservation_of_value",
-  "supply_vs_flow_separation",
-  "liquidity_sufficiency",
-  "legal_feasibility",
-  "adversarial_attack",
+const CONCEPT_CATEGORIES = [
+  "financial_primitive", "regulatory_rule", "settlement_model",
+  "liquidity_pattern", "risk_pattern", "fraud_pattern", "infrastructure_component",
+];
+
+const RELATION_TYPES = [
+  "depends_on", "conflicts_with", "enhances", "replaces", "mitigates", "requires",
 ];
 
 async function verifyAdmin(req: Request, sb: any) {
@@ -65,6 +66,10 @@ serve(async (req) => {
       case "run_simulation": return await runSimulation(sb, params);
       case "get_outputs": return await getOutputs(sb, params);
       case "get_integrity": return await getIntegrity(sb, params);
+      case "get_concepts": return await getConcepts(sb, params);
+      case "get_relations": return await getRelations(sb, params);
+      case "get_contradictions": return await getContradictions(sb, params);
+      case "get_knowledge_summary": return await getKnowledgeSummary(sb, params);
       default:
         return json({ error: "Unknown action" }, 400);
     }
@@ -96,6 +101,165 @@ async function listProjects(sb: any) {
     .order("created_at", { ascending: false });
   if (error) throw error;
   return json({ projects: data });
+}
+
+// ─── Concept Extraction via AI ───
+async function extractConcepts(sb: any, projectId: string, files: Record<string, string>) {
+  const groqKey = Deno.env.get("AI_GATEWAY_API_KEY");
+  const groqUrl = Deno.env.get("AI_CORE_SERVER_URL") || "https://api.groq.com/openai/v1/chat/completions";
+
+  const allContent = Object.entries(files)
+    .map(([name, content]) => `=== ${name} ===\n${(content || "").substring(0, 2000)}`)
+    .join("\n\n");
+
+  const extractPrompt = `You are a financial knowledge extraction engine. Analyze the research documents below and extract structured concepts.
+
+DOCUMENTS:
+${allContent}
+
+Extract ALL financial concepts. For each concept provide:
+- name: normalized lowercase name (e.g. "net settlement", "rtgs", "float exposure")
+- category: one of ${CONCEPT_CATEGORIES.join(", ")}
+- definition: concise 1-2 sentence definition based on the research
+- confidence_score: 50-100 based on source quality
+
+Also detect relationships between concepts. For each relation:
+- from_concept: name of source concept
+- to_concept: name of target concept  
+- relation_type: one of ${RELATION_TYPES.join(", ")}
+- strength_score: 30-100
+
+Return JSON:
+{
+  "concepts": [{ "name": "", "category": "", "definition": "", "confidence_score": 50 }],
+  "relations": [{ "from_concept": "", "to_concept": "", "relation_type": "", "strength_score": 50 }]
+}
+
+Rules:
+- Extract at least 10 concepts if content allows
+- Normalize names (lowercase, no abbreviations unless standard like RTGS)
+- Only use the listed categories and relation types
+- Return ONLY valid JSON`;
+
+  const aiResp = await fetch(groqUrl, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${groqKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: extractPrompt },
+        { role: "user", content: "Extract all concepts and relations from the research documents above." },
+      ],
+      temperature: 0.2,
+      max_tokens: 4000,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!aiResp.ok) {
+    console.warn("Concept extraction AI call failed:", await aiResp.text());
+    return { concepts: [], relations: [], contradictions: [] };
+  }
+
+  const aiData = await aiResp.json();
+  const content = aiData.choices?.[0]?.message?.content;
+  let parsed: any;
+  try { parsed = JSON.parse(content); } catch { return { concepts: [], relations: [], contradictions: [] }; }
+
+  const concepts = (parsed.concepts || []).filter((c: any) =>
+    c.name && CONCEPT_CATEGORIES.includes(c.category) && c.definition
+  );
+  const relations = (parsed.relations || []).filter((r: any) =>
+    r.from_concept && r.to_concept && RELATION_TYPES.includes(r.relation_type)
+  );
+
+  // Upsert concepts with contradiction detection
+  const contradictions: any[] = [];
+  const conceptIdMap: Record<string, string> = {};
+
+  for (const concept of concepts) {
+    const normalizedName = concept.name.toLowerCase().trim();
+    const score = Math.max(0, Math.min(100, concept.confidence_score || 50));
+
+    // Check if concept exists
+    const { data: existing } = await sb.from("research_concepts")
+      .select("*")
+      .eq("project_id", projectId)
+      .ilike("name", normalizedName)
+      .maybeSingle();
+
+    if (existing) {
+      // Check for contradiction
+      const existingDef = existing.definition.toLowerCase().trim();
+      const newDef = concept.definition.toLowerCase().trim();
+      const isContradiction = existingDef !== newDef && newDef.length > 10;
+
+      if (isContradiction) {
+        // Create contradiction record
+        await sb.from("research_contradictions").insert({
+          concept_id: existing.id,
+          previous_statement: existing.definition,
+          conflicting_statement: concept.definition,
+        });
+
+        // Update concept with contradiction flag and reduced confidence
+        const newConfidence = Math.max(0, existing.confidence_score - 20);
+        await sb.from("research_concepts").update({
+          contradiction_flag: true,
+          confidence_score: newConfidence,
+          last_updated_at: new Date().toISOString(),
+        }).eq("id", existing.id);
+
+        contradictions.push({
+          concept: normalizedName,
+          previous: existing.definition,
+          conflicting: concept.definition,
+        });
+      } else {
+        // Boost confidence for repeated concept
+        const boosted = Math.min(100, existing.confidence_score + 5);
+        await sb.from("research_concepts").update({
+          confidence_score: boosted,
+          last_updated_at: new Date().toISOString(),
+        }).eq("id", existing.id);
+      }
+      conceptIdMap[normalizedName] = existing.id;
+    } else {
+      // Insert new concept
+      const { data: inserted } = await sb.from("research_concepts").insert({
+        project_id: projectId,
+        name: normalizedName,
+        category: concept.category,
+        definition: concept.definition,
+        confidence_score: score,
+      }).select("id").single();
+
+      if (inserted) conceptIdMap[normalizedName] = inserted.id;
+    }
+  }
+
+  // Insert relations
+  let relationsInserted = 0;
+  for (const rel of relations) {
+    const fromId = conceptIdMap[rel.from_concept.toLowerCase().trim()];
+    const toId = conceptIdMap[rel.to_concept.toLowerCase().trim()];
+    if (fromId && toId && fromId !== toId) {
+      const strength = Math.max(0, Math.min(100, rel.strength_score || 50));
+      await sb.from("research_concept_relations").insert({
+        concept_id: fromId,
+        related_concept_id: toId,
+        relation_type: rel.relation_type,
+        strength_score: strength,
+      });
+      relationsInserted++;
+    }
+  }
+
+  return {
+    concepts: concepts.length,
+    relations: relationsInserted,
+    contradictions,
+  };
 }
 
 async function runResearch(sb: any, p: any) {
@@ -153,7 +317,6 @@ Return a JSON object with this exact structure:
 
 Return ONLY valid JSON. No markdown fences.`;
 
-  // Call AI
   const aiResp = await fetch(groqUrl, {
     method: "POST",
     headers: {
@@ -232,12 +395,16 @@ Return ONLY valid JSON. No markdown fences.`;
     failure_report: integrity.failure_report || null,
   }).select().single();
 
+  // ─── EKG: Extract concepts from generated files ───
+  const ekgResult = await extractConcepts(sb, project_id, files);
+
   return json({
     success: true,
     files_generated: Object.keys(files).length,
     sources_count: sources.length,
     integrity_score: scoreData,
     validation_results: integrity.validation_results || {},
+    knowledge_graph: ekgResult,
   });
 }
 
@@ -308,7 +475,6 @@ Return ONLY valid JSON.`;
     duration_ms: duration,
   }).select().single();
 
-  // Auto-generate integrity score for simulation
   const validation = results.validation || {};
   const scores = {
     mathematical_consistency: validation.conservation_check ? 85 : 40,
@@ -352,4 +518,78 @@ async function getIntegrity(sb: any, p: any) {
     .eq("project_id", project_id)
     .order("created_at", { ascending: false });
   return json({ scores: data || [] });
+}
+
+// ─── Knowledge Graph Queries ───
+
+async function getConcepts(sb: any, p: any) {
+  const { project_id } = p;
+  const { data } = await sb.from("research_concepts")
+    .select("*")
+    .eq("project_id", project_id)
+    .order("confidence_score", { ascending: false });
+  return json({ concepts: data || [] });
+}
+
+async function getRelations(sb: any, p: any) {
+  const { project_id } = p;
+  const { data } = await sb.from("research_concept_relations")
+    .select("*, concept:research_concepts!concept_id(name, category), related:research_concepts!related_concept_id(name, category)")
+    .order("strength_score", { ascending: false });
+  // Filter by project via concepts
+  const { data: conceptIds } = await sb.from("research_concepts")
+    .select("id")
+    .eq("project_id", project_id);
+  const ids = new Set((conceptIds || []).map((c: any) => c.id));
+  const filtered = (data || []).filter((r: any) => ids.has(r.concept_id));
+  return json({ relations: filtered });
+}
+
+async function getContradictions(sb: any, p: any) {
+  const { project_id } = p;
+  const { data: conceptIds } = await sb.from("research_concepts")
+    .select("id")
+    .eq("project_id", project_id);
+  const ids = (conceptIds || []).map((c: any) => c.id);
+  if (ids.length === 0) return json({ contradictions: [] });
+
+  const { data } = await sb.from("research_contradictions")
+    .select("*, concept:research_concepts!concept_id(name, category)")
+    .in("concept_id", ids)
+    .order("detected_at", { ascending: false });
+  return json({ contradictions: data || [] });
+}
+
+async function getKnowledgeSummary(sb: any, p: any) {
+  const { project_id } = p;
+
+  const { data: concepts } = await sb.from("research_concepts")
+    .select("*")
+    .eq("project_id", project_id);
+
+  const allConcepts = concepts || [];
+  const byCategory: Record<string, number> = {};
+  for (const c of allConcepts) {
+    byCategory[c.category] = (byCategory[c.category] || 0) + 1;
+  }
+
+  const contradictionCount = allConcepts.filter((c: any) => c.contradiction_flag).length;
+
+  const ids = allConcepts.map((c: any) => c.id);
+  let topRelations: any[] = [];
+  if (ids.length > 0) {
+    const { data: rels } = await sb.from("research_concept_relations")
+      .select("*, concept:research_concepts!concept_id(name), related:research_concepts!related_concept_id(name)")
+      .in("concept_id", ids)
+      .order("strength_score", { ascending: false })
+      .limit(10);
+    topRelations = rels || [];
+  }
+
+  return json({
+    total_concepts: allConcepts.length,
+    by_category: byCategory,
+    contradictions_detected: contradictionCount,
+    top_relations: topRelations,
+  });
 }
