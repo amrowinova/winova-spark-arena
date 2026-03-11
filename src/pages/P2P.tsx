@@ -496,7 +496,7 @@ function P2PContent() {
   // P2P Chat View
   if (activeChatView && activeChatOrder) {
     // Get role info using unified utility
-    const roleInfo = getP2PRoleInfoFromOrder(activeChatOrder, user.id);
+    const roleInfo = getP2PRoleInfoFromOrder(activeChatOrder, currentAuthUserId);
     const counterparty = roleInfo.isBuyer ? activeChatOrder.seller : activeChatOrder.buyer;
     const counterpartyRole = roleInfo.isBuyer ? 'seller' : 'buyer';
     
