@@ -22,7 +22,7 @@ import { type AIProposal, useApproveProposal, useRejectProposal } from '@/hooks/
 // Inline stubs for deleted AI control room utilities
 const AGENT_CONFIG: Record<string, { color: string; label: string }> = {};
 const getAgentEmoji = (role: string) => '🤖';
-const getCategoryStyle = (category: string) => ({ bg: 'bg-muted', text: 'text-muted-foreground', label: category || 'general' });
+const getCategoryStyle = (category: string) => ({ bg: 'bg-muted', text: 'text-muted-foreground', label: category || 'general', border: 'border-muted' });
 
 interface DiscussionMessage {
   id: string;
