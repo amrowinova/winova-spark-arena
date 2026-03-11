@@ -154,12 +154,8 @@ function ChatContent() {
   const [showP2PDetails, setShowP2PDetails] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
-  const [showAIControlRoom, setShowAIControlRoom] = useState(false);
   const [activeTeamConversation, setActiveTeamConversation] = useState<TeamConversation | null>(null);
   const [activeTeamMembers, setActiveTeamMembers] = useState<TeamChatMember[]>([]);
-  
-  // Check if user can access AI Control Room
-  const { data: canAccessAI } = useCanAccessAIControlRoom();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
