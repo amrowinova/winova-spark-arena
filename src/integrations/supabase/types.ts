@@ -5131,9 +5131,11 @@ export type Database = {
           iban: string | null
           id: string
           is_default: boolean
+          notes: string | null
           phone_number: string | null
           provider_name: string
           provider_name_ar: string | null
+          type: string
           user_id: string
         }
         Insert: {
@@ -5144,9 +5146,11 @@ export type Database = {
           iban?: string | null
           id?: string
           is_default?: boolean
+          notes?: string | null
           phone_number?: string | null
           provider_name: string
           provider_name_ar?: string | null
+          type?: string
           user_id: string
         }
         Update: {
@@ -5157,9 +5161,11 @@ export type Database = {
           iban?: string | null
           id?: string
           is_default?: boolean
+          notes?: string | null
           phone_number?: string | null
           provider_name?: string
           provider_name_ar?: string | null
+          type?: string
           user_id?: string
         }
         Relationships: []
