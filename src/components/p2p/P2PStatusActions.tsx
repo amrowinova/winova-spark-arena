@@ -31,8 +31,17 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   // Get role info
   const roleInfo = getP2PRoleInfoFromOrder(order, currentUserId);
   
-  // DEBUG: Log status and role info
-  console.log('[P2PStatusActions] order.status:', order.status, 'roleInfo:', { isBuyer: roleInfo.isBuyer, isSeller: roleInfo.isSeller, buyerId: roleInfo.buyerId, sellerId: roleInfo.sellerId }, 'currentUserId:', currentUserId);
+  // Normalize status to handle both DB and UI status values
+  const normalizedStatus = (() => {
+    switch (order.status) {
+      case 'awaiting_payment': return 'waiting_payment';
+      case 'payment_sent': return 'paid';
+      case 'disputed': return 'dispute';
+      case 'open': 
+      case 'matched': return 'created';
+      default: return order.status;
+    }
+  })();
   // Support actions in dispute
   if (isSupport && order.status === 'dispute') {
     return (
