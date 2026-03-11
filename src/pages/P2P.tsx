@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, ShoppingCart, Send, ArrowLeft,
-  Star, AlertCircle, Loader2
+  Star, AlertCircle, Loader2, Info
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -85,7 +86,13 @@ function P2PContent() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { user } = useUser();
+  const { user: authUser } = useAuth();
   const { createTransaction } = useTransactions();
+  
+  // CRITICAL: Use auth UUID for P2P role comparisons, NOT profile.id
+  // user.id = profile table PK, authUser.id = auth.users UUID
+  // P2P participants store auth UUID, so we must compare with that
+  const currentAuthUserId = authUser?.id || user.id;
   const { 
     chats, 
     sendMessage, 
@@ -143,7 +150,7 @@ function P2PContent() {
 
   // Get all orders from chats
   const allOrders: P2POrder[] = chats.flatMap(chat => chat.orders);
-  const orderListItems = allOrders.map(order => orderToListItem(order, user.id));
+  const orderListItems = allOrders.map(order => orderToListItem(order, currentAuthUserId));
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -161,7 +168,7 @@ function P2PContent() {
           senderName: m.is_system_message ? 'System' : 'User',
           content: m.content,
           time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isMine: m.sender_id === user?.id,
+          isMine: m.sender_id === currentAuthUserId,
           isSystem: m.is_system_message,
           systemMessage: m.is_system_message ? {
             id: m.id,
@@ -176,7 +183,7 @@ function P2PContent() {
         setActiveChatView(prev => prev ? { ...prev, messages: uiMessages } : null);
       }
     }
-  }, [db.messages, activeChatOrder?.id, activeChatView?.messages.length, user?.id]);
+  }, [db.messages, activeChatOrder?.id, activeChatView?.messages.length, currentAuthUserId]);
 
   // Sync activeChatView and activeChatOrder with chats state
   useEffect(() => {
@@ -478,7 +485,7 @@ function P2PContent() {
     return (
       <P2POrderCompletedScreen
         order={activeChatOrder}
-        currentUserId={user.id}
+        currentUserId={currentAuthUserId}
         onRate={handleRateOrder}
         onClose={handleCloseCompletedScreen}
         hasRated={hasRatedOrder(activeChatOrder.id)}
@@ -489,7 +496,7 @@ function P2PContent() {
   // P2P Chat View
   if (activeChatView && activeChatOrder) {
     // Get role info using unified utility
-    const roleInfo = getP2PRoleInfoFromOrder(activeChatOrder, user.id);
+    const roleInfo = getP2PRoleInfoFromOrder(activeChatOrder, currentAuthUserId);
     const counterparty = roleInfo.isBuyer ? activeChatOrder.seller : activeChatOrder.buyer;
     const counterpartyRole = roleInfo.isBuyer ? 'seller' : 'buyer';
     
@@ -546,17 +553,27 @@ function P2PContent() {
             <>
               <P2POrderCard 
                 order={activeChatOrder} 
-                currentUserId={user?.id}
+                currentUserId={currentAuthUserId}
                 isActive={true}
                 onDeleteOrder={deleteOrder}
               />
-              
-              {/* Payment Details */}
-              {activeChatOrder.paymentDetails && (
-                <P2PPaymentCard 
-                  paymentDetails={activeChatOrder.paymentDetails}
-                />
-              )}
+
+              {/* Context Info Card — pinned above messages */}
+              <Card className="p-3 bg-info/5 border-info/20">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-info shrink-0 mt-0.5" />
+                  <p className="text-xs text-info">
+                    {roleInfo.isBuyer
+                      ? (isRTL
+                        ? `ستدفع ${activeChatOrder.total.toFixed(2)} ${activeChatOrder.currencySymbol} وستتلقى И${activeChatOrder.amount.toFixed(0)} Nova من ${isRTL ? activeChatOrder.seller.nameAr : activeChatOrder.seller.name}`
+                        : `You will pay ${activeChatOrder.currencySymbol} ${activeChatOrder.total.toFixed(2)} and receive И${activeChatOrder.amount.toFixed(0)} Nova from ${activeChatOrder.seller.name}`)
+                      : (isRTL
+                        ? `سيدفع ${isRTL ? activeChatOrder.buyer.nameAr : activeChatOrder.buyer.name} لك ${activeChatOrder.total.toFixed(2)} ${activeChatOrder.currencySymbol} مقابل И${activeChatOrder.amount.toFixed(0)} Nova`
+                        : `${activeChatOrder.buyer.name} will pay you ${activeChatOrder.currencySymbol} ${activeChatOrder.total.toFixed(2)} for И${activeChatOrder.amount.toFixed(0)} Nova`)
+                    }
+                  </p>
+                </div>
+              </Card>
             </>
           )}
         </div>
@@ -604,7 +621,7 @@ function P2PContent() {
         {!isCompleted && !isCancelled && !isReleased && (
           <P2PStatusActions 
             order={activeChatOrder}
-            currentUserId={user.id}
+            currentUserId={currentAuthUserId}
             onOrderCompleted={handleOrderCompleted}
           />
         )}
