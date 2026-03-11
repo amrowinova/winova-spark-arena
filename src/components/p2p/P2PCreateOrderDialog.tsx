@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Lock, Info, CreditCard, AlertCircle, Eye, Wallet, Plus } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Lock, Info, CreditCard, AlertCircle, Eye, Wallet, Plus, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
