@@ -13,6 +13,7 @@ type P2POrderType = Database['public']['Enums']['p2p_order_type'];
 export interface MarketplaceOrder {
   id: string;
   creatorId: string;
+  isOwnOrder: boolean;
   orderType: P2POrderType;
   novaAmount: number;
   localAmount: number;
