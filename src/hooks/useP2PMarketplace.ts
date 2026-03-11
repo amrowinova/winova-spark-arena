@@ -75,6 +75,11 @@ export function useP2PMarketplace(selectedCountry?: string) {
 
   // Fetch open orders from marketplace using secure view
   const fetchOpenOrders = useCallback(async () => {
+    // Don't fetch until we know the country
+    if (!effectiveCountry) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       // Use secure marketplace view that hides sensitive creator data
