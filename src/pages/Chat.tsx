@@ -379,9 +379,7 @@ function ChatContent() {
     return new Date(bTime).getTime() - new Date(aTime).getTime();
   });
   
-  // Build all conversations with AI Control Room at top if available
   const allConversations = [
-    ...(aiControlRoomConversation ? [aiControlRoomConversation] : []),
     supportConversation, 
     ...sortedDMConversations, 
     ...realTeamConversations, 
