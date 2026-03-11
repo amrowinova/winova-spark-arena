@@ -119,7 +119,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
         const total = pos + neg;
         return {
           id: order.id!,
-          creatorId: '',
+          creatorId: order.creator_id || '',
           orderType: order.order_type!,
           novaAmount: Number(order.nova_amount),
           localAmount: Number(order.local_amount),

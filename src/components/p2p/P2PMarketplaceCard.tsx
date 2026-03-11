@@ -155,7 +155,12 @@ export function P2PMarketplaceCard({
         </div>
 
         {/* Action Button or Locked Message */}
-        {isCountryMatch ? (
+        {isOwnOrder ? (
+          <div className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-primary/10 text-primary text-sm font-medium">
+            <User className="h-4 w-4" />
+            <span>{isRTL ? 'طلبك' : 'Your order'}</span>
+          </div>
+        ) : isCountryMatch ? (
           <Button 
             className={cn(
               "w-full font-semibold",
