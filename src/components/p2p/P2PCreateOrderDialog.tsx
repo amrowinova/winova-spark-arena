@@ -635,7 +635,7 @@ export function P2PCreateOrderDialog({
           </SheetHeader>
 
           <div className="mt-6">
-            <P2PPaymentMethodsManager country={country} />
+            <P2PPaymentMethodsManager country={activeCountry} />
           </div>
         </SheetContent>
       </Sheet>
