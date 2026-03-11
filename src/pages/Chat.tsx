@@ -771,15 +771,6 @@ function ChatContent() {
     return { humanMessages: activeChat.messages, allContent };
   };
 
-  // AI Control Room View
-  if (showAIControlRoom) {
-    return (
-      <AppLayout title={language === 'ar' ? 'الفريق الهندسي' : 'Engineering Team'} showNav={false} showHeader={false}>
-        <AIRoomView onBack={() => setShowAIControlRoom(false)} />
-      </AppLayout>
-    );
-  }
-
   // Support Chat View
   if (showSupportChat) {
     return (
