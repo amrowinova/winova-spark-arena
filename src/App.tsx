@@ -125,12 +125,7 @@ const App = () => (
                             <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />
                             <Route path="/admin/roles" element={<AdminGuard><AdminRoles /></AdminGuard>} />
                             <Route path="/admin/proposals" element={<AdminGuard><AdminProposals /></AdminGuard>} />
-                            <Route path="/admin/strategic-brain" element={<AdminGuard><StrategicBrain /></AdminGuard>} />
-                            <Route path="/admin/evolution" element={<AdminGuard><Evolution /></AdminGuard>} />
-                            <Route path="/admin/commander" element={<AdminGuard><Commander /></AdminGuard>} />
                             <Route path="/admin/p2p" element={<AdminGuard><AdminP2P /></AdminGuard>} />
-                            <Route path="/admin/ai-core" element={<AdminGuard><AICore /></AdminGuard>} />
-                            <Route path="/admin/research" element={<AdminGuard><DeepResearch /></AdminGuard>} />
                             
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />

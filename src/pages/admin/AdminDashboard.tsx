@@ -279,22 +279,6 @@ export default function AdminDashboard() {
               <Wallet className="w-5 h-5" />
               <span className="text-xs">{isRTL ? 'المحافظ' : 'Wallets'}</span>
             </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto py-3 flex-col gap-1"
-              onClick={() => navigate('/admin/ai-core')}
-            >
-              <Cpu className="w-5 h-5 text-primary" />
-              <span className="text-xs">{isRTL ? 'نواة AI' : 'AI Core'}</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto py-3 flex-col gap-1"
-              onClick={() => navigate('/admin/research')}
-            >
-              <FlaskConical className="w-5 h-5 text-primary" />
-              <span className="text-xs">{isRTL ? 'مختبر البحث' : 'Deep Research Lab'}</span>
-            </Button>
           </div>
         </Card>
 
