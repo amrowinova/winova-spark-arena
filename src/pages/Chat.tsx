@@ -664,7 +664,6 @@ function ChatContent() {
       setActiveP2PChat(conv.p2pChatId);
       setActiveChat(null);
       setActiveDMConversation(null);
-      setShowAIControlRoom(false);
       return;
     }
     
