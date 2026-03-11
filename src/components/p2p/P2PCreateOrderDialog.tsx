@@ -183,8 +183,8 @@ export function P2PCreateOrderDialog({
               {isRTL ? 'إنشاء طلب P2P' : 'Create P2P Order'}
             </DialogTitle>
             <DialogDescription className="flex items-center gap-2">
-              <span className="text-xl">{country.flag}</span>
-              {isRTL ? country.nameAr : country.name} • {country.currency}
+              <span className="text-xl">{activeCountry.flag}</span>
+              {isRTL ? activeCountry.nameAr : activeCountry.name} • {activeCountry.currency}
             </DialogDescription>
           </DialogHeader>
 
