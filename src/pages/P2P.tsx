@@ -611,7 +611,7 @@ function P2PContent() {
         {!isCompleted && !isCancelled && !isReleased && (
           <P2PStatusActions 
             order={activeChatOrder}
-            currentUserId={user.id}
+            currentUserId={currentAuthUserId}
             onOrderCompleted={handleOrderCompleted}
           />
         )}
