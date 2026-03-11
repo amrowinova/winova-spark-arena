@@ -167,7 +167,7 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                         onClick={() => handleNavigation('/admin')}
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
-                          location.pathname.startsWith('/admin') && !location.pathname.startsWith('/admin/commander')
+                          location.pathname.startsWith('/admin')
                             ? 'bg-primary text-primary-foreground' 
                             : 'hover:bg-muted text-foreground'
                         )}
