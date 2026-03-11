@@ -257,7 +257,7 @@ export function P2PCreateOrderDialog({
                   </span>
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {country.paymentMethods.map((method) => {
+                  {activeCountry.paymentMethods.map((method) => {
                     const isSelected = selectedBuyMethodIds.has(method.id);
                     return (
                       <Card
