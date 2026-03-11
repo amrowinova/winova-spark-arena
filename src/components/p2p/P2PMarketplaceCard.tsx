@@ -1,4 +1,4 @@
-import { Clock, MapPin, Loader2, ThumbsUp, ThumbsDown, ArrowLeftRight } from 'lucide-react';
+import { Clock, MapPin, Loader2, ThumbsUp, ThumbsDown, ArrowLeftRight, Lock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,19 +7,22 @@ import { cn } from '@/lib/utils';
 import { MarketplaceOrder } from '@/hooks/useP2PMarketplace';
 import { formatDistanceToNow } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
+import { getCountryNameAr } from '@/lib/countryNamesAr';
 
 interface P2PMarketplaceCardProps {
   order: MarketplaceOrder;
   onExecute: (order: MarketplaceOrder) => void;
   actionType: 'buy' | 'sell';
   isExecuting?: boolean;
+  isCountryMatch?: boolean;
 }
 
 export function P2PMarketplaceCard({ 
   order, 
   onExecute, 
   actionType,
-  isExecuting = false 
+  isExecuting = false,
+  isCountryMatch = true,
 }: P2PMarketplaceCardProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
@@ -32,6 +35,15 @@ export function P2PMarketplaceCard({
   const ratingDisplay = order.rating < 0
     ? (isRTL ? 'جديد' : 'New')
     : `${(order.rating * 100).toFixed(0)}%`;
+
+  // Calculate expiry display
+  const expiresAt = order.expiresAt 
+    ? new Date(order.expiresAt) 
+    : new Date(new Date(order.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000);
+  const expiryDisplay = formatDistanceToNow(expiresAt, {
+    addSuffix: true,
+    locale: isRTL ? ar : enUS,
+  });
 
   return (
     <Card className="overflow-hidden hover:border-primary/30 transition-colors">
@@ -117,38 +129,50 @@ export function P2PMarketplaceCard({
           </div>
         </div>
 
-        {/* Info Row - Time */}
+        {/* Info Row - Time & Expiry */}
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
             <span>{order.timeLimitMinutes} {isRTL ? 'دقيقة' : 'min'}</span>
           </div>
           <span className="text-xs text-muted-foreground">
-            {timeAgo}
+            {isRTL ? `ينتهي ${expiryDisplay}` : `Expires ${expiryDisplay}`}
           </span>
         </div>
 
-        {/* Action Button */}
-        <Button 
-          className={cn(
-            "w-full font-semibold",
-            actionType === 'buy' 
-              ? "bg-success hover:bg-success/90 text-success-foreground" 
-              : "bg-primary hover:bg-primary/90"
-          )}
-          onClick={() => onExecute(order)}
-          disabled={isExecuting}
-        >
-          {isExecuting ? (
-            <>
-              <Loader2 className="h-4 w-4 me-2 animate-spin" />
-              {isRTL ? 'جاري...' : 'Processing...'}
-            </>
-          ) : actionType === 'buy' 
-            ? (isRTL ? `شراء И${order.novaAmount} Nova` : `Buy И${order.novaAmount} Nova`)
-            : (isRTL ? `بيع И${order.novaAmount} Nova` : `Sell И${order.novaAmount} Nova`)
-          }
-        </Button>
+        {/* Action Button or Locked Message */}
+        {isCountryMatch ? (
+          <Button 
+            className={cn(
+              "w-full font-semibold",
+              actionType === 'buy' 
+                ? "bg-success hover:bg-success/90 text-success-foreground" 
+                : "bg-primary hover:bg-primary/90"
+            )}
+            onClick={() => onExecute(order)}
+            disabled={isExecuting}
+          >
+            {isExecuting ? (
+              <>
+                <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                {isRTL ? 'جاري...' : 'Processing...'}
+              </>
+            ) : actionType === 'buy' 
+              ? (isRTL ? `شراء И${order.novaAmount} Nova` : `Buy И${order.novaAmount} Nova`)
+              : (isRTL ? `بيع И${order.novaAmount} Nova` : `Sell И${order.novaAmount} Nova`)
+            }
+          </Button>
+        ) : (
+          <div className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-muted/50 text-muted-foreground text-sm">
+            <Lock className="h-4 w-4" />
+            <span>
+              {isRTL 
+                ? `متاح في ${getCountryNameAr(order.country)} فقط`
+                : `Available in ${order.country} only`
+              }
+            </span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
