@@ -49,12 +49,6 @@ export function DMChatView({
   // Real-time hooks - skip for system user
   const { otherUserTyping, handleTyping, stopTyping } = useTypingIndicator(conversation.id, conversation.participantName);
   const { isOnline, getLastSeenText } = useChatPresence(conversation.id, isSystemChat ? null : conversation.participantId);
-  const { startBuild, isBuilding, isBuildRequest } = useBuildEngine();
-
-  // Build command state
-  const [buildInput, setBuildInput] = useState('');
-  // System chat tab: 'chat' or 'projects'
-  const [activeSystemTab, setActiveSystemTab] = useState<'chat' | 'projects'>('chat');
 
   // Convert messages to DMMessageData format with pending state
   const formattedMessages: DMMessageData[] = messages.map(msg => ({
