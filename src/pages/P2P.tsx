@@ -168,7 +168,7 @@ function P2PContent() {
           senderName: m.is_system_message ? 'System' : 'User',
           content: m.content,
           time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isMine: m.sender_id === user?.id,
+          isMine: m.sender_id === currentAuthUserId,
           isSystem: m.is_system_message,
           systemMessage: m.is_system_message ? {
             id: m.id,
