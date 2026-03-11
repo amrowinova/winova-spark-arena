@@ -9,8 +9,6 @@ import { TodayLearningsSection } from '@/components/strategic-brain/TodayLearnin
 import { ApprovalQueueSection } from '@/components/strategic-brain/ApprovalQueueSection';
 import { ExperimentsLabSection } from '@/components/strategic-brain/ExperimentsLabSection';
 import { LeadershipQuestionsSection } from '@/components/strategic-brain/LeadershipQuestionsSection';
-import { AIPerformanceSection } from '@/components/control-tower/AIPerformanceSection';
-import { RiskRadarSection } from '@/components/control-tower/RiskRadarSection';
 
 export default function StrategicBrain() {
   const { language } = useLanguage();
@@ -45,20 +43,14 @@ export default function StrategicBrain() {
           <TodayLearningsSection />
         </div>
 
-        {/* Row 2: Risks + Approval Queue */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <RiskRadarSection />
-          <ApprovalQueueSection />
-        </div>
+        {/* Row 2: Approval Queue */}
+        <ApprovalQueueSection />
 
-        {/* Row 3: Experiments + Performance */}
+        {/* Row 3: Experiments */}
         <div className="grid md:grid-cols-2 gap-4">
           <ExperimentsLabSection />
-          <AIPerformanceSection />
+          <LeadershipQuestionsSection />
         </div>
-
-        {/* Row 4: Questions for Leadership */}
-        <LeadershipQuestionsSection />
       </div>
     </div>
   );

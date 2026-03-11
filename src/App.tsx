@@ -50,9 +50,7 @@ import SupportStaffRatings from "./pages/support/SupportStaffRatings";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminWallets from "./pages/admin/AdminWallets";
 import AdminRoles from "./pages/admin/AdminRoles";
-import AdminAI from "./pages/admin/AdminAI";
 import AdminProposals from "./pages/admin/AdminProposals";
-import ControlTower from "./pages/admin/ControlTower";
 import StrategicBrain from "./pages/admin/StrategicBrain";
 import Evolution from "./pages/admin/Evolution";
 import Commander from "./pages/admin/Commander";
@@ -131,9 +129,7 @@ const App = () => (
                             <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
                             <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />
                             <Route path="/admin/roles" element={<AdminGuard><AdminRoles /></AdminGuard>} />
-                            <Route path="/admin/ai" element={<AdminGuard><AdminAI /></AdminGuard>} />
                             <Route path="/admin/proposals" element={<AdminGuard><AdminProposals /></AdminGuard>} />
-                            <Route path="/admin/control-tower" element={<AdminGuard><ControlTower /></AdminGuard>} />
                             <Route path="/admin/strategic-brain" element={<AdminGuard><StrategicBrain /></AdminGuard>} />
                             <Route path="/admin/evolution" element={<AdminGuard><Evolution /></AdminGuard>} />
                             <Route path="/admin/commander" element={<AdminGuard><Commander /></AdminGuard>} />
