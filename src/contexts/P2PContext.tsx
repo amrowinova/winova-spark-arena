@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useP2PDatabase, P2POrderWithProfiles, DBP2PParticipant, P2POpResult } from '@/hooks/useP2PDatabase';
 import { dbStatusToUI, UIP2POrderStatus, DBP2POrderStatus } from '@/lib/p2pStatusMapper';
 import { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
 
 type P2PMessageRow = Database['public']['Tables']['p2p_messages']['Row'];
 
