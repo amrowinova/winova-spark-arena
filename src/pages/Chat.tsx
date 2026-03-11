@@ -1352,9 +1352,7 @@ function ChatContent() {
                       <CardContent className="p-3 flex items-center gap-3">
                         {/* Avatar */}
                         <div className={`relative w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                          conv.id === 'ai-control-room'
-                            ? 'bg-primary/20 ring-2 ring-primary/30'
-                            : conv.id === 'support' 
+                          conv.id === 'support' 
                               ? 'bg-primary/20' 
                               : conv.isSystem 
                                 ? 'bg-primary/20' 
@@ -1362,9 +1360,7 @@ function ChatContent() {
                                   ? 'bg-success/20' 
                                   : 'bg-muted'
                         }`}>
-                          {conv.id === 'ai-control-room' ? (
-                            <Brain className="w-6 h-6 text-primary" />
-                          ) : conv.id === 'support' ? (
+                          {conv.id === 'support' ? (
                             <Headphones className="w-6 h-6 text-primary" />
                           ) : (
                             conv.avatar
