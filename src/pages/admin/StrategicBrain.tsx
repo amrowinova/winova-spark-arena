@@ -9,8 +9,6 @@ import { TodayLearningsSection } from '@/components/strategic-brain/TodayLearnin
 import { ApprovalQueueSection } from '@/components/strategic-brain/ApprovalQueueSection';
 import { ExperimentsLabSection } from '@/components/strategic-brain/ExperimentsLabSection';
 import { LeadershipQuestionsSection } from '@/components/strategic-brain/LeadershipQuestionsSection';
-import { AIPerformanceSection } from '@/components/control-tower/AIPerformanceSection';
-import { RiskRadarSection } from '@/components/control-tower/RiskRadarSection';
 
 export default function StrategicBrain() {
   const { language } = useLanguage();
