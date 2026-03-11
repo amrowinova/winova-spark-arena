@@ -113,8 +113,12 @@ export function useP2PMarketplace(selectedCountry?: string) {
         creatorAvatar: order.creator_avatar_url || '👤',
         creatorCountry: order.creator_country || order.country!,
         currencySymbol: getCurrencySymbol(order.country!),
-        rating: 5.0,
-        completedTrades: 0,
+        rating: Number(order.positive_ratings) + Number(order.negative_ratings) > 0
+          ? Number(order.positive_ratings) / (Number(order.positive_ratings) + Number(order.negative_ratings))
+          : -1, // -1 means "New" (no ratings yet)
+        positiveRatings: Number(order.positive_ratings) || 0,
+        negativeRatings: Number(order.negative_ratings) || 0,
+        completedTrades: Number(order.total_trades) || 0,
       }));
 
       // Separate by order type
