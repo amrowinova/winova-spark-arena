@@ -49,10 +49,27 @@ function getCurrencySymbol(country: string): string {
 
 export function useP2PMarketplace(selectedCountry?: string) {
   const { user } = useAuth();
-  const [buyOrders, setBuyOrders] = useState<MarketplaceOrder[]>([]); // Users want to buy Nova (you sell)
-  const [sellOrders, setSellOrders] = useState<MarketplaceOrder[]>([]); // Users want to sell Nova (you buy)
+  const [buyOrders, setBuyOrders] = useState<MarketplaceOrder[]>([]);
+  const [sellOrders, setSellOrders] = useState<MarketplaceOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [profileCountry, setProfileCountry] = useState<string | null>(null);
+
+  // Fetch user's profile country as default filter
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('country')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.country) setProfileCountry(data.country);
+      });
+  }, [user]);
+
+  // Effective country: explicit selection > profile country
+  const effectiveCountry = selectedCountry || profileCountry;
 
   // Fetch open orders from marketplace using secure view
   const fetchOpenOrders = useCallback(async () => {
@@ -65,9 +82,9 @@ export function useP2PMarketplace(selectedCountry?: string) {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Optionally filter by country
-      if (selectedCountry) {
-        query = query.eq('country', selectedCountry);
+      // Always filter by country (effective country)
+      if (effectiveCountry) {
+        query = query.eq('country', effectiveCountry);
       }
 
       const { data: ordersData, error: ordersError } = await query;
@@ -81,11 +98,9 @@ export function useP2PMarketplace(selectedCountry?: string) {
         return;
       }
 
-      // Transform orders - marketplace view hides creator_id for privacy
-      // Creator profile info is only revealed after order is matched
       const marketplaceOrders: MarketplaceOrder[] = ordersData.map(order => ({
         id: order.id!,
-        creatorId: '', // Hidden for privacy until matched
+        creatorId: '',
         orderType: order.order_type!,
         novaAmount: Number(order.nova_amount),
         localAmount: Number(order.local_amount),
@@ -93,11 +108,10 @@ export function useP2PMarketplace(selectedCountry?: string) {
         country: order.country!,
         timeLimitMinutes: order.time_limit_minutes!,
         createdAt: order.created_at!,
-        // Creator info hidden in marketplace for privacy
-        creatorName: 'Trader',
-        creatorUsername: '',
-        creatorAvatar: '👤',
-        creatorCountry: order.country!,
+        creatorName: (order as any).creator_name || 'Trader',
+        creatorUsername: (order as any).creator_username || '',
+        creatorAvatar: (order as any).creator_avatar_url || '👤',
+        creatorCountry: (order as any).creator_country || order.country!,
         currencySymbol: getCurrencySymbol(order.country!),
         rating: 5.0,
         completedTrades: 0,
@@ -115,7 +129,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCountry]);
+  }, [effectiveCountry]);
 
   // Initial fetch
   useEffect(() => {

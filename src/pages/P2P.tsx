@@ -104,9 +104,11 @@ function P2PContent() {
 
   // Get countries with live rates from app_settings
   const countries = useP2PCountries();
-  const defaultCountry = countries[0]; // Saudi Arabia with live rate
 
-  // State - initialize with the live-rate country
+  // Default to user's profile country, fallback to first country
+  const userCountryConfig = countries.find(c => c.name === user.country) || countries[0];
+
+  // State - initialize with user's country
   const [selectedCountry, setSelectedCountry] = useState<CountryConfig | null>(null);
   const [selectedTab, setSelectedTab] = useState<'buy' | 'sell' | 'orders'>('buy');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -125,8 +127,8 @@ function P2PContent() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Use the live-rate country (selectedCountry or default)
-  const currentCountry = selectedCountry || defaultCountry;
+  // Use the live-rate country (selectedCountry or user's profile country)
+  const currentCountry = selectedCountry || userCountryConfig;
 
   // Fetch real marketplace orders from database
   const { 
@@ -204,6 +206,14 @@ function P2PContent() {
 
   // Handle executing a marketplace order (match with existing order)
   const handleExecuteOrder = async (order: MarketplaceOrder) => {
+    // Country mismatch guard
+    if (order.country !== user.country) {
+      showError(isRTL
+        ? 'هذا الطلب متاح فقط للمستخدمين في نفس البلد'
+        : 'This order is only available for users in the same country');
+      return;
+    }
+
     // Check if user can create/execute order
     const check = canCreateOrder();
     if (!check.allowed) {
