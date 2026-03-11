@@ -44,7 +44,7 @@ import {
 } from './P2PPaymentMethodsManager';
 import { cn } from '@/lib/utils';
 
-const STORAGE_KEY = 'winova_p2p_payment_methods';
+
 
 interface P2PSellDialogProps {
   open: boolean;
