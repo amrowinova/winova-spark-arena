@@ -31,15 +31,16 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   // Get role info
   const roleInfo = getP2PRoleInfoFromOrder(order, currentUserId);
   
-  // Normalize status to handle both DB and UI status values
-  const normalizedStatus = (() => {
-    switch (order.status) {
+  // Normalize status: handle any possible unmapped DB values at runtime
+  const statusStr = order.status as string;
+  const normalizedStatus: string = (() => {
+    switch (statusStr) {
       case 'awaiting_payment': return 'waiting_payment';
       case 'payment_sent': return 'paid';
       case 'disputed': return 'dispute';
       case 'open': 
       case 'matched': return 'created';
-      default: return order.status;
+      default: return statusStr;
     }
   })();
   // Support actions in dispute
