@@ -31,6 +31,8 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   // Get role info
   const roleInfo = getP2PRoleInfoFromOrder(order, currentUserId);
   
+  // DEBUG: Log status and role info
+  console.log('[P2PStatusActions] order.status:', order.status, 'roleInfo:', { isBuyer: roleInfo.isBuyer, isSeller: roleInfo.isSeller, buyerId: roleInfo.buyerId, sellerId: roleInfo.sellerId }, 'currentUserId:', currentUserId);
   // Support actions in dispute
   if (isSupport && order.status === 'dispute') {
     return (
