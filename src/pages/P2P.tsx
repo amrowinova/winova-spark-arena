@@ -209,8 +209,8 @@ function P2PContent() {
     // Country mismatch guard
     if (order.country !== user.country) {
       showError(isRTL
-        ? 'هذا الطلب متاح فقط للمستخدمين في نفس البلد'
-        : 'This order is only available for users in the same country');
+        ? `هذا الطلب متاح فقط للمستخدمين في ${order.country}`
+        : `This order is only available for users in ${order.country}`);
       return;
     }
 
