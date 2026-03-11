@@ -676,7 +676,6 @@ function ChatContent() {
         fetchDMMessages(dmConv.id);
         setActiveChat(null);
         setActiveP2PChat(null);
-        setShowAIControlRoom(false);
         return;
       }
     }
