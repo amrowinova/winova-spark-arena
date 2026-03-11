@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Star, Timer, AlertTriangle, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
