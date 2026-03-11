@@ -28,6 +28,8 @@ export interface MarketplaceOrder {
   // Computed
   currencySymbol: string;
   rating: number;
+  positiveRatings: number;
+  negativeRatings: number;
   completedTrades: number;
 }
 
