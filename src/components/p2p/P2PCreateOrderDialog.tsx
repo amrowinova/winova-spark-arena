@@ -29,7 +29,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { P2PAmountSelector } from './P2PAmountSelector';
 import { P2PTimeSelector } from './P2PTimeSelector';
-import { CountryConfig, PaymentMethod } from './P2PCountrySelector';
+import { CountryConfig, PaymentMethod, useP2PCountries } from './P2PCountrySelector';
 import { 
   SavedPaymentMethod, 
   useSavedPaymentMethods, 
