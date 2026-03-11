@@ -553,7 +553,7 @@ function P2PContent() {
             <>
               <P2POrderCard 
                 order={activeChatOrder} 
-                currentUserId={user?.id}
+                currentUserId={currentAuthUserId}
                 isActive={true}
                 onDeleteOrder={deleteOrder}
               />
