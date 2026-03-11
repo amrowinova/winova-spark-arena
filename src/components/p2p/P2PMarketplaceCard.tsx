@@ -37,6 +37,7 @@ export function P2PMarketplaceCard({
   actionType,
   isExecuting = false,
   isCountryMatch = true,
+  isOwnOrder = false,
 }: P2PMarketplaceCardProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
