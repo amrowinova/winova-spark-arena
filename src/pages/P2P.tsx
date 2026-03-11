@@ -127,8 +127,8 @@ function P2PContent() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Use the live-rate country (selectedCountry or default)
-  const currentCountry = selectedCountry || defaultCountry;
+  // Use the live-rate country (selectedCountry or user's profile country)
+  const currentCountry = selectedCountry || userCountryConfig;
 
   // Fetch real marketplace orders from database
   const { 
