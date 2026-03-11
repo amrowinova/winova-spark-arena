@@ -24,7 +24,7 @@ type BuyerStep = 'locked' | 'unlocked' | 'ready_to_send';
 export function P2PBuyerFlow({ order, currentUserId, onOrderCompleted }: P2PBuyerFlowProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
-  const { confirmPayment, cancelOrderWithReason, relistOrder, isMockMode, triggerMockSellerConfirmation } = useP2P();
+  const { confirmPayment, cancelOrderWithReason, relistOrder, isMockMode, triggerMockSellerConfirmation, getCancellationsIn24h, isBlockedFromOrders } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   const db = useP2PDatabase();
 
