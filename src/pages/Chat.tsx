@@ -50,7 +50,7 @@ import type { UserRank } from '@/contexts/UserContext';
 
 interface Conversation {
   id: string;
-  type: 'dm' | 'team' | 'p2p' | 'system' | 'ai_system';
+  type: 'dm' | 'team' | 'p2p' | 'system';
   name: string;
   nameAr?: string;
   username?: string;
