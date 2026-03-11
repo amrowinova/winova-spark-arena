@@ -18,6 +18,21 @@ interface P2PStatusActionsProps {
   onOrderCompleted?: () => void;
 }
 
+/**
+ * Normalize status to UI values — handles both mapped UI statuses
+ * and raw DB statuses that may leak through realtime or edge cases.
+ */
+function normalizeStatus(status: string): string {
+  switch (status) {
+    case 'awaiting_payment': return 'waiting_payment';
+    case 'payment_sent': return 'paid';
+    case 'disputed': return 'dispute';
+    case 'open':
+    case 'matched': return 'created';
+    default: return status;
+  }
+}
+
 export function P2PStatusActions({ order, currentUserId, isSupport = false, onOrderCompleted }: P2PStatusActionsProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
@@ -31,20 +46,11 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   // Get role info
   const roleInfo = getP2PRoleInfoFromOrder(order, currentUserId);
   
-  // Normalize status: handle any possible unmapped DB values at runtime
-  const statusStr = order.status as string;
-  const normalizedStatus: string = (() => {
-    switch (statusStr) {
-      case 'awaiting_payment': return 'waiting_payment';
-      case 'payment_sent': return 'paid';
-      case 'disputed': return 'dispute';
-      case 'open': 
-      case 'matched': return 'created';
-      default: return statusStr;
-    }
-  })();
+  // Normalize status to handle both DB and UI status values at runtime
+  const status = normalizeStatus(order.status as string);
+  
   // Support actions in dispute
-  if (isSupport && order.status === 'dispute') {
+  if (isSupport && status === 'dispute') {
     return (
       <div className="p-3 bg-muted/30 border-t border-border space-y-3">
         <Card className="p-4 bg-destructive/10 border-destructive/30">
@@ -109,7 +115,7 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   }
   
   // Creator can DELETE OPEN orders
-  if (order.status === 'created') {
+  if (status === 'created') {
     const isCreator = (order.type === 'buy' && roleInfo.isBuyer) || (order.type === 'sell' && roleInfo.isSeller);
     
     if (isCreator) {
@@ -157,7 +163,7 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   }
 
   // BUYER FLOW
-  if (roleInfo.isBuyer && ['waiting_payment', 'paid'].includes(order.status)) {
+  if (roleInfo.isBuyer && ['waiting_payment', 'paid'].includes(status)) {
     return (
       <P2PBuyerFlow
         order={order}
@@ -168,7 +174,7 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   }
   
   // SELLER FLOW
-  if (roleInfo.isSeller && ['waiting_payment', 'paid'].includes(order.status)) {
+  if (roleInfo.isSeller && ['waiting_payment', 'paid'].includes(status)) {
     return (
       <P2PSellerFlow
         order={order}
@@ -179,7 +185,7 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   }
   
   // Dispute state (both parties - non-support)
-  if (order.status === 'dispute' && !isSupport) {
+  if (status === 'dispute' && !isSupport) {
     return (
       <div className="p-3 bg-muted/30 border-t border-border">
         <Card className="p-4 bg-destructive/10 border-destructive/30">
