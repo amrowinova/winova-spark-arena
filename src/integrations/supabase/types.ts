@@ -6821,6 +6821,10 @@ export type Database = {
         Row: {
           country: string | null
           created_at: string | null
+          creator_avatar_url: string | null
+          creator_country: string | null
+          creator_name: string | null
+          creator_username: string | null
           exchange_rate: number | null
           id: string | null
           local_amount: number | null
@@ -6828,28 +6832,6 @@ export type Database = {
           order_type: Database["public"]["Enums"]["p2p_order_type"] | null
           status: Database["public"]["Enums"]["p2p_order_status"] | null
           time_limit_minutes: number | null
-        }
-        Insert: {
-          country?: string | null
-          created_at?: string | null
-          exchange_rate?: number | null
-          id?: string | null
-          local_amount?: number | null
-          nova_amount?: number | null
-          order_type?: Database["public"]["Enums"]["p2p_order_type"] | null
-          status?: Database["public"]["Enums"]["p2p_order_status"] | null
-          time_limit_minutes?: number | null
-        }
-        Update: {
-          country?: string | null
-          created_at?: string | null
-          exchange_rate?: number | null
-          id?: string | null
-          local_amount?: number | null
-          nova_amount?: number | null
-          order_type?: Database["public"]["Enums"]["p2p_order_type"] | null
-          status?: Database["public"]["Enums"]["p2p_order_status"] | null
-          time_limit_minutes?: number | null
         }
         Relationships: []
       }
