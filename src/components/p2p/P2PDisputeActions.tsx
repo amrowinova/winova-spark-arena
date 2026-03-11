@@ -18,6 +18,8 @@ import { P2POrder, useP2P } from '@/contexts/P2PContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { getP2PRoleInfoFromOrder } from '@/lib/p2pRoleUtils';
 import { ReleaseSafetyFlow } from './release-safety/ReleaseSafetyFlow';
+import { resolveDispute } from '@/lib/p2pEscrowService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface P2PDisputeActionsProps {
   order: P2POrder;
