@@ -223,7 +223,7 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
   }
 
   // Seller confirm/release (paid status)
-  if (order.status === 'paid') {
+  if (normalizedStatus === 'paid') {
     return (
       <>
         <div className="p-3 bg-muted/30 border-t border-border space-y-3">
