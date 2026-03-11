@@ -14,12 +14,6 @@ import { MessageActionMenu } from './MessageActionMenu';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { isFeatureEnabled } from '@/lib/featureFlags';
-import { isAISystemUser } from '@/lib/aiSystemUser';
-import { AlertDecisionButtons } from './AlertDecisionButtons';
-import { ExecutionDecisionButtons } from './ExecutionDecisionButtons';
-import { BuildProgressMessage } from './BuildProgressMessage';
-import { EvolutionDecisionButtons } from './EvolutionDecisionButtons';
-import { ProjectDeliveryCard } from './ProjectDeliveryCard';
 
 
 export interface DMMessageData {
