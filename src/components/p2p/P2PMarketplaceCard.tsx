@@ -1,4 +1,4 @@
-import { Clock, MapPin, Loader2, ThumbsUp, ThumbsDown, ArrowLeftRight, Lock } from 'lucide-react';
+import { Clock, MapPin, Loader2, ThumbsUp, ThumbsDown, ArrowLeftRight, Lock, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,12 +9,26 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 import { getCountryNameAr } from '@/lib/countryNamesAr';
 
+const SHORT_COUNTRY: Record<string, string> = {
+  'Saudi Arabia': '🇸🇦 SA',
+  'Jordan': '🇯🇴 JO',
+  'Qatar': '🇶🇦 QA',
+  'UAE': '🇦🇪 AE',
+  'Palestine': '🇵🇸 PS',
+  'Egypt': '🇪🇬 EG',
+  'Kuwait': '🇰🇼 KW',
+  'Bahrain': '🇧🇭 BH',
+  'Oman': '🇴🇲 OM',
+  'Iraq': '🇮🇶 IQ',
+};
+
 interface P2PMarketplaceCardProps {
   order: MarketplaceOrder;
   onExecute: (order: MarketplaceOrder) => void;
   actionType: 'buy' | 'sell';
   isExecuting?: boolean;
   isCountryMatch?: boolean;
+  isOwnOrder?: boolean;
 }
 
 export function P2PMarketplaceCard({ 
@@ -23,6 +37,7 @@ export function P2PMarketplaceCard({
   actionType,
   isExecuting = false,
   isCountryMatch = true,
+  isOwnOrder = false,
 }: P2PMarketplaceCardProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
@@ -74,9 +89,8 @@ export function P2PMarketplaceCard({
               </span>
             </div>
           </div>
-          <Badge variant="secondary" className="text-xs max-w-[80px] truncate">
-            <MapPin className="h-3 w-3 me-1 shrink-0" />
-            <span className="truncate">{order.creatorCountry}</span>
+          <Badge variant="secondary" className="text-xs">
+            <span>{SHORT_COUNTRY[order.creatorCountry] || order.creatorCountry}</span>
           </Badge>
         </div>
 
@@ -141,7 +155,12 @@ export function P2PMarketplaceCard({
         </div>
 
         {/* Action Button or Locked Message */}
-        {isCountryMatch ? (
+        {isOwnOrder ? (
+          <div className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-primary/10 text-primary text-sm font-medium">
+            <User className="h-4 w-4" />
+            <span>{isRTL ? 'طلبك' : 'Your order'}</span>
+          </div>
+        ) : isCountryMatch ? (
           <Button 
             className={cn(
               "w-full font-semibold",

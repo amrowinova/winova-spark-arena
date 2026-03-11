@@ -39,6 +39,13 @@ const COUNTRY_CURRENCIES: Record<string, { code: string; symbol: string }> = {
   'Saudi Arabia': { code: 'SAR', symbol: 'ر.س' },
   'UAE': { code: 'AED', symbol: 'د.إ' },
   'Egypt': { code: 'EGP', symbol: 'ج.م' },
+  'Jordan': { code: 'JOD', symbol: 'د.أ' },
+  'Qatar': { code: 'QAR', symbol: 'ر.ق' },
+  'Kuwait': { code: 'KWD', symbol: 'د.ك' },
+  'Bahrain': { code: 'BHD', symbol: 'د.ب' },
+  'Oman': { code: 'OMR', symbol: 'ر.ع' },
+  'Iraq': { code: 'IQD', symbol: 'د.ع' },
+  'Palestine': { code: 'ILS', symbol: '₪' },
   'Morocco': { code: 'MAD', symbol: 'د.م' },
   'Turkey': { code: 'TRY', symbol: '₺' },
   'Pakistan': { code: 'PKR', symbol: 'Rs' },
@@ -112,7 +119,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
         const total = pos + neg;
         return {
           id: order.id!,
-          creatorId: '',
+          creatorId: order.creator_id || '',
           orderType: order.order_type!,
           novaAmount: Number(order.nova_amount),
           localAmount: Number(order.local_amount),
