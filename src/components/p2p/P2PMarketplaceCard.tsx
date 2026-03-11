@@ -1,4 +1,4 @@
-import { Clock, MapPin, Loader2, ThumbsUp, ThumbsDown, ArrowLeftRight, Lock } from 'lucide-react';
+import { Clock, MapPin, Loader2, ThumbsUp, ThumbsDown, ArrowLeftRight, Lock, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,12 +9,26 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 import { getCountryNameAr } from '@/lib/countryNamesAr';
 
+const SHORT_COUNTRY: Record<string, string> = {
+  'Saudi Arabia': '🇸🇦 SA',
+  'Jordan': '🇯🇴 JO',
+  'Qatar': '🇶🇦 QA',
+  'UAE': '🇦🇪 AE',
+  'Palestine': '🇵🇸 PS',
+  'Egypt': '🇪🇬 EG',
+  'Kuwait': '🇰🇼 KW',
+  'Bahrain': '🇧🇭 BH',
+  'Oman': '🇴🇲 OM',
+  'Iraq': '🇮🇶 IQ',
+};
+
 interface P2PMarketplaceCardProps {
   order: MarketplaceOrder;
   onExecute: (order: MarketplaceOrder) => void;
   actionType: 'buy' | 'sell';
   isExecuting?: boolean;
   isCountryMatch?: boolean;
+  isOwnOrder?: boolean;
 }
 
 export function P2PMarketplaceCard({ 
