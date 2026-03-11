@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export type SupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 
@@ -34,13 +36,6 @@ export interface SupportMessage {
   ticket?: SupportTicket;
 }
 
-// Mock support agents
-const SUPPORT_AGENTS: SupportAgent[] = [
-  { id: 'agent_1', name: 'Ahmad', nameAr: 'أحمد', avatar: '👨‍💼' },
-  { id: 'agent_2', name: 'Sara', nameAr: 'سارة', avatar: '👩‍💼' },
-  { id: 'agent_3', name: 'Khaled', nameAr: 'خالد', avatar: '👨‍💻' },
-];
-
 interface SupportContextType {
   messages: SupportMessage[];
   tickets: SupportTicket[];
@@ -55,10 +50,36 @@ interface SupportContextType {
 
 const SupportContext = createContext<SupportContextType | undefined>(undefined);
 
-let ticketCounter = 1000;
+// Helper to map DB ticket to our SupportTicket interface
+function mapDbTicket(row: any, ticketIndex: number): SupportTicket {
+  return {
+    id: row.id,
+    ticketNumber: ticketIndex,
+    category: row.category || 'general',
+    categoryTitle: row.title || 'Support',
+    categoryTitleAr: row.title || 'الدعم',
+    status: row.status as SupportTicketStatus,
+    createdAt: new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    resolvedAt: row.resolved_at ? new Date(row.resolved_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+  };
+}
+
+// Helper to map DB message to our SupportMessage interface
+function mapDbMessage(row: any, userId: string | undefined): SupportMessage {
+  const isUser = row.sender_id === userId;
+  return {
+    id: row.id,
+    type: isUser ? 'user' : 'agent',
+    content: row.content,
+    time: new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    senderName: isUser ? undefined : 'Support',
+    ticketId: row.ticket_id,
+  };
+}
 
 export function SupportProvider({ children }: { children: ReactNode }) {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [currentTicket, setCurrentTicket] = useState<SupportTicket | null>(null);
@@ -67,18 +88,194 @@ export function SupportProvider({ children }: { children: ReactNode }) {
   const hasActiveTicket = currentTicket !== null && 
     (currentTicket.status === 'open' || currentTicket.status === 'in_progress');
 
-  const openNewTicket = (
+  // Load tickets from DB on mount
+  const loadTickets = useCallback(async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading tickets:', error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const mapped = data.map((row, i) => mapDbTicket(row, 1000 + i));
+      setTickets(mapped);
+
+      // Set current ticket if there's an active one
+      const active = mapped.find(t => t.status === 'open' || t.status === 'in_progress');
+      if (active) {
+        setCurrentTicket(active);
+      }
+    }
+  }, [user]);
+
+  // Load messages for current ticket
+  const loadMessages = useCallback(async () => {
+    if (!user || !currentTicket) return;
+
+    const { data, error } = await supabase
+      .from('support_messages')
+      .select('*')
+      .eq('ticket_id', currentTicket.id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error loading messages:', error);
+      return;
+    }
+
+    if (data) {
+      const mapped = data.map(row => mapDbMessage(row, user.id));
+      
+      // Add system message for ticket opening at the beginning
+      const systemMsg: SupportMessage = {
+        id: `system_open_${currentTicket.id}`,
+        type: 'system',
+        content: '',
+        time: currentTicket.createdAt,
+        systemType: 'ticket_opened',
+        ticketId: currentTicket.id,
+        ticket: currentTicket,
+      };
+      
+      setMessages([systemMsg, ...mapped]);
+    }
+  }, [user, currentTicket]);
+
+  // Load on mount and when user changes
+  useEffect(() => {
+    if (user) {
+      loadTickets();
+    } else {
+      setTickets([]);
+      setMessages([]);
+      setCurrentTicket(null);
+    }
+  }, [user, loadTickets]);
+
+  // Load messages when current ticket changes
+  useEffect(() => {
+    if (currentTicket) {
+      loadMessages();
+    }
+  }, [currentTicket, loadMessages]);
+
+  // Realtime subscription for new messages on current ticket
+  useEffect(() => {
+    if (!user || !currentTicket) return;
+
+    const channel = supabase
+      .channel(`support_messages_${currentTicket.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'support_messages',
+          filter: `ticket_id=eq.${currentTicket.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as any;
+          // Only add if it's not from the current user (avoid duplicates)
+          if (newMsg.sender_id !== user.id) {
+            const mapped = mapDbMessage(newMsg, user.id);
+            setMessages(prev => [...prev, mapped]);
+            setUnreadCount(prev => prev + 1);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, currentTicket]);
+
+  // Realtime subscription for ticket updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('support_ticket_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'support_tickets',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          // Update ticket in list
+          setTickets(prev => prev.map(t => 
+            t.id === updated.id ? { ...t, status: updated.status, resolvedAt: updated.resolved_at } : t
+          ));
+          // Update current ticket if it matches
+          if (currentTicket?.id === updated.id) {
+            setCurrentTicket(prev => prev ? { ...prev, status: updated.status } : prev);
+            
+            // Add system message for status change
+            if (updated.status === 'in_progress' && updated.assigned_to) {
+              const agentMsg: SupportMessage = {
+                id: `system_assigned_${Date.now()}`,
+                type: 'system',
+                content: '',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                systemType: 'agent_assigned',
+                ticketId: updated.id,
+                ticket: currentTicket ? { ...currentTicket, status: 'in_progress' } : undefined,
+              };
+              setMessages(prev => [...prev, agentMsg]);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, currentTicket]);
+
+  const openNewTicket = async (
     category: string, 
     categoryTitle: string, 
     categoryTitleAr: string,
     userName: string
   ) => {
-    ticketCounter++;
+    if (!user) return;
+
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
+
+    // Insert real ticket into DB
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .insert({
+        user_id: user.id,
+        title: categoryTitle,
+        description: `${categoryTitle} - opened by ${userName}`,
+        category,
+        status: 'open',
+        priority: 'normal',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating ticket:', error);
+      return;
+    }
+
     const newTicket: SupportTicket = {
-      id: `ticket_${ticketCounter}`,
-      ticketNumber: ticketCounter,
+      id: data.id,
+      ticketNumber: tickets.length + 1001,
       category,
       categoryTitle,
       categoryTitleAr,
@@ -86,10 +283,10 @@ export function SupportProvider({ children }: { children: ReactNode }) {
       createdAt: now,
     };
 
-    setTickets(prev => [...prev, newTicket]);
+    setTickets(prev => [newTicket, ...prev]);
     setCurrentTicket(newTicket);
 
-    // Add ticket opened system message
+    // Add ticket opened system message locally
     const openedMessage: SupportMessage = {
       id: `msg_${Date.now()}_open`,
       type: 'system',
@@ -100,81 +297,55 @@ export function SupportProvider({ children }: { children: ReactNode }) {
       ticket: newTicket,
     };
 
-    setMessages(prev => [...prev, openedMessage]);
-
-    // Simulate agent assignment after 3 seconds
-    setTimeout(() => {
-      const randomAgent = SUPPORT_AGENTS[Math.floor(Math.random() * SUPPORT_AGENTS.length)];
-      const assignTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
-      const updatedTicket: SupportTicket = {
-        ...newTicket,
-        status: 'in_progress',
-        assignedAgent: randomAgent,
-      };
-
-      setTickets(prev => prev.map(t => t.id === newTicket.id ? updatedTicket : t));
-      setCurrentTicket(updatedTicket);
-
-      // Add agent assigned message
-      const agentMessage: SupportMessage = {
-        id: `msg_${Date.now()}_agent`,
-        type: 'system',
-        content: '',
-        time: assignTime,
-        systemType: 'agent_assigned',
-        ticketId: newTicket.id,
-        ticket: updatedTicket,
-      };
-
-      setMessages(prev => [...prev, agentMessage]);
-      setUnreadCount(prev => prev + 1);
-    }, 3000);
+    setMessages([openedMessage]);
   };
 
-  const sendMessage = (content: string) => {
-    if (!content.trim()) return;
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || !user || !currentTicket) return;
     
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    const newMessage: SupportMessage = {
+    // Optimistic UI update
+    const tempMsg: SupportMessage = {
       id: `msg_${Date.now()}`,
       type: 'user',
       content,
       time: now,
-      ticketId: currentTicket?.id,
+      ticketId: currentTicket.id,
     };
+    setMessages(prev => [...prev, tempMsg]);
 
-    setMessages(prev => [...prev, newMessage]);
+    // Insert into DB
+    const { error } = await supabase
+      .from('support_messages')
+      .insert({
+        ticket_id: currentTicket.id,
+        sender_id: user.id,
+        content,
+        is_internal: false,
+      });
 
-    // Simulate agent response
-    if (currentTicket?.assignedAgent) {
-      setTimeout(() => {
-        const responseTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const isArabic = language === 'ar';
-        
-        const agentResponse: SupportMessage = {
-          id: `msg_${Date.now()}_response`,
-          type: 'agent',
-          content: isArabic 
-            ? 'شكراً لتواصلك معنا. سأساعدك في حل هذه المشكلة. يرجى إعطائي المزيد من التفاصيل.'
-            : 'Thank you for reaching out. I will help you solve this issue. Please give me more details.',
-          time: responseTime,
-          senderName: isArabic ? currentTicket.assignedAgent.nameAr : currentTicket.assignedAgent.name,
-          ticketId: currentTicket.id,
-        };
-        
-        setMessages(prev => [...prev, agentResponse]);
-        setUnreadCount(prev => prev + 1);
-      }, 2000);
+    if (error) {
+      console.error('Error sending support message:', error);
     }
   };
 
-  const closeTicket = () => {
-    if (!currentTicket) return;
+  const closeTicket = async () => {
+    if (!currentTicket || !user) return;
 
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
+
+    // Update in DB
+    const { error } = await supabase
+      .from('support_tickets')
+      .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+      .eq('id', currentTicket.id);
+
+    if (error) {
+      console.error('Error closing ticket:', error);
+      return;
+    }
+
     const updatedTicket: SupportTicket = {
       ...currentTicket,
       status: 'resolved',

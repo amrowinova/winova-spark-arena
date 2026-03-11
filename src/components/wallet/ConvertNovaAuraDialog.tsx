@@ -12,10 +12,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useUser } from '@/contexts/UserContext';
-import { useTransactions } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { useWallet } from '@/hooks/useWallet';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ConvertNovaAuraDialogProps {
   open: boolean;
@@ -29,10 +30,10 @@ const formatBalance = (value: number): string => {
 
 export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogProps) {
   const { language } = useLanguage();
-  const { user, spendNova, addAura } = useUser();
-  const { createTransaction } = useTransactions();
+  const { user: contextUser } = useUser();
+  const { user: authUser } = useAuth();
   const { success: showSuccess, error: showError } = useBanner();
-  const { wallet } = useWallet();
+  const { wallet, refetch: refetchWallet } = useWallet();
 
   // Check if wallet is frozen
   const isWalletFrozen = wallet?.is_frozen ?? false;
@@ -40,58 +41,55 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const novaBalance = wallet?.nova_balance ?? contextUser.novaBalance ?? 0;
+  const auraBalance = wallet?.aura_balance ?? contextUser.auraBalance ?? 0;
   const novaAmount = parseFloat(amount) || 0;
   const auraAmount = novaAmount * 2; // 1 Nova = 2 Aura
-  const hasEnoughBalance = novaAmount <= user.novaBalance && novaAmount > 0;
+  const hasEnoughBalance = novaAmount <= novaBalance && novaAmount > 0;
   const canConvert = hasEnoughBalance && !isWalletFrozen;
 
   const handleConvert = async () => {
-    if (!canConvert || novaAmount <= 0 || isWalletFrozen) return;
+    if (!canConvert || novaAmount <= 0 || isWalletFrozen || !authUser?.id) return;
 
     setIsLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const { data, error } = await supabase.rpc('convert_nova_aura', {
+        p_amount: novaAmount,
+      });
 
-    // Deduct Nova and add Aura
-    const success = spendNova(novaAmount);
-    if (!success) {
-      showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+      if (error) {
+        showError(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      const result = data as { success: boolean; error?: string };
+
+      if (!result?.success) {
+        showError(result?.error || (language === 'ar' ? 'فشل التحويل' : 'Conversion failed'));
+        setIsLoading(false);
+        return;
+      }
+
+      // Refresh wallet data from DB
+      refetchWallet?.();
+
+      // Show success banner
+      showSuccess(
+        language === 'ar' 
+          ? `تم تحويل ${formatBalance(novaAmount)} Nova (И) إلى ${formatBalance(auraAmount)} Aura (✦) بنجاح`
+          : `Successfully converted ${formatBalance(novaAmount)} Nova (И) to ${formatBalance(auraAmount)} Aura (✦)`
+      );
+
+      // Reset and close
+      setAmount('');
+      onClose();
+    } catch (err: any) {
+      showError(err?.message || 'Unexpected error');
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    addAura(auraAmount);
-
-    // Record in transaction history (no receipt dialog)
-    createTransaction({
-      type: 'convert_nova_aura',
-      status: 'completed',
-      amount: novaAmount,
-      currency: 'nova',
-      sender: {
-        id: user.id,
-        name: user.name,
-        username: `${user.name.toLowerCase()}_user`,
-        country: user.country,
-      },
-      reason: language === 'ar' 
-        ? `تحويل ${formatBalance(novaAmount)} Nova إلى ${formatBalance(auraAmount)} Aura`
-        : `Convert ${formatBalance(novaAmount)} Nova to ${formatBalance(auraAmount)} Aura`,
-    });
-
-    setIsLoading(false);
-
-    // Show success banner with clear message
-    showSuccess(
-      language === 'ar' 
-        ? `تم تحويل ${formatBalance(novaAmount)} Nova (И) إلى ${formatBalance(auraAmount)} Aura (✦) بنجاح`
-        : `Successfully converted ${formatBalance(novaAmount)} Nova (И) to ${formatBalance(auraAmount)} Aura (✦)`
-    );
-
-    // Reset and close
-    setAmount('');
-    onClose();
   };
 
   return (
@@ -127,13 +125,13 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
               <div className="p-3 bg-nova/5 rounded-lg border border-nova/20">
                 <p className="text-xs text-muted-foreground mb-1">Nova</p>
                 <p className="text-xl font-bold">
-                  <span className="text-nova">И</span> {formatBalance(user.novaBalance)}
+                  <span className="text-nova">И</span> {formatBalance(novaBalance)}
                 </p>
               </div>
               <div className="p-3 bg-aura/5 rounded-lg border border-aura/20">
                 <p className="text-xs text-muted-foreground mb-1">Aura</p>
                 <p className="text-xl font-bold">
-                  <span className="text-aura">✦</span> {formatBalance(user.auraBalance)}
+                  <span className="text-aura">✦</span> {formatBalance(auraBalance)}
                 </p>
               </div>
             </div>
@@ -152,7 +150,7 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
                 type="number"
                 step="0.01"
                 min="0.01"
-                max={user.novaBalance}
+                max={novaBalance}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0"

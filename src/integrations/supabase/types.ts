@@ -5181,6 +5181,13 @@ export type Database = {
           is_ai: boolean
           last_seen_at: string | null
           name: string
+          notifications_chat: boolean | null
+          notifications_contest: boolean | null
+          notifications_earnings: boolean | null
+          notifications_p2p: boolean | null
+          notifications_system: boolean | null
+          notifications_team: boolean | null
+          preferred_language: string | null
           rank: Database["public"]["Enums"]["user_rank"]
           referral_code: string | null
           referred_by: string | null
@@ -5208,6 +5215,13 @@ export type Database = {
           is_ai?: boolean
           last_seen_at?: string | null
           name: string
+          notifications_chat?: boolean | null
+          notifications_contest?: boolean | null
+          notifications_earnings?: boolean | null
+          notifications_p2p?: boolean | null
+          notifications_system?: boolean | null
+          notifications_team?: boolean | null
+          preferred_language?: string | null
           rank?: Database["public"]["Enums"]["user_rank"]
           referral_code?: string | null
           referred_by?: string | null
@@ -5235,6 +5249,13 @@ export type Database = {
           is_ai?: boolean
           last_seen_at?: string | null
           name?: string
+          notifications_chat?: boolean | null
+          notifications_contest?: boolean | null
+          notifications_earnings?: boolean | null
+          notifications_p2p?: boolean | null
+          notifications_system?: boolean | null
+          notifications_team?: boolean | null
+          preferred_language?: string | null
           rank?: Database["public"]["Enums"]["user_rank"]
           referral_code?: string | null
           referred_by?: string | null
@@ -6964,6 +6985,7 @@ export type Database = {
         }
         Returns: Json
       }
+      convert_nova_aura: { Args: { p_amount: number }; Returns: Json }
       emit_team_event: {
         Args: {
           p_event_type: string
