@@ -229,16 +229,14 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
             className={`relative px-3 py-2 rounded-2xl transition-opacity ${
               message.isPending ? 'opacity-70' : ''
             } ${
-              isAISystemUser(message.senderId)
-                ? 'bg-accent/30 border border-accent/50 rounded-bl-sm'
-                : message.isMine
-                  ? 'bg-primary text-primary-foreground rounded-br-sm'
-                  : 'bg-muted rounded-bl-sm'
+              message.isMine
+                ? 'bg-primary text-primary-foreground rounded-br-sm'
+                : 'bg-muted rounded-bl-sm'
             }`}
           >
             {!message.isMine && (
               <p className="text-xs font-medium mb-1 opacity-70">
-                {isAISystemUser(message.senderId) ? '🤖 ' : ''}{message.senderName}
+                {message.senderName}
               </p>
             )}
 
@@ -279,123 +277,6 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
                 )}
               </Button>
             )}
-
-            {/* Decision buttons for AI system alert messages */}
-            {message.messageType === 'system' && isAISystemUser(message.senderId) && message.content.includes('━━━━━━━━━━━━━━━━━━━━━━') && message.content.includes('Decision required') && (
-              <AlertDecisionButtons
-                messageId={message.id}
-                conversationId={message.conversationId}
-                messageContent={message.content}
-              />
-            )}
-
-            {/* Execution request decision buttons */}
-            {isAISystemUser(message.senderId) && message.messageType === 'execution_request' && message.content.includes('request_id:') && (() => {
-              const match = message.content.match(/request_id:\s*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
-              const reqId = match?.[1];
-              return reqId ? (
-                <ExecutionDecisionButtons
-                  requestId={reqId}
-                  conversationId={message.conversationId}
-                />
-              ) : null;
-            })()}
-
-            {/* Simulation report badge */}
-            {isAISystemUser(message.senderId) && message.messageType === 'simulation_report' && (() => {
-              const verdictMatch = message.content.match(/الحكم:\s*(✅|⚠️|🚫|🔒)\s*(آمن للتنفيذ|يحتاج مراجعة|خطر — لا يُنصح بالتنفيذ|محظور)/);
-              const simIdMatch = message.content.match(/simulation_id:\s*([0-9a-f-]+)/i);
-              if (!verdictMatch) return null;
-              const verdictEmoji = verdictMatch[1];
-              const verdictText = verdictMatch[2];
-              const isSafe = verdictEmoji === '✅';
-              const isDangerous = verdictEmoji === '🚫' || verdictEmoji === '🔒';
-              return (
-                <div className={`mt-3 pt-2 border-t flex items-center gap-2 ${
-                  isDangerous ? 'border-destructive/30' : isSafe ? 'border-primary/30' : 'border-warning/30'
-                }`}>
-                  <span className="text-lg">{verdictEmoji === '✅' ? '🏗️' : '⚠️'}</span>
-                  <div className="flex-1">
-                    <p className="text-[10px] text-muted-foreground">تقرير عالم الظل</p>
-                    <p className={`text-xs font-medium ${
-                      isDangerous ? 'text-destructive' : isSafe ? 'text-primary' : 'text-warning'
-                    }`}>
-                      {verdictEmoji} {verdictText}
-                    </p>
-                  </div>
-                  {simIdMatch && (
-                    <span className="text-[9px] text-muted-foreground font-mono">
-                      {simIdMatch[1].slice(0, 8)}
-                    </span>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Build engine messages */}
-            {isAISystemUser(message.senderId) && ['build_clarification', 'build_progress', 'build_error'].includes(message.messageType) && (() => {
-              const projIdMatch = message.content.match(/build_project_id:\s*([0-9a-f-]+)/i);
-              const projId = projIdMatch?.[1];
-              if (!projId) return null;
-              return (
-                <BuildProgressMessage
-                  projectId={projId}
-                  conversationId={message.conversationId}
-                  messageType={message.messageType as any}
-                  content={message.content}
-                />
-              );
-            })()}
-
-            {/* Project delivery card */}
-            {isAISystemUser(message.senderId) && message.messageType === 'build_delivery' && (() => {
-              const projIdMatch = message.content.match(/build_project_id:\s*([0-9a-f-]+)/i);
-              const projId = projIdMatch?.[1];
-              if (!projId) return null;
-              return (
-                <ProjectDeliveryCard
-                  projectId={projId}
-                  content={message.content}
-                />
-              );
-            })()}
-
-            {/* Evolution: Promotion decision buttons */}
-            {isAISystemUser(message.senderId) && message.messageType === 'evolution_promotion' && message.content.includes('promotion_request_id:') && message.content.includes('Decision required') && (() => {
-              const match = message.content.match(/promotion_request_id:\s*([0-9a-f-]+)/i);
-              const promoId = match?.[1];
-              return promoId ? (
-                <EvolutionDecisionButtons
-                  entityId={promoId}
-                  entityType="promotion"
-                  conversationId={message.conversationId}
-                />
-              ) : null;
-            })()}
-
-            {/* Autonomy Ladder: Autonomous execution badge */}
-            {isAISystemUser(message.senderId) && message.messageType === 'autonomous_execution' && (
-              <div className="mt-3 pt-2 border-t border-primary/30">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🔓</span>
-                  <div className="flex-1">
-                    <p className="text-[10px] text-muted-foreground">سلم الاستقلالية</p>
-                    <p className="text-xs font-medium text-primary">تنفيذ تلقائي بصلاحية الرتبة</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            {isAISystemUser(message.senderId) && message.messageType === 'evolution_retirement' && message.content.includes('retirement_proposal_id:') && message.content.includes('Decision required') && (() => {
-              const match = message.content.match(/retirement_proposal_id:\s*([0-9a-f-]+)/i);
-              const retireId = match?.[1];
-              return retireId ? (
-                <EvolutionDecisionButtons
-                  entityId={retireId}
-                  entityType="retirement"
-                  conversationId={message.conversationId}
-                />
-              ) : null;
-            })()}
 
             {/* Time, status, and quick copy */}
             <div className={`flex items-center gap-1 mt-1 ${message.isMine ? 'justify-end' : ''}`}>
