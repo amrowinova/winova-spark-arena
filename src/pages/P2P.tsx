@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, ShoppingCart, Send, ArrowLeft,
-  Star, AlertCircle, Loader2
+  Star, AlertCircle, Loader2, Info
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
