@@ -53,6 +53,8 @@ export default function Settings() {
   const { currentLanguage } = useLanguage();
   const isRTL = currentLanguage.direction === 'rtl';
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { success: showSuccess, error: showError } = useBanner();
   const [openSections, setOpenSections] = useState<string[]>(['account']);
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
     '2fa': false,
