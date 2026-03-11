@@ -28,6 +28,8 @@ export interface MarketplaceOrder {
   // Computed
   currencySymbol: string;
   rating: number;
+  positiveRatings: number;
+  negativeRatings: number;
   completedTrades: number;
 }
 
@@ -98,24 +100,31 @@ export function useP2PMarketplace(selectedCountry?: string) {
         return;
       }
 
-      const marketplaceOrders: MarketplaceOrder[] = ordersData.map(order => ({
-        id: order.id!,
-        creatorId: '',
-        orderType: order.order_type!,
-        novaAmount: Number(order.nova_amount),
-        localAmount: Number(order.local_amount),
-        exchangeRate: Number(order.exchange_rate),
-        country: order.country!,
-        timeLimitMinutes: order.time_limit_minutes!,
-        createdAt: order.created_at!,
-        creatorName: order.creator_name || 'Trader',
-        creatorUsername: order.creator_username || '',
-        creatorAvatar: order.creator_avatar_url || '👤',
-        creatorCountry: order.creator_country || order.country!,
-        currencySymbol: getCurrencySymbol(order.country!),
-        rating: 5.0,
-        completedTrades: 0,
-      }));
+      const marketplaceOrders: MarketplaceOrder[] = ordersData.map((order: any) => {
+        const pos = Number(order.positive_ratings) || 0;
+        const neg = Number(order.negative_ratings) || 0;
+        const total = pos + neg;
+        return {
+          id: order.id!,
+          creatorId: '',
+          orderType: order.order_type!,
+          novaAmount: Number(order.nova_amount),
+          localAmount: Number(order.local_amount),
+          exchangeRate: Number(order.exchange_rate),
+          country: order.country!,
+          timeLimitMinutes: order.time_limit_minutes!,
+          createdAt: order.created_at!,
+          creatorName: order.creator_name || 'Trader',
+          creatorUsername: order.creator_username || '',
+          creatorAvatar: order.creator_avatar_url || '👤',
+          creatorCountry: order.creator_country || order.country!,
+          currencySymbol: getCurrencySymbol(order.country!),
+          rating: total > 0 ? pos / total : -1, // -1 means "New"
+          positiveRatings: pos,
+          negativeRatings: neg,
+          completedTrades: Number(order.total_trades) || 0,
+        };
+      });
 
       // Separate by order type
       const buy = marketplaceOrders.filter(o => o.orderType === 'buy');

@@ -6828,10 +6828,14 @@ export type Database = {
           exchange_rate: number | null
           id: string | null
           local_amount: number | null
+          negative_ratings: number | null
           nova_amount: number | null
           order_type: Database["public"]["Enums"]["p2p_order_type"] | null
+          positive_ratings: number | null
+          reputation_score: number | null
           status: Database["public"]["Enums"]["p2p_order_status"] | null
           time_limit_minutes: number | null
+          total_trades: number | null
         }
         Relationships: []
       }
