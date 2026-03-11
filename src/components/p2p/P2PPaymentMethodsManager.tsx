@@ -830,27 +830,42 @@ export function P2PPaymentMethodsManager({
   );
 }
 
-// Hook to get saved payment methods
+// Hook to get saved payment methods from Supabase
 export function useSavedPaymentMethods(countryCode?: string) {
   const [methods, setMethods] = useState<SavedPaymentMethod[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        const allMethods = parsed.map((m: any) => ({
-          ...m,
-          createdAt: new Date(m.createdAt)
-        }));
-        setMethods(countryCode 
-          ? allMethods.filter((m: SavedPaymentMethod) => m.countryCode === countryCode)
-          : allMethods
-        );
-      } catch (e) {
-        console.error('Failed to parse saved payment methods:', e);
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      let query = supabase.from('payment_methods').select('*').eq('user_id', user.id);
+      if (countryCode) {
+        query = query.eq('country', countryCode);
       }
-    }
+      
+      const { data, error } = await query;
+      if (error) {
+        console.error('Failed to load payment methods:', error);
+        return;
+      }
+      
+      setMethods((data || []).map((m: any) => ({
+        id: m.id,
+        countryCode: m.country,
+        type: (m.type || 'bank') as PaymentMethodType,
+        providerName: m.provider_name,
+        providerNameAr: m.provider_name_ar || undefined,
+        fullName: m.full_name,
+        accountNumber: m.account_number || undefined,
+        iban: m.iban || undefined,
+        phoneNumber: m.phone_number || undefined,
+        notes: m.notes || undefined,
+        isDefault: m.is_default,
+        createdAt: new Date(m.created_at),
+      })));
+    };
+    load();
   }, [countryCode]);
 
   return methods;
