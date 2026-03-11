@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useP2PDatabase, P2POrderWithProfiles, DBP2PParticipant, P2POpResult } from '@/hooks/useP2PDatabase';
 import { dbStatusToUI, UIP2POrderStatus, DBP2POrderStatus } from '@/lib/p2pStatusMapper';
 import { Database } from '@/integrations/supabase/types';
@@ -280,6 +281,7 @@ function toUIMessage(dbMessage: P2PMessageRow, currentUserId: string): P2PMessag
 
 export function P2PProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const db = useP2PDatabase();
   
   const [chats, setChats] = useState<P2PChat[]>([]);
@@ -544,9 +546,17 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   }, [db]);
 
   const relistOrder = useCallback(async (orderId: string, reason: string): Promise<P2POpResult> => {
-    if (isBlockedFromOrders()) return { success: false, error: 'Blocked from orders (3 cancellations in 24h)' };
+    if (isBlockedFromOrders()) {
+      const hoursLeft = 24;
+      return { 
+        success: false, 
+        error: language === 'ar'
+          ? `🚫 لقد قمت بالإلغاء 3 مرات — حد الإلغاء اليومي. حاول بعد ${hoursLeft} ساعة`
+          : `🚫 You have cancelled 3 times — daily limit reached. Try again in ${hoursLeft} hours`
+      };
+    }
     return await db.relistOrder(orderId, reason);
-  }, [db, isBlockedFromOrders]);
+  }, [db, isBlockedFromOrders, language]);
 
   const openDispute = useCallback(async (orderId: string, reason: string): Promise<P2POpResult> => {
     return await db.openDispute(orderId, reason);

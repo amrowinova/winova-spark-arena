@@ -24,7 +24,7 @@ type BuyerStep = 'locked' | 'unlocked' | 'ready_to_send';
 export function P2PBuyerFlow({ order, currentUserId, onOrderCompleted }: P2PBuyerFlowProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
-  const { confirmPayment, cancelOrderWithReason, relistOrder, isMockMode, triggerMockSellerConfirmation } = useP2P();
+  const { confirmPayment, cancelOrderWithReason, relistOrder, isMockMode, triggerMockSellerConfirmation, getCancellationsIn24h, isBlockedFromOrders } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   const db = useP2PDatabase();
 
@@ -212,13 +212,28 @@ export function P2PBuyerFlow({ order, currentUserId, onOrderCompleted }: P2PBuye
                 {isRTL ? 'عرض بيانات التحويل 🔓' : '🔓 View Transfer Details'}
               </Button>
 
-              <Button
-                variant="ghost"
-                onClick={() => setShowCancelDialog(true)}
-                className="w-full h-10 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-              >
-                {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
-              </Button>
+              {isBlockedFromOrders() ? (
+                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/30 text-center">
+                  <p className="text-xs text-destructive font-medium">
+                    {isRTL
+                      ? '🚫 لقد قمت بالإلغاء 3 مرات — حد الإلغاء اليومي. حاول بعد 24 ساعة'
+                      : '🚫 You have cancelled 3 times — daily limit reached. Try again in 24 hours'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowCancelDialog(true)}
+                    className="w-full h-10 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  >
+                    {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {isRTL ? `باقي لك ${Math.max(0, 3 - getCancellationsIn24h())} إلغاء اليوم` : `${Math.max(0, 3 - getCancellationsIn24h())} cancellations left today`}
+                  </p>
+                </>
+              )}
             </motion.div>
           )}
 
@@ -323,13 +338,28 @@ export function P2PBuyerFlow({ order, currentUserId, onOrderCompleted }: P2PBuye
                 </span>
               </div>
 
-              <Button
-                variant="ghost"
-                onClick={() => setShowCancelDialog(true)}
-                className="w-full h-10 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-              >
-                {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
-              </Button>
+              {isBlockedFromOrders() ? (
+                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/30 text-center">
+                  <p className="text-xs text-destructive font-medium">
+                    {isRTL
+                      ? '🚫 لقد قمت بالإلغاء 3 مرات — حد الإلغاء اليومي. حاول بعد 24 ساعة'
+                      : '🚫 You have cancelled 3 times — daily limit reached. Try again in 24 hours'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowCancelDialog(true)}
+                    className="w-full h-10 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  >
+                    {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {isRTL ? `باقي لك ${Math.max(0, 3 - getCancellationsIn24h())} إلغاء اليوم` : `${Math.max(0, 3 - getCancellationsIn24h())} cancellations left today`}
+                  </p>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
