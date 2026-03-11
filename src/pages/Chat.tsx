@@ -347,20 +347,6 @@ function ChatContent() {
     pinnedMessages: [],
   };
 
-  // Create AI Control Room conversation (only for authorized users)
-  const aiControlRoomConversation: Conversation | null = canAccessAI ? {
-    id: 'ai-control-room',
-    type: 'ai_system',
-    name: language === 'ar' ? '🧠 غرفة تحكم AI' : '🧠 AI Control Room',
-    nameAr: '🧠 غرفة تحكم AI',
-    username: 'ai_system',
-    avatar: '🧠',
-    lastMessage: language === 'ar' ? 'نقاش تلقائي بين الوكلاء' : 'Automated agent discussions',
-    time: '',
-    unread: 0,
-    messages: [],
-    pinnedMessages: [],
-  } : null;
 
   // Convert real team conversations from database
   const realTeamConversations: Conversation[] = teamConversationsData.map(tc => ({
