@@ -841,7 +841,7 @@ function P2PContent() {
                       actionType="sell"
                       isExecuting={isExecutingOrder}
                       isCountryMatch={order.country === user.country}
-                      isOwnOrder={order.creatorId === user.id}
+                      isOwnOrder={order.isOwnOrder}
                     />
                   </motion.div>
                 ))}

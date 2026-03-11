@@ -120,7 +120,8 @@ export function useP2PMarketplace(selectedCountry?: string) {
         const total = pos + neg;
         return {
           id: order.id!,
-          creatorId: order.creator_id || '',
+          creatorId: '',
+          isOwnOrder: (order as any).is_own_order === true,
           orderType: order.order_type!,
           novaAmount: Number(order.nova_amount),
           localAmount: Number(order.local_amount),
@@ -133,7 +134,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
           creatorAvatar: order.creator_avatar_url || '👤',
           creatorCountry: order.creator_country || order.country!,
           currencySymbol: getCurrencySymbol(order.country!),
-          rating: total > 0 ? pos / total : -1, // -1 means "New"
+          rating: total > 0 ? pos / total : -1,
           positiveRatings: pos,
           negativeRatings: neg,
           completedTrades: Number(order.total_trades) || 0,
