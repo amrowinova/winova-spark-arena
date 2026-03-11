@@ -167,7 +167,7 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                         onClick={() => handleNavigation('/admin')}
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
-                          location.pathname.startsWith('/admin') && !location.pathname.startsWith('/admin/commander')
+                          location.pathname.startsWith('/admin')
                             ? 'bg-primary text-primary-foreground' 
                             : 'hover:bg-muted text-foreground'
                         )}
@@ -176,21 +176,6 @@ export function SideDrawer({ open, onOpenChange }: SideDrawerProps) {
                         <Crown className="h-5 w-5" />
                         <span className="font-medium text-sm">
                           {isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleNavigation('/admin/commander')}
-                        className={cn(
-                          'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1',
-                          location.pathname.startsWith('/admin/commander')
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'hover:bg-muted text-foreground'
-                        )}
-                      >
-                        <span className="text-base">🎯</span>
-                        <Shield className="h-5 w-5" />
-                        <span className="font-medium text-sm">
-                          {isRTL ? 'القيادة التنفيذية' : 'Command Center'}
                         </span>
                       </button>
                     </>

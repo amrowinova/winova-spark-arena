@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, FolderOpen, MessageSquare } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -14,8 +14,6 @@ import { DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useChatPresence } from '@/hooks/useChatPresence';
 import { isAISystemUser } from '@/lib/aiSystemUser';
-import { useBuildEngine } from '@/hooks/useBuildEngine';
-import { ProjectsTab } from './ProjectsTab';
 
 interface DMChatViewProps {
   conversation: DMConversation;
@@ -51,12 +49,6 @@ export function DMChatView({
   // Real-time hooks - skip for system user
   const { otherUserTyping, handleTyping, stopTyping } = useTypingIndicator(conversation.id, conversation.participantName);
   const { isOnline, getLastSeenText } = useChatPresence(conversation.id, isSystemChat ? null : conversation.participantId);
-  const { startBuild, isBuilding, isBuildRequest } = useBuildEngine();
-
-  // Build command state
-  const [buildInput, setBuildInput] = useState('');
-  // System chat tab: 'chat' or 'projects'
-  const [activeSystemTab, setActiveSystemTab] = useState<'chat' | 'projects'>('chat');
 
   // Convert messages to DMMessageData format with pending state
   const formattedMessages: DMMessageData[] = messages.map(msg => ({
@@ -213,37 +205,10 @@ export function DMChatView({
           onTransfer={isSystemChat ? undefined : () => setTransferDialogOpen(true)}
         />
 
-        {/* System Chat Tabs: Chat / Projects */}
-        {isSystemChat && (
-          <div className="flex border-b border-border bg-card">
-            <button
-              onClick={() => setActiveSystemTab('chat')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors border-b-2 ${
-                activeSystemTab === 'chat' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
-              }`}
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              {language === 'ar' ? 'المحادثة' : 'Chat'}
-            </button>
-            <button
-              onClick={() => setActiveSystemTab('projects')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors border-b-2 ${
-                activeSystemTab === 'projects' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
-              }`}
-            >
-              <FolderOpen className="h-3.5 w-3.5" />
-              {language === 'ar' ? '📁 المشاريع' : '📁 Projects'}
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Projects Tab Content */}
-      {isSystemChat && activeSystemTab === 'projects' ? (
-        <div className="flex-1 overflow-y-auto overscroll-contain">
-          <ProjectsTab conversationId={conversation.id} />
-        </div>
-      ) : (
+      {/* Messages */}
+      {(
       /* Scrollable Messages Area - Takes remaining space */
       <div 
         ref={messagesContainerRef}
@@ -322,51 +287,6 @@ export function DMChatView({
         </div>
       )}
       
-      {/* Read-only label for system chat */}
-      {isSystemChat && (
-        <div 
-          className="flex-shrink-0 bg-card border-t border-border"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-        >
-          <div className="p-3 flex items-center gap-2">
-            <Input
-              value={buildInput}
-              onChange={(e) => setBuildInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && buildInput.trim()) {
-                  e.preventDefault();
-                  startBuild(buildInput.trim(), conversation.id);
-                  setBuildInput('');
-                }
-              }}
-              placeholder={language === 'ar' ? '🏭 ابني لي... (مثال: ابني لي نظام تذاكر)' : '🏭 Build me... (e.g. Build me a ticket system)'}
-              className="flex-1"
-              autoComplete="off"
-              disabled={isBuilding}
-            />
-            <Button 
-              size="icon" 
-              onClick={() => {
-                if (buildInput.trim()) {
-                  startBuild(buildInput.trim(), conversation.id);
-                  setBuildInput('');
-                }
-              }}
-              disabled={!buildInput.trim() || isBuilding}
-              className="shrink-0 h-10 w-10"
-            >
-              {isBuilding ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          <p className="text-[10px] text-muted-foreground text-center pb-2">
-            {language === 'ar' ? '🏭 مصنع WINOVA — اكتب طلب البناء' : '🏭 WINOVA Factory — Type your build request'}
-          </p>
-        </div>
-      )}
 
       {/* Transfer Dialog */}
       <TransferNovaDialog

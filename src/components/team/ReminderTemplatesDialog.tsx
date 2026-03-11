@@ -1,15 +1,18 @@
-import { MessageCircle, Bell, TrendingUp, Gift, X } from 'lucide-react';
+import { useState } from 'react';
+import { MessageCircle, Bell, TrendingUp, Gift, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { banner } from '@/contexts/BannerContext';
+import { useDirectMessages } from '@/hooks/useDirectMessages';
 
 interface ReminderTemplatesDialogProps {
   open: boolean;
   onClose: () => void;
   targetType: 'inactive' | 'at-risk' | 'all';
   targetCount: number;
+  memberIds: string[];
 }
 
 interface Template {
@@ -60,23 +63,51 @@ export function ReminderTemplatesDialog({
   open, 
   onClose, 
   targetType, 
-  targetCount 
+  targetCount,
+  memberIds,
 }: ReminderTemplatesDialogProps) {
   const { language } = useLanguage();
+  const { getOrCreateConversation, sendMessage } = useDirectMessages();
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSendTemplate = (template: Template) => {
-    const targetLabel = {
-      inactive: language === 'ar' ? 'الأعضاء غير النشطين' : 'inactive members',
-      'at-risk': language === 'ar' ? 'الأعضاء المعرضين للخطر' : 'at-risk members',
-      all: language === 'ar' ? 'جميع الأعضاء' : 'all members',
-    };
+  const handleSendTemplate = async (template: Template) => {
+    if (isSending || memberIds.length === 0) return;
     
-    banner.success(
-      language === 'ar'
-        ? `تم إرسال "${template.titleAr}" لـ ${targetCount} ${targetLabel[targetType]}`
-        : `Sent "${template.titleEn}" to ${targetCount} ${targetLabel[targetType]}`
-    );
-    onClose();
+    setIsSending(true);
+    const messageText = language === 'ar' ? template.messageAr : template.messageEn;
+    let sentCount = 0;
+
+    try {
+      for (const memberId of memberIds) {
+        const conversationId = await getOrCreateConversation(memberId);
+        if (conversationId) {
+          await sendMessage(conversationId, messageText);
+          sentCount++;
+        }
+      }
+
+      const targetLabel = {
+        inactive: language === 'ar' ? 'عضو غير نشط' : 'inactive members',
+        'at-risk': language === 'ar' ? 'عضو معرض للخطر' : 'at-risk members',
+        all: language === 'ar' ? 'عضو' : 'members',
+      };
+
+      banner.success(
+        language === 'ar'
+          ? `تم إرسال "${template.titleAr}" لـ ${sentCount} ${targetLabel[targetType]}`
+          : `Sent "${template.titleEn}" to ${sentCount} ${targetLabel[targetType]}`
+      );
+    } catch (err) {
+      console.error('Error sending reminders:', err);
+      banner.error(
+        language === 'ar'
+          ? `تم إرسال ${sentCount} من ${memberIds.length} رسالة`
+          : `Sent ${sentCount} of ${memberIds.length} messages`
+      );
+    } finally {
+      setIsSending(false);
+      onClose();
+    }
   };
 
   const targetLabel = {
@@ -95,7 +126,7 @@ export function ReminderTemplatesDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
-            onClick={onClose}
+            onClick={isSending ? undefined : onClose}
           />
           
           {/* Panel */}
@@ -122,7 +153,7 @@ export function ReminderTemplatesDialog({
                       : `Sending to ${targetCount} ${targetLabel[targetType]}`}
                   </p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={onClose}>
+                <Button variant="ghost" size="icon" onClick={onClose} disabled={isSending}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
@@ -134,12 +165,16 @@ export function ReminderTemplatesDialog({
                   return (
                     <Card 
                       key={template.id}
-                      className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                      className={`p-4 cursor-pointer hover:bg-muted/50 transition-colors ${isSending ? 'opacity-50 pointer-events-none' : ''}`}
                       onClick={() => handleSendTemplate(template)}
                     >
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Icon className="h-5 w-5 text-primary" />
+                          {isSending ? (
+                            <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                          ) : (
+                            <Icon className="h-5 w-5 text-primary" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm mb-1">
