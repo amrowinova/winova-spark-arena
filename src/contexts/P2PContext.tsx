@@ -594,10 +594,29 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   }, [db]);
 
   // Rating
-  const rateOrder = useCallback((orderId: string, _isPositive: boolean) => {
-    setRatedOrders(prev => new Set(prev).add(orderId));
-    // TODO: Implement rating in database
-  }, []);
+  const rateOrder = useCallback(async (orderId: string, isPositive: boolean) => {
+    if (!user) return;
+    // Find the order to determine the counterparty
+    const order = chats.flatMap(c => c.orders).find(o => o.id === orderId);
+    if (!order) return;
+    // Rate the other party
+    const ratedId = order.buyer.id === user.id ? order.seller.id : order.buyer.id;
+    const ratingValue = isPositive ? 5 : 1;
+    try {
+      const { data, error } = await supabase.rpc('p2p_submit_rating', {
+        p_order_id: orderId,
+        p_rated_id: ratedId,
+        p_rating: ratingValue,
+      });
+      if (error) {
+        console.error('Failed to submit rating:', error);
+        return;
+      }
+      setRatedOrders(prev => new Set(prev).add(orderId));
+    } catch (err) {
+      console.error('Error submitting rating:', err);
+    }
+  }, [user, chats]);
 
   const hasRatedOrder = useCallback((orderId: string): boolean => {
     return ratedOrders.has(orderId);
