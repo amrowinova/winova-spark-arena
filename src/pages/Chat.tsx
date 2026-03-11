@@ -388,9 +388,8 @@ function ChatContent() {
   
   const filteredConversations = allConversations.filter(conv => {
     if (conv.type === 'system') return false;
-    if (conv.id === 'ai-control-room') return selectedTab === 'dm'; // Show AI room in DM tab
     if (conv.id === 'support') return selectedTab === 'dm';
-    if (selectedTab === 'dm') return conv.type === 'dm' || conv.type === 'ai_system';
+    if (selectedTab === 'dm') return conv.type === 'dm';
     if (selectedTab === 'team') return conv.type === 'team';
     if (selectedTab === 'p2p') return conv.type === 'p2p';
     return false;
