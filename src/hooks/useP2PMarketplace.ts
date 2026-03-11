@@ -129,7 +129,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCountry]);
+  }, [effectiveCountry]);
 
   // Initial fetch
   useEffect(() => {

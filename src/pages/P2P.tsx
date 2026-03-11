@@ -206,6 +206,14 @@ function P2PContent() {
 
   // Handle executing a marketplace order (match with existing order)
   const handleExecuteOrder = async (order: MarketplaceOrder) => {
+    // Country mismatch guard
+    if (order.country !== user.country) {
+      showError(isRTL
+        ? 'هذا الطلب متاح فقط للمستخدمين في نفس البلد'
+        : 'This order is only available for users in the same country');
+      return;
+    }
+
     // Check if user can create/execute order
     const check = canCreateOrder();
     if (!check.allowed) {
