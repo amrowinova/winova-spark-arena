@@ -1,4 +1,4 @@
-import { Star, Clock, MapPin, Loader2 } from 'lucide-react';
+import { Clock, MapPin, Loader2, ThumbsUp, ThumbsDown, ArrowLeftRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,10 @@ export function P2PMarketplaceCard({
     locale: isRTL ? ar : enUS,
   });
 
+  const ratingDisplay = order.rating < 0
+    ? (isRTL ? 'جديد' : 'New')
+    : `${(order.rating * 100).toFixed(0)}%`;
+
   return (
     <Card className="overflow-hidden hover:border-primary/30 transition-colors">
       <CardContent className="p-4">
@@ -46,10 +50,12 @@ export function P2PMarketplaceCard({
               {order.creatorName}
             </p>
             <div className="flex items-center gap-2 text-xs">
-              <div className="flex items-center gap-1 text-warning">
-                <Star className="h-3 w-3 fill-warning" />
-                <span className="font-medium">{(order.rating * 20).toFixed(0)}%</span>
-              </div>
+              <span className={cn(
+                "font-medium",
+                order.rating < 0 ? "text-muted-foreground" : order.rating >= 0.8 ? "text-success" : order.rating >= 0.5 ? "text-warning" : "text-destructive"
+              )}>
+                {ratingDisplay}
+              </span>
               <span className="text-muted-foreground">•</span>
               <span className="text-muted-foreground">
                 @{order.creatorUsername}
@@ -60,6 +66,22 @@ export function P2PMarketplaceCard({
             <MapPin className="h-3 w-3 me-1" />
             {order.creatorCountry?.slice(0, 3)}
           </Badge>
+        </div>
+
+        {/* Reputation Row */}
+        <div className="flex items-center gap-3 mb-4 text-xs">
+          <div className="flex items-center gap-1 text-success">
+            <ThumbsUp className="h-3 w-3" />
+            <span className="font-medium">{order.positiveRatings}</span>
+          </div>
+          <div className="flex items-center gap-1 text-destructive">
+            <ThumbsDown className="h-3 w-3" />
+            <span className="font-medium">{order.negativeRatings}</span>
+          </div>
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <ArrowLeftRight className="h-3 w-3" />
+            <span>{order.completedTrades} {isRTL ? 'صفقة' : 'trades'}</span>
+          </div>
         </div>
 
         {/* Price & Amount Row */}
