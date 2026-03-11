@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones, UserPlus, Loader2, PenLine, Brain } from 'lucide-react';
+import { MessageCircle, Send, Pin, Search, X, Image, Paperclip, Headphones, UserPlus, Loader2, PenLine } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
