@@ -9,6 +9,7 @@ import { getP2PRoleInfoFromOrder } from '@/lib/p2pRoleUtils';
 import { P2PRoleBadge } from './P2PRoleBadge';
 import { P2PBuyerFlow } from './P2PBuyerFlow';
 import { P2PSellerFlow } from './P2PSellerFlow';
+import { P2PDisputeActions } from './P2PDisputeActions';
 import { motion } from 'framer-motion';
 
 interface P2PStatusActionsProps {
