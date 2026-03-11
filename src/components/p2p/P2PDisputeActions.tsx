@@ -49,7 +49,8 @@ export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2
   const handleReleaseFunds = async () => {
     setIsSubmitting(true);
     try {
-      const result = await releaseFunds(order.id);
+      const userId = authUser?.id || currentUserId;
+      const result = await resolveDispute(order.id, userId, 'release_to_buyer');
       if (result.success) {
         showSuccess(isRTL ? '✅ تم تحرير Nova للمشتري' : '✅ Nova released to buyer');
         onOrderCompleted?.();
@@ -64,12 +65,10 @@ export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2
   const handleCancelArbitration = async () => {
     setIsSubmitting(true);
     try {
-      const reason = roleInfo.isSeller
-        ? 'seller_cancel_arbitration_not_received'
-        : 'buyer_cancel_arbitration_not_transferred';
-      const result = await relistOrder(order.id, reason);
+      const userId = authUser?.id || currentUserId;
+      const result = await resolveDispute(order.id, userId, 'return_to_seller');
       if (result.success) {
-        showSuccess(isRTL ? '✅ تم إلغاء التحكيم وإعادة الطلب للسوق' : '✅ Arbitration cancelled, order relisted');
+        showSuccess(isRTL ? '✅ تم إلغاء التحكيم وإعادة الطلب' : '✅ Arbitration cancelled, order returned');
         setShowCancelArbitration(false);
         onOrderCompleted?.();
       } else {
