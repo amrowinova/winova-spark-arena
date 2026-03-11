@@ -495,14 +495,25 @@ function ChatContent() {
 
   const { success: showSuccess, error: showError, info: showInfo } = useBanner();
 
-  const handleForwardSubmit = (contactIds: string[]) => {
-    if (!forwardMessage || !activeChat) return;
-    
-    // Create forwarded copies for each contact (mock implementation)
+  const handleForwardSubmit = async (contactIds: string[]) => {
+    if (!forwardMessage) return;
+    const content = `↪ ${forwardMessage.content}`;
+    let sentCount = 0;
+    for (const recipientId of contactIds) {
+      try {
+        const convId = await getOrCreateConversation(recipientId);
+        if (convId) {
+          await sendDMMessage(convId, content);
+          sentCount++;
+        }
+      } catch (e) {
+        console.error('Forward failed for', recipientId, e);
+      }
+    }
     showSuccess(
-      language === 'ar' 
-        ? `تم إعادة التوجيه إلى ${contactIds.length} جهة اتصال`
-        : `Forwarded to ${contactIds.length} contacts`
+      language === 'ar'
+        ? `تم إعادة التوجيه إلى ${sentCount} جهة اتصال`
+        : `Forwarded to ${sentCount} contact${sentCount !== 1 ? 's' : ''}`
     );
   };
 

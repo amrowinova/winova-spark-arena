@@ -217,7 +217,7 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
       const cityData = countryData?.cities.find(c => c.code === selectedCity);
       const districtData = cityData?.districts.find(d => d.code === selectedDistrict);
       
-      const { error: authError } = await signUp(email, password, { 
+      const { data: signUpData, error: authError } = await signUp(email, password, { 
         name,
         username,
         country: countryData?.name || selectedCountry,
@@ -235,6 +235,19 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
           setError(isRTL ? 'حدث خطأ أثناء التسجيل' : 'An error occurred during signup');
         }
         return;
+      }
+      
+      // Process referral code if provided and verified
+      const newUserId = signUpData?.user?.id;
+      if (newUserId && referralCode.trim() && referralVerified) {
+        try {
+          await supabase.rpc('process_referral_signup', {
+            p_new_user_id: newUserId,
+            p_referral_code: referralCode.toUpperCase(),
+          });
+        } catch (e) {
+          console.error('Referral processing failed:', e);
+        }
       }
       
       // Success! Trigger the success callback
