@@ -51,12 +51,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminWallets from "./pages/admin/AdminWallets";
 import AdminRoles from "./pages/admin/AdminRoles";
 import AdminProposals from "./pages/admin/AdminProposals";
-import StrategicBrain from "./pages/admin/StrategicBrain";
-import Evolution from "./pages/admin/Evolution";
-import Commander from "./pages/admin/Commander";
 import AdminP2P from "./pages/admin/AdminP2P";
-import AICore from "./pages/admin/AICore";
-import DeepResearch from "./pages/admin/DeepResearch";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
