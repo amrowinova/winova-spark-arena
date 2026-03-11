@@ -448,7 +448,7 @@ export function P2PCreateOrderDialog({
                   <div>
                     <p className="text-xs text-muted-foreground">{isRTL ? 'الإجمالي' : 'Total'}</p>
                     <p className="text-xl font-bold text-success">
-                      {country.currencySymbol} {total.toFixed(2)}
+                      {activeCountry.currencySymbol} {total.toFixed(2)}
                     </p>
                   </div>
                 </div>
