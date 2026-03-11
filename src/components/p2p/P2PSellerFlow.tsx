@@ -182,14 +182,29 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
             </div>
           </Card>
 
-          <Button
-            variant="ghost"
-            onClick={() => setShowCancelDialog(true)}
-            className="w-full h-10 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-          >
-            <XCircle className="h-4 w-4" />
-            {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
-          </Button>
+          {isBlockedFromOrders() ? (
+            <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/30 text-center">
+              <p className="text-xs text-destructive font-medium">
+                {isRTL
+                  ? '🚫 لقد قمت بالإلغاء 3 مرات — حد الإلغاء اليومي. حاول بعد 24 ساعة'
+                  : '🚫 You have cancelled 3 times — daily limit reached. Try again in 24 hours'}
+              </p>
+            </div>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => setShowCancelDialog(true)}
+                className="w-full h-10 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <XCircle className="h-4 w-4" />
+                {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                {isRTL ? `باقي لك ${Math.max(0, 3 - getCancellationsIn24h())} إلغاء اليوم` : `${Math.max(0, 3 - getCancellationsIn24h())} cancellations left today`}
+              </p>
+            </>
+          )}
         </motion.div>
 
         <P2PCancelOrderDialog
