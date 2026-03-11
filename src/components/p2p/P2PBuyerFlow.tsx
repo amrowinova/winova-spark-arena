@@ -34,8 +34,14 @@ export function P2PBuyerFlow({ order, currentUserId, onOrderCompleted }: P2PBuye
   const [screenshot, setScreenshot] = useState<{ file: File; preview: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Normalize status to handle both DB and UI status values
+  const statusStr = order.status as string;
+  const normalizedStatus = statusStr === 'awaiting_payment' ? 'waiting_payment' 
+    : statusStr === 'payment_sent' ? 'paid' 
+    : statusStr;
+
   // Buyer waiting for seller (paid status)
-  if (order.status === 'paid') {
+  if (normalizedStatus === 'paid') {
     return (
       <div className="p-3 bg-muted/30 border-t border-border">
         <Card className="p-4 bg-warning/10 border-warning/30">
@@ -64,7 +70,7 @@ export function P2PBuyerFlow({ order, currentUserId, onOrderCompleted }: P2PBuye
   }
 
   // Only show for waiting_payment status
-  if (order.status !== 'waiting_payment') return null;
+  if (normalizedStatus !== 'waiting_payment') return null;
 
   const buyerName = isRTL ? order.buyer.nameAr : order.buyer.name;
 

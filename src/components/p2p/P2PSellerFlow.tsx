@@ -128,8 +128,14 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
     }
   };
 
+  // Normalize status to handle both DB and UI status values
+  const statusStr = order.status as string;
+  const normalizedStatus = statusStr === 'awaiting_payment' ? 'waiting_payment' 
+    : statusStr === 'payment_sent' ? 'paid' 
+    : statusStr;
+
   // Seller waiting for buyer payment
-  if (order.status === 'waiting_payment') {
+  if (normalizedStatus === 'waiting_payment') {
     return (
       <>
         <motion.div
@@ -217,7 +223,7 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
   }
 
   // Seller confirm/release (paid status)
-  if (order.status === 'paid') {
+  if (normalizedStatus === 'paid') {
     return (
       <>
         <div className="p-3 bg-muted/30 border-t border-border space-y-3">
