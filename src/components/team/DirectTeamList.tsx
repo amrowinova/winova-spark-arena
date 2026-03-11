@@ -231,6 +231,16 @@ export function DirectTeamList({ members, onBack, onViewMemberTeam }: DirectTeam
               ? atRiskCount 
               : 1
         }
+        memberIds={
+          reminderTarget === 'inactive'
+            ? members.filter(m => !m.active).map(m => m.id)
+            : reminderTarget === 'at-risk'
+              ? members.filter(m => {
+                  const activity = (m.activeWeeks / m.totalWeeks) * 100;
+                  return m.active && activity < 50;
+                }).map(m => m.id)
+              : members.map(m => m.id)
+        }
       />
     </div>
   );
