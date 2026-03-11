@@ -51,9 +51,6 @@ export default function StrategicBrain() {
           <ExperimentsLabSection />
           <LeadershipQuestionsSection />
         </div>
-
-        {/* Row 4: Questions for Leadership */}
-        <LeadershipQuestionsSection />
       </div>
     </div>
   );
