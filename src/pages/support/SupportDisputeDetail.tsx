@@ -115,7 +115,12 @@ export default function SupportDisputeDetail() {
 
   const handleClaimCase = async () => {
     setIsClaiming(true);
-    await claimCase();
+    const result = await claimCase();
+    if (!result.success) {
+      console.error('Claim case failed:', result.error);
+      // Show the exact error from the RPC
+      alert(result.error || 'Failed to claim case');
+    }
     setIsClaiming(false);
   };
 

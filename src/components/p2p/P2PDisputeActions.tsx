@@ -18,6 +18,8 @@ import { P2POrder, useP2P } from '@/contexts/P2PContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { getP2PRoleInfoFromOrder } from '@/lib/p2pRoleUtils';
 import { ReleaseSafetyFlow } from './release-safety/ReleaseSafetyFlow';
+import { resolveDispute } from '@/lib/p2pEscrowService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface P2PDisputeActionsProps {
   order: P2POrder;
@@ -28,8 +30,9 @@ interface P2PDisputeActionsProps {
 export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2PDisputeActionsProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
-  const { releaseFunds, relistOrder, sendMessage } = useP2P();
+  const { sendMessage } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
+  const { user: authUser } = useAuth();
   const roleInfo = getP2PRoleInfoFromOrder(order, currentUserId);
 
   // Dialog states
@@ -46,7 +49,8 @@ export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2
   const handleReleaseFunds = async () => {
     setIsSubmitting(true);
     try {
-      const result = await releaseFunds(order.id);
+      const userId = authUser?.id || currentUserId;
+      const result = await resolveDispute(order.id, userId, 'release_to_buyer');
       if (result.success) {
         showSuccess(isRTL ? '✅ تم تحرير Nova للمشتري' : '✅ Nova released to buyer');
         onOrderCompleted?.();
@@ -61,12 +65,10 @@ export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2
   const handleCancelArbitration = async () => {
     setIsSubmitting(true);
     try {
-      const reason = roleInfo.isSeller
-        ? 'seller_cancel_arbitration_not_received'
-        : 'buyer_cancel_arbitration_not_transferred';
-      const result = await relistOrder(order.id, reason);
+      const userId = authUser?.id || currentUserId;
+      const result = await resolveDispute(order.id, userId, 'return_to_seller');
       if (result.success) {
-        showSuccess(isRTL ? '✅ تم إلغاء التحكيم وإعادة الطلب للسوق' : '✅ Arbitration cancelled, order relisted');
+        showSuccess(isRTL ? '✅ تم إلغاء التحكيم وإعادة الطلب' : '✅ Arbitration cancelled, order returned');
         setShowCancelArbitration(false);
         onOrderCompleted?.();
       } else {
