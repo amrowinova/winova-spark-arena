@@ -39,7 +39,9 @@ export { P2PCancelOrderDialog } from './P2PCancelOrderDialog';
 // Payment Flow
 export { P2PPaymentSteps } from './P2PPaymentSteps';
 
-// Seller Flow
+// Buyer/Seller Flows
+export { P2PBuyerFlow } from './P2PBuyerFlow';
+export { P2PSellerFlow } from './P2PSellerFlow';
 export { P2PSellerSteps } from './P2PSellerSteps';
 export { P2PSellerConfirmCard } from './P2PSellerConfirmCard';
 export { P2PNoPaymentSheet } from './P2PNoPaymentSheet';
