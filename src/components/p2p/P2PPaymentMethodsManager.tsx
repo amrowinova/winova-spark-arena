@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Plus, Pencil, Trash2, CreditCard, Building, Phone, User, Hash, FileText, Wallet, ChevronRight, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -119,8 +120,6 @@ export const COUNTRY_PROVIDERS: Record<string, PaymentProvider[]> = {
   ],
 };
 
-const STORAGE_KEY = 'winova_p2p_payment_methods';
-
 interface P2PPaymentMethodsManagerProps {
   country: CountryConfig;
   onMethodsChange?: (methods: SavedPaymentMethod[]) => void;
@@ -150,27 +149,39 @@ export function P2PPaymentMethodsManager({
   const [phoneNumber, setPhoneNumber] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Load saved methods from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setSavedMethods(parsed.map((m: any) => ({
-          ...m,
-          createdAt: new Date(m.createdAt)
-        })));
-      } catch (e) {
-        console.error('Failed to parse saved payment methods:', e);
-      }
+  // Load saved methods from Supabase
+  const loadMethods = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .select('*')
+      .eq('user_id', user.id);
+    if (error) {
+      console.error('Failed to load payment methods:', error);
+      return;
     }
-  }, []);
+    const mapped: SavedPaymentMethod[] = (data || []).map((m: any) => ({
+      id: m.id,
+      countryCode: m.country,
+      type: (m.type || 'bank') as PaymentMethodType,
+      providerName: m.provider_name,
+      providerNameAr: m.provider_name_ar || undefined,
+      fullName: m.full_name,
+      accountNumber: m.account_number || undefined,
+      iban: m.iban || undefined,
+      phoneNumber: m.phone_number || undefined,
+      notes: m.notes || undefined,
+      isDefault: m.is_default,
+      createdAt: new Date(m.created_at),
+    }));
+    setSavedMethods(mapped);
+    onMethodsChange?.(mapped);
+  };
 
-  // Save to localStorage whenever methods change
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMethods));
-    onMethodsChange?.(savedMethods);
-  }, [savedMethods, onMethodsChange]);
+    loadMethods();
+  }, []);
 
   const countryMethods = savedMethods.filter(m => m.countryCode === country.code);
   const countryProviders = COUNTRY_PROVIDERS[country.code] || [];
@@ -193,32 +204,39 @@ export function P2PPaymentMethodsManager({
     setNotes('');
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedProvider || !fullName) return;
     if (isBank && !accountNumber) return;
     if ((isWallet || isInstant) && !phoneNumber) return;
 
-    const newMethod: SavedPaymentMethod = {
-      id: `pm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      countryCode: country.code,
-      type: selectedProvider.type,
-      providerName: selectedProvider.name,
-      providerNameAr: selectedProvider.nameAr,
-      fullName,
-      accountNumber: isBank ? accountNumber : undefined,
-      iban: isBank && iban ? iban : undefined,
-      phoneNumber: (isWallet || isInstant) ? phoneNumber : undefined,
-      notes: notes || undefined,
-      isDefault: countryMethods.length === 0,
-      createdAt: new Date(),
-    };
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    setSavedMethods(prev => [...prev, newMethod]);
+    const { error } = await supabase.from('payment_methods').insert({
+      user_id: user.id,
+      country: country.code,
+      type: selectedProvider.type,
+      provider_name: selectedProvider.name,
+      provider_name_ar: selectedProvider.nameAr,
+      full_name: fullName,
+      account_number: isBank ? accountNumber : null,
+      iban: isBank && iban ? iban : null,
+      phone_number: (isWallet || isInstant) ? phoneNumber : null,
+      notes: notes || null,
+      is_default: countryMethods.length === 0,
+    });
+
+    if (error) {
+      console.error('Failed to add payment method:', error);
+      return;
+    }
+
     resetForm();
     setIsAddDialogOpen(false);
+    await loadMethods();
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (!editingMethod || !fullName) return;
     const isEditBank = editingMethod.type === 'bank';
     const isEditWallet = editingMethod.type === 'wallet' || editingMethod.type === 'instant';
@@ -226,49 +244,56 @@ export function P2PPaymentMethodsManager({
     if (isEditBank && !accountNumber) return;
     if (isEditWallet && !phoneNumber) return;
 
-    setSavedMethods(prev => prev.map(m => 
-      m.id === editingMethod.id 
-        ? {
-            ...m,
-            fullName,
-            accountNumber: isEditBank ? accountNumber : undefined,
-            iban: isEditBank && iban ? iban : undefined,
-            phoneNumber: isEditWallet ? phoneNumber : undefined,
-            notes: notes || undefined,
-          }
-        : m
-    ));
+    const { error } = await supabase.from('payment_methods').update({
+      full_name: fullName,
+      account_number: isEditBank ? accountNumber : null,
+      iban: isEditBank && iban ? iban : null,
+      phone_number: isEditWallet ? phoneNumber : null,
+      notes: notes || null,
+    }).eq('id', editingMethod.id);
+
+    if (error) {
+      console.error('Failed to update payment method:', error);
+      return;
+    }
 
     resetForm();
     setEditingMethod(null);
     setIsEditDialogOpen(false);
+    await loadMethods();
   };
 
-  const handleDelete = (id: string) => {
-    setSavedMethods(prev => {
-      const filtered = prev.filter(m => m.id !== id);
-      // If we deleted the default, make the first remaining one default
-      const deletedWasDefault = prev.find(m => m.id === id)?.isDefault;
-      if (deletedWasDefault && filtered.length > 0) {
-        const countryFiltered = filtered.filter(m => m.countryCode === country.code);
-        if (countryFiltered.length > 0) {
-          return filtered.map(m => 
-            m.id === countryFiltered[0].id 
-              ? { ...m, isDefault: true }
-              : m
-          );
-        }
+  const handleDelete = async (id: string) => {
+    const deletedWasDefault = savedMethods.find(m => m.id === id)?.isDefault;
+    
+    const { error } = await supabase.from('payment_methods').delete().eq('id', id);
+    if (error) {
+      console.error('Failed to delete payment method:', error);
+      return;
+    }
+
+    // If we deleted the default, make first remaining one default
+    if (deletedWasDefault) {
+      const remaining = savedMethods.filter(m => m.id !== id && m.countryCode === country.code);
+      if (remaining.length > 0) {
+        await supabase.from('payment_methods').update({ is_default: true }).eq('id', remaining[0].id);
       }
-      return filtered;
-    });
+    }
+    
     setDeleteConfirmId(null);
+    await loadMethods();
   };
 
-  const handleSetDefault = (id: string) => {
-    setSavedMethods(prev => prev.map(m => ({
-      ...m,
-      isDefault: m.countryCode === country.code ? m.id === id : m.isDefault
-    })));
+  const handleSetDefault = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    // Unset all defaults for this country, then set the chosen one
+    const countryMethodIds = savedMethods.filter(m => m.countryCode === country.code).map(m => m.id);
+    for (const mid of countryMethodIds) {
+      await supabase.from('payment_methods').update({ is_default: mid === id }).eq('id', mid);
+    }
+    await loadMethods();
   };
 
   const openEditDialog = (method: SavedPaymentMethod) => {
@@ -805,27 +830,42 @@ export function P2PPaymentMethodsManager({
   );
 }
 
-// Hook to get saved payment methods
+// Hook to get saved payment methods from Supabase
 export function useSavedPaymentMethods(countryCode?: string) {
   const [methods, setMethods] = useState<SavedPaymentMethod[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        const allMethods = parsed.map((m: any) => ({
-          ...m,
-          createdAt: new Date(m.createdAt)
-        }));
-        setMethods(countryCode 
-          ? allMethods.filter((m: SavedPaymentMethod) => m.countryCode === countryCode)
-          : allMethods
-        );
-      } catch (e) {
-        console.error('Failed to parse saved payment methods:', e);
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      let query = supabase.from('payment_methods').select('*').eq('user_id', user.id);
+      if (countryCode) {
+        query = query.eq('country', countryCode);
       }
-    }
+      
+      const { data, error } = await query;
+      if (error) {
+        console.error('Failed to load payment methods:', error);
+        return;
+      }
+      
+      setMethods((data || []).map((m: any) => ({
+        id: m.id,
+        countryCode: m.country,
+        type: (m.type || 'bank') as PaymentMethodType,
+        providerName: m.provider_name,
+        providerNameAr: m.provider_name_ar || undefined,
+        fullName: m.full_name,
+        accountNumber: m.account_number || undefined,
+        iban: m.iban || undefined,
+        phoneNumber: m.phone_number || undefined,
+        notes: m.notes || undefined,
+        isDefault: m.is_default,
+        createdAt: new Date(m.created_at),
+      })));
+    };
+    load();
   }, [countryCode]);
 
   return methods;
