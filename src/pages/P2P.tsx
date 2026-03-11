@@ -104,9 +104,11 @@ function P2PContent() {
 
   // Get countries with live rates from app_settings
   const countries = useP2PCountries();
-  const defaultCountry = countries[0]; // Saudi Arabia with live rate
 
-  // State - initialize with the live-rate country
+  // Default to user's profile country, fallback to first country
+  const userCountryConfig = countries.find(c => c.name === user.country) || countries[0];
+
+  // State - initialize with user's country
   const [selectedCountry, setSelectedCountry] = useState<CountryConfig | null>(null);
   const [selectedTab, setSelectedTab] = useState<'buy' | 'sell' | 'orders'>('buy');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
