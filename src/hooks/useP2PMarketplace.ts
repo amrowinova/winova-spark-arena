@@ -98,11 +98,9 @@ export function useP2PMarketplace(selectedCountry?: string) {
         return;
       }
 
-      // Transform orders - marketplace view hides creator_id for privacy
-      // Creator profile info is only revealed after order is matched
       const marketplaceOrders: MarketplaceOrder[] = ordersData.map(order => ({
         id: order.id!,
-        creatorId: '', // Hidden for privacy until matched
+        creatorId: '',
         orderType: order.order_type!,
         novaAmount: Number(order.nova_amount),
         localAmount: Number(order.local_amount),
@@ -110,11 +108,10 @@ export function useP2PMarketplace(selectedCountry?: string) {
         country: order.country!,
         timeLimitMinutes: order.time_limit_minutes!,
         createdAt: order.created_at!,
-        // Creator info hidden in marketplace for privacy
-        creatorName: 'Trader',
-        creatorUsername: '',
-        creatorAvatar: '👤',
-        creatorCountry: order.country!,
+        creatorName: (order as any).creator_name || 'Trader',
+        creatorUsername: (order as any).creator_username || '',
+        creatorAvatar: (order as any).creator_avatar_url || '👤',
+        creatorCountry: (order as any).creator_country || order.country!,
         currencySymbol: getCurrencySymbol(order.country!),
         rating: 5.0,
         completedTrades: 0,
