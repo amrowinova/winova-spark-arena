@@ -150,7 +150,7 @@ function P2PContent() {
 
   // Get all orders from chats
   const allOrders: P2POrder[] = chats.flatMap(chat => chat.orders);
-  const orderListItems = allOrders.map(order => orderToListItem(order, user.id));
+  const orderListItems = allOrders.map(order => orderToListItem(order, currentAuthUserId));
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
