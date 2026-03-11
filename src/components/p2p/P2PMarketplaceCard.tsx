@@ -89,9 +89,8 @@ export function P2PMarketplaceCard({
               </span>
             </div>
           </div>
-          <Badge variant="secondary" className="text-xs max-w-[80px] truncate">
-            <MapPin className="h-3 w-3 me-1 shrink-0" />
-            <span className="truncate">{order.creatorCountry}</span>
+          <Badge variant="secondary" className="text-xs">
+            <span>{SHORT_COUNTRY[order.creatorCountry] || order.creatorCountry}</span>
           </Badge>
         </div>
 
