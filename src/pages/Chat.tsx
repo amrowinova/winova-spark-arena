@@ -650,16 +650,6 @@ function ChatContent() {
   };
 
   const handleOpenConversation = (conv: Conversation) => {
-    // Handle AI Control Room specially
-    if (conv.id === 'ai-control-room') {
-      setShowAIControlRoom(true);
-      setActiveChat(null);
-      setActiveP2PChat(null);
-      setActiveDMConversation(null);
-      setShowSupportChat(false);
-      return;
-    }
-    
     // Handle support conversation specially
     if (conv.id === 'support') {
       setShowSupportChat(true);
