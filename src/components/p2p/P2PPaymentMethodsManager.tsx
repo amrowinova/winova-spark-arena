@@ -119,8 +119,6 @@ export const COUNTRY_PROVIDERS: Record<string, PaymentProvider[]> = {
   ],
 };
 
-const STORAGE_KEY = 'winova_p2p_payment_methods';
-
 interface P2PPaymentMethodsManagerProps {
   country: CountryConfig;
   onMethodsChange?: (methods: SavedPaymentMethod[]) => void;
@@ -150,27 +148,39 @@ export function P2PPaymentMethodsManager({
   const [phoneNumber, setPhoneNumber] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Load saved methods from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setSavedMethods(parsed.map((m: any) => ({
-          ...m,
-          createdAt: new Date(m.createdAt)
-        })));
-      } catch (e) {
-        console.error('Failed to parse saved payment methods:', e);
-      }
+  // Load saved methods from Supabase
+  const loadMethods = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .select('*')
+      .eq('user_id', user.id);
+    if (error) {
+      console.error('Failed to load payment methods:', error);
+      return;
     }
-  }, []);
+    const mapped: SavedPaymentMethod[] = (data || []).map((m: any) => ({
+      id: m.id,
+      countryCode: m.country,
+      type: (m.type || 'bank') as PaymentMethodType,
+      providerName: m.provider_name,
+      providerNameAr: m.provider_name_ar || undefined,
+      fullName: m.full_name,
+      accountNumber: m.account_number || undefined,
+      iban: m.iban || undefined,
+      phoneNumber: m.phone_number || undefined,
+      notes: m.notes || undefined,
+      isDefault: m.is_default,
+      createdAt: new Date(m.created_at),
+    }));
+    setSavedMethods(mapped);
+    onMethodsChange?.(mapped);
+  };
 
-  // Save to localStorage whenever methods change
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMethods));
-    onMethodsChange?.(savedMethods);
-  }, [savedMethods, onMethodsChange]);
+    loadMethods();
+  }, []);
 
   const countryMethods = savedMethods.filter(m => m.countryCode === country.code);
   const countryProviders = COUNTRY_PROVIDERS[country.code] || [];
