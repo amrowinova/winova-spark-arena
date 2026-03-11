@@ -83,11 +83,57 @@ export default function Settings() {
     );
   };
 
-  const handleToggle = (itemId: string) => {
-    setToggleStates(prev => ({
-      ...prev,
-      [itemId]: !prev[itemId]
-    }));
+  // Load saved settings from DB
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('notifications_contest, notifications_earnings, notifications_p2p, notifications_chat, notifications_team, notifications_system, preferred_language')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setToggleStates(prev => ({
+            ...prev,
+            contestNotif: data.notifications_contest ?? true,
+            earningsNotif: data.notifications_earnings ?? true,
+            p2pNotif: data.notifications_p2p ?? true,
+            chatNotif: data.notifications_chat ?? true,
+            teamNotif: data.notifications_team ?? true,
+            systemNotif: data.notifications_system ?? true,
+          }));
+        }
+      });
+  }, [user]);
+
+  // Map toggle IDs to DB column names
+  const toggleToColumn: Record<string, string> = {
+    contestNotif: 'notifications_contest',
+    earningsNotif: 'notifications_earnings',
+    p2pNotif: 'notifications_p2p',
+    chatNotif: 'notifications_chat',
+    teamNotif: 'notifications_team',
+    systemNotif: 'notifications_system',
+  };
+
+  const handleToggle = async (itemId: string) => {
+    const newValue = !toggleStates[itemId];
+    setToggleStates(prev => ({ ...prev, [itemId]: newValue }));
+
+    // Persist to DB if it's a notification toggle
+    const column = toggleToColumn[itemId];
+    if (column && user) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ [column]: newValue })
+        .eq('user_id', user.id);
+
+      if (error) {
+        // Revert on failure
+        setToggleStates(prev => ({ ...prev, [itemId]: !newValue }));
+        showError(isRTL ? 'فشل حفظ الإعداد' : 'Failed to save setting');
+      }
+    }
   };
 
   const settingsSections: SettingSection[] = [

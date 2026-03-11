@@ -32,7 +32,7 @@ export function DMChatView({
 }: DMChatViewProps) {
   const { language } = useLanguage();
   const { info: showInfo, success: showSuccess } = useBanner();
-  const isSystemChat = isAISystemUser(conversation.participantId);
+  const isSystemChat = conversation.participantId === AI_SYSTEM_USER_ID;
   
   const [message, setMessage] = useState('');
   const [replyTo, setReplyTo] = useState<DMMessageData | null>(null);

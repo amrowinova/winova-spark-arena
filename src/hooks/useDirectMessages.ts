@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { AI_SYSTEM_USER_ID, AI_SYSTEM_USER_NAME, AI_SYSTEM_USER_USERNAME, isAISystemUser } from '@/lib/aiSystemUser';
+const AI_SYSTEM_USER_ID = '00000000-0000-0000-0000-a10000000001';
+const AI_SYSTEM_USER_NAME = 'WINOVA Intelligence';
+const AI_SYSTEM_USER_USERNAME = 'ai.intelligence';
 
 export interface DMConversation {
   id: string;
