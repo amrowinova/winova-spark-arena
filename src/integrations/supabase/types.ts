@@ -6964,6 +6964,7 @@ export type Database = {
         }
         Returns: Json
       }
+      convert_nova_aura: { Args: { p_amount: number }; Returns: Json }
       emit_team_event: {
         Args: {
           p_event_type: string
