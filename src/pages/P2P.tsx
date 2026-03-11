@@ -776,6 +776,7 @@ function P2PContent() {
                       actionType="buy"
                       isExecuting={isExecutingOrder}
                       isCountryMatch={order.country === user.country}
+                      isOwnOrder={order.creatorId === user.id}
                     />
                   </motion.div>
                 ))}
