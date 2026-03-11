@@ -31,6 +31,7 @@ export interface MarketplaceOrder {
   positiveRatings: number;
   negativeRatings: number;
   completedTrades: number;
+  expiresAt: string | null;
 }
 
 // Currency info by country
@@ -128,6 +129,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
           positiveRatings: pos,
           negativeRatings: neg,
           completedTrades: Number(order.total_trades) || 0,
+          expiresAt: order.expires_at || null,
         };
       });
 

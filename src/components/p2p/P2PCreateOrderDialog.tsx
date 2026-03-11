@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Lock, Info, CreditCard, AlertCircle, Eye, Wallet, Plus } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Lock, Info, CreditCard, AlertCircle, Eye, Wallet, Plus, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
@@ -29,7 +29,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { P2PAmountSelector } from './P2PAmountSelector';
 import { P2PTimeSelector } from './P2PTimeSelector';
-import { CountryConfig, PaymentMethod } from './P2PCountrySelector';
+import { CountryConfig, PaymentMethod, useP2PCountries } from './P2PCountrySelector';
 import { 
   SavedPaymentMethod, 
   useSavedPaymentMethods, 
@@ -65,6 +65,11 @@ export function P2PCreateOrderDialog({
   const { language } = useLanguage();
   const { user } = useUser();
   const isRTL = language === 'ar';
+  const allCountries = useP2PCountries();
+
+  // Allow overriding country within the dialog
+  const [selectedDialogCountry, setSelectedDialogCountry] = useState<CountryConfig>(country);
+  const activeCountry = selectedDialogCountry;
 
   const [orderType, setOrderType] = useState<'buy' | 'sell'>(initialOrderType);
   const [amount, setAmount] = useState<number | null>(null);
@@ -80,9 +85,14 @@ export function P2PCreateOrderDialog({
   const [isManageSheetOpen, setIsManageSheetOpen] = useState(false);
 
   // Get saved payment methods for this country
-  const savedMethods = useSavedPaymentMethods(country.code);
+  const savedMethods = useSavedPaymentMethods(activeCountry.code);
   const selectedSavedMethod = savedMethods.find(m => m.id === sellPaymentMethodId);
-  const selectedBuyMethods = country.paymentMethods.filter(m => selectedBuyMethodIds.has(m.id));
+  const selectedBuyMethods = activeCountry.paymentMethods.filter(m => selectedBuyMethodIds.has(m.id));
+
+  // Reset to prop country when dialog opens
+  useEffect(() => {
+    if (open) setSelectedDialogCountry(country);
+  }, [open, country.code]);
 
   // Sync order type when initialOrderType changes
   useEffect(() => {
@@ -101,9 +111,9 @@ export function P2PCreateOrderDialog({
   useEffect(() => {
     setSellPaymentMethodId('');
     setSelectedBuyMethodIds(new Set());
-  }, [country.code]);
+  }, [activeCountry.code]);
 
-  const total = amount ? amount * country.novaRate : 0;
+  const total = amount ? amount * activeCountry.novaRate : 0;
   const insufficientBalance = orderType === 'sell' && amount && amount > user.novaBalance;
   const noSavedMethods = orderType === 'sell' && savedMethods.length === 0;
 
@@ -173,8 +183,8 @@ export function P2PCreateOrderDialog({
               {isRTL ? 'إنشاء طلب P2P' : 'Create P2P Order'}
             </DialogTitle>
             <DialogDescription className="flex items-center gap-2">
-              <span className="text-xl">{country.flag}</span>
-              {isRTL ? country.nameAr : country.name} • {country.currency}
+              <span className="text-xl">{activeCountry.flag}</span>
+              {isRTL ? activeCountry.nameAr : activeCountry.name} • {activeCountry.currency}
             </DialogDescription>
           </DialogHeader>
 
@@ -202,7 +212,36 @@ export function P2PCreateOrderDialog({
               </Button>
             </div>
 
-            {/* Balance Info for Sell */}
+            {/* Country Selector */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                {isRTL ? 'الدولة' : 'Country'}
+              </Label>
+              <Select 
+                value={activeCountry.code} 
+                onValueChange={(code) => {
+                  const c = allCountries.find(x => x.code === code);
+                  if (c) setSelectedDialogCountry(c);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {allCountries.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      <span className="flex items-center gap-2">
+                        <span>{c.flag}</span>
+                        <span>{isRTL ? c.nameAr : c.name}</span>
+                        <span className="text-muted-foreground text-xs">({c.currency})</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {orderType === 'sell' && (
               <Card className="p-3 bg-muted/50 border-dashed">
                 <div className="flex items-center justify-between">
@@ -247,7 +286,7 @@ export function P2PCreateOrderDialog({
                   </span>
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {country.paymentMethods.map((method) => {
+                  {activeCountry.paymentMethods.map((method) => {
                     const isSelected = selectedBuyMethodIds.has(method.id);
                     return (
                       <Card
@@ -438,13 +477,13 @@ export function P2PCreateOrderDialog({
                   <div>
                     <p className="text-xs text-muted-foreground">{isRTL ? 'الإجمالي' : 'Total'}</p>
                     <p className="text-xl font-bold text-success">
-                      {country.currencySymbol} {total.toFixed(2)}
+                      {activeCountry.currencySymbol} {total.toFixed(2)}
                     </p>
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-success/20 text-center">
                   <p className="text-xs text-muted-foreground">
-                    {isRTL ? 'السعر الرسمي:' : 'Official rate:'} И 1 = {country.currencySymbol} {country.novaRate}
+                    {isRTL ? 'السعر الرسمي:' : 'Official rate:'} И 1 = {activeCountry.currencySymbol} {activeCountry.novaRate}
                   </p>
                 </div>
               </Card>
@@ -591,12 +630,12 @@ export function P2PCreateOrderDialog({
               {isRTL ? 'إدارة طرق الدفع' : 'Manage Payment Methods'}
             </SheetTitle>
             <SheetDescription>
-              {country.flag} {isRTL ? country.nameAr : country.name}
+              {activeCountry.flag} {isRTL ? activeCountry.nameAr : activeCountry.name}
             </SheetDescription>
           </SheetHeader>
 
           <div className="mt-6">
-            <P2PPaymentMethodsManager country={country} />
+            <P2PPaymentMethodsManager country={activeCountry} />
           </div>
         </SheetContent>
       </Sheet>
