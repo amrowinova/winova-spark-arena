@@ -454,7 +454,7 @@ export function P2PCreateOrderDialog({
                 </div>
                 <div className="mt-3 pt-3 border-t border-success/20 text-center">
                   <p className="text-xs text-muted-foreground">
-                    {isRTL ? 'السعر الرسمي:' : 'Official rate:'} И 1 = {country.currencySymbol} {country.novaRate}
+                    {isRTL ? 'السعر الرسمي:' : 'Official rate:'} И 1 = {activeCountry.currencySymbol} {activeCountry.novaRate}
                   </p>
                 </div>
               </Card>
