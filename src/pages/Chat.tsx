@@ -17,7 +17,6 @@ import { useDirectMessages, DMConversation, DMMessage } from '@/hooks/useDirectM
 import { useUserSearch, SearchedUser } from '@/hooks/useUserSearch';
 import { useTeamChat, TeamConversation, TeamMessage } from '@/hooks/useTeamChat';
 import { useChatListPresence, useGlobalPresence } from '@/hooks/useChatListPresence';
-import { useCanAccessAIControlRoom } from '@/hooks/useAIControlRoom';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { Receipt } from '@/contexts/TransactionContext';
