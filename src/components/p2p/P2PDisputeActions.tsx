@@ -30,8 +30,9 @@ interface P2PDisputeActionsProps {
 export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2PDisputeActionsProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
-  const { releaseFunds, relistOrder, sendMessage } = useP2P();
+  const { sendMessage } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
+  const { user: authUser } = useAuth();
   const roleInfo = getP2PRoleInfoFromOrder(order, currentUserId);
 
   // Dialog states
