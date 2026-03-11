@@ -65,6 +65,11 @@ export function P2PCreateOrderDialog({
   const { language } = useLanguage();
   const { user } = useUser();
   const isRTL = language === 'ar';
+  const allCountries = useP2PCountries();
+
+  // Allow overriding country within the dialog
+  const [selectedDialogCountry, setSelectedDialogCountry] = useState<CountryConfig>(country);
+  const activeCountry = selectedDialogCountry;
 
   const [orderType, setOrderType] = useState<'buy' | 'sell'>(initialOrderType);
   const [amount, setAmount] = useState<number | null>(null);
@@ -80,9 +85,14 @@ export function P2PCreateOrderDialog({
   const [isManageSheetOpen, setIsManageSheetOpen] = useState(false);
 
   // Get saved payment methods for this country
-  const savedMethods = useSavedPaymentMethods(country.code);
+  const savedMethods = useSavedPaymentMethods(activeCountry.code);
   const selectedSavedMethod = savedMethods.find(m => m.id === sellPaymentMethodId);
-  const selectedBuyMethods = country.paymentMethods.filter(m => selectedBuyMethodIds.has(m.id));
+  const selectedBuyMethods = activeCountry.paymentMethods.filter(m => selectedBuyMethodIds.has(m.id));
+
+  // Reset to prop country when dialog opens
+  useEffect(() => {
+    if (open) setSelectedDialogCountry(country);
+  }, [open, country.code]);
 
   // Sync order type when initialOrderType changes
   useEffect(() => {
@@ -101,9 +111,9 @@ export function P2PCreateOrderDialog({
   useEffect(() => {
     setSellPaymentMethodId('');
     setSelectedBuyMethodIds(new Set());
-  }, [country.code]);
+  }, [activeCountry.code]);
 
-  const total = amount ? amount * country.novaRate : 0;
+  const total = amount ? amount * activeCountry.novaRate : 0;
   const insufficientBalance = orderType === 'sell' && amount && amount > user.novaBalance;
   const noSavedMethods = orderType === 'sell' && savedMethods.length === 0;
 
