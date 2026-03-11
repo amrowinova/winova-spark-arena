@@ -601,7 +601,7 @@ export function P2PCreateOrderDialog({
               {isRTL ? 'إدارة طرق الدفع' : 'Manage Payment Methods'}
             </SheetTitle>
             <SheetDescription>
-              {country.flag} {isRTL ? country.nameAr : country.name}
+              {activeCountry.flag} {isRTL ? activeCountry.nameAr : activeCountry.name}
             </SheetDescription>
           </SheetHeader>
 
