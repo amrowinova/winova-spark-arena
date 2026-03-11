@@ -713,7 +713,6 @@ function ChatContent() {
     setActiveChat(conv);
     setActiveP2PChat(null);
     setActiveDMConversation(null);
-    setShowAIControlRoom(false);
   };
 
   const handleBackFromChat = () => {
