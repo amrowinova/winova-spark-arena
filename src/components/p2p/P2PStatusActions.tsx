@@ -1,18 +1,15 @@
 import { useState } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Unlock, Clock, Loader2, FileQuestion, Shield, Trash2 } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Clock, FileQuestion, Shield, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { P2POrder, useP2P } from '@/contexts/P2PContext';
 import { useBanner } from '@/contexts/BannerContext';
-import { getP2PRoleInfoFromOrder, getActionPermissions, P2PRoleInfo } from '@/lib/p2pRoleUtils';
+import { getP2PRoleInfoFromOrder } from '@/lib/p2pRoleUtils';
 import { P2PRoleBadge } from './P2PRoleBadge';
-import { P2PPaymentSteps } from './P2PPaymentSteps';
-import { P2PSellerConfirmCard } from './P2PSellerConfirmCard';
-import { P2PNoPaymentSheet } from './P2PNoPaymentSheet';
-import { P2PCancelOrderDialog } from './P2PCancelOrderDialog';
+import { P2PBuyerFlow } from './P2PBuyerFlow';
+import { P2PSellerFlow } from './P2PSellerFlow';
 import { motion } from 'framer-motion';
-import { ReleaseSafetyFlow } from './release-safety';
 
 interface P2PStatusActionsProps {
   order: P2POrder;
@@ -25,28 +22,14 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   const { language } = useLanguage();
   const isRTL = language === 'ar';
   const { 
-    confirmPayment, 
-    cancelOrderWithReason,
     deleteOrder,
-    relistOrder,
-    isBlockedFromOrders,
-    releaseFunds, 
-    openDispute,
     requestProof,
     resolveDispute,
-    isMockMode,
-    triggerMockSellerConfirmation,
   } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   
-  const [isExtendedWait, setIsExtendedWait] = useState(false);
-  const [showNoPaymentSheet, setShowNoPaymentSheet] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [showSafetyFlow, setShowSafetyFlow] = useState(false);
-  
   // Get role info
   const roleInfo = getP2PRoleInfoFromOrder(order, currentUserId);
-  const permissions = getActionPermissions(order.status, roleInfo);
   
   // Support actions in dispute
   if (isSupport && order.status === 'dispute') {
@@ -113,7 +96,7 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
     );
   }
   
-  // Creator can DELETE OPEN orders (no penalty, no reason needed)
+  // Creator can DELETE OPEN orders
   if (order.status === 'created') {
     const isCreator = (order.type === 'buy' && roleInfo.isBuyer) || (order.type === 'sell' && roleInfo.isSeller);
     
@@ -138,7 +121,6 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
               </div>
             </div>
             
-            {/* Delete button for OPEN orders - uses deleteOrder (no penalty) */}
             <Button
               variant="destructive"
               size="sm"
@@ -162,245 +144,25 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
     return null;
   }
 
-  // Handle cancel with reason (for awaiting_payment)
-  const handleCancelWithReason = async (reason: string) => {
-    setShowCancelDialog(false);
-    
-    const result = await relistOrder(order.id, reason);
-    if (result.success) {
-      showSuccess(isRTL ? 'تم إلغاء الطلب وإعادته للسوق' : 'Order cancelled and returned to market');
-    } else {
-      showError(result.error || (isRTL ? 'فشل في إلغاء الطلب' : 'Failed to cancel order'));
-    }
-  };
-  
-  // Buyer flow: waiting_payment
-  if (roleInfo.isBuyer && order.status === 'waiting_payment') {
+  // BUYER FLOW
+  if (roleInfo.isBuyer && ['waiting_payment', 'paid'].includes(order.status)) {
     return (
-      <div className="p-3 bg-muted/30 border-t border-border space-y-3">
-        {/* Role indicator */}
-        <div className="flex items-center justify-between">
-          <P2PRoleBadge role="buyer" isYou size="md" />
-          <span className="text-xs text-muted-foreground">
-            {isRTL ? 'أكمل الدفع لتحصل على Nova' : 'Complete payment to get Nova'}
-          </span>
-        </div>
-        
-        <P2PPaymentSteps
-          order={order}
-          onConfirmPayment={async () => {
-            const result = await confirmPayment(order.id);
-            if (!result.success) {
-              showError(result.error || (isRTL ? 'فشل تأكيد الدفع' : 'Payment confirmation failed'));
-              return;
-            }
-            showSuccess(isRTL ? 'تم تأكيد الدفع' : 'Payment confirmed');
-            if (isMockMode) {
-              triggerMockSellerConfirmation(order.id);
-            }
-          }}
-          onCancelOrder={handleCancelWithReason}
-        />
-      </div>
+      <P2PBuyerFlow
+        order={order}
+        currentUserId={currentUserId}
+        onOrderCompleted={onOrderCompleted}
+      />
     );
   }
   
-  // Buyer flow: paid (waiting for seller)
-  if (roleInfo.isBuyer && order.status === 'paid') {
+  // SELLER FLOW
+  if (roleInfo.isSeller && ['waiting_payment', 'paid'].includes(order.status)) {
     return (
-      <div className="p-3 bg-muted/30 border-t border-border">
-        <Card className="p-4 bg-warning/10 border-warning/30">
-          <div className="flex items-start gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-warning" />
-              </div>
-              <Loader2 className="absolute -bottom-1 -right-1 h-4 w-4 text-warning animate-spin" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <P2PRoleBadge role="buyer" isYou size="sm" />
-              </div>
-              <p className="font-medium text-warning">
-                {isRTL ? '⏳ بانتظار تأكيد البائع' : '⏳ Waiting for seller confirmation'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {isRTL 
-                  ? 'سيتم تحرير Nova بمجرد تأكيد البائع استلام المبلغ'
-                  : 'Nova will be released once seller confirms receipt'
-                }
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-  
-  // Seller flow: waiting_payment
-  if (roleInfo.isSeller && order.status === 'waiting_payment') {
-    return (
-      <>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-3 bg-muted/30 border-t border-border"
-        >
-          <Card className="p-4 bg-info/10 border-info/30">
-            <div className="flex items-start gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-info" />
-                </div>
-                <Loader2 className="absolute -bottom-1 -right-1 h-4 w-4 text-info animate-spin" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <P2PRoleBadge role="seller" isYou size="sm" />
-                </div>
-                <p className="font-medium text-info">
-                  {isRTL ? '🏦 بانتظار الدفع من المشتري' : '🏦 Waiting for buyer payment'}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {isRTL 
-                    ? `سيقوم المشتري بتحويل ${order.currencySymbol} ${order.total.toFixed(2)} إلى حسابك`
-                    : `Buyer will transfer ${order.currencySymbol} ${order.total.toFixed(2)} to your account`
-                  }
-                </p>
-              </div>
-            </div>
-            
-            {/* Cancel Button for seller */}
-            <Button
-              variant="ghost"
-              onClick={() => setShowCancelDialog(true)}
-              className="w-full mt-3 h-10 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            >
-              <XCircle className="h-4 w-4" />
-              <span className="text-sm">
-                {isRTL ? 'إلغاء الطلب' : 'Cancel Order'}
-              </span>
-            </Button>
-          </Card>
-        </motion.div>
-        
-        {/* Cancel Dialog */}
-        <P2PCancelOrderDialog
-          open={showCancelDialog}
-          onOpenChange={setShowCancelDialog}
-          onConfirm={handleCancelWithReason}
-        />
-      </>
-    );
-  }
-  
-  // Seller flow: paid (can release or dispute)
-  if (roleInfo.isSeller && order.status === 'paid') {
-    return (
-      <div className="p-3 bg-muted/30 border-t border-border space-y-3">
-        {/* Extended wait notice */}
-        {isExtendedWait && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-          >
-            <Card className="p-3 bg-warning/10 border-warning/30">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-warning animate-pulse" />
-                <span className="text-sm text-warning font-medium">
-                  {isRTL ? '⏳ وقت الانتظار الإضافي جارٍ...' : '⏳ Extended wait in progress...'}
-                </span>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-        
-        {/* Buyer paid notification */}
-        <Card className="p-3 bg-nova/10 border-nova/30">
-          <div className="flex items-center gap-2 mb-1">
-            <P2PRoleBadge role="seller" isYou size="sm" />
-          </div>
-          <p className="text-sm font-medium text-nova">
-            {isRTL ? '💸 قام المشتري بتنفيذ التحويل البنكي' : '💸 Buyer executed bank transfer'}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {isRTL 
-              ? 'تأكد من وصول المبلغ قبل تحرير Nova'
-              : 'Verify payment before releasing Nova'
-            }
-          </p>
-        </Card>
-        
-        <P2PSellerConfirmCard
-          order={order}
-          buyerName={order.buyer.name}
-          buyerNameAr={order.buyer.nameAr}
-          onRelease={() => {
-            setShowSafetyFlow(true);
-          }}
-          onNoPayment={async (action) => {
-            if (action === 'wait') {
-              setIsExtendedWait(true);
-              showSuccess(isRTL 
-                ? '⏳ تم تمديد وقت الانتظار 10 دقائق'
-                : '⏳ Wait time extended by 10 minutes'
-              );
-              setTimeout(() => setIsExtendedWait(false), 10000);
-            } else {
-              const result = await openDispute(order.id, isRTL 
-                ? 'البائع يبلغ عن عدم استلام التحويل'
-                : 'Seller reports payment not received'
-              );
-              if (result.success) {
-                showError(isRTL 
-                  ? '⚖️ تم فتح نزاع – سيراجعه فريق الدعم'
-                  : '⚖️ Dispute opened – Support will review'
-                );
-              } else {
-                showError(result.error || (isRTL ? 'فشل فتح النزاع' : 'Failed to open dispute'));
-              }
-            }
-          }}
-        />
-        
-        <P2PNoPaymentSheet
-          open={showNoPaymentSheet}
-          onOpenChange={setShowNoPaymentSheet}
-          onAction={async (action) => {
-            setShowNoPaymentSheet(false);
-            if (action === 'wait') {
-              setIsExtendedWait(true);
-            } else {
-              const result = await openDispute(order.id, 'Seller reports no payment');
-              if (!result.success) {
-                showError(result.error || (isRTL ? 'فشل فتح النزاع' : 'Failed to open dispute'));
-              }
-            }
-          }}
-        />
-
-        <ReleaseSafetyFlow
-          open={showSafetyFlow}
-          onOpenChange={setShowSafetyFlow}
-          novaAmount={order.amount}
-          currencySymbol={order.currencySymbol}
-          localTotal={order.total}
-          buyerName={isRTL ? order.buyer.nameAr : order.buyer.name}
-          onConfirmRelease={async () => {
-            const result = await releaseFunds(order.id);
-            if (!result.success) {
-              showError(result.error || (isRTL ? 'فشل تحرير Nova' : 'Failed to release Nova'));
-              return;
-            }
-            showSuccess(isRTL 
-              ? `🎉 تم تحرير ${order.amount.toFixed(0)} Nova بنجاح!`
-              : `🎉 ${order.amount.toFixed(0)} Nova released successfully!`
-            );
-            onOrderCompleted?.();
-          }}
-        />
-      </div>
+      <P2PSellerFlow
+        order={order}
+        currentUserId={currentUserId}
+        onOrderCompleted={onOrderCompleted}
+      />
     );
   }
   
