@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, FolderOpen, MessageSquare } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -14,8 +14,6 @@ import { DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useChatPresence } from '@/hooks/useChatPresence';
 import { isAISystemUser } from '@/lib/aiSystemUser';
-import { useBuildEngine } from '@/hooks/useBuildEngine';
-import { ProjectsTab } from './ProjectsTab';
 
 interface DMChatViewProps {
   conversation: DMConversation;
