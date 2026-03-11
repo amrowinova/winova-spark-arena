@@ -31,6 +31,7 @@ export interface MarketplaceOrder {
   positiveRatings: number;
   negativeRatings: number;
   completedTrades: number;
+  expiresAt: string | null;
 }
 
 // Currency info by country

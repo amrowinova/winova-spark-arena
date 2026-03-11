@@ -6826,6 +6826,7 @@ export type Database = {
           creator_name: string | null
           creator_username: string | null
           exchange_rate: number | null
+          expires_at: string | null
           id: string | null
           local_amount: number | null
           negative_ratings: number | null
