@@ -49,10 +49,27 @@ function getCurrencySymbol(country: string): string {
 
 export function useP2PMarketplace(selectedCountry?: string) {
   const { user } = useAuth();
-  const [buyOrders, setBuyOrders] = useState<MarketplaceOrder[]>([]); // Users want to buy Nova (you sell)
-  const [sellOrders, setSellOrders] = useState<MarketplaceOrder[]>([]); // Users want to sell Nova (you buy)
+  const [buyOrders, setBuyOrders] = useState<MarketplaceOrder[]>([]);
+  const [sellOrders, setSellOrders] = useState<MarketplaceOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [profileCountry, setProfileCountry] = useState<string | null>(null);
+
+  // Fetch user's profile country as default filter
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('country')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.country) setProfileCountry(data.country);
+      });
+  }, [user]);
+
+  // Effective country: explicit selection > profile country
+  const effectiveCountry = selectedCountry || profileCountry;
 
   // Fetch open orders from marketplace using secure view
   const fetchOpenOrders = useCallback(async () => {
