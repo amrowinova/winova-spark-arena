@@ -6823,6 +6823,7 @@ export type Database = {
           created_at: string | null
           creator_avatar_url: string | null
           creator_country: string | null
+          creator_id: string | null
           creator_name: string | null
           creator_username: string | null
           exchange_rate: number | null
