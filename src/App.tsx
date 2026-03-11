@@ -129,9 +129,7 @@ const App = () => (
                             <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
                             <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />
                             <Route path="/admin/roles" element={<AdminGuard><AdminRoles /></AdminGuard>} />
-                            <Route path="/admin/ai" element={<AdminGuard><AdminAI /></AdminGuard>} />
                             <Route path="/admin/proposals" element={<AdminGuard><AdminProposals /></AdminGuard>} />
-                            <Route path="/admin/control-tower" element={<AdminGuard><ControlTower /></AdminGuard>} />
                             <Route path="/admin/strategic-brain" element={<AdminGuard><StrategicBrain /></AdminGuard>} />
                             <Route path="/admin/evolution" element={<AdminGuard><Evolution /></AdminGuard>} />
                             <Route path="/admin/commander" element={<AdminGuard><Commander /></AdminGuard>} />

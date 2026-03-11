@@ -43,16 +43,13 @@ export default function StrategicBrain() {
           <TodayLearningsSection />
         </div>
 
-        {/* Row 2: Risks + Approval Queue */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <RiskRadarSection />
-          <ApprovalQueueSection />
-        </div>
+        {/* Row 2: Approval Queue */}
+        <ApprovalQueueSection />
 
-        {/* Row 3: Experiments + Performance */}
+        {/* Row 3: Experiments */}
         <div className="grid md:grid-cols-2 gap-4">
           <ExperimentsLabSection />
-          <AIPerformanceSection />
+          <LeadershipQuestionsSection />
         </div>
 
         {/* Row 4: Questions for Leadership */}
