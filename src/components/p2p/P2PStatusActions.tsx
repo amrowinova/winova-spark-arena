@@ -188,29 +188,11 @@ export function P2PStatusActions({ order, currentUserId, isSupport = false, onOr
   // Dispute state (both parties - non-support)
   if (status === 'dispute' && !isSupport) {
     return (
-      <div className="p-3 bg-muted/30 border-t border-border">
-        <Card className="p-4 bg-destructive/10 border-destructive/30">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <P2PRoleBadge role={roleInfo.myRole} isYou size="sm" />
-              </div>
-              <p className="font-medium text-destructive">
-                {isRTL ? '⚖️ نزاع قيد المراجعة' : '⚖️ Dispute Under Review'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {isRTL 
-                  ? 'تم قفل الأزرار – فريق الدعم يراجع الصفقة'
-                  : 'Buttons locked – Support reviewing transaction'
-                }
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
+      <P2PDisputeActions
+        order={order}
+        currentUserId={currentUserId}
+        onOrderCompleted={onOrderCompleted}
+      />
     );
   }
   

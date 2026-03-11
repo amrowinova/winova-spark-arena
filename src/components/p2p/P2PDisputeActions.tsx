@@ -97,10 +97,10 @@ export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2
   return (
     <div className="p-3 bg-muted/30 border-t border-border space-y-3">
       {/* Info banner */}
-      <Card className="p-3 bg-amber-500/10 border-amber-500/30">
+      <Card className="p-3 bg-warning/10 border-warning/30">
         <div className="flex items-center gap-2">
-          <Scale className="h-4 w-4 text-amber-500 shrink-0" />
-          <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+          <Scale className="h-4 w-4 text-warning shrink-0" />
+          <p className="text-sm font-medium text-warning">
             {isRTL ? '⚖️ النزاع قيد المراجعة من فريق الدعم' : '⚖️ Dispute under review by support team'}
           </p>
         </div>
