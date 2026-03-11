@@ -557,13 +557,23 @@ function P2PContent() {
                 isActive={true}
                 onDeleteOrder={deleteOrder}
               />
-              
-              {/* Payment Details */}
-              {activeChatOrder.paymentDetails && (
-                <P2PPaymentCard 
-                  paymentDetails={activeChatOrder.paymentDetails}
-                />
-              )}
+
+              {/* Context Info Card — pinned above messages */}
+              <Card className="p-3 bg-info/5 border-info/20">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-info shrink-0 mt-0.5" />
+                  <p className="text-xs text-info">
+                    {roleInfo.isBuyer
+                      ? (isRTL
+                        ? `ستدفع ${activeChatOrder.total.toFixed(2)} ${activeChatOrder.currencySymbol} وستتلقى И${activeChatOrder.amount.toFixed(0)} Nova من ${isRTL ? activeChatOrder.seller.nameAr : activeChatOrder.seller.name}`
+                        : `You will pay ${activeChatOrder.currencySymbol} ${activeChatOrder.total.toFixed(2)} and receive И${activeChatOrder.amount.toFixed(0)} Nova from ${activeChatOrder.seller.name}`)
+                      : (isRTL
+                        ? `سيدفع ${isRTL ? activeChatOrder.buyer.nameAr : activeChatOrder.buyer.name} لك ${activeChatOrder.total.toFixed(2)} ${activeChatOrder.currencySymbol} مقابل И${activeChatOrder.amount.toFixed(0)} Nova`
+                        : `${activeChatOrder.buyer.name} will pay you ${activeChatOrder.currencySymbol} ${activeChatOrder.total.toFixed(2)} for И${activeChatOrder.amount.toFixed(0)} Nova`)
+                    }
+                  </p>
+                </div>
+              </Card>
             </>
           )}
         </div>
