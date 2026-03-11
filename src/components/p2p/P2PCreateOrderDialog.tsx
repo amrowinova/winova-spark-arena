@@ -212,7 +212,36 @@ export function P2PCreateOrderDialog({
               </Button>
             </div>
 
-            {/* Balance Info for Sell */}
+            {/* Country Selector */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                {isRTL ? 'الدولة' : 'Country'}
+              </Label>
+              <Select 
+                value={activeCountry.code} 
+                onValueChange={(code) => {
+                  const c = allCountries.find(x => x.code === code);
+                  if (c) setSelectedDialogCountry(c);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {allCountries.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      <span className="flex items-center gap-2">
+                        <span>{c.flag}</span>
+                        <span>{isRTL ? c.nameAr : c.name}</span>
+                        <span className="text-muted-foreground text-xs">({c.currency})</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {orderType === 'sell' && (
               <Card className="p-3 bg-muted/50 border-dashed">
                 <div className="flex items-center justify-between">
