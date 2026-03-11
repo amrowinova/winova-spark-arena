@@ -183,7 +183,7 @@ function P2PContent() {
         setActiveChatView(prev => prev ? { ...prev, messages: uiMessages } : null);
       }
     }
-  }, [db.messages, activeChatOrder?.id, activeChatView?.messages.length, user?.id]);
+  }, [db.messages, activeChatOrder?.id, activeChatView?.messages.length, currentAuthUserId]);
 
   // Sync activeChatView and activeChatOrder with chats state
   useEffect(() => {
