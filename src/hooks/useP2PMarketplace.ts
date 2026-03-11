@@ -82,9 +82,9 @@ export function useP2PMarketplace(selectedCountry?: string) {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Optionally filter by country
-      if (selectedCountry) {
-        query = query.eq('country', selectedCountry);
+      // Always filter by country (effective country)
+      if (effectiveCountry) {
+        query = query.eq('country', effectiveCountry);
       }
 
       const { data: ordersData, error: ordersError } = await query;
