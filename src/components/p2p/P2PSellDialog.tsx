@@ -175,36 +175,33 @@ export function P2PSellDialog({
     onOpenChange(newOpen);
   };
 
-  const handleAddAccount = () => {
+  const handleAddAccount = async () => {
     if (!selectedProvider || !fullName) return;
     if (isBank && !accountNumber) return;
     if (isWallet && !phoneNumber) return;
 
-    const newMethod: SavedPaymentMethod = {
-      id: `pm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      countryCode: offer.country.code,
-      type: selectedProvider.type,
-      providerName: selectedProvider.name,
-      providerNameAr: selectedProvider.nameAr,
-      fullName,
-      accountNumber: isBank ? accountNumber : undefined,
-      phoneNumber: isWallet ? phoneNumber : undefined,
-      isDefault: localMethods.length === 0,
-      createdAt: new Date(),
-    };
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    // Save to localStorage
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const existingMethods = stored ? JSON.parse(stored) : [];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...existingMethods, newMethod]));
-    
+    const { data, error } = await supabase.from('payment_methods').insert({
+      user_id: user.id,
+      country: offer.country.code,
+      type: selectedProvider.type,
+      provider_name: selectedProvider.name,
+      provider_name_ar: selectedProvider.nameAr,
+      full_name: fullName,
+      account_number: isBank ? accountNumber : null,
+      phone_number: isWallet ? phoneNumber : null,
+      is_default: localMethods.length === 0,
+    }).select('id').single();
+
     resetForm();
     setIsAddingAccount(false);
-    refreshMethods();
-    setSelectedPaymentMethodId(newMethod.id);
+    await refreshMethods();
+    if (data) setSelectedPaymentMethodId(data.id);
   };
 
-  const handleEditAccount = () => {
+  const handleEditAccount = async () => {
     if (!editingAccountId || !fullName) return;
     const editingMethod = localMethods.find(m => m.id === editingAccountId);
     if (!editingMethod) return;
@@ -215,40 +212,25 @@ export function P2PSellDialog({
     if (isEditBank && !accountNumber) return;
     if (isEditWallet && !phoneNumber) return;
 
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const allMethods = JSON.parse(stored);
-      const updated = allMethods.map((m: any) => 
-        m.id === editingAccountId 
-          ? {
-              ...m,
-              fullName,
-              accountNumber: isEditBank ? accountNumber : undefined,
-              phoneNumber: isEditWallet ? phoneNumber : undefined,
-            }
-          : m
-      );
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    }
+    await supabase.from('payment_methods').update({
+      full_name: fullName,
+      account_number: isEditBank ? accountNumber : null,
+      phone_number: isEditWallet ? phoneNumber : null,
+    }).eq('id', editingAccountId);
     
     resetForm();
     setEditingAccountId(null);
-    refreshMethods();
+    await refreshMethods();
   };
 
-  const handleDeleteAccount = (id: string) => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const allMethods = JSON.parse(stored);
-      const filtered = allMethods.filter((m: any) => m.id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-    }
+  const handleDeleteAccount = async (id: string) => {
+    await supabase.from('payment_methods').delete().eq('id', id);
     
     if (selectedPaymentMethodId === id) {
       setSelectedPaymentMethodId('');
     }
     setDeleteConfirmId(null);
-    refreshMethods();
+    await refreshMethods();
   };
 
   const openEditForm = (method: SavedPaymentMethod) => {
