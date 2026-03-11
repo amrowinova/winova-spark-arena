@@ -36,6 +36,8 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
     relistOrder,
     isMockMode,
     triggerMockBuyerPayment,
+    getCancellationsIn24h,
+    isBlockedFromOrders,
   } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   const { extendTime, isExtending } = useP2PExtendTime();
