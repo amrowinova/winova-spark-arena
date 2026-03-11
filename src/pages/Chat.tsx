@@ -724,7 +724,6 @@ function ChatContent() {
     setActiveTeamMembers([]);
     setShowP2PDetails(false);
     setShowSupportChat(false);
-    setShowAIControlRoom(false);
     setReplyToDM(null);
   };
 
