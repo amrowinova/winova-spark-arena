@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useP2PDatabase, P2POrderWithProfiles, DBP2PParticipant, P2POpResult } from '@/hooks/useP2PDatabase';
 import { dbStatusToUI, UIP2POrderStatus, DBP2POrderStatus } from '@/lib/p2pStatusMapper';
 import { Database } from '@/integrations/supabase/types';
