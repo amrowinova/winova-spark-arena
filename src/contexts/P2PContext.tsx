@@ -281,6 +281,7 @@ function toUIMessage(dbMessage: P2PMessageRow, currentUserId: string): P2PMessag
 
 export function P2PProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const db = useP2PDatabase();
   
   const [chats, setChats] = useState<P2PChat[]>([]);
