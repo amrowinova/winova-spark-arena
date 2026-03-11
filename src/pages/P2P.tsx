@@ -485,7 +485,7 @@ function P2PContent() {
     return (
       <P2POrderCompletedScreen
         order={activeChatOrder}
-        currentUserId={user.id}
+        currentUserId={currentAuthUserId}
         onRate={handleRateOrder}
         onClose={handleCloseCompletedScreen}
         hasRated={hasRatedOrder(activeChatOrder.id)}
