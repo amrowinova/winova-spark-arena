@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Clock, Loader2, CheckCircle, Timer, Scale, Lock, XCircle, Upload, ImageIcon } from 'lucide-react';
+import { Clock, Loader2, CheckCircle, Timer, Scale, Lock, XCircle, Upload } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
