@@ -13,7 +13,7 @@ import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useChatPresence } from '@/hooks/useChatPresence';
-import { isAISystemUser } from '@/lib/aiSystemUser';
+const AI_SYSTEM_USER_ID = '00000000-0000-0000-0000-a10000000001';
 
 interface DMChatViewProps {
   conversation: DMConversation;
