@@ -33,7 +33,6 @@ import { TeamInfoSheet, TeamChatMember } from '@/components/chat/TeamInfoSheet';
 import { ChatSearchResults, ConversationResult, UserResult } from '@/components/chat/ChatSearchResults';
 import { SupportChatView } from '@/components/chat/SupportChatView';
 import { UserSearchSheet } from '@/components/chat/UserSearchSheet';
-import { AIRoomView } from '@/components/chat/AIRoomView';
 import { TeamChatView } from '@/components/chat/TeamChatView';
 import { RankBadge } from '@/components/common/RankBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
