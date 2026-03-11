@@ -775,6 +775,7 @@ function P2PContent() {
                       onExecute={handleExecuteOrder}
                       actionType="buy"
                       isExecuting={isExecutingOrder}
+                      isCountryMatch={order.country === user.country}
                     />
                   </motion.div>
                 ))}
