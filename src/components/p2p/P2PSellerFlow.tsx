@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Clock, Loader2, CheckCircle, Timer, Scale, Lock, XCircle, Upload } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Clock, Loader2, CheckCircle, Timer, Scale, Lock, XCircle, Upload, Bell } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,8 +8,8 @@ import { P2POrder, useP2P } from '@/contexts/P2PContext';
 import { ReleaseSafetyFlow } from './release-safety';
 import { useBanner } from '@/contexts/BannerContext';
 import { useP2PExtendTime } from '@/hooks/useP2PExtendTime';
-import { useP2PDisputeFiles } from '@/hooks/useP2PDisputeFiles';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useP2PDatabase } from '@/hooks/useP2PDatabase';
+import { motion } from 'framer-motion';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -27,6 +27,8 @@ interface P2PSellerFlowProps {
   onOrderCompleted?: () => void;
 }
 
+const REMINDER_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
+
 export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSellerFlowProps) {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
@@ -41,6 +43,7 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
   } = useP2P();
   const { success: showSuccess, error: showError } = useBanner();
   const { extendTime, isExtending } = useP2PExtendTime();
+  const db = useP2PDatabase();
 
   const [showSafetyFlow, setShowSafetyFlow] = useState(false);
   const [showDisputeDialog, setShowDisputeDialog] = useState(false);
@@ -50,7 +53,37 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
   const [isSubmittingDispute, setIsSubmittingDispute] = useState(false);
   const disputeFileRef = useRef<HTMLInputElement>(null);
 
+  // Reminder cooldown
+  const [reminderCooldown, setReminderCooldown] = useState(0);
+  const reminderTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const hasTriggeredMockRef = useRef<string | null>(null);
+
+  // Check last reminder time from localStorage
+  const getLastReminderTime = useCallback(() => {
+    const key = `p2p_reminder_${order.id}`;
+    const stored = localStorage.getItem(key);
+    return stored ? parseInt(stored, 10) : 0;
+  }, [order.id]);
+
+  const setLastReminderTime = useCallback(() => {
+    const key = `p2p_reminder_${order.id}`;
+    localStorage.setItem(key, Date.now().toString());
+  }, [order.id]);
+
+  // Update cooldown timer
+  useEffect(() => {
+    const updateCooldown = () => {
+      const lastTime = getLastReminderTime();
+      const elapsed = Date.now() - lastTime;
+      const remaining = Math.max(0, REMINDER_COOLDOWN_MS - elapsed);
+      setReminderCooldown(remaining);
+    };
+
+    updateCooldown();
+    const interval = setInterval(updateCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [getLastReminderTime]);
 
   // Auto-trigger mock buyer payment
   useEffect(() => {
@@ -68,7 +101,6 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
   const buyerName = isRTL ? (order.buyer.nameAr || order.buyer.name) : order.buyer.name;
   const paymentMethodName = order.paymentDetails.bankName;
 
-  // Handle cancel
   const handleCancelWithReason = async (reason: string) => {
     setShowCancelDialog(false);
     const result = await relistOrder(order.id, reason);
@@ -79,7 +111,6 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
     }
   };
 
-  // Handle release
   const handleConfirmedRelease = async () => {
     const result = await releaseFunds(order.id);
     if (!result.success) {
@@ -93,7 +124,6 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
     onOrderCompleted?.();
   };
 
-  // Handle extend time (30 minutes)
   const handleExtendTime = async () => {
     const result = await extendTime(order.id, 30);
     if (result.success) {
@@ -103,7 +133,17 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
     }
   };
 
-  // Handle dispute submission
+  const handleSendReminder = async () => {
+    setLastReminderTime();
+    await db.sendSystemMessage(
+      order.id,
+      'buyer_copied_bank',
+      `🔔 ${order.seller.name} sent a payment reminder`,
+      `🔔 أرسل ${order.seller.nameAr || order.seller.name} تذكيرًا بالدفع`
+    );
+    showSuccess(isRTL ? '🔔 تم إرسال التذكير' : '🔔 Reminder sent');
+  };
+
   const handleSubmitDispute = async () => {
     if (!disputeReason.trim()) {
       showError(isRTL ? 'يرجى كتابة سبب النزاع' : 'Please enter a dispute reason');
@@ -128,11 +168,15 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
     }
   };
 
-  // Normalize status to handle both DB and UI status values
+  // Normalize status
   const statusStr = order.status as string;
   const normalizedStatus = statusStr === 'awaiting_payment' ? 'waiting_payment' 
     : statusStr === 'payment_sent' ? 'paid' 
     : statusStr;
+
+  const cooldownMinutes = Math.ceil(reminderCooldown / 60000);
+  const cooldownSeconds = Math.ceil((reminderCooldown % 60000) / 1000);
+  const isReminderDisabled = reminderCooldown > 0;
 
   // Seller waiting for buyer payment
   if (normalizedStatus === 'waiting_payment') {
@@ -143,17 +187,8 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
           animate={{ opacity: 1, y: 0 }}
           className="p-3 bg-muted/30 border-t border-border space-y-3"
         >
-          {/* Header: What will happen */}
-          <Card className="p-3 bg-info/10 border-info/30">
-            <p className="text-sm font-medium text-info text-center">
-              {isRTL
-                ? `🏦 سيقوم ${buyerName} بتحويل ${order.total.toFixed(2)} ${order.currencySymbol} لحسابك (${paymentMethodName})`
-                : `🏦 ${buyerName} will transfer ${order.currencySymbol} ${order.total.toFixed(2)} to your account (${paymentMethodName})`
-              }
-            </p>
-          </Card>
-
-          <Card className="p-4 bg-muted/30 border-border">
+          {/* Waiting message */}
+          <Card className="p-4 bg-info/10 border-info/30">
             <div className="flex items-start gap-3">
               <div className="relative">
                 <div className="w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
@@ -163,30 +198,48 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
               </div>
               <div className="flex-1">
                 <p className="font-medium text-foreground">
-                  {isRTL ? '⏳ بانتظار الدفع من المشتري' : '⏳ Waiting for buyer payment'}
+                  {isRTL 
+                    ? `⏳ في انتظار تأكيد الدفع من ${buyerName}` 
+                    : `⏳ Waiting for payment from ${buyerName}`}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {isRTL
-                    ? 'يرجى الانتظار حتى يتم التحويل.'
-                    : 'Please wait for the transfer.'
-                  }
-                </p>
-              </div>
-            </div>
-
-            {/* Security Notice */}
-            <div className="mt-3 p-2 bg-warning/10 rounded-lg border border-warning/20">
-              <div className="flex items-start gap-2">
-                <Lock className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
-                <p className="text-[10px] text-warning/80">
-                  {isRTL
-                    ? '🔒 يجب أن يتم التحويل من حساب باسم المشتري نفسه. ❌ التحويل من طرف ثالث ممنوع.'
-                    : "🔒 Transfer must be from buyer's own account. ❌ Third-party transfers are prohibited."
+                    ? `توقّع استلام ${order.total.toFixed(2)} ${order.currencySymbol} في حسابك`
+                    : `Expect to receive ${order.currencySymbol} ${order.total.toFixed(2)} in your account`
                   }
                 </p>
               </div>
             </div>
           </Card>
+
+          {/* Reminder button with cooldown */}
+          <Button
+            variant="outline"
+            onClick={handleSendReminder}
+            disabled={isReminderDisabled}
+            className="w-full h-11 gap-2 border-warning/30 text-warning hover:bg-warning/10"
+          >
+            <Bell className="h-4 w-4" />
+            {isReminderDisabled
+              ? (isRTL 
+                  ? `تذكير المشتري (${cooldownMinutes}:${cooldownSeconds.toString().padStart(2, '0')})` 
+                  : `Remind Buyer (${cooldownMinutes}:${cooldownSeconds.toString().padStart(2, '0')})`)
+              : (isRTL ? 'تذكير المشتري' : 'Remind Buyer')
+            }
+          </Button>
+
+          {/* Security Notice */}
+          <div className="p-2 bg-warning/10 rounded-lg border border-warning/20">
+            <div className="flex items-start gap-2">
+              <Lock className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
+              <p className="text-[10px] text-warning/80">
+                {isRTL
+                  ? '🔒 يجب أن يتم التحويل من حساب باسم المشتري نفسه. ❌ التحويل من طرف ثالث ممنوع.'
+                  : "🔒 Transfer must be from buyer's own account. ❌ Third-party transfers are prohibited."
+                }
+              </p>
+            </div>
+          </div>
 
           {isBlockedFromOrders() ? (
             <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/30 text-center">
@@ -227,7 +280,6 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
     return (
       <>
         <div className="p-3 bg-muted/30 border-t border-border space-y-3">
-          {/* Header: Buyer info */}
           <Card className="p-3 bg-nova/10 border-nova/30">
             <p className="text-sm font-medium text-nova text-center">
               {isRTL
@@ -237,7 +289,6 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
             </p>
           </Card>
 
-          {/* Security Warning */}
           <div className="flex items-start gap-2 p-3 bg-warning/10 rounded-lg border border-warning/30">
             <Lock className="h-4 w-4 text-warning shrink-0 mt-0.5" />
             <p className="text-xs text-warning/80">
@@ -248,9 +299,7 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
             </p>
           </div>
 
-          {/* Three action buttons */}
           <div className="space-y-2">
-            {/* Release */}
             <Button
               onClick={() => setShowSafetyFlow(true)}
               className="w-full h-12 gap-2 bg-success hover:bg-success/90"
@@ -262,7 +311,6 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
               }
             </Button>
 
-            {/* Extend time */}
             <Button
               variant="outline"
               onClick={handleExtendTime}
@@ -277,7 +325,6 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
               {isRTL ? '⏳ لم يصل بعد — تمديد الوقت' : '⏳ Not received yet — Extend time'}
             </Button>
 
-            {/* Open dispute */}
             <Button
               variant="outline"
               onClick={() => setShowDisputeDialog(true)}
@@ -289,7 +336,6 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
           </div>
         </div>
 
-        {/* Release Safety Flow */}
         <ReleaseSafetyFlow
           open={showSafetyFlow}
           onOpenChange={setShowSafetyFlow}
@@ -300,7 +346,6 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
           onConfirmRelease={handleConfirmedRelease}
         />
 
-        {/* Dispute Dialog */}
         <AlertDialog open={showDisputeDialog} onOpenChange={setShowDisputeDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
