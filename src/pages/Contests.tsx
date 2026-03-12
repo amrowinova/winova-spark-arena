@@ -123,7 +123,7 @@ export default function ContestsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Safety: if join dialog is open and join window closes (18:00 KSA), close it immediately.
+  // Safety: if join dialog is open and join window closes (19:00 KSA), close it immediately.
   useEffect(() => {
     if (joinDialogOpen && !timing.canJoin) {
       setJoinDialogOpen(false);
@@ -133,9 +133,9 @@ export default function ContestsPage() {
   // Fetch real contest data
   const fetchContestData = useCallback(async () => {
     try {
-      // Fetch today's contest (KSA), or (before 10 AM KSA) fall back to the most recent previous contest.
-      // IMPORTANT: We do NOT depend on contests.status for join eligibility.
-      const ksaToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+      // Use Saudi date for "today"
+      const { getSaudiDateStr } = await import('@/lib/contestTiming');
+      const ksaToday = getSaudiDateStr();
 
       const { data: contestData, error: contestError } = await supabase
         .from('contests')
