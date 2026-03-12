@@ -426,7 +426,7 @@ export default function HomePage() {
                   asChild
                   className="w-full h-12 bg-gradient-to-r from-nova to-amber-500 text-primary-foreground font-bold text-base"
                 >
-                  <Link to="/wallet">
+                  <Link to="/p2p">
                     {language === 'ar' ? 'اشحن Nova الآن 💰' : 'Top Up Nova Now 💰'}
                   </Link>
                 </Button>
