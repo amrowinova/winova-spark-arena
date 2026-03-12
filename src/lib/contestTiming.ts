@@ -3,10 +3,9 @@
  * All times are in KSA timezone (Asia/Riyadh = UTC+3)
  * 
  * Daily Schedule (KSA Time):
- * - 10:00 AM: Contest opens, join window starts
- * - 02:00 PM: Stage 1 starts (qualifying)
- * - 08:00 PM: Join window closes + Stage 1 ends, Final stage starts
- *   ⚠️ TEMP: Join window extended to 20:00 for testing (was 18:00)
+ * - 10:00 AM: Contest opens, join window starts, Phase 1 starts
+ * - 07:00 PM: Join window (registration) closes
+ * - 08:00 PM: Phase 1 ends, Phase 2 (Final) starts
  * - 10:00 PM: Contest ends, winners announced
  * - 10:00 PM → 10:00 AM next day: Results display (read-only)
  */
