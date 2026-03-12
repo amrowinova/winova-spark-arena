@@ -605,7 +605,26 @@ function P2PContent() {
                           {msg.senderName}
                         </p>
                       )}
-                      <p className="text-sm">{msg.content}</p>
+                      {/* Render inline images */}
+                      {msg.content.includes('[image](') || msg.content.includes('[صورة](') ? (
+                        <div>
+                          {(() => {
+                            const match = msg.content.match(/\[(?:image|صورة)\]\((https?:\/\/[^\s)]+)\)/);
+                            return match ? (
+                              <img
+                                src={match[1]}
+                                alt="Shared image"
+                                className="rounded-lg max-h-48 w-auto cursor-pointer"
+                                onClick={() => window.open(match[1], '_blank')}
+                              />
+                            ) : (
+                              <p className="text-sm">{msg.content}</p>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <p className="text-sm">{msg.content}</p>
+                      )}
                     </div>
                     <p className={`text-[10px] text-muted-foreground mt-1 ${msg.isMine ? 'text-end' : ''}`}>
                       {msg.time}
@@ -618,7 +637,7 @@ function P2PContent() {
           </div>
         </ScrollArea>
 
-        {/* Action Buttons based on status/role - Using unified component */}
+        {/* Action Buttons based on status/role */}
         {!isCompleted && !isCancelled && !isReleased && (
           <P2PStatusActions 
             order={activeChatOrder}
@@ -627,22 +646,14 @@ function P2PContent() {
           />
         )}
 
-        {/* Message Input */}
+        {/* Message Input with attachment */}
         {!isCompleted && !isCancelled && (
-          <div className="p-4 border-t border-border bg-card safe-bottom">
-            <div className="flex items-center gap-2">
-              <Input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={isRTL ? 'اكتب رسالة...' : 'Type a message...'}
-                className="flex-1"
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              />
-              <Button size="icon" onClick={handleSendMessage} disabled={!message.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <P2PChatInput
+            orderId={activeChatOrder.id}
+            onSendMessage={(msg) => {
+              sendMessage(activeChatView.id, msg);
+            }}
+          />
         )}
 
         <ReceiptDialog
