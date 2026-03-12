@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Clock, Users, ArrowRight, Gift, Calendar, Award } from 'lucide-react';
+import { Trophy, Clock, Users, ArrowRight, Gift, Award, Lock, CheckCircle, Vote, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CountdownTimer } from '@/components/common/CountdownTimer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { Link } from 'react-router-dom';
-import { getKsaJoinWindow } from '@/lib/ksaTime';
+import { getContestTiming, type ContestTimingInfo } from '@/lib/contestTiming';
 
 interface ContestJoinCardProps {
   prizePool: number;
@@ -21,18 +20,9 @@ interface ContestJoinCardProps {
   userRank?: number;
   onJoin: () => void;
   contestAvailable?: boolean;
+  userQualified?: boolean;
 }
 
-// Helper to get day name
-function getDayName(date: Date, language: string): string {
-  const days = {
-    ar: ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
-    en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-  };
-  return language === 'ar' ? days.ar[date.getDay()] : days.en[date.getDay()];
-}
-
-// Format date as DD/MM/YYYY
 function formatDate(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -40,302 +30,428 @@ function formatDate(date: Date): string {
   return `${day}/${month}/${year}`;
 }
 
+function getDayName(date: Date, language: string): string {
+  const days = {
+    ar: ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
+    en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  };
+  return language === 'ar' ? days.ar[date.getDay()] : days.en[date.getDay()];
+}
+
+/** Live HH:MM:SS countdown hook */
+function useCountdown(targetMs: number): string {
+  const [display, setDisplay] = useState('00:00:00');
+
+  useEffect(() => {
+    const tick = () => {
+      const diff = Math.max(0, targetMs - Date.now());
+      const h = Math.floor(diff / 3_600_000);
+      const m = Math.floor((diff % 3_600_000) / 60_000);
+      const s = Math.floor((diff % 60_000) / 1000);
+      setDisplay(
+        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      );
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [targetMs]);
+
+  return display;
+}
+
 export function ContestJoinCard({
   prizePool,
   participants,
-  stage,
-  closesAt,
-  endsAt,
   entryFee,
   hasJoined,
   userRank,
   onJoin,
   contestAvailable = true,
+  userQualified = false,
 }: ContestJoinCardProps) {
   const { language } = useLanguage();
   const { user } = useUser();
   const { getCurrencyInfo } = useNovaPricing();
   const pricing = getCurrencyInfo(user.country);
-  
-  // Calculate total balance in Nova equivalent (1 Nova = 2 Aura)
-  const totalNovaEquivalent = user.novaBalance + (user.auraBalance / 2);
-  
-  const [joinWindowMessage, setJoinWindowMessage] = useState('');
-  const [canJoin, setCanJoin] = useState(true);
+  const isRTL = language === 'ar';
 
-  // Calculate prize distribution (percentages)
-  const prizes = {
-    first: Math.floor(prizePool * 0.50),
-    second: Math.floor(prizePool * 0.20),
-    third: Math.floor(prizePool * 0.15),
-    fourth: Math.floor(prizePool * 0.10),
-    fifth: Math.floor(prizePool * 0.05),
+  const totalNovaEquivalent = user.novaBalance + user.auraBalance / 2;
+
+  // Live timing
+  const [timing, setTiming] = useState<ContestTimingInfo>(getContestTiming());
+  useEffect(() => {
+    const id = setInterval(() => setTiming(getContestTiming()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const phase = timing.currentPhase;
+  const now = Date.now();
+
+  // Countdown targets for each state
+  const countdownToOpen = useCountdown(timing.joinOpenAt.getTime());
+  const countdownToRegClose = useCountdown(timing.joinCloseAt.getTime());
+  const countdownToFinal = useCountdown(timing.finalStart.getTime());
+  const countdownToPhase1End = useCountdown(timing.stage1End.getTime());
+  const countdownToFinalEnd = useCountdown(timing.finalEnd.getTime());
+  const countdownToNextOpen = useCountdown(
+    timing.joinOpenAt.getTime() > now ? timing.joinOpenAt.getTime() : timing.resultsEnd.getTime()
+  );
+
+  // Prize distribution
+  const prizes = [
+    { label: isRTL ? 'المركز الأول' : '1st Place', emoji: '🥇', pct: 50 },
+    { label: isRTL ? 'المركز الثاني' : '2nd Place', emoji: '🥈', pct: 20 },
+    { label: isRTL ? 'المركز الثالث' : '3rd Place', emoji: '🥉', pct: 15 },
+    { label: isRTL ? 'المركز الرابع' : '4th Place', emoji: '🏅', pct: 10 },
+    { label: isRTL ? 'المركز الخامس' : '5th Place', emoji: '🏅', pct: 5 },
+  ];
+
+  const noBalance = totalNovaEquivalent < entryFee;
+
+  // ─── Determine Join/Status Zone ───
+  const renderJoinStatusZone = () => {
+    // State E — After 10 PM (or results phase)
+    if (phase === 'results' || (phase === 'pre_open' && timing.joinOpenAt.getTime() > now)) {
+      if (phase === 'results') {
+        return (
+          <div className="p-3 bg-muted/50 border border-border rounded-lg text-center space-y-1">
+            <div className="flex items-center justify-center gap-2">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-muted-foreground">
+                {isRTL ? 'انتهت المسابقة' : 'Contest Ended'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isRTL ? `التسجيل يفتح بعد ${countdownToNextOpen}` : `Registration opens in ${countdownToNextOpen}`}
+            </p>
+          </div>
+        );
+      }
+
+      // State A — Before 10 AM
+      return (
+        <div className="space-y-2">
+          {noBalance ? (
+            <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-center">
+              <div className="flex items-center justify-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <span className="text-xs font-medium text-warning">
+                  {isRTL
+                    ? 'لا يوجد رصيد كافٍ — قم بتعبئة Nova للانضمام'
+                    : 'Insufficient balance — Top up Nova to join'}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <Button className="w-full h-12 text-base font-bold" onClick={onJoin}>
+              🏆 {isRTL ? `انضم للمسابقة — تبدأ بعد ${countdownToOpen}` : `Join Contest — Starts in ${countdownToOpen}`}
+            </Button>
+          )}
+        </div>
+      );
+    }
+
+    // State B — 10 AM to 7 PM (Phase 1 active, registration open)
+    if ((phase === 'stage1' || phase === 'join_only') && timing.canJoin) {
+      if (hasJoined) {
+        return (
+          <div className="p-3 bg-success/10 border border-success/30 rounded-lg text-center space-y-1">
+            <div className="flex items-center justify-center gap-2 text-success">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-sm font-semibold">
+                {isRTL ? 'أنت مسجّل' : 'You are registered'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              ⚠️ {isRTL ? `ينتهي التسجيل بعد ${countdownToRegClose}` : `Registration closes in ${countdownToRegClose}`}
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-2">
+              <Link to="/contests">
+                {isRTL ? 'شاهد المسابقة' : 'View Contest'}
+                <ArrowRight className="h-3 w-3 ms-1" />
+              </Link>
+            </Button>
+          </div>
+        );
+      }
+
+      if (noBalance) {
+        return (
+          <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-center">
+            <div className="flex items-center justify-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <span className="text-xs font-medium text-warning">
+                {isRTL
+                  ? 'لا يوجد رصيد كافٍ — قم بتعبئة Nova للانضمام'
+                  : 'Insufficient balance — Top up Nova to join'}
+              </span>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-2">
+          <Button className="w-full h-12 text-base font-bold" onClick={onJoin}>
+            🏆 {isRTL ? 'انضم الآن' : 'Join Now'}
+            <ArrowRight className="h-4 w-4 ms-2" />
+          </Button>
+          <p className="text-xs text-center text-warning font-medium">
+            ⚠️ {isRTL ? `ينتهي التسجيل بعد ${countdownToRegClose}` : `Registration closes in ${countdownToRegClose}`}
+          </p>
+        </div>
+      );
+    }
+
+    // State C — 7 PM to 8 PM (registration closed, waiting for final)
+    if (phase === 'stage1' && !timing.canJoin) {
+      if (hasJoined) {
+        return (
+          <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg text-center space-y-1">
+            <div className="flex items-center justify-center gap-2 text-primary">
+              <Trophy className="h-4 w-4" />
+              <span className="text-sm font-semibold">
+                {isRTL ? 'انتظر المرحلة النهائية' : 'Wait for Final Stage'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isRTL ? `تبدأ بعد ${countdownToFinal}` : `Starts in ${countdownToFinal}`}
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-2">
+              <Link to="/contests">
+                {isRTL ? 'شاهد المسابقة' : 'View Contest'}
+                <ArrowRight className="h-3 w-3 ms-1" />
+              </Link>
+            </Button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="p-3 bg-muted/50 border border-border rounded-lg text-center">
+          <div className="flex items-center justify-center gap-2">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold text-muted-foreground">
+              {isRTL ? 'انتهى التسجيل' : 'Registration Closed'}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // State D — 8 PM to 10 PM (Final active)
+    if (phase === 'final') {
+      if (hasJoined && userQualified) {
+        return (
+          <div className="space-y-2">
+            <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg text-center">
+              <div className="flex items-center justify-center gap-2 text-primary">
+                <Trophy className="h-4 w-4" />
+                <span className="text-sm font-semibold">
+                  {isRTL ? 'تأهلت — صوّت الآن' : 'Qualified — Vote Now'}
+                </span>
+              </div>
+            </div>
+            <Button asChild className="w-full h-11">
+              <Link to="/contests">
+                <Vote className="h-4 w-4 me-2" />
+                {isRTL ? 'ادخل المسابقة' : 'Enter Contest'}
+              </Link>
+            </Button>
+          </div>
+        );
+      }
+
+      if (hasJoined && !userQualified) {
+        return (
+          <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center">
+            <span className="text-sm font-semibold text-destructive">
+              ❌ {isRTL ? 'لم تتأهل للمرحلة النهائية' : 'Did not qualify for Final Stage'}
+            </span>
+          </div>
+        );
+      }
+
+      return (
+        <div className="p-3 bg-muted/50 border border-border rounded-lg text-center">
+          <div className="flex items-center justify-center gap-2">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold text-muted-foreground">
+              {isRTL ? 'انتهى التسجيل' : 'Registration Closed'}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback
+    return null;
   };
 
-  // Dynamic join window messaging - based on KSA time (10:00-18:00)
-  useEffect(() => {
-    const updateJoinWindow = () => {
-      // Case 1: No contest record for today
-      if (!contestAvailable) {
-        setCanJoin(false);
-        setJoinWindowMessage(language === 'ar' ? 'لا توجد مسابقة لليوم' : 'No contest for today');
-        return;
-      }
+  // ─── Phase Card ───
+  const renderPhaseCard = (
+    phaseNum: 1 | 2,
+    label: string,
+    isActive: boolean,
+    isFinished: boolean,
+    countdownStr: string,
+    startLabel: string
+  ) => {
+    return (
+      <div
+        className={`p-3 rounded-lg border ${
+          isActive
+            ? 'bg-primary/10 border-primary/30'
+            : isFinished
+            ? 'bg-success/5 border-success/20'
+            : 'bg-muted/30 border-border'
+        }`}
+      >
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-semibold text-foreground">
+            {label}
+          </span>
+          {isActive && (
+            <span className="text-[10px] px-2 py-0.5 bg-success text-success-foreground rounded-full font-medium">
+              {isRTL ? '🟢 الآن' : '🟢 Live'}
+            </span>
+          )}
+          {isFinished && (
+            <span className="text-[10px] px-2 py-0.5 bg-success/20 text-success rounded-full font-medium">
+              {isRTL ? '✅ انتهت' : '✅ Done'}
+            </span>
+          )}
+        </div>
 
-      // Case 2: Contest exists - check time window (KSA wall-clock, second-precise)
-      const joinWindow = getKsaJoinWindow();
+        {isActive && (
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-[11px] text-muted-foreground">
+              {isRTL ? 'تنتهي بعد:' : 'Ends in:'}
+            </span>
+            <span className="font-mono font-bold text-sm text-primary">{countdownStr}</span>
+          </div>
+        )}
 
-      // Before 10:00 KSA - not open yet
-      if (joinWindow.nowWallClockMs < joinWindow.joinOpenWallClockMs) {
-        setCanJoin(false);
-        setJoinWindowMessage(language === 'ar' ? 'التسجيل يفتح الساعة 10:00 صباحاً' : 'Registration opens at 10:00 AM');
-        return;
-      }
-      
-      // After 18:00 KSA - closed for the day
-      if (joinWindow.nowWallClockMs >= joinWindow.joinCloseWallClockMs) {
-        setCanJoin(false);
-        setJoinWindowMessage(language === 'ar' ? 'تم إغلاق باب الانضمام' : 'Registration is closed');
-        return;
-      }
-      
-      // Between 10:00 and 18:00 KSA - open for joining
-      const minutesUntilClose = Math.max(0, Math.floor(joinWindow.msUntilClose / 60000));
-      
-      if (minutesUntilClose <= 30) {
-        setCanJoin(true);
-        setJoinWindowMessage(language === 'ar' ? '⚠️ باب الانضمام يغلق قريبًا!' : '⚠️ Joining closes soon!');
-      } else if (minutesUntilClose <= 60) {
-        setCanJoin(true);
-        setJoinWindowMessage(language === 'ar' ? `⏳ باب الانضمام يغلق خلال ${minutesUntilClose} دقيقة` : `⏳ Joining closes in ${minutesUntilClose} min`);
-      } else {
-        setCanJoin(true);
-        setJoinWindowMessage(language === 'ar' ? '⏳ باب الانضمام مفتوح' : '⏳ Joining is open');
-      }
-    };
+        {!isActive && !isFinished && (
+          <p className="text-[11px] text-muted-foreground mt-1">{startLabel}</p>
+        )}
 
-    updateJoinWindow();
-    const interval = setInterval(updateJoinWindow, 1000);
-    return () => clearInterval(interval);
-  }, [language, contestAvailable]);
+        {isFinished && phaseNum === 1 && (
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {isRTL ? 'تم تأهيل 50 متسابقاً' : '50 contestants qualified'}
+          </p>
+        )}
+      </div>
+    );
+  };
 
-  // Calculate stage 1 end and final stage times
-  const now = new Date();
-  const stage1EndsAt = new Date(closesAt);
-  stage1EndsAt.setHours(22, 0, 0, 0); // Stage 1 ends at 10 PM
-  
-  const finalStartsAt = new Date(stage1EndsAt);
-  const finalEndsAt = new Date(stage1EndsAt);
-  finalEndsAt.setHours(23, 59, 59, 0); // Final ends at midnight
+  // Phase state detection
+  const phase1Active = phase === 'stage1' || phase === 'join_only';
+  const phase1Finished = phase === 'final' || phase === 'results';
+  const phase2Active = phase === 'final';
+  const phase2Finished = phase === 'results';
 
   return (
     <Card className="overflow-hidden border border-border shadow-sm">
-      {/* Header with Title and Date */}
+      {/* ① Contest Title + Prize Pool */}
       <div className="bg-card p-4 border-b border-border">
-        <div className="relative z-10">
-          {/* Title with Date */}
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Trophy className="h-5 w-5 text-primary" />
-            <span className="text-foreground font-bold text-lg">
-              {language === 'ar' 
-                ? `المسابقة اليومية – ${getDayName(now, language)} ${formatDate(now)}`
-                : `Daily Contest – ${getDayName(now, language)} ${formatDate(now)}`}
-            </span>
-          </div>
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Trophy className="h-5 w-5 text-primary" />
+          <span className="text-foreground font-bold text-lg">
+            {isRTL
+              ? `المسابقة اليومية – ${getDayName(new Date(), language)} ${formatDate(new Date())}`
+              : `Daily Contest – ${getDayName(new Date(), language)} ${formatDate(new Date())}`}
+          </span>
+        </div>
 
-          {/* Prize Pool - Dynamic */}
-          <div className="text-center p-3 bg-primary/5 border border-primary/20 rounded-lg mb-4">
+        <div className="text-center p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          <p className="text-muted-foreground text-xs mb-1">
+            {isRTL ? '💰 مجموع الجوائز' : '💰 Prize Pool'}
+          </p>
+          <p className="text-3xl font-bold text-primary">И {prizePool} Nova</p>
+          <p className="text-muted-foreground text-xs mt-1">
+            ≈ {pricing.symbol} {(prizePool * pricing.novaRate).toFixed(0)}
+          </p>
+        </div>
+
+        {/* Participants & Entry Fee */}
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="text-center p-2 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs mb-1">
+              <Users className="h-3 w-3" />
+              <span>{isRTL ? 'المشتركين' : 'Participants'}</span>
+            </div>
+            <p className="text-foreground font-bold">{participants}</p>
+          </div>
+          <div className="text-center p-2 bg-muted/50 rounded-lg">
             <p className="text-muted-foreground text-xs mb-1">
-              {language === 'ar' ? '💰 مجموع الجوائز' : '💰 Prize Pool'}
+              {isRTL ? 'رسوم الاشتراك' : 'Entry Fee'}
             </p>
-            <p className="text-foreground text-3xl font-bold text-primary">
-              И {prizePool} Nova
-            </p>
-            <p className="text-muted-foreground text-xs mt-1">
-              ≈ {pricing.symbol} {(prizePool * pricing.novaRate).toFixed(0)}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-2">
-              {language === 'ar' 
-                ? 'كلما زاد عدد المشتركين، زاد مجموع الجوائز تلقائيًا'
-                : 'The more participants, the bigger the prize pool'}
-            </p>
-          </div>
-
-          {/* Participants & Entry Fee */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="text-center p-2 bg-muted/50 rounded-lg">
-              <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs mb-1">
-                <Users className="h-3 w-3" />
-                <span>{language === 'ar' ? 'المشتركين' : 'Participants'}</span>
-              </div>
-              <p className="text-foreground font-bold">{participants}</p>
-            </div>
-            <div className="text-center p-2 bg-muted/50 rounded-lg">
-              <p className="text-muted-foreground text-xs mb-1">
-                {language === 'ar' ? 'رسوم الاشتراك' : 'Entry Fee'}
-              </p>
-              <p className="text-foreground font-bold">И {entryFee} Nova</p>
-            </div>
+            <p className="text-foreground font-bold">И {entryFee} Nova</p>
           </div>
         </div>
       </div>
 
-      <CardContent className="p-4 space-y-4">
-        {/* Prize Distribution */}
+      <CardContent className="p-4 space-y-3">
+        {/* ② Join/Status Button Zone */}
+        {renderJoinStatusZone()}
+
+        {/* ③ Phase 1 Card */}
+        {renderPhaseCard(
+          1,
+          isRTL ? 'المرحلة الأولى — التصفية' : 'Phase 1 — Qualifying',
+          phase1Active,
+          phase1Finished,
+          countdownToPhase1End,
+          isRTL ? 'تبدأ الساعة 10:00 صباحاً' : 'Starts at 10:00 AM'
+        )}
+
+        {/* ④ Phase 2 Card */}
+        {renderPhaseCard(
+          2,
+          isRTL ? 'المرحلة النهائية — ساعتين' : 'Final Stage — 2 Hours',
+          phase2Active,
+          phase2Finished,
+          countdownToFinalEnd,
+          phase1Active
+            ? isRTL
+              ? `تبدأ بعد ${countdownToFinal}`
+              : `Starts in ${countdownToFinal}`
+            : isRTL
+            ? 'تبدأ الساعة 8:00 مساءً'
+            : 'Starts at 8:00 PM'
+        )}
+
+        {/* ⑤ Prize Distribution */}
         <div className="p-3 bg-muted/30 rounded-lg">
           <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1">
             <Award className="h-4 w-4 text-primary" />
-            {language === 'ar' ? '🏅 توزيع الجوائز' : '🏅 Prize Distribution'}
+            {isRTL ? '🏅 توزيع الجوائز' : '🏅 Prize Distribution'}
           </p>
           <div className="space-y-1.5 text-xs">
-            <div className="flex justify-between items-center">
-              <span>🥇 {language === 'ar' ? 'المركز الأول' : '1st Place'} (50%)</span>
-              <span className="font-bold text-primary">И {prizes.first}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>🥈 {language === 'ar' ? 'المركز الثاني' : '2nd Place'} (20%)</span>
-              <span className="font-bold text-primary">И {prizes.second}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>🥉 {language === 'ar' ? 'المركز الثالث' : '3rd Place'} (15%)</span>
-              <span className="font-bold text-primary">И {prizes.third}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>🏅 {language === 'ar' ? 'المركز الرابع' : '4th Place'} (10%)</span>
-              <span className="font-bold text-primary">И {prizes.fourth}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>🏅 {language === 'ar' ? 'المركز الخامس' : '5th Place'} (5%)</span>
-              <span className="font-bold text-primary">И {prizes.fifth}</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-2 text-center">
-            {language === 'ar' 
-              ? '⚠️ قيمة كل جائزة تتغير تلقائيًا حسب عدد المشتركين'
-              : '⚠️ Prize values change automatically based on participants'}
-          </p>
-        </div>
-
-        {/* Contest Stages Timeline */}
-        <div className="p-3 bg-muted/30 rounded-lg">
-          <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1">
-            <Clock className="h-4 w-4 text-warning" />
-            {language === 'ar' ? '⏱️ مراحل المسابقة' : '⏱️ Contest Stages'}
-          </p>
-          
-          {/* Stage 1 */}
-          <div className={`p-2 rounded-lg mb-2 ${stage === 'stage1' ? 'bg-primary/10 border border-primary/30' : 'bg-muted/50'}`}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-foreground">
-                {language === 'ar' ? 'المرحلة الأولى' : 'Stage 1'}
-              </span>
-              {stage === 'stage1' ? (
-                <span className="text-[10px] px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full">
-                  {language === 'ar' ? 'الآن' : 'Now'}
+            {prizes.map((p) => (
+              <div key={p.pct} className="flex justify-between items-center">
+                <span>
+                  {p.emoji} {p.label} ({p.pct}%)
                 </span>
-              ) : (
-                <span className="text-[10px] text-muted-foreground">
-                  {language === 'ar' ? 'تبدأ 2:00 م' : 'Starts 2:00 PM'}
+                <span className="font-bold text-primary">
+                  И {Math.floor(prizePool * p.pct / 100)}
                 </span>
-              )}
-            </div>
-            <p className="text-[10px] text-muted-foreground mb-1">
-              🎯 {language === 'ar' ? 'يتأهل أعلى 50 متسابق حسب عدد الأصوات' : 'Top 50 contestants qualify by votes'}
-            </p>
-            {stage === 'stage1' && (
-              <div className="mt-2">
-                <p className="text-[10px] text-muted-foreground mb-1">
-                  {language === 'ar' ? 'تنتهي بعد:' : 'Ends in:'}
-                </p>
-                <CountdownTimer targetDate={endsAt} size="sm" showLabels hideDays />
               </div>
-            )}
-          </div>
-
-          {/* Final Stage */}
-          <div className={`p-2 rounded-lg ${stage === 'final' ? 'bg-primary/10 border border-primary/30' : 'bg-muted/50'}`}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-foreground">
-                {language === 'ar' ? 'المرحلة النهائية' : 'Final Stage'}
-              </span>
-              {stage === 'final' ? (
-                <span className="text-[10px] px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full">
-                  {language === 'ar' ? 'الآن' : 'Now'}
-                </span>
-              ) : (
-                <span className="text-[10px] text-muted-foreground">
-                  {language === 'ar' ? 'تبدأ 8:00 م · ساعتين · أعلى 5 يفوزون' : 'Starts 8:00 PM · 2 hours · Top 5 win'}
-                </span>
-              )}
-            </div>
-            <p className="text-[10px] text-muted-foreground mb-1">
-              🏆 {language === 'ar' ? 'يتم تحديد الفائزين الخمسة الأوائل' : 'Top 5 winners are determined'}
-            </p>
-            {stage === 'final' && (
-              <div className="mt-2">
-                <p className="text-[10px] text-muted-foreground mb-1">
-                  {language === 'ar' ? 'تنتهي بعد:' : 'Ends in:'}
-                </p>
-                <CountdownTimer targetDate={endsAt} size="sm" showLabels hideDays />
-              </div>
-            )}
+            ))}
           </div>
         </div>
 
-
-        {/* User Rank (only if joined) */}
-        {hasJoined && userRank && (
-          <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-center">
-            <p className="text-sm text-muted-foreground">
-              {stage === 'final' 
-                ? (language === 'ar' ? 'ترتيبك اليوم (نهائي):' : 'Your Rank Today (Final):')
-                : (language === 'ar' ? 'ترتيبك اليوم:' : 'Your Rank Today:')}
-            </p>
-            <p className="text-2xl font-bold text-primary">#{userRank}</p>
-          </div>
-        )}
-
-        {/* Join Status */}
-        {!hasJoined ? (
-          <>
-            {canJoin ? (
-              <>
-                <motion.div
-                  animate={{ scale: [1, 1.01, 1] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                  className="p-3 bg-gradient-to-r from-primary/15 to-primary/10 border border-primary/30 rounded-lg text-center"
-                >
-                  <p className="text-sm text-primary font-semibold mb-0.5">
-                    {joinWindowMessage}
-                  </p>
-                </motion.div>
-
-                <Button 
-                  className="w-full h-12 text-base font-bold"
-                  onClick={onJoin}
-                  disabled={totalNovaEquivalent < entryFee}
-                >
-                  {language === 'ar' ? '🔴 انضم الآن' : '🔴 Join Now'}
-                  <ArrowRight className="h-4 w-4 ms-2" />
-                </Button>
-              </>
-            ) : (
-              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center">
-                <p className="text-sm font-medium text-destructive">
-                  {joinWindowMessage}
-                </p>
-              </div>
-            )}
-          </>
-        ) : (
-          <Button asChild className="w-full" variant="outline">
+        {/* Leaderboard Link */}
+        {(phase1Active || phase2Active) && participants > 0 && (
+          <Button asChild variant="outline" className="w-full">
             <Link to="/contests">
-              {language === 'ar' ? 'شاهد المسابقة' : 'View Contest'}
+              {isRTL ? '📊 عرض الترتيب والتصويت' : '📊 View Leaderboard & Vote'}
               <ArrowRight className="h-4 w-4 ms-2" />
             </Link>
           </Button>
         )}
-
       </CardContent>
     </Card>
   );
