@@ -79,6 +79,7 @@ export default function HomePage() {
   const [participantCount, setParticipantCount] = useState(0);
   const [hasJoined, setHasJoined] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const isJoinModalOpen = joinDialogOpen;
   const [isJoining, setIsJoining] = useState(false);
 
   // Contest timing from KSA
@@ -376,7 +377,7 @@ export default function HomePage() {
       </motion.div>
 
       {/* Join Contest Dialog - Simplified Single Payment */}
-      <Dialog open={joinDialogOpen && !!activeContestId} onOpenChange={setJoinDialogOpen}>
+      <Dialog open={isJoinModalOpen && !!activeContestId} onOpenChange={setJoinDialogOpen}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
             <DialogTitle className="text-center">
