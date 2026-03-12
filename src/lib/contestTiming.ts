@@ -3,10 +3,9 @@
  * All times are in KSA timezone (Asia/Riyadh = UTC+3)
  * 
  * Daily Schedule (KSA Time):
- * - 10:00 AM: Contest opens, join window starts
- * - 02:00 PM: Stage 1 starts (qualifying)
- * - 08:00 PM: Join window closes + Stage 1 ends, Final stage starts
- *   ⚠️ TEMP: Join window extended to 20:00 for testing (was 18:00)
+ * - 10:00 AM: Contest opens, join window starts, Phase 1 starts
+ * - 07:00 PM: Join window (registration) closes
+ * - 08:00 PM: Phase 1 ends, Phase 2 (Final) starts
  * - 10:00 PM: Contest ends, winners announced
  * - 10:00 PM → 10:00 AM next day: Results display (read-only)
  */
@@ -20,8 +19,8 @@ import {
 
 export type ContestPhase = 
   | 'pre_open'      // Before 10 AM - waiting for contest to open
-  | 'join_only'     // 10 AM - 2 PM - can join, stage not started yet
-  | 'stage1'        // 2 PM - 8 PM - stage 1 active
+  | 'join_only'     // (legacy, kept for compat) - not used with current schedule
+  | 'stage1'        // 10 AM - 8 PM - stage 1 active (registration open until 7 PM)
   | 'final'         // 8 PM - 10 PM - final stage active
   | 'results';      // 10 PM - 10 AM next day - showing winners
 
@@ -65,11 +64,10 @@ export function getContestTiming(): ContestTimingInfo {
   const HOUR = 60 * 60 * 1000;
 
   const joinOpenWallMs = todayWallMs + 10 * HOUR;
-  const stage1StartWallMs = todayWallMs + 14 * HOUR;
-  // TEMP: Extended to 20:00 KSA for testing (was 18 * HOUR)
-  const joinCloseWallMs = todayWallMs + 20 * HOUR;
-  const stage1EndWallMs = todayWallMs + 20 * HOUR;
-  const finalStartWallMs = todayWallMs + 20 * HOUR;
+  const stage1StartWallMs = todayWallMs + 10 * HOUR; // Phase 1 starts at 10 AM (same as open)
+  const joinCloseWallMs = todayWallMs + 19 * HOUR;   // Registration closes at 7 PM
+  const stage1EndWallMs = todayWallMs + 20 * HOUR;    // Phase 1 ends at 8 PM
+  const finalStartWallMs = todayWallMs + 20 * HOUR;   // Phase 2 starts at 8 PM
   const finalEndWallMs = todayWallMs + 22 * HOUR;
   const resultsEndWallMs = todayWallMs + 24 * HOUR + 10 * HOUR; // +1 day 10:00
   const yesterdayFinalEndWallMs = yesterdayWallMs + 22 * HOUR;
