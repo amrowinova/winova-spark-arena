@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { Link } from 'react-router-dom';
-import { getContestTiming, type ContestTimingInfo } from '@/lib/contestTiming';
+import { getContestTiming, getSaudiDateStr, type ContestTimingInfo } from '@/lib/contestTiming';
 
 interface ContestJoinCardProps {
   prizePool: number;
@@ -30,34 +30,25 @@ function formatDate(date: Date): string {
   return `${day}/${month}/${year}`;
 }
 
-function getDayName(date: Date, language: string): string {
-  const days = {
-    ar: ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
-    en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-  };
-  return language === 'ar' ? days.ar[date.getDay()] : days.en[date.getDay()];
-}
-
-/** Live HH:MM:SS countdown hook */
-function useCountdown(targetMs: number): string {
-  const [display, setDisplay] = useState('00:00:00');
+/** Live HH:MM:SS countdown hook — uses real UTC target */
+function useCountdown(targetMs: number): { display: string; remainingMs: number } {
+  const [remaining, setRemaining] = useState(Math.max(0, targetMs - Date.now()));
 
   useEffect(() => {
     const tick = () => {
-      const diff = Math.max(0, targetMs - Date.now());
-      const h = Math.floor(diff / 3_600_000);
-      const m = Math.floor((diff % 3_600_000) / 60_000);
-      const s = Math.floor((diff % 60_000) / 1000);
-      setDisplay(
-        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-      );
+      setRemaining(Math.max(0, targetMs - Date.now()));
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [targetMs]);
 
-  return display;
+  const h = Math.floor(remaining / 3_600_000);
+  const m = Math.floor((remaining % 3_600_000) / 60_000);
+  const s = Math.floor((remaining % 60_000) / 1000);
+  const display = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+  return { display, remainingMs: remaining };
 }
 
 export function ContestJoinCard({
@@ -78,7 +69,7 @@ export function ContestJoinCard({
 
   const totalNovaEquivalent = user.novaBalance + user.auraBalance / 2;
 
-  // Live timing
+  // Live timing (Saudi-based)
   const [timing, setTiming] = useState<ContestTimingInfo>(getContestTiming());
   useEffect(() => {
     const id = setInterval(() => setTiming(getContestTiming()), 1000);
@@ -86,7 +77,6 @@ export function ContestJoinCard({
   }, []);
 
   const phase = timing.currentPhase;
-  const now = Date.now();
 
   // Countdown targets for each state
   const countdownToOpen = useCountdown(timing.joinOpenAt.getTime());
@@ -95,7 +85,7 @@ export function ContestJoinCard({
   const countdownToPhase1End = useCountdown(timing.stage1End.getTime());
   const countdownToFinalEnd = useCountdown(timing.finalEnd.getTime());
   const countdownToNextOpen = useCountdown(
-    timing.joinOpenAt.getTime() > now ? timing.joinOpenAt.getTime() : timing.resultsEnd.getTime()
+    phase === 'results' ? timing.resultsEnd.getTime() : timing.joinOpenAt.getTime()
   );
 
   // Prize distribution
@@ -109,33 +99,80 @@ export function ContestJoinCard({
 
   const noBalance = totalNovaEquivalent < entryFee;
 
+  // Urgency: less than 60 min until registration closes
+  const regCloseUrgent = countdownToRegClose.remainingMs > 0 && countdownToRegClose.remainingMs < 60 * 60 * 1000;
+
+  // Saudi date for display
+  const saudiDateForDisplay = (() => {
+    const ksa = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Riyadh" }));
+    const day = String(ksa.getDate()).padStart(2, '0');
+    const month = String(ksa.getMonth() + 1).padStart(2, '0');
+    const year = ksa.getFullYear();
+    return `${day}/${month}/${year}`;
+  })();
+
+  // ─── No contest available ───
+  if (!contestAvailable) {
+    return (
+      <Card className="overflow-hidden border border-border shadow-sm">
+        <div className="bg-card p-4 text-center">
+          <Trophy className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-foreground font-semibold">
+            {isRTL ? 'لا توجد مسابقة اليوم' : 'No contest today'}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isRTL ? 'ترقب المسابقة القادمة' : 'Stay tuned for the next contest'}
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
   // ─── Determine Join/Status Zone ───
   const renderJoinStatusZone = () => {
-    // State A — Before 10:00 AM (pre_open)
+    // State A — Before 10:00 AM KSA (pre-registration allowed)
     if (phase === 'pre_open') {
+      if (hasJoined) {
+        return (
+          <div className="p-3 bg-success/10 border border-success/30 rounded-lg text-center space-y-1">
+            <div className="flex items-center justify-center gap-2 text-success">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-sm font-semibold">
+                {isRTL ? 'أنت مسجّل' : 'You are registered'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isRTL ? `المسابقة تبدأ بعد ${countdownToOpen.display}` : `Contest starts in ${countdownToOpen.display}`}
+            </p>
+          </div>
+        );
+      }
+
+      if (noBalance) {
+        return (
+          <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-center">
+            <div className="flex items-center justify-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <span className="text-xs font-medium text-warning">
+                {isRTL
+                  ? 'لا يوجد رصيد كافٍ — قم بتعبئة Nova للانضمام'
+                  : 'Insufficient balance — Top up Nova to join'}
+              </span>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="space-y-2">
-          {noBalance ? (
-            <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-center">
-              <div className="flex items-center justify-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-warning" />
-                <span className="text-xs font-medium text-warning">
-                  {isRTL
-                    ? 'لا يوجد رصيد كافٍ — قم بتعبئة Nova للانضمام'
-                    : 'Insufficient balance — Top up Nova to join'}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <Button className="w-full h-12 text-base font-bold" onClick={onJoin}>
-              🏆 {isRTL ? `انضم للمسابقة — تبدأ بعد ${countdownToOpen}` : `Join Contest — Starts in ${countdownToOpen}`}
-            </Button>
-          )}
+          <Button className="w-full h-12 text-base font-bold" onClick={onJoin}>
+            🏆 {isRTL ? `انضم للمسابقة — تبدأ بعد ${countdownToOpen.display}` : `Join Contest — Starts in ${countdownToOpen.display}`}
+          </Button>
         </div>
       );
     }
 
-    // State E — After 10:00 PM (results)
+    // State E — After 10:00 PM KSA (results)
     if (phase === 'results') {
       return (
         <div className="p-3 bg-muted/50 border border-border rounded-lg text-center space-y-1">
@@ -146,13 +183,13 @@ export function ContestJoinCard({
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {isRTL ? `التسجيل يفتح بعد ${countdownToNextOpen}` : `Registration opens in ${countdownToNextOpen}`}
+            {isRTL ? `التسجيل يفتح بعد ${countdownToNextOpen.display}` : `Registration opens in ${countdownToNextOpen.display}`}
           </p>
         </div>
       );
     }
 
-    // State B — 10 AM to 7 PM (Phase 1 active, registration open)
+    // State B — 10 AM to 7 PM KSA (Phase 1 active, registration open)
     if ((phase === 'stage1' || phase === 'join_only') && timing.canJoin) {
       if (hasJoined) {
         return (
@@ -164,7 +201,7 @@ export function ContestJoinCard({
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              ⚠️ {isRTL ? `ينتهي التسجيل بعد ${countdownToRegClose}` : `Registration closes in ${countdownToRegClose}`}
+              ⚠️ {isRTL ? `ينتهي التسجيل بعد ${countdownToRegClose.display}` : `Registration closes in ${countdownToRegClose.display}`}
             </p>
             <Button asChild variant="outline" size="sm" className="mt-2">
               <Link to="/contests">
@@ -193,18 +230,19 @@ export function ContestJoinCard({
 
       return (
         <div className="space-y-2">
-          <Button className="w-full h-12 text-base font-bold" onClick={onJoin}>
-            🏆 {isRTL ? 'انضم الآن' : 'Join Now'}
-            <ArrowRight className="h-4 w-4 ms-2" />
+          <Button
+            className={`w-full h-12 text-base font-bold ${regCloseUrgent ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' : ''}`}
+            onClick={onJoin}
+          >
+            🏆 {isRTL
+              ? `انضم — يغلق باب الانضمام خلال ${countdownToRegClose.display}`
+              : `Join — Registration closes in ${countdownToRegClose.display}`}
           </Button>
-          <p className="text-xs text-center text-warning font-medium">
-            ⚠️ {isRTL ? `ينتهي التسجيل بعد ${countdownToRegClose}` : `Registration closes in ${countdownToRegClose}`}
-          </p>
         </div>
       );
     }
 
-    // State C — 7 PM to 8 PM (registration closed, waiting for final)
+    // State C — 7 PM to 8 PM KSA (registration closed, waiting for final)
     if (phase === 'stage1' && !timing.canJoin) {
       if (hasJoined) {
         return (
@@ -216,7 +254,7 @@ export function ContestJoinCard({
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              {isRTL ? `تبدأ بعد ${countdownToFinal}` : `Starts in ${countdownToFinal}`}
+              {isRTL ? `تبدأ بعد ${countdownToFinal.display}` : `Starts in ${countdownToFinal.display}`}
             </p>
             <Button asChild variant="outline" size="sm" className="mt-2">
               <Link to="/contests">
@@ -240,7 +278,7 @@ export function ContestJoinCard({
       );
     }
 
-    // State D — 8 PM to 10 PM (Final active)
+    // State D — 8 PM to 10 PM KSA (Final active)
     if (phase === 'final') {
       if (hasJoined && userQualified) {
         return (
@@ -360,8 +398,8 @@ export function ContestJoinCard({
           <Trophy className="h-5 w-5 text-primary" />
           <span className="text-foreground font-bold text-lg">
             {isRTL
-              ? `المسابقة اليومية – ${getDayName(new Date(), language)} ${formatDate(new Date())}`
-              : `Daily Contest – ${getDayName(new Date(), language)} ${formatDate(new Date())}`}
+              ? `المسابقة اليومية – ${timing.saudiDayName} ${saudiDateForDisplay}`
+              : `Daily Contest – ${saudiDateForDisplay}`}
           </span>
         </div>
 
@@ -403,7 +441,7 @@ export function ContestJoinCard({
           isRTL ? 'المرحلة الأولى — التصفية' : 'Phase 1 — Qualifying',
           phase1Active,
           phase1Finished,
-          countdownToPhase1End,
+          countdownToPhase1End.display,
           isRTL ? 'تبدأ الساعة 10:00 صباحاً' : 'Starts at 10:00 AM'
         )}
 
@@ -413,11 +451,11 @@ export function ContestJoinCard({
           isRTL ? 'المرحلة النهائية — ساعتين' : 'Final Stage — 2 Hours',
           phase2Active,
           phase2Finished,
-          countdownToFinalEnd,
+          countdownToFinalEnd.display,
           phase1Active
             ? isRTL
-              ? `تبدأ بعد ${countdownToFinal}`
-              : `Starts in ${countdownToFinal}`
+              ? `تبدأ بعد ${countdownToFinal.display}`
+              : `Starts in ${countdownToFinal.display}`
             : isRTL
             ? 'تبدأ الساعة 8:00 مساءً'
             : 'Starts at 8:00 PM'

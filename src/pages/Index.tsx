@@ -18,7 +18,7 @@ import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
 import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
-import { getContestTiming } from '@/lib/contestTiming';
+import { getContestTiming, getSaudiDateStr } from '@/lib/contestTiming';
 
 import {
   Dialog,
@@ -93,7 +93,7 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Safety: if join dialog is open and join window closes (18:00 KSA), close it immediately.
+  // Safety: if join dialog is open and join window closes (19:00 KSA), close it immediately.
   useEffect(() => {
     if (joinDialogOpen && !timing.canJoin) {
       setJoinDialogOpen(false);
@@ -103,8 +103,8 @@ export default function HomePage() {
   // Fetch real contest data
   const fetchContestData = useCallback(async () => {
     try {
-      // Use same query as Contests page: fetch today's or most recent contest
-      const ksaToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+      // Use Saudi date for "today"
+      const ksaToday = getSaudiDateStr();
       const { data: contestData } = await supabase
         .from('contests')
         .select('id, prize_pool, current_participants')
@@ -158,7 +158,7 @@ export default function HomePage() {
       return;
     }
 
-    // Join eligibility is time-based only (10:00–18:00 KSA)
+    // Join eligibility: canJoin is true from midnight to 7 PM KSA
     if (!timing.canJoin) {
       showError(
         language === 'ar'
