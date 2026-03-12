@@ -1,32 +1,33 @@
 /**
- * Contest Timing Utilities - Local Time Based
+ * Contest Timing Utilities - Saudi Arabia Time (UTC+3) Based
  * 
- * Daily Schedule (User's Local Time):
- * - 10:00 AM: Contest opens, join window starts, Phase 1 starts
- * - 07:00 PM: Join window (registration) closes
+ * Daily Schedule (KSA Time):
+ * - 00:00 AM: Pre-registration opens (early join allowed)
+ * - 10:00 AM: Phase 1 starts
+ * - 07:00 PM: Registration closes
  * - 08:00 PM: Phase 1 ends, Phase 2 (Final) starts
  * - 10:00 PM: Contest ends, winners announced
- * - 10:00 PM → 10:00 AM next day: Results display (read-only)
+ * - 10:00 PM → 00:00 AM next day: Results display (read-only)
  */
 
 export type ContestPhase = 
-  | 'pre_open'      // Before 10 AM - waiting for contest to open
+  | 'pre_open'      // Before 10 AM KSA - waiting for contest to open (pre-registration allowed)
   | 'join_only'     // (legacy, kept for compat) - not used with current schedule
-  | 'stage1'        // 10 AM - 8 PM - stage 1 active (registration open until 7 PM)
-  | 'final'         // 8 PM - 10 PM - final stage active
-  | 'results';      // 10 PM - 10 AM next day - showing winners
+  | 'stage1'        // 10 AM - 8 PM KSA - stage 1 active (registration open until 7 PM)
+  | 'final'         // 8 PM - 10 PM KSA - final stage active
+  | 'results';      // 10 PM - midnight KSA - showing winners
 
 export interface ContestTimingInfo {
   currentPhase: ContestPhase;
   
-  // Key timestamps (all as real Date objects)
-  joinOpenAt: Date;      // 10:00 AM today
-  stage1Start: Date;     // 10:00 AM today
-  joinCloseAt: Date;     // 07:00 PM today
-  stage1End: Date;       // 08:00 PM today
-  finalStart: Date;      // 08:00 PM today
-  finalEnd: Date;        // 10:00 PM today
-  resultsEnd: Date;      // 10:00 AM next day
+  // Key timestamps (all as real Date objects in UTC)
+  joinOpenAt: Date;      // 10:00 AM KSA today
+  stage1Start: Date;     // 10:00 AM KSA today
+  joinCloseAt: Date;     // 07:00 PM KSA today
+  stage1End: Date;       // 08:00 PM KSA today
+  finalStart: Date;      // 08:00 PM KSA today
+  finalEnd: Date;        // 10:00 PM KSA today
+  resultsEnd: Date;      // 00:00 AM KSA next day
   
   // Time remaining
   timeRemaining: number; // ms until current phase ends
@@ -43,43 +44,80 @@ export interface ContestTimingInfo {
   // Legacy compatibility
   currentStage: 'closed' | 'stage1' | 'final';
   nextContestStart: Date;
+
+  // Saudi date info
+  saudiDateStr: string;  // YYYY-MM-DD in KSA
+  saudiDayName: string;  // Arabic day name
 }
 
-/** Build a local Date for today (or tomorrow) at a given hour */
-function localToday(hour: number, min = 0, sec = 0): Date {
-  const d = new Date();
-  d.setHours(hour, min, sec, 0);
-  return d;
+/**
+ * Get current time as if we're in Saudi Arabia.
+ * Returns a Date whose getHours/getMinutes/etc reflect KSA wall-clock.
+ */
+export function getSaudiTime(): Date {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Riyadh" }));
 }
 
-function localTomorrow(hour: number, min = 0, sec = 0): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  d.setHours(hour, min, sec, 0);
-  return d;
+/** Get KSA date string YYYY-MM-DD */
+export function getSaudiDateStr(d?: Date): string {
+  const ksa = d ?? getSaudiTime();
+  const y = ksa.getFullYear();
+  const m = String(ksa.getMonth() + 1).padStart(2, '0');
+  const day = String(ksa.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Get Arabic day name for KSA date */
+function getSaudiDayNameAr(d?: Date): string {
+  const ksa = d ?? getSaudiTime();
+  const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  return days[ksa.getDay()];
+}
+
+/**
+ * Build a real UTC Date for today's KSA date at a given KSA hour.
+ * e.g. ksaTodayAt(10) → the UTC instant when it's 10:00 AM in Riyadh.
+ */
+function ksaTodayAt(hour: number, min = 0, sec = 0): Date {
+  const ksa = getSaudiTime();
+  const y = ksa.getFullYear();
+  const m = ksa.getMonth(); // 0-indexed
+  const d = ksa.getDate();
+  // Build as UTC, then subtract 3h offset to get actual UTC instant
+  const ksaMs = Date.UTC(y, m, d, hour, min, sec, 0);
+  return new Date(ksaMs - 3 * 60 * 60 * 1000);
+}
+
+function ksaTomorrowAt(hour: number, min = 0, sec = 0): Date {
+  const ksa = getSaudiTime();
+  const y = ksa.getFullYear();
+  const m = ksa.getMonth();
+  const d = ksa.getDate() + 1;
+  const ksaMs = Date.UTC(y, m, d, hour, min, sec, 0);
+  return new Date(ksaMs - 3 * 60 * 60 * 1000);
 }
 
 export function getContestTiming(): ContestTimingInfo {
-  const now = new Date();
+  const now = new Date(); // real UTC instant
   const nowMs = now.getTime();
 
-  // Current local time in minutes from midnight
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const ksa = getSaudiTime();
+  const currentMinutes = ksa.getHours() * 60 + ksa.getMinutes();
 
-  // Schedule boundaries in minutes from midnight
-  const REGISTRATION_START = 10 * 60;  // 10:00 AM
-  const REGISTRATION_END = 19 * 60;    // 7:00 PM
-  const FINAL_START = 20 * 60;         // 8:00 PM
-  const FINAL_END = 22 * 60;           // 10:00 PM
+  // Schedule boundaries in KSA minutes from midnight
+  const REGISTRATION_START = 10 * 60;  // 10:00 AM KSA
+  const REGISTRATION_END = 19 * 60;    // 7:00 PM KSA
+  const FINAL_START = 20 * 60;         // 8:00 PM KSA
+  const FINAL_END = 22 * 60;           // 10:00 PM KSA
 
-  // Build today's key timestamps
-  const joinOpenAt = localToday(10, 0, 0);
-  const stage1Start = localToday(10, 0, 0);
-  const joinCloseAt = localToday(19, 0, 0);
-  const stage1End = localToday(20, 0, 0);
-  const finalStart = localToday(20, 0, 0);
-  const finalEnd = localToday(22, 0, 0);
-  const resultsEnd = localTomorrow(10, 0, 0);
+  // Build real UTC timestamps for today's KSA schedule
+  const joinOpenAt = ksaTodayAt(10, 0, 0);
+  const stage1Start = ksaTodayAt(10, 0, 0);
+  const joinCloseAt = ksaTodayAt(19, 0, 0);
+  const stage1End = ksaTodayAt(20, 0, 0);
+  const finalStart = ksaTodayAt(20, 0, 0);
+  const finalEnd = ksaTodayAt(22, 0, 0);
+  const resultsEnd = ksaTomorrowAt(0, 0, 0); // midnight KSA next day
 
   let currentPhase: ContestPhase;
   let timeRemaining = 0;
@@ -91,18 +129,19 @@ export function getContestTiming(): ContestTimingInfo {
   let currentStage: 'closed' | 'stage1' | 'final' = 'closed';
 
   if (currentMinutes < REGISTRATION_START) {
-    // State A — Before 10:00 AM
+    // State A — Before 10:00 AM KSA (pre-registration allowed)
     currentPhase = 'pre_open';
+    canJoin = true; // pre-registration is allowed
     timeRemaining = joinOpenAt.getTime() - nowMs;
     nextPhaseLabel = 'opens';
     nextPhaseTime = joinOpenAt;
   } else if (currentMinutes >= REGISTRATION_START && currentMinutes < FINAL_START) {
-    // 10:00 AM – 8:00 PM — Phase 1 active
+    // 10:00 AM – 8:00 PM KSA — Phase 1 active
     currentPhase = 'stage1';
     currentStage = 'stage1';
     isContestActive = true;
     canVote = true;
-    canJoin = currentMinutes < REGISTRATION_END; // can join until 7 PM
+    canJoin = currentMinutes < REGISTRATION_END; // can join until 7 PM KSA
     timeRemaining = stage1End.getTime() - nowMs;
 
     if (canJoin) {
@@ -113,7 +152,7 @@ export function getContestTiming(): ContestTimingInfo {
       nextPhaseTime = stage1End;
     }
   } else if (currentMinutes >= FINAL_START && currentMinutes < FINAL_END) {
-    // 8:00 PM – 10:00 PM — Final stage
+    // 8:00 PM – 10:00 PM KSA — Final stage
     currentPhase = 'final';
     currentStage = 'final';
     isContestActive = true;
@@ -123,7 +162,7 @@ export function getContestTiming(): ContestTimingInfo {
     nextPhaseLabel = 'ends';
     nextPhaseTime = finalEnd;
   } else {
-    // >= 10:00 PM — Contest ended
+    // >= 10:00 PM KSA — Contest ended
     currentPhase = 'results';
     timeRemaining = resultsEnd.getTime() - nowMs;
     nextPhaseLabel = 'new contest';
@@ -132,19 +171,24 @@ export function getContestTiming(): ContestTimingInfo {
 
   // Next contest start
   const nextContestStart = currentMinutes >= FINAL_END
-    ? localTomorrow(10, 0, 0)
+    ? ksaTomorrowAt(10, 0, 0)
     : joinOpenAt;
 
+  const saudiDateStr = getSaudiDateStr(ksa);
+  const saudiDayName = getSaudiDayNameAr(ksa);
+
   // Debug logging
-  console.log('Contest Debug:', {
-    currentLocalTime: now.toLocaleTimeString(),
+  console.log('Contest Debug (KSA):', {
+    saudiTime: `${ksa.getHours()}:${String(ksa.getMinutes()).padStart(2, '0')}:${String(ksa.getSeconds()).padStart(2, '0')}`,
+    saudiDate: saudiDateStr,
+    saudiDay: saudiDayName,
     currentMinutes,
     computedPhase: currentPhase,
     canJoin,
-    joinOpenAt: joinOpenAt.toLocaleTimeString(),
-    joinCloseAt: joinCloseAt.toLocaleTimeString(),
-    finalStart: finalStart.toLocaleTimeString(),
-    finalEnd: finalEnd.toLocaleTimeString(),
+    joinOpenAt: joinOpenAt.toISOString(),
+    joinCloseAt: joinCloseAt.toISOString(),
+    finalStart: finalStart.toISOString(),
+    finalEnd: finalEnd.toISOString(),
     timeRemainingMs: timeRemaining,
   });
 
@@ -165,6 +209,8 @@ export function getContestTiming(): ContestTimingInfo {
     nextPhaseTime,
     currentStage,
     nextContestStart,
+    saudiDateStr,
+    saudiDayName,
   };
 }
 

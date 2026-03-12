@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getSaudiDateStr } from '@/lib/contestTiming';
 
 interface ContestEngagement {
   hasJoinedToday: boolean;
@@ -24,9 +25,8 @@ export function useContestEngagement(): ContestEngagement {
     }
 
     try {
-      // Get today's date in local timezone (YYYY-MM-DD format)
-      const now = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      // Use Saudi date for "today"
+      const today = getSaudiDateStr();
 
       // Fetch today's contest
       const { data: contest } = await supabase
