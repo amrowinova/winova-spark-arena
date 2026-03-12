@@ -19,8 +19,8 @@ import {
 
 export type ContestPhase = 
   | 'pre_open'      // Before 10 AM - waiting for contest to open
-  | 'join_only'     // 10 AM - 2 PM - can join, stage not started yet
-  | 'stage1'        // 2 PM - 8 PM - stage 1 active
+  | 'join_only'     // (legacy, kept for compat) - not used with current schedule
+  | 'stage1'        // 10 AM - 8 PM - stage 1 active (registration open until 7 PM)
   | 'final'         // 8 PM - 10 PM - final stage active
   | 'results';      // 10 PM - 10 AM next day - showing winners
 
