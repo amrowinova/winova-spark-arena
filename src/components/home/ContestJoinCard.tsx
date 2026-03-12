@@ -148,20 +148,7 @@ export function ContestJoinCard({
         );
       }
 
-      if (noBalance) {
-        return (
-          <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-center">
-            <div className="flex items-center justify-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-              <span className="text-xs font-medium text-warning">
-                {isRTL
-                  ? 'لا يوجد رصيد كافٍ — قم بتعبئة Nova للانضمام'
-                  : 'Insufficient balance — Top up Nova to join'}
-              </span>
-            </div>
-          </div>
-        );
-      }
+      // noBalance check removed — modal handles insufficient balance
 
       return (
         <div className="space-y-2">
@@ -213,20 +200,7 @@ export function ContestJoinCard({
         );
       }
 
-      if (noBalance) {
-        return (
-          <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-center">
-            <div className="flex items-center justify-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-              <span className="text-xs font-medium text-warning">
-                {isRTL
-                  ? 'لا يوجد رصيد كافٍ — قم بتعبئة Nova للانضمام'
-                  : 'Insufficient balance — Top up Nova to join'}
-              </span>
-            </div>
-          </div>
-        );
-      }
+      // noBalance check removed — modal handles insufficient balance
 
       return (
         <div className="space-y-2">
