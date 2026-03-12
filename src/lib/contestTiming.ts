@@ -1,21 +1,13 @@
 /**
- * Contest Timing Utilities - Production Ready
- * All times are in KSA timezone (Asia/Riyadh = UTC+3)
+ * Contest Timing Utilities - Local Time Based
  * 
- * Daily Schedule (KSA Time):
+ * Daily Schedule (User's Local Time):
  * - 10:00 AM: Contest opens, join window starts, Phase 1 starts
  * - 07:00 PM: Join window (registration) closes
  * - 08:00 PM: Phase 1 ends, Phase 2 (Final) starts
  * - 10:00 PM: Contest ends, winners announced
  * - 10:00 PM → 10:00 AM next day: Results display (read-only)
  */
-
-import {
-  KSA_TIMEZONE,
-  getKsaTodayWallClockMs,
-  getKsaWallClockMs,
-  ksaWallClockMsToInstantDate,
-} from '@/lib/ksaTime';
 
 export type ContestPhase = 
   | 'pre_open'      // Before 10 AM - waiting for contest to open
@@ -27,13 +19,13 @@ export type ContestPhase =
 export interface ContestTimingInfo {
   currentPhase: ContestPhase;
   
-  // Key timestamps (all in KSA)
-  joinOpenAt: Date;      // 10:00 AM
-  stage1Start: Date;     // 02:00 PM
-  joinCloseAt: Date;     // 06:00 PM
-  stage1End: Date;       // 08:00 PM
-  finalStart: Date;      // 08:00 PM
-  finalEnd: Date;        // 10:00 PM
+  // Key timestamps (all as real Date objects)
+  joinOpenAt: Date;      // 10:00 AM today
+  stage1Start: Date;     // 10:00 AM today
+  joinCloseAt: Date;     // 07:00 PM today
+  stage1End: Date;       // 08:00 PM today
+  finalStart: Date;      // 08:00 PM today
+  finalEnd: Date;        // 10:00 PM today
   resultsEnd: Date;      // 10:00 AM next day
   
   // Time remaining
@@ -53,33 +45,42 @@ export interface ContestTimingInfo {
   nextContestStart: Date;
 }
 
+/** Build a local Date for today (or tomorrow) at a given hour */
+function localToday(hour: number, min = 0, sec = 0): Date {
+  const d = new Date();
+  d.setHours(hour, min, sec, 0);
+  return d;
+}
+
+function localTomorrow(hour: number, min = 0, sec = 0): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(hour, min, sec, 0);
+  return d;
+}
+
 export function getContestTiming(): ContestTimingInfo {
-  // IMPORTANT: We avoid Date parsing of locale strings.
-  // We compare using a stable "KSA wall-clock" ms representation.
   const now = new Date();
-  const nowWallMs = getKsaWallClockMs(now);
-  const todayWallMs = getKsaTodayWallClockMs(now);
-  const yesterdayWallMs = todayWallMs - 24 * 60 * 60 * 1000;
+  const nowMs = now.getTime();
 
-  const HOUR = 60 * 60 * 1000;
+  // Current local time in minutes from midnight
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  const joinOpenWallMs = todayWallMs + 10 * HOUR;
-  const stage1StartWallMs = todayWallMs + 10 * HOUR; // Phase 1 starts at 10 AM (same as open)
-  const joinCloseWallMs = todayWallMs + 19 * HOUR;   // Registration closes at 7 PM
-  const stage1EndWallMs = todayWallMs + 20 * HOUR;    // Phase 1 ends at 8 PM
-  const finalStartWallMs = todayWallMs + 20 * HOUR;   // Phase 2 starts at 8 PM
-  const finalEndWallMs = todayWallMs + 22 * HOUR;
-  const resultsEndWallMs = todayWallMs + 24 * HOUR + 10 * HOUR; // +1 day 10:00
-  const yesterdayFinalEndWallMs = yesterdayWallMs + 22 * HOUR;
+  // Schedule boundaries in minutes from midnight
+  const REGISTRATION_START = 10 * 60;  // 10:00 AM
+  const REGISTRATION_END = 19 * 60;    // 7:00 PM
+  const FINAL_START = 20 * 60;         // 8:00 PM
+  const FINAL_END = 22 * 60;           // 10:00 PM
 
-  const joinOpenAt = ksaWallClockMsToInstantDate(joinOpenWallMs);
-  const stage1Start = ksaWallClockMsToInstantDate(stage1StartWallMs);
-  const joinCloseAt = ksaWallClockMsToInstantDate(joinCloseWallMs);
-  const stage1End = ksaWallClockMsToInstantDate(stage1EndWallMs);
-  const finalStart = ksaWallClockMsToInstantDate(finalStartWallMs);
-  const finalEnd = ksaWallClockMsToInstantDate(finalEndWallMs);
-  const resultsEnd = ksaWallClockMsToInstantDate(resultsEndWallMs);
-  
+  // Build today's key timestamps
+  const joinOpenAt = localToday(10, 0, 0);
+  const stage1Start = localToday(10, 0, 0);
+  const joinCloseAt = localToday(19, 0, 0);
+  const stage1End = localToday(20, 0, 0);
+  const finalStart = localToday(20, 0, 0);
+  const finalEnd = localToday(22, 0, 0);
+  const resultsEnd = localTomorrow(10, 0, 0);
+
   let currentPhase: ContestPhase;
   let timeRemaining = 0;
   let canJoin = false;
@@ -88,66 +89,65 @@ export function getContestTiming(): ContestTimingInfo {
   let nextPhaseLabel = '';
   let nextPhaseTime = joinOpenAt;
   let currentStage: 'closed' | 'stage1' | 'final' = 'closed';
-  
-  // Determine current phase based on KSA wall-clock time
-  if (nowWallMs < joinOpenWallMs) {
-    // Before 10 AM - Pre-open phase
-    // Check if we should show yesterday's results
-    if (nowWallMs >= yesterdayFinalEndWallMs) {
-      currentPhase = 'results';
-      timeRemaining = joinOpenWallMs - nowWallMs;
-      nextPhaseLabel = 'opens';
-      nextPhaseTime = joinOpenAt;
-    } else {
-      currentPhase = 'pre_open';
-      timeRemaining = joinOpenWallMs - nowWallMs;
-      nextPhaseLabel = 'opens';
-      nextPhaseTime = joinOpenAt;
-    }
-  } else if (nowWallMs >= joinOpenWallMs && nowWallMs < stage1StartWallMs) {
-    // 10 AM - 2 PM: Join only phase
-    currentPhase = 'join_only';
-    timeRemaining = stage1StartWallMs - nowWallMs;
-    canJoin = true; // join window includes this phase
-    nextPhaseLabel = 'starts';
-    nextPhaseTime = stage1Start;
-  } else if (nowWallMs >= stage1StartWallMs && nowWallMs < stage1EndWallMs) {
-    // 2 PM - 8 PM: Stage 1
+
+  if (currentMinutes < REGISTRATION_START) {
+    // State A — Before 10:00 AM
+    currentPhase = 'pre_open';
+    timeRemaining = joinOpenAt.getTime() - nowMs;
+    nextPhaseLabel = 'opens';
+    nextPhaseTime = joinOpenAt;
+  } else if (currentMinutes >= REGISTRATION_START && currentMinutes < FINAL_START) {
+    // 10:00 AM – 8:00 PM — Phase 1 active
     currentPhase = 'stage1';
     currentStage = 'stage1';
     isContestActive = true;
     canVote = true;
-    // Can join until 6 PM (18:00) strictly
-    canJoin = nowWallMs < joinCloseWallMs;
-    timeRemaining = stage1EndWallMs - nowWallMs;
-    nextPhaseLabel = canJoin ? 'join closes' : 'ends';
-    nextPhaseTime = canJoin ? joinCloseAt : stage1End;
-  } else if (nowWallMs >= finalStartWallMs && nowWallMs < finalEndWallMs) {
-    // 8 PM - 10 PM: Final stage
+    canJoin = currentMinutes < REGISTRATION_END; // can join until 7 PM
+    timeRemaining = stage1End.getTime() - nowMs;
+
+    if (canJoin) {
+      nextPhaseLabel = 'join closes';
+      nextPhaseTime = joinCloseAt;
+    } else {
+      nextPhaseLabel = 'ends';
+      nextPhaseTime = stage1End;
+    }
+  } else if (currentMinutes >= FINAL_START && currentMinutes < FINAL_END) {
+    // 8:00 PM – 10:00 PM — Final stage
     currentPhase = 'final';
     currentStage = 'final';
     isContestActive = true;
     canVote = true;
     canJoin = false;
-    timeRemaining = finalEndWallMs - nowWallMs;
+    timeRemaining = finalEnd.getTime() - nowMs;
     nextPhaseLabel = 'ends';
     nextPhaseTime = finalEnd;
-  } else if (nowWallMs >= finalEndWallMs) {
-    // After 10 PM: Results phase
+  } else {
+    // >= 10:00 PM — Contest ended
     currentPhase = 'results';
-    timeRemaining = resultsEndWallMs - nowWallMs;
+    timeRemaining = resultsEnd.getTime() - nowMs;
     nextPhaseLabel = 'new contest';
     nextPhaseTime = resultsEnd;
-  } else {
-    // Fallback
-    currentPhase = 'pre_open';
-    timeRemaining = joinOpenWallMs - nowWallMs;
   }
-  
-  // Next contest start for legacy compatibility
-  const nextContestStartWallMs = (nowWallMs >= finalEndWallMs ? todayWallMs + 24 * HOUR : todayWallMs) + 10 * HOUR;
-  const nextContestStart = ksaWallClockMsToInstantDate(nextContestStartWallMs);
-  
+
+  // Next contest start
+  const nextContestStart = currentMinutes >= FINAL_END
+    ? localTomorrow(10, 0, 0)
+    : joinOpenAt;
+
+  // Debug logging
+  console.log('Contest Debug:', {
+    currentLocalTime: now.toLocaleTimeString(),
+    currentMinutes,
+    computedPhase: currentPhase,
+    canJoin,
+    joinOpenAt: joinOpenAt.toLocaleTimeString(),
+    joinCloseAt: joinCloseAt.toLocaleTimeString(),
+    finalStart: finalStart.toLocaleTimeString(),
+    finalEnd: finalEnd.toLocaleTimeString(),
+    timeRemainingMs: timeRemaining,
+  });
+
   return {
     currentPhase,
     joinOpenAt,
@@ -163,7 +163,6 @@ export function getContestTiming(): ContestTimingInfo {
     isContestActive,
     nextPhaseLabel,
     nextPhaseTime,
-    // Legacy compatibility
     currentStage,
     nextContestStart,
   };
@@ -174,7 +173,6 @@ export function formatContestTime(date: Date): string {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
-    timeZone: KSA_TIMEZONE,
   });
 }
 
@@ -218,9 +216,13 @@ export function getPhaseLabel(phase: ContestPhase, language: 'ar' | 'en'): strin
 export function getCountdownTarget(timing: ContestTimingInfo): { date: Date; label: { ar: string; en: string } } {
   switch (timing.currentPhase) {
     case 'pre_open':
+      return { 
+        date: timing.joinOpenAt,
+        label: { ar: 'المسابقة القادمة', en: 'Next Contest' }
+      };
     case 'results':
       return { 
-        date: timing.joinOpenAt.getTime() > Date.now() ? timing.joinOpenAt : timing.resultsEnd,
+        date: timing.resultsEnd,
         label: { ar: 'المسابقة القادمة', en: 'Next Contest' }
       };
     case 'join_only':
