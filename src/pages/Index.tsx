@@ -184,7 +184,7 @@ export default function HomePage() {
     }
 
     if (user.novaBalance < entryFee) {
-      showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+      // Don't pay — show insufficient balance inside modal
       return;
     }
 
@@ -410,24 +410,47 @@ export default function HomePage() {
               <p className="text-xl font-bold text-primary">И 10</p>
             </div>
             
-            {/* Single Payment Button */}
-            <Button 
-              className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
-              onClick={confirmJoin}
-              disabled={isJoining || user.novaBalance < entryFee}
-            >
-              {isJoining ? (
-                <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
-              ) : (
-                language === 'ar' ? 'ادفع الآن' : 'Pay Now'
-              )}
-            </Button>
-
-            <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-              {language === 'ar' 
-                ? 'الخصم يتم من رصيد Nova فقط'
-                : 'Deducted from Nova balance only'}
-            </p>
+            {user.novaBalance < entryFee ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center space-y-1">
+                  <p className="text-sm font-semibold text-destructive">
+                    ⚠️ {language === 'ar' ? 'رصيدك غير كافٍ' : 'Insufficient balance'}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {language === 'ar' 
+                      ? 'تحتاج إلى شحن Nova للمشاركة في المسابقة.'
+                      : 'You need to top up Nova to join the contest.'}
+                  </p>
+                </div>
+                <Button 
+                  asChild
+                  className="w-full h-12 bg-gradient-to-r from-nova to-amber-500 text-primary-foreground font-bold text-base"
+                >
+                  <Link to="/wallet">
+                    {language === 'ar' ? 'اشحن Nova الآن 💰' : 'Top Up Nova Now 💰'}
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button 
+                  className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
+                  onClick={confirmJoin}
+                  disabled={isJoining}
+                >
+                  {isJoining ? (
+                    <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+                  ) : (
+                    language === 'ar' ? 'ادفع الآن' : 'Pay Now'
+                  )}
+                </Button>
+                <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+                  {language === 'ar' 
+                    ? 'الخصم يتم من رصيد Nova فقط'
+                    : 'Deducted from Nova balance only'}
+                </p>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
