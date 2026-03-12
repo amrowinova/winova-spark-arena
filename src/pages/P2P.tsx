@@ -56,6 +56,7 @@ import {
 import { P2POrder, P2POrderStatus, P2PChat, P2PMessage, useP2P } from '@/contexts/P2PContext';
 import { P2PRoleBadge, P2PParticipantWithRole } from '@/components/p2p/P2PRoleBadge';
 import { P2PStatusActions } from '@/components/p2p/P2PStatusActions';
+import { P2PChatInput } from '@/components/p2p/P2PChatInput';
 import { getP2PRoleInfoFromOrder } from '@/lib/p2pRoleUtils';
 
 // Convert P2POrder to P2POrderListItem
@@ -124,7 +125,7 @@ function P2PContent() {
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<P2POffer | null>(null);
   const [selectedMarketplaceOrder, setSelectedMarketplaceOrder] = useState<MarketplaceOrder | null>(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(''); // kept for legacy sendMessage
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [activeChatView, setActiveChatView] = useState<P2PChat | null>(null);
@@ -382,7 +383,19 @@ function P2PContent() {
     setCreateDialogOpen(true);
   };
 
-  const handleOpenChat = (orderId: string) => {
+  const handleOpenChat = async (orderId: string) => {
+    // Auto welcome message helper
+    const sendWelcomeIfNeeded = async (orderId: string) => {
+      const key = `p2p_welcome_sent_${orderId}`;
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, '1');
+
+      const welcomeEn = `Hello 👋\n\n📌 Transaction Terms:\n\n🚫 1. Third-party payments are prohibited\n✅ 2. Your account name must match your WINOVA account name\n3. Complete payment before pressing "Transfer Done"\n⭐ 4. Please rate the transaction after completion`;
+      const welcomeAr = `مرحباً 👋\n\n📌 شروط الصفقة:\n\n🚫 1. يُمنع الدفع من طرف ثالث\n✅ 2. يجب أن يتطابق اسم حسابك مع اسم حساب WINOVA\n3. أتمم الدفع قبل الضغط على "تمّ التحويل"\n⭐ 4. يرجى تقييم المعاملة بعد اكتمالها`;
+
+      await db.sendSystemMessage(orderId, 'buyer_copied_bank', welcomeEn, welcomeAr);
+    };
+
     // First try to find from P2PContext chats
     const chat = chats.find(c => c.orders.some(o => o.id === orderId));
     const order = chat?.orders.find(o => o.id === orderId);
@@ -390,22 +403,18 @@ function P2PContent() {
     if (chat && order) {
       setActiveChatView(chat);
       setActiveChatOrder(order);
-      // Fetch messages for this order
       db.fetchMessagesForOrder(orderId);
+      sendWelcomeIfNeeded(orderId);
       return;
     }
     
-    // If not found in context, try to find from db.orders directly
-    // This handles the case right after execute when context hasn't updated yet
+    // If not found in context, try from db.orders directly
     const dbOrder = db.orders.find(o => o.id === orderId);
     if (dbOrder) {
       const participants = db.getParticipants(dbOrder);
-      
-      // Create a temporary chat view
-      const tempBuyer: typeof participants.buyer = participants.buyer;
-      const tempSeller: typeof participants.seller = participants.seller;
-      
-      const currency = { code: 'SAR', symbol: 'ر.س' }; // Default
+      const tempBuyer = participants.buyer;
+      const tempSeller = participants.seller;
+      const currency = { code: 'SAR', symbol: 'ر.س' };
       
       const tempOrder: P2POrder = {
         id: dbOrder.id,
@@ -448,6 +457,7 @@ function P2PContent() {
       setActiveChatView(tempChat);
       setActiveChatOrder(tempOrder);
       db.fetchMessagesForOrder(orderId);
+      sendWelcomeIfNeeded(orderId);
     }
   };
 
@@ -604,7 +614,26 @@ function P2PContent() {
                           {msg.senderName}
                         </p>
                       )}
-                      <p className="text-sm">{msg.content}</p>
+                      {/* Render inline images */}
+                      {msg.content.includes('[image](') || msg.content.includes('[صورة](') ? (
+                        <div>
+                          {(() => {
+                            const match = msg.content.match(/\[(?:image|صورة)\]\((https?:\/\/[^\s)]+)\)/);
+                            return match ? (
+                              <img
+                                src={match[1]}
+                                alt="Shared image"
+                                className="rounded-lg max-h-48 w-auto cursor-pointer"
+                                onClick={() => window.open(match[1], '_blank')}
+                              />
+                            ) : (
+                              <p className="text-sm">{msg.content}</p>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <p className="text-sm">{msg.content}</p>
+                      )}
                     </div>
                     <p className={`text-[10px] text-muted-foreground mt-1 ${msg.isMine ? 'text-end' : ''}`}>
                       {msg.time}
@@ -617,7 +646,7 @@ function P2PContent() {
           </div>
         </ScrollArea>
 
-        {/* Action Buttons based on status/role - Using unified component */}
+        {/* Action Buttons based on status/role */}
         {!isCompleted && !isCancelled && !isReleased && (
           <P2PStatusActions 
             order={activeChatOrder}
@@ -626,22 +655,14 @@ function P2PContent() {
           />
         )}
 
-        {/* Message Input */}
+        {/* Message Input with attachment */}
         {!isCompleted && !isCancelled && (
-          <div className="p-4 border-t border-border bg-card safe-bottom">
-            <div className="flex items-center gap-2">
-              <Input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={isRTL ? 'اكتب رسالة...' : 'Type a message...'}
-                className="flex-1"
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              />
-              <Button size="icon" onClick={handleSendMessage} disabled={!message.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <P2PChatInput
+            orderId={activeChatOrder.id}
+            onSendMessage={(msg) => {
+              sendMessage(activeChatView.id, msg);
+            }}
+          />
         )}
 
         <ReceiptDialog
