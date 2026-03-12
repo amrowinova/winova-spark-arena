@@ -184,7 +184,7 @@ export default function HomePage() {
     }
 
     if (user.novaBalance < entryFee) {
-      showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
+      // Don't pay — show insufficient balance inside modal
       return;
     }
 
