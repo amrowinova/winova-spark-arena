@@ -64,11 +64,10 @@ export function getContestTiming(): ContestTimingInfo {
   const HOUR = 60 * 60 * 1000;
 
   const joinOpenWallMs = todayWallMs + 10 * HOUR;
-  const stage1StartWallMs = todayWallMs + 14 * HOUR;
-  // TEMP: Extended to 20:00 KSA for testing (was 18 * HOUR)
-  const joinCloseWallMs = todayWallMs + 20 * HOUR;
-  const stage1EndWallMs = todayWallMs + 20 * HOUR;
-  const finalStartWallMs = todayWallMs + 20 * HOUR;
+  const stage1StartWallMs = todayWallMs + 10 * HOUR; // Phase 1 starts at 10 AM (same as open)
+  const joinCloseWallMs = todayWallMs + 19 * HOUR;   // Registration closes at 7 PM
+  const stage1EndWallMs = todayWallMs + 20 * HOUR;    // Phase 1 ends at 8 PM
+  const finalStartWallMs = todayWallMs + 20 * HOUR;   // Phase 2 starts at 8 PM
   const finalEndWallMs = todayWallMs + 22 * HOUR;
   const resultsEndWallMs = todayWallMs + 24 * HOUR + 10 * HOUR; // +1 day 10:00
   const yesterdayFinalEndWallMs = yesterdayWallMs + 22 * HOUR;

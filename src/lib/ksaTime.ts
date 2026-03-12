@@ -83,8 +83,7 @@ export function getKsaJoinWindow(date: Date = new Date()): {
   const todayWallClockMs = getKsaTodayWallClockMs(date);
 
   const joinOpenWallClockMs = todayWallClockMs + 10 * HOUR;
-  // TEMP: Extended to 20:00 KSA for testing (was 18 * HOUR)
-  const joinCloseWallClockMs = todayWallClockMs + 20 * HOUR;
+  const joinCloseWallClockMs = todayWallClockMs + 19 * HOUR; // 7:00 PM KSA
 
   return {
     nowWallClockMs,
