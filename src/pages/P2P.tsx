@@ -56,6 +56,7 @@ import {
 import { P2POrder, P2POrderStatus, P2PChat, P2PMessage, useP2P } from '@/contexts/P2PContext';
 import { P2PRoleBadge, P2PParticipantWithRole } from '@/components/p2p/P2PRoleBadge';
 import { P2PStatusActions } from '@/components/p2p/P2PStatusActions';
+import { P2PChatInput } from '@/components/p2p/P2PChatInput';
 import { getP2PRoleInfoFromOrder } from '@/lib/p2pRoleUtils';
 
 // Convert P2POrder to P2POrderListItem
