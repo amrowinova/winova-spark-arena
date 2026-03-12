@@ -69,10 +69,7 @@ export function ksaWallClockMsToInstantDate(ksaWallClockMs: number): Date {
   return new Date(ksaWallClockMs - KSA_OFFSET_MS);
 }
 
-// TEMP: Allow join until end of Stage 1 for TESTING
-// Original close time: 18:00 KSA
-// New close time: 20:00 KSA (end of Stage 1)
-// To revert: change 20 * HOUR back to 18 * HOUR
+// Registration window: 10:00 AM - 7:00 PM KSA
 export function getKsaJoinWindow(date: Date = new Date()): {
   nowWallClockMs: number;
   joinOpenWallClockMs: number;
