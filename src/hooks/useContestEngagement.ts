@@ -24,9 +24,9 @@ export function useContestEngagement(): ContestEngagement {
     }
 
     try {
-      // Get today's date in KSA timezone (YYYY-MM-DD format)
-      const p = getKsaParts();
-      const today = `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+      // Get today's date in local timezone (YYYY-MM-DD format)
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
       // Fetch today's contest
       const { data: contest } = await supabase
