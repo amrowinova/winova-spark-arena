@@ -18,7 +18,7 @@ import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
 import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
-import { getContestTiming } from '@/lib/contestTiming';
+import { getContestTiming, getSaudiDateStr } from '@/lib/contestTiming';
 
 import {
   Dialog,
