@@ -158,7 +158,7 @@ export default function HomePage() {
       return;
     }
 
-    // Join eligibility is time-based only (10:00–18:00 KSA)
+    // Join eligibility: canJoin is true from midnight to 7 PM KSA
     if (!timing.canJoin) {
       showError(
         language === 'ar'
