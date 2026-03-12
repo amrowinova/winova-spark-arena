@@ -93,7 +93,7 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Safety: if join dialog is open and join window closes (18:00 KSA), close it immediately.
+  // Safety: if join dialog is open and join window closes (19:00 KSA), close it immediately.
   useEffect(() => {
     if (joinDialogOpen && !timing.canJoin) {
       setJoinDialogOpen(false);
