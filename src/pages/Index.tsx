@@ -376,7 +376,7 @@ export default function HomePage() {
       </motion.div>
 
       {/* Join Contest Dialog - Simplified Single Payment */}
-      <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
+      <Dialog open={joinDialogOpen && !!activeContestId} onOpenChange={setJoinDialogOpen}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
             <DialogTitle className="text-center">
