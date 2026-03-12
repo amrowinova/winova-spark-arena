@@ -79,6 +79,7 @@ export default function HomePage() {
   const [participantCount, setParticipantCount] = useState(0);
   const [hasJoined, setHasJoined] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const isJoinModalOpen = joinDialogOpen;
   const [isJoining, setIsJoining] = useState(false);
 
   // Contest timing from KSA
