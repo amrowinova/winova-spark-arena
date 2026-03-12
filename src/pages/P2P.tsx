@@ -125,7 +125,7 @@ function P2PContent() {
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<P2POffer | null>(null);
   const [selectedMarketplaceOrder, setSelectedMarketplaceOrder] = useState<MarketplaceOrder | null>(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(''); // kept for legacy sendMessage
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [activeChatView, setActiveChatView] = useState<P2PChat | null>(null);
