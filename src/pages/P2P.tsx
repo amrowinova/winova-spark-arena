@@ -383,7 +383,19 @@ function P2PContent() {
     setCreateDialogOpen(true);
   };
 
-  const handleOpenChat = (orderId: string) => {
+  const handleOpenChat = async (orderId: string) => {
+    // Auto welcome message helper
+    const sendWelcomeIfNeeded = async (orderId: string) => {
+      const key = `p2p_welcome_sent_${orderId}`;
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, '1');
+
+      const welcomeEn = `Hello 👋\n\n📌 Transaction Terms:\n\n🚫 1. Third-party payments are prohibited\n✅ 2. Your account name must match your WINOVA account name\n3. Complete payment before pressing "Transfer Done"\n⭐ 4. Please rate the transaction after completion`;
+      const welcomeAr = `مرحباً 👋\n\n📌 شروط الصفقة:\n\n🚫 1. يُمنع الدفع من طرف ثالث\n✅ 2. يجب أن يتطابق اسم حسابك مع اسم حساب WINOVA\n3. أتمم الدفع قبل الضغط على "تمّ التحويل"\n⭐ 4. يرجى تقييم المعاملة بعد اكتمالها`;
+
+      await db.sendSystemMessage(orderId, 'buyer_copied_bank', welcomeEn, welcomeAr);
+    };
+
     // First try to find from P2PContext chats
     const chat = chats.find(c => c.orders.some(o => o.id === orderId));
     const order = chat?.orders.find(o => o.id === orderId);
@@ -391,22 +403,18 @@ function P2PContent() {
     if (chat && order) {
       setActiveChatView(chat);
       setActiveChatOrder(order);
-      // Fetch messages for this order
       db.fetchMessagesForOrder(orderId);
+      sendWelcomeIfNeeded(orderId);
       return;
     }
     
-    // If not found in context, try to find from db.orders directly
-    // This handles the case right after execute when context hasn't updated yet
+    // If not found in context, try from db.orders directly
     const dbOrder = db.orders.find(o => o.id === orderId);
     if (dbOrder) {
       const participants = db.getParticipants(dbOrder);
-      
-      // Create a temporary chat view
-      const tempBuyer: typeof participants.buyer = participants.buyer;
-      const tempSeller: typeof participants.seller = participants.seller;
-      
-      const currency = { code: 'SAR', symbol: 'ر.س' }; // Default
+      const tempBuyer = participants.buyer;
+      const tempSeller = participants.seller;
+      const currency = { code: 'SAR', symbol: 'ر.س' };
       
       const tempOrder: P2POrder = {
         id: dbOrder.id,
@@ -449,6 +457,7 @@ function P2PContent() {
       setActiveChatView(tempChat);
       setActiveChatOrder(tempOrder);
       db.fetchMessagesForOrder(orderId);
+      sendWelcomeIfNeeded(orderId);
     }
   };
 
