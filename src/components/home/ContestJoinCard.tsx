@@ -111,25 +111,8 @@ export function ContestJoinCard({
 
   // ─── Determine Join/Status Zone ───
   const renderJoinStatusZone = () => {
-    // State E — After 10 PM (or results phase)
-    if (phase === 'results' || (phase === 'pre_open' && timing.joinOpenAt.getTime() > now)) {
-      if (phase === 'results') {
-        return (
-          <div className="p-3 bg-muted/50 border border-border rounded-lg text-center space-y-1">
-            <div className="flex items-center justify-center gap-2">
-              <Lock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-semibold text-muted-foreground">
-                {isRTL ? 'انتهت المسابقة' : 'Contest Ended'}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {isRTL ? `التسجيل يفتح بعد ${countdownToNextOpen}` : `Registration opens in ${countdownToNextOpen}`}
-            </p>
-          </div>
-        );
-      }
-
-      // State A — Before 10 AM
+    // State A — Before 10:00 AM (pre_open)
+    if (phase === 'pre_open') {
       return (
         <div className="space-y-2">
           {noBalance ? (
@@ -148,6 +131,23 @@ export function ContestJoinCard({
               🏆 {isRTL ? `انضم للمسابقة — تبدأ بعد ${countdownToOpen}` : `Join Contest — Starts in ${countdownToOpen}`}
             </Button>
           )}
+        </div>
+      );
+    }
+
+    // State E — After 10:00 PM (results)
+    if (phase === 'results') {
+      return (
+        <div className="p-3 bg-muted/50 border border-border rounded-lg text-center space-y-1">
+          <div className="flex items-center justify-center gap-2">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold text-muted-foreground">
+              {isRTL ? 'انتهت المسابقة' : 'Contest Ended'}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {isRTL ? `التسجيل يفتح بعد ${countdownToNextOpen}` : `Registration opens in ${countdownToNextOpen}`}
+          </p>
         </div>
       );
     }
