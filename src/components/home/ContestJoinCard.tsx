@@ -152,7 +152,11 @@ export function ContestJoinCard({
 
       return (
         <div className="space-y-2">
-          <Button className="w-full h-12 text-base font-bold" onClick={onJoin}>
+          <Button
+            className="w-full h-12 text-base font-bold"
+            disabled={!contestAvailable}
+            onClick={contestAvailable ? onJoin : undefined}
+          >
             🏆 {isRTL ? `انضم للمسابقة — تبدأ بعد ${countdownToOpen.display}` : `Join Contest — Starts in ${countdownToOpen.display}`}
           </Button>
         </div>
@@ -206,7 +210,8 @@ export function ContestJoinCard({
         <div className="space-y-2">
           <Button
             className={`w-full h-12 text-base font-bold ${regCloseUrgent ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' : ''}`}
-            onClick={onJoin}
+            disabled={!contestAvailable}
+            onClick={contestAvailable ? onJoin : undefined}
           >
             🏆 {isRTL
               ? `انضم — يغلق باب الانضمام خلال ${countdownToRegClose.display}`
