@@ -391,6 +391,7 @@ function WalletContent() {
         {/* Dialogs */}
         <TransferNovaDialog open={transferDialogOpen} onClose={() => setTransferDialogOpen(false)} />
         <ConvertNovaAuraDialog open={convertDialogOpen} onClose={() => setConvertDialogOpen(false)} />
+        <PaymentQRDialog open={qrDialogOpen} onClose={() => setQrDialogOpen(false)} />
       </main>
       <BottomNav />
     </div>
