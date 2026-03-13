@@ -54,8 +54,10 @@ Deno.serve(async (req) => {
   // Allow service_role calls (from orchestrator/cron) and admin user calls
   const bearerToken = authHeader?.replace('Bearer ', '') || '';
   const isServiceRole = bearerToken === serviceRoleKey;
+  const isAnonKey = bearerToken === anonKey;
   
-  if (!isServiceRole) {
+  // Allow service_role, anon key (from pg_cron), or admin users
+  if (!isServiceRole && !isAnonKey) {
     // Check if it's an admin user
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const tempClient = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
