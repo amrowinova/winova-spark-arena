@@ -638,6 +638,47 @@ export function TransferNovaDialog({
         open={showReceipt}
         onClose={handleCloseReceipt}
       />
+
+      {/* Add to Favorites prompt */}
+      {showAddFavoritePrompt && confirmedRecipient && (
+        <Dialog open={showAddFavoritePrompt} onOpenChange={() => setShowAddFavoritePrompt(false)}>
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-center">
+                <Star className="h-8 w-8 text-nova mx-auto mb-2" />
+                {language === 'ar' ? 'إضافة إلى المفضلة؟' : 'Add to Favorites?'}
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground text-center">
+              {language === 'ar'
+                ? `هل تريد إضافة ${confirmedRecipient.name} إلى المفضلة للتحويل السريع؟`
+                : `Add ${confirmedRecipient.name} to favorites for quick transfers?`}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowAddFavoritePrompt(false)}>
+                {language === 'ar' ? 'لا' : 'No'}
+              </Button>
+              <Button
+                className="flex-1 gap-2"
+                onClick={() => {
+                  addFavorite({
+                    userId: confirmedRecipient.userId,
+                    name: confirmedRecipient.name,
+                    username: confirmedRecipient.username,
+                    avatarUrl: confirmedRecipient.avatarUrl,
+                    country: confirmedRecipient.country,
+                  });
+                  setShowAddFavoritePrompt(false);
+                  showSuccess(language === 'ar' ? 'تمت الإضافة للمفضلة' : 'Added to favorites');
+                }}
+              >
+                <Star className="h-4 w-4" />
+                {language === 'ar' ? 'نعم' : 'Yes'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
