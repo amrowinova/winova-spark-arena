@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDirectMessages } from '@/hooks/useDirectMessages';
 import { executeTransfer, searchUsersByUsername, RecipientLookupResult } from '@/lib/walletService';
 import { getCountryFlag } from '@/lib/countryFlags';
+import { useFavoriteRecipients } from '@/hooks/useFavoriteRecipients';
 
 interface TransferNovaDialogProps {
   open: boolean;
