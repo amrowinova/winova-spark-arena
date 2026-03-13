@@ -37,6 +37,7 @@ import LuckyLeaders from "./pages/LuckyLeaders";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
+import PayUser from "./pages/PayUser";
 
 // Support Pages
 import SupportDashboard from "./pages/support/SupportDashboard";
