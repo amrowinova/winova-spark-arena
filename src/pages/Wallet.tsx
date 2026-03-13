@@ -275,7 +275,30 @@ function WalletContent() {
           </Button>
         </motion.div>
 
-        {/* Team Earnings Card - Only for Leader+ */}
+        {/* Payment Link & QR Buttons */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="grid grid-cols-2 gap-3">
+          <Button
+            variant="outline"
+            className="flex-col h-auto py-3 border-border hover:bg-muted/50"
+            onClick={() => {
+              const link = `${window.location.origin}/pay/${user.username}`;
+              navigator.clipboard.writeText(link);
+              showSuccess(isRTL ? 'تم نسخ الرابط!' : 'Link copied!');
+            }}
+          >
+            <Link2 className="h-5 w-5 mb-1 text-primary" />
+            <span className="text-xs text-foreground">{isRTL ? 'نسخ رابط الدفع' : 'Copy Pay Link'}</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-col h-auto py-3 border-border hover:bg-muted/50"
+            onClick={() => setQrDialogOpen(true)}
+          >
+            <QrCode className="h-5 w-5 mb-1 text-primary" />
+            <span className="text-xs text-foreground">{isRTL ? 'رمز QR' : 'My QR Code'}</span>
+          </Button>
+        </motion.div>
+
         {canEarn && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
             <EarningsSummarySheet>
