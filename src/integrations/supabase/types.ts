@@ -5186,6 +5186,7 @@ export type Database = {
           id: string
           is_ai: boolean
           last_seen_at: string | null
+          metadata: Json | null
           name: string
           notifications_chat: boolean | null
           notifications_contest: boolean | null
@@ -5220,6 +5221,7 @@ export type Database = {
           id?: string
           is_ai?: boolean
           last_seen_at?: string | null
+          metadata?: Json | null
           name: string
           notifications_chat?: boolean | null
           notifications_contest?: boolean | null
@@ -5254,6 +5256,7 @@ export type Database = {
           id?: string
           is_ai?: boolean
           last_seen_at?: string | null
+          metadata?: Json | null
           name?: string
           notifications_chat?: boolean | null
           notifications_contest?: boolean | null
