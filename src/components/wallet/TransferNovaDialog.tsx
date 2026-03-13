@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Send, User, AlertCircle, MapPin, Check, Lock, Loader2, Search, X } from 'lucide-react';
+import { Send, User, AlertCircle, MapPin, Check, Lock, Loader2, Search, X, Star, StarOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDirectMessages } from '@/hooks/useDirectMessages';
 import { executeTransfer, searchUsersByUsername, RecipientLookupResult } from '@/lib/walletService';
 import { getCountryFlag } from '@/lib/countryFlags';
+import { useFavoriteRecipients } from '@/hooks/useFavoriteRecipients';
 
 interface TransferNovaDialogProps {
   open: boolean;
@@ -57,6 +57,8 @@ export function TransferNovaDialog({
   const { success: showSuccess, error: showError } = useBanner();
   const { wallet, refetch: refetchWallet } = useWallet();
   const { getOrCreateConversation, sendMessage } = useDirectMessages();
+  const { favorites, addFavorite, isFavorite } = useFavoriteRecipients();
+  const [showAddFavoritePrompt, setShowAddFavoritePrompt] = useState(false);
 
   const isWalletFrozen = wallet?.is_frozen ?? false;
 
@@ -254,6 +256,10 @@ export function TransferNovaDialog({
 
       setGeneratedReceipt(receipt);
       setShowReceipt(true);
+      // Show add-to-favorites prompt if not already a favorite
+      if (confirmedRecipient && !isFavorite(confirmedRecipient.userId)) {
+        setShowAddFavoritePrompt(true);
+      }
       showSuccess(language === 'ar' ? 'تم التحويل بنجاح!' : 'Transfer successful!');
 
       if (onTransferComplete) {
@@ -339,6 +345,41 @@ export function TransferNovaDialog({
                 {!recipientUsername && !confirmedRecipient && (
                   <div className="space-y-2">
                     <Label>{language === 'ar' ? 'ابحث عن المستلم' : 'Search Recipient'}</Label>
+                    
+                    {/* Favorites Section */}
+                    {favorites.length > 0 && !searchQuery && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <Star className="h-3 w-3 text-nova" />
+                          {language === 'ar' ? 'المفضلة' : 'Favorites'}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {favorites.map((fav) => (
+                            <button
+                              key={fav.userId}
+                              onClick={() => handleSelectRecipient({
+                                id: '',
+                                userId: fav.userId,
+                                name: fav.name,
+                                username: fav.username,
+                                country: fav.country,
+                                avatarUrl: fav.avatarUrl,
+                              })}
+                              className="flex items-center gap-2 px-3 py-2 rounded-full border border-border bg-muted/30 hover:bg-muted/60 transition-colors text-sm"
+                            >
+                              <Avatar className="h-6 w-6">
+                                {fav.avatarUrl && <AvatarImage src={fav.avatarUrl} />}
+                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                  {fav.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium text-foreground">{fav.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -351,7 +392,7 @@ export function TransferNovaDialog({
                       
                       {/* Search Results Dropdown */}
                       {showDropdown && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
                           {isSearching ? (
                             <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -370,32 +411,30 @@ export function TransferNovaDialog({
                               </p>
                             </div>
                           ) : (
-                            <ScrollArea className="max-h-64">
-                              <div className="p-1">
-                                {searchResults.map((result) => (
-                                  <button
-                                    key={result.userId}
-                                    onClick={() => handleSelectRecipient(result)}
-                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-start"
-                                  >
-                                    <Avatar className="h-10 w-10">
-                                      {result.avatarUrl && <AvatarImage src={result.avatarUrl} />}
-                                      <AvatarFallback className="bg-primary/10 text-primary">
-                                        {result.name.charAt(0).toUpperCase()}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium truncate">{result.name}</p>
-                                      <p className="text-sm text-muted-foreground truncate">@{result.username}</p>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <span>{getCountryFlag(result.country)}</span>
-                                      <span>{result.country}</span>
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </ScrollArea>
+                            <div className="p-1">
+                              {searchResults.map((result) => (
+                                <button
+                                  key={result.userId}
+                                  onClick={() => handleSelectRecipient(result)}
+                                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-start"
+                                >
+                                  <Avatar className="h-10 w-10">
+                                    {result.avatarUrl && <AvatarImage src={result.avatarUrl} />}
+                                    <AvatarFallback className="bg-primary/10 text-primary">
+                                      {result.name.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{result.name}</p>
+                                    <p className="text-sm text-muted-foreground truncate">@{result.username}</p>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <span>{getCountryFlag(result.country)}</span>
+                                    <span>{result.country}</span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}
@@ -598,6 +637,47 @@ export function TransferNovaDialog({
         open={showReceipt}
         onClose={handleCloseReceipt}
       />
+
+      {/* Add to Favorites prompt */}
+      {showAddFavoritePrompt && confirmedRecipient && (
+        <Dialog open={showAddFavoritePrompt} onOpenChange={() => setShowAddFavoritePrompt(false)}>
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-center">
+                <Star className="h-8 w-8 text-nova mx-auto mb-2" />
+                {language === 'ar' ? 'إضافة إلى المفضلة؟' : 'Add to Favorites?'}
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground text-center">
+              {language === 'ar'
+                ? `هل تريد إضافة ${confirmedRecipient.name} إلى المفضلة للتحويل السريع؟`
+                : `Add ${confirmedRecipient.name} to favorites for quick transfers?`}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowAddFavoritePrompt(false)}>
+                {language === 'ar' ? 'لا' : 'No'}
+              </Button>
+              <Button
+                className="flex-1 gap-2"
+                onClick={() => {
+                  addFavorite({
+                    userId: confirmedRecipient.userId,
+                    name: confirmedRecipient.name,
+                    username: confirmedRecipient.username,
+                    avatarUrl: confirmedRecipient.avatarUrl,
+                    country: confirmedRecipient.country,
+                  });
+                  setShowAddFavoritePrompt(false);
+                  showSuccess(language === 'ar' ? 'تمت الإضافة للمفضلة' : 'Added to favorites');
+                }}
+              >
+                <Star className="h-4 w-4" />
+                {language === 'ar' ? 'نعم' : 'Yes'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
