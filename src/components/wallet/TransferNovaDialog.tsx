@@ -58,6 +58,8 @@ export function TransferNovaDialog({
   const { success: showSuccess, error: showError } = useBanner();
   const { wallet, refetch: refetchWallet } = useWallet();
   const { getOrCreateConversation, sendMessage } = useDirectMessages();
+  const { favorites, addFavorite, isFavorite } = useFavoriteRecipients();
+  const [showAddFavoritePrompt, setShowAddFavoritePrompt] = useState(false);
 
   const isWalletFrozen = wallet?.is_frozen ?? false;
 
