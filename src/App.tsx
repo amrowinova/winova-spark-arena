@@ -93,7 +93,8 @@ const App = () => (
                             <Route path="/winners" element={<Winners />} />
                             <Route path="/help" element={<Help />} />
                             <Route path="/user/:userId" element={<PublicProfile />} />
-                            
+                            <Route path="/pay/:username" element={<PayUser />} />
+
                             {/* Policy pages - public, no login required */}
                             <Route path="/terms" element={<Terms />} />
                             <Route path="/privacy" element={<Privacy />} />

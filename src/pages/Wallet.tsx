@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Wallet as WalletIcon, Send, RefreshCw, History, TrendingUp, Lock, AlertTriangle, MessageCircle, Loader2 } from 'lucide-react';
+import { Wallet as WalletIcon, Send, RefreshCw, History, TrendingUp, Lock, AlertTriangle, MessageCircle, Loader2, Link2, QrCode } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -19,6 +19,8 @@ import { ConvertNovaAuraDialog } from '@/components/wallet/ConvertNovaAuraDialog
 import { WalletCountrySelector } from '@/components/wallet/WalletCountrySelector';
 import { EarningsSummarySheet } from '@/components/wallet/EarningsSummarySheet';
 import { getNextReleaseDate } from '@/components/wallet/LockedEarningsCard';
+import { PaymentQRDialog } from '@/components/wallet/PaymentQRDialog';
+import { useBanner } from '@/contexts/BannerContext';
 
 // Rank commission rates
 const RANK_COMMISSION_RATES = {
