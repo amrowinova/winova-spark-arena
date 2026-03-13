@@ -122,6 +122,8 @@ function WalletContent() {
   const [selectedTab, setSelectedTab] = useState<'aura' | 'nova'>('aura');
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const { success: showSuccess } = useBanner();
 
   // Fetch real transaction history from DB
   const { transactions, loading, hasMore, loadMore } = useWalletHistory({
