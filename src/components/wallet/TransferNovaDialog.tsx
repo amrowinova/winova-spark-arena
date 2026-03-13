@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Send, User, AlertCircle, MapPin, Check, Lock, Loader2, Search, X } from 'lucide-react';
+import { Send, User, AlertCircle, MapPin, Check, Lock, Loader2, Search, X, Star, StarOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
