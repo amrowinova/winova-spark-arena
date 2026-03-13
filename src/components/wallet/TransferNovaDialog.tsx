@@ -257,6 +257,10 @@ export function TransferNovaDialog({
 
       setGeneratedReceipt(receipt);
       setShowReceipt(true);
+      // Show add-to-favorites prompt if not already a favorite
+      if (confirmedRecipient && !isFavorite(confirmedRecipient.userId)) {
+        setShowAddFavoritePrompt(true);
+      }
       showSuccess(language === 'ar' ? 'تم التحويل بنجاح!' : 'Transfer successful!');
 
       if (onTransferComplete) {
