@@ -109,7 +109,8 @@ export default function HomePage() {
       const { data: contestData } = await supabase
         .from('contests')
         .select('id, prize_pool, current_participants')
-        .eq('contest_date', ksaToday)
+        .lte('contest_date', ksaToday)
+        .order('contest_date', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
