@@ -116,12 +116,13 @@ export default function HomePage() {
         .maybeSingle();
 
       if (contestData) {
-        setActiveContestId(contestData.id);
+        const isTodaysContest = contestData.contest_date === ksaToday;
+        setActiveContestId(isTodaysContest ? contestData.id : null);
         setPrizePool(contestData.prize_pool || 0);
         setParticipantCount(contestData.current_participants || 0);
 
-        // Check if user has joined
-        if (authUser) {
+        // Check if user has joined — only for TODAY's contest
+        if (authUser && isTodaysContest) {
           const { data: entryData } = await supabase
             .from('contest_entries')
             .select('id')
@@ -130,6 +131,8 @@ export default function HomePage() {
             .maybeSingle();
 
           setHasJoined(!!entryData);
+        } else {
+          setHasJoined(false);
         }
       } else {
         // Strict zero-state: never keep stale UI when there is no real active contest.
