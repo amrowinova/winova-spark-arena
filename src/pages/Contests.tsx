@@ -147,6 +147,7 @@ export default function ContestsPage() {
         .maybeSingle();
 
       if (contestData) {
+        const isTodaysContest = contestData.contest_date === ksaToday;
         setActiveContestId(contestData.id);
         setPrizePool(contestData.prize_pool || 0);
 
@@ -219,8 +220,8 @@ export default function ContestsPage() {
             setWinners(topWinners);
           }
 
-          // Check if current user has joined
-          if (authUser) {
+          // Check if current user has joined TODAY's contest
+          if (authUser && isTodaysContest) {
             const userEntryData = entriesData.find(e => e.user_id === authUser.id);
             const userEntry = formattedParticipants.find(p => p.id === authUser.id);
             if (userEntry) {
@@ -231,7 +232,17 @@ export default function ContestsPage() {
               if (userEntryData?.free_vote_used) {
                 setFreeVoteUsed(true);
               }
+            } else {
+              setHasJoined(false);
+              setUserRank(0);
+              setUserVotes(0);
+              setFreeVoteUsed(false);
             }
+          } else {
+            setHasJoined(false);
+            setUserRank(0);
+            setUserVotes(0);
+            setFreeVoteUsed(false);
           }
         }
       } else {
