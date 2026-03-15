@@ -108,7 +108,7 @@ export default function HomePage() {
       const ksaToday = getSaudiDateStr();
       const { data: contestData } = await supabase
         .from('contests')
-        .select('id, prize_pool, current_participants')
+        .select('id, prize_pool, current_participants, contest_date')
         .lte('contest_date', ksaToday)
         .order('contest_date', { ascending: false })
         .order('created_at', { ascending: false })
