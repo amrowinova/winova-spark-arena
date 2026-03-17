@@ -46,41 +46,60 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // SECURITY: Validate caller is internal (service-role or admin)
+  // SECURITY: allow service-role, scheduled anon cron token, or authenticated admin users
   const authHeader = req.headers.get('Authorization');
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  
-  // Allow service_role calls (from orchestrator/cron) and admin user calls
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const bearerToken = authHeader?.replace('Bearer ', '') || '';
+  const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] ?? null;
+
+  const decodeJwtPayload = (token: string) => {
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) return null;
+      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+      return JSON.parse(atob(padded));
+    } catch {
+      return null;
+    }
+  };
+
+  const tokenPayload = decodeJwtPayload(bearerToken);
   const isServiceRole = bearerToken === serviceRoleKey;
-  const isAnonKey = bearerToken === anonKey;
-  
-  // Allow service_role, anon key (from pg_cron), or admin users
-  if (!isServiceRole && !isAnonKey) {
-    // Check if it's an admin user
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const isCronAnonToken = tokenPayload?.role === 'anon' && (!projectRef || tokenPayload?.ref === projectRef);
+
+  if (!isServiceRole && !isCronAnonToken) {
     const tempClient = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
     const { data: { user } } = await tempClient.auth.getUser(bearerToken);
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const { data: roles } = await tempClient.from('user_roles').select('role').eq('user_id', user.id);
-    if (!roles?.some((r: any) => r.role === 'admin')) {
+
+    const { data: roles } = await tempClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    if (!roles?.some((r: { role: string }) => r.role === 'admin')) {
       return new Response(JSON.stringify({ error: 'Admin or service role only' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   const now = ksaNow();
