@@ -140,14 +140,12 @@ export default function ContestsPage() {
       const { data: contestData, error: contestError } = await supabase
         .from('contests')
         .select('*')
-        .lte('contest_date', ksaToday)
-        .order('contest_date', { ascending: false })
+        .eq('contest_date', ksaToday)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (contestData) {
-        const isTodaysContest = contestData.contest_date === ksaToday;
         setActiveContestId(contestData.id);
         setPrizePool(contestData.prize_pool || 0);
 
@@ -221,7 +219,7 @@ export default function ContestsPage() {
           }
 
           // Check if current user has joined TODAY's contest
-          if (authUser && isTodaysContest) {
+          if (authUser) {
             const userEntryData = entriesData.find(e => e.user_id === authUser.id);
             const userEntry = formattedParticipants.find(p => p.id === authUser.id);
             if (userEntry) {
