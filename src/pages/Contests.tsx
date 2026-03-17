@@ -219,7 +219,7 @@ export default function ContestsPage() {
           }
 
           // Check if current user has joined TODAY's contest
-          if (authUser && isTodaysContest) {
+          if (authUser) {
             const userEntryData = entriesData.find(e => e.user_id === authUser.id);
             const userEntry = formattedParticipants.find(p => p.id === authUser.id);
             if (userEntry) {
