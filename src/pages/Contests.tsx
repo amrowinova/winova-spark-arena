@@ -146,7 +146,6 @@ export default function ContestsPage() {
         .maybeSingle();
 
       if (contestData) {
-        const isTodaysContest = contestData.contest_date === ksaToday;
         setActiveContestId(contestData.id);
         setPrizePool(contestData.prize_pool || 0);
 
