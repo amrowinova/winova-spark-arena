@@ -277,10 +277,12 @@ export function useDirectMessages() {
         .neq('sender_id', user.id)
         .eq('is_read', false)
         .then(() => {
-          // Update local state
-          setConversations(prev => 
+          setConversations(prev =>
             prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
           );
+        })
+        .catch((err) => {
+          console.error('Failed to mark messages as read:', err);
         });
     }
   }, [user]);
@@ -381,7 +383,10 @@ export function useDirectMessages() {
         supabase
           .from('direct_messages')
           .update({ is_read: true })
-          .eq('id', msg.id);
+          .eq('id', msg.id)
+          .catch((err) => {
+            console.error('Failed to mark message as read:', err);
+          });
       }
     };
     
@@ -523,9 +528,17 @@ export function useDirectMessages() {
     };
 
     let channelRef: ReturnType<typeof supabase.channel> | null = null;
-    setupChannel().then(ch => { channelRef = ch; });
+    let isMounted = true;
+
+    setupChannel().then(ch => {
+      if (isMounted) channelRef = ch;
+      else supabase.removeChannel(ch);
+    }).catch(err => {
+      console.error('Failed to setup DM channel:', err);
+    });
 
     return () => {
+      isMounted = false;
       if (channelRef) supabase.removeChannel(channelRef);
     };
   }, [user, fetchConversations]);
