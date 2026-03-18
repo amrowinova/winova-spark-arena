@@ -171,8 +171,9 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
     setIsLoading(true);
     
     try {
-      // Generate username from name
-      const username = fullName.toLowerCase().replace(/\s+/g, '_') + '_' + Math.random().toString(36).substr(2, 4);
+      // Generate username from name (clean, no random suffix)
+      const baseUsername = fullName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+      const username = baseUsername || 'user' + Date.now().toString(36);
       
       // Get country/city/district names
       const countryData = locationData.find(c => c.code === country);
