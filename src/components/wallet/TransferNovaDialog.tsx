@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Send, User, AlertCircle, MapPin, Check, Lock, Loader2, Search, X, Star, StarOff } from 'lucide-react';
+import { Send, User, AlertCircle, MapPin, Check, Lock, Loader2, Search, X, Star, StarOff, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,7 @@ import { useDirectMessages } from '@/hooks/useDirectMessages';
 import { executeTransfer, searchUsersByUsername, RecipientLookupResult } from '@/lib/walletService';
 import { getCountryFlag } from '@/lib/countryFlags';
 import { useFavoriteRecipients } from '@/hooks/useFavoriteRecipients';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
 
 interface TransferNovaDialogProps {
   open: boolean;
@@ -58,6 +59,7 @@ export function TransferNovaDialog({
   const { wallet, refetch: refetchWallet } = useWallet();
   const { getOrCreateConversation, sendMessage } = useDirectMessages();
   const { favorites, addFavorite, isFavorite } = useFavoriteRecipients();
+  const { getCurrencyInfo, getExchangeRateDisplay } = useNovaPricing();
   const [showAddFavoritePrompt, setShowAddFavoritePrompt] = useState(false);
 
   const isWalletFrozen = wallet?.is_frozen ?? false;
@@ -69,17 +71,17 @@ export function TransferNovaDialog({
   const [generatedReceipt, setGeneratedReceipt] = useState<Receipt | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Hard guard against double-submit (state updates are async)
+  // Dual currency input mode
+  const [inputMode, setInputMode] = useState<'nova' | 'local'>('nova');
+
+  // Hard guard against double-submit
   const inFlightRef = useRef(false);
   const requestIdRef = useRef<string | null>(null);
 
   const uuidV4 = useCallback((): string => {
-    // Browser-native if available
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID();
     }
-
-    // Fallback (still a valid UUID v4) using getRandomValues
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -87,12 +89,12 @@ export function TransferNovaDialog({
     const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   }, []);
+
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<RecipientLookupResult[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [step, setStep] = useState<'search' | 'confirm'>('search');
   
-  // Confirmed recipient - REQUIRED for transfer
   const [confirmedRecipient, setConfirmedRecipient] = useState<RecipientLookupResult | null>(
     recipientId && recipientUsername ? {
       id: '',
@@ -104,29 +106,58 @@ export function TransferNovaDialog({
     } : null
   );
 
-  const novaAmount = parseFloat(amount) || 0;
+  // Get recipient's currency info for exchange rate display
+  const recipientCurrency = confirmedRecipient
+    ? getCurrencyInfo(confirmedRecipient.country)
+    : null;
+
+  // Calculate Nova amount based on input mode
+  const rawAmount = parseFloat(amount) || 0;
+  const novaAmount = inputMode === 'nova'
+    ? rawAmount
+    : recipientCurrency
+      ? rawAmount / recipientCurrency.novaRate
+      : rawAmount;
+
+  const localEquivalent = inputMode === 'nova' && recipientCurrency
+    ? rawAmount * recipientCurrency.novaRate
+    : inputMode === 'local'
+      ? rawAmount
+      : 0;
+
+  const novaEquivalent = inputMode === 'local' ? novaAmount : rawAmount;
+
   const localInfo = calculateLocalAmount(novaAmount, user.country, 'nova');
   const hasEnoughBalance = novaAmount <= user.novaBalance && novaAmount > 0;
   const balanceAfterTransfer = user.novaBalance - novaAmount;
   
-  // Can only transfer if:
-  // 1. Has enough balance
-  // 2. Amount > 0
-  // 3. Recipient is explicitly selected from search (has userId)
-  // 4. Wallet is not frozen
   const canTransfer = hasEnoughBalance && novaAmount > 0 && confirmedRecipient?.userId && !isWalletFrozen;
 
-  // Search users when query changes - start from first character
+  // Toggle input mode
+  const toggleInputMode = () => {
+    if (!recipientCurrency) return;
+    if (inputMode === 'nova') {
+      // Convert current nova amount to local
+      const localVal = rawAmount * recipientCurrency.novaRate;
+      setAmount(localVal > 0 ? formatBalance(localVal) : '');
+      setInputMode('local');
+    } else {
+      // Convert current local amount to nova
+      const novaVal = rawAmount / recipientCurrency.novaRate;
+      setAmount(novaVal > 0 ? formatBalance(novaVal) : '');
+      setInputMode('nova');
+    }
+  };
+
+  // Search users
   const handleSearch = useCallback(async (query: string) => {
     if (query.length < 1) {
       setSearchResults([]);
       setShowDropdown(false);
       return;
     }
-
     setIsSearching(true);
     setShowDropdown(true);
-
     try {
       const results = await searchUsersByUsername(query, authUser?.id, 10);
       setSearchResults(results);
@@ -138,49 +169,37 @@ export function TransferNovaDialog({
     }
   }, [authUser?.id]);
 
-  // Debounced search
   useEffect(() => {
-    if (recipientUsername) return; // Skip if pre-filled
-    
-    const timer = setTimeout(() => {
-      handleSearch(searchQuery);
-    }, 300);
-
+    if (recipientUsername) return;
+    const timer = setTimeout(() => handleSearch(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery, recipientUsername, handleSearch]);
 
-  // Handle selecting a recipient from search results
   const handleSelectRecipient = (recipient: RecipientLookupResult) => {
     setConfirmedRecipient(recipient);
     setSearchQuery('');
     setSearchResults([]);
     setShowDropdown(false);
+    setInputMode('nova'); // Reset to nova mode
+    setAmount('');
   };
 
-  // Clear selected recipient
   const handleClearRecipient = () => {
     setConfirmedRecipient(null);
     setSearchQuery('');
     setStep('search');
+    setInputMode('nova');
+    setAmount('');
   };
 
-  // Proceed to confirmation step
   const handleProceedToConfirm = () => {
-    if (confirmedRecipient && canTransfer) {
-      setStep('confirm');
-    }
+    if (confirmedRecipient && canTransfer) setStep('confirm');
   };
 
-  // Go back to search step
-  const handleBackToSearch = () => {
-    setStep('search');
-  };
+  const handleBackToSearch = () => setStep('search');
 
-  // Execute transfer
   const handleTransfer = async () => {
-    // Prevent double submit (even if isLoading hasn't updated yet)
     if (inFlightRef.current) return;
-    
     if (!canTransfer || !confirmedRecipient?.userId || isWalletFrozen || !authUser) {
       showError(language === 'ar' ? 'لا يمكن إتمام التحويل' : 'Cannot complete transfer');
       return;
@@ -191,7 +210,6 @@ export function TransferNovaDialog({
     requestIdRef.current = uuidV4();
 
     try {
-      // Execute atomic transfer via database RPC
       const result = await executeTransfer(
         authUser.id,
         confirmedRecipient.userId,
@@ -204,15 +222,13 @@ export function TransferNovaDialog({
       );
 
       if (!result.success) {
-        // Show the exact backend error message (no translation / no generalization)
         const backendMsg = result.error || 'Transfer failed';
         const withCode = result.errorCode ? `${backendMsg} (${result.errorCode})` : backendMsg;
         showError(withCode);
         return;
       }
 
-      // Send system message in DM (fire-and-forget - never block success)
-      // CRITICAL: DM sync is a side-effect. Transfer is already in ledger.
+      // Send system message in DM (fire-and-forget)
       (async () => {
         try {
           const conversationId = await getOrCreateConversation(confirmedRecipient.userId);
@@ -220,20 +236,16 @@ export function TransferNovaDialog({
             const systemMessage = language === 'ar'
               ? `💸 قام ${user.name} بتحويل И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`
               : `💸 ${user.name} sent И ${formatBalance(novaAmount)} Nova${note ? ` — "${note}"` : ''}`;
-
             await sendMessage(conversationId, systemMessage, novaAmount, confirmedRecipient.userId);
           }
         } catch (dmErr) {
-          // Silent log - never show error to user for DM failures
-          console.warn('[TransferNovaDialog] DM sync failed (transfer succeeded):', dmErr);
+          console.warn('[TransferNovaDialog] DM sync failed:', dmErr);
         }
       })();
 
-      // Refetch wallet to get updated balance
       await refetchWallet();
       await refetchUserData();
 
-      // Create receipt for UI display
       const receipt = createTransaction({
         type: 'transfer_nova',
         status: 'completed',
@@ -256,15 +268,12 @@ export function TransferNovaDialog({
 
       setGeneratedReceipt(receipt);
       setShowReceipt(true);
-      // Show add-to-favorites prompt if not already a favorite
       if (confirmedRecipient && !isFavorite(confirmedRecipient.userId)) {
         setShowAddFavoritePrompt(true);
       }
       showSuccess(language === 'ar' ? 'تم التحويل بنجاح!' : 'Transfer successful!');
 
-      if (onTransferComplete) {
-        onTransferComplete(receipt);
-      }
+      if (onTransferComplete) onTransferComplete(receipt);
     } catch (err) {
       console.error('Transfer error:', err);
       const msg = err instanceof Error ? err.message : String(err);
@@ -283,6 +292,7 @@ export function TransferNovaDialog({
     setNote('');
     setConfirmedRecipient(null);
     setStep('search');
+    setInputMode('nova');
     onClose();
   };
 
@@ -292,9 +302,8 @@ export function TransferNovaDialog({
     setNote('');
     setSearchResults([]);
     setShowDropdown(false);
-    if (!recipientId) {
-      setConfirmedRecipient(null);
-    }
+    setInputMode('nova');
+    if (!recipientId) setConfirmedRecipient(null);
     setStep('search');
     onClose();
   };
@@ -341,7 +350,7 @@ export function TransferNovaDialog({
             {/* Step 1: Search & Select Recipient */}
             {step === 'search' && (
               <>
-                {/* Recipient Search - Only show if no pre-filled recipient */}
+                {/* Recipient Search */}
                 {!recipientUsername && !confirmedRecipient && (
                   <div className="space-y-2">
                     <Label>{language === 'ar' ? 'ابحث عن المستلم' : 'Search Recipient'}</Label>
@@ -482,25 +491,74 @@ export function TransferNovaDialog({
                         </Button>
                       )}
                     </div>
+
+                    {/* Exchange rate under recipient card */}
+                    {recipientCurrency && (
+                      <div className="mt-3 pt-3 border-t border-primary/10 flex items-center justify-center gap-2 text-sm">
+                        <span className="text-nova font-bold">И</span>
+                        <span className="text-muted-foreground">1 Nova =</span>
+                        <span className="font-semibold text-foreground">
+                          {recipientCurrency.novaRate.toLocaleString(undefined, { maximumFractionDigits: 4 })} {language === 'ar' ? recipientCurrency.symbolAr : recipientCurrency.symbol}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Amount Input */}
+                {/* Amount Input with dual currency toggle */}
                 <div className="space-y-2">
-                  <Label>{language === 'ar' ? 'المبلغ' : 'Amount'}</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    max={user.novaBalance}
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0"
-                    className="text-2xl font-bold h-14 text-center"
-                    disabled={!confirmedRecipient}
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label>{language === 'ar' ? 'المبلغ' : 'Amount'}</Label>
+                    {confirmedRecipient && recipientCurrency && (
+                      <button
+                        type="button"
+                        onClick={toggleInputMode}
+                        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                      >
+                        <ArrowUpDown className="h-3 w-3" />
+                        {inputMode === 'nova'
+                          ? (language === 'ar' ? `أدخل بـ ${recipientCurrency.symbolAr}` : `Enter in ${recipientCurrency.symbol}`)
+                          : (language === 'ar' ? 'أدخل بـ Nova' : 'Enter in Nova')}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0"
+                      className="text-2xl font-bold h-14 text-center"
+                      disabled={!confirmedRecipient}
+                    />
+                    {/* Currency indicator */}
+                    {confirmedRecipient && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                        {inputMode === 'nova' ? 'И Nova' : (language === 'ar' ? recipientCurrency?.symbolAr : recipientCurrency?.symbol)}
+                      </span>
+                    )}
+                  </div>
                   
-                  {novaAmount > 0 && (
+                  {/* Equivalent amount display */}
+                  {rawAmount > 0 && confirmedRecipient && recipientCurrency && (
+                    <div className="text-center space-y-0.5">
+                      {inputMode === 'nova' ? (
+                        <p className="text-sm text-muted-foreground">
+                          ≈ {formatBalance(localEquivalent)} {language === 'ar' ? recipientCurrency.symbolAr : recipientCurrency.symbol}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          ≈ <span className="text-nova">И</span> {formatBalance(novaEquivalent)} Nova
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Sender's local equivalent (if different country) */}
+                  {rawAmount > 0 && !confirmedRecipient && (
                     <p className="text-sm text-muted-foreground text-center">
                       ≈ {localInfo.symbol} {formatBalance(localInfo.amount)} {localInfo.currency}
                     </p>
@@ -537,7 +595,7 @@ export function TransferNovaDialog({
               </>
             )}
 
-            {/* Step 2: Confirmation Card */}
+            {/* Step 2: Confirmation */}
             {step === 'confirm' && confirmedRecipient && (
               <>
                 <div className="p-4 bg-card border rounded-xl space-y-4">
@@ -573,9 +631,11 @@ export function TransferNovaDialog({
                     <p className="text-3xl font-bold text-nova">
                       И {formatBalance(novaAmount)}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      ≈ {localInfo.symbol} {formatBalance(localInfo.amount)} {localInfo.currency}
-                    </p>
+                    {recipientCurrency && (
+                      <p className="text-sm text-muted-foreground">
+                        ≈ {formatBalance(novaAmount * recipientCurrency.novaRate)} {language === 'ar' ? recipientCurrency.symbolAr : recipientCurrency.symbol}
+                      </p>
+                    )}
                   </div>
 
                   {/* Balance After Transfer */}
@@ -587,6 +647,18 @@ export function TransferNovaDialog({
                       <span className="text-nova">И</span> {formatBalance(balanceAfterTransfer)}
                     </span>
                   </div>
+
+                  {/* Exchange Rate */}
+                  {recipientCurrency && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">
+                        {language === 'ar' ? 'سعر الصرف' : 'Exchange Rate'}
+                      </span>
+                      <span className="font-medium text-muted-foreground">
+                        И 1 = {recipientCurrency.novaRate.toLocaleString(undefined, { maximumFractionDigits: 4 })} {language === 'ar' ? recipientCurrency.symbolAr : recipientCurrency.symbol}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Note if exists */}
                   {note && (
