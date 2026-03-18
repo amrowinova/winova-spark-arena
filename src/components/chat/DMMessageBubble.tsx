@@ -247,7 +247,7 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
         ref={ref}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`group relative flex items-center ${message.isMine ? 'justify-end' : 'justify-start'} mb-1`}
+        className="group relative flex items-center mb-1"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -285,7 +285,7 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
           </div>
         </div>
 
-        {/* Message bubble - slides on swipe */}
+        {/* Message bubble - slides on swipe, always physically right for mine */}
         <div
           className="max-w-[85%]"
           ref={bubbleRef}
@@ -293,6 +293,8 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
             transform: `translateX(${swipeOffset}px)`,
             transition: isActiveSwipe.current ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             willChange: 'transform',
+            marginLeft: message.isMine ? 'auto' : undefined,
+            marginRight: message.isMine ? undefined : 'auto',
           }}
         >
           {/* Forwarded Label */}
@@ -341,15 +343,16 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
             </div>
           )}
 
-          {/* Message bubble */}
+          {/* Message bubble — double-click opens actions on desktop */}
           <div
-            className={`relative px-3 py-2 rounded-[8px] shadow-sm transition-opacity ${
+            className={`relative px-3 py-2 rounded-[8px] shadow-sm transition-opacity cursor-pointer select-none ${
               message.isPending ? 'opacity-70' : ''
             }`}
             style={message.isMine
               ? { background: 'var(--wa-sent-bg, #dcf8c6)', color: 'var(--wa-sent-text, #111b21)' }
               : { background: 'var(--wa-recv-bg, #ffffff)', color: 'var(--wa-recv-text, #111b21)' }
             }
+            onDoubleClick={() => setShowActions(true)}
           >
             {!message.isMine && (
               <p className="text-xs font-medium mb-1 opacity-70">
