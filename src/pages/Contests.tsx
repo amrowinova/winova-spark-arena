@@ -157,7 +157,7 @@ export default function ContestsPage() {
           .order('votes_received', { ascending: false });
 
         if (entriesError) {
-          console.error('Error fetching contest entries:', entriesError);
+          showError(language === 'ar' ? 'فشل تحميل بيانات المسابقة' : 'Failed to load contest data');
           setParticipants([]);
           setWinners([]);
           setHasJoined(false);
@@ -255,11 +255,11 @@ export default function ContestsPage() {
         setFreeVoteUsed(false);
       }
     } catch (err) {
-      console.error('Error fetching contest data:', err);
+      showError(language === 'ar' ? 'فشل تحميل المسابقة' : 'Failed to load contest');
     } finally {
       setIsLoading(false);
     }
-  }, [authUser, isResults]);
+  }, [authUser, isResults, language, showError]);
 
   useEffect(() => {
     fetchContestData();
