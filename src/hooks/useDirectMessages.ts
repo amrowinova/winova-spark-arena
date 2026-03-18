@@ -31,6 +31,12 @@ export interface DMMessage {
   isMine: boolean;
   transferAmount: number | null;
   transferRecipientId: string | null;
+  imageUrl: string | null;
+  replyToId: string | null;
+  replyToContent: string | null;
+  replyToSender: string | null;
+  deletedAt: string | null;
+  reactions: Array<{ emoji: string; count: number; userReacted: boolean }>;
   // Optimistic UI fields
   isPending?: boolean;
   tempId?: string;
@@ -101,20 +107,54 @@ export function useDirectMessages() {
 
       const profileMap = new Map(profiles?.map(p => [p.user_id, p.name]) || []);
 
-      const formattedMessages: DMMessage[] = (data || []).map(m => ({
-        id: m.id,
-        conversationId: m.conversation_id,
-        senderId: m.sender_id,
-        senderName: profileMap.get(m.sender_id) || 'Unknown',
-        content: m.content,
-        contentAr: m.content_ar,
-        messageType: m.message_type,
-        isRead: m.is_read,
-        createdAt: m.created_at,
-        isMine: m.sender_id === user.id,
-        transferAmount: m.transfer_amount,
-        transferRecipientId: m.transfer_recipient_id,
-      }));
+      // Fetch reactions for these messages
+      const messageIds = (data || []).map(m => m.id);
+      let reactionsMap: Record<string, Array<{ emoji: string; user_id: string }>> = {};
+      if (messageIds.length > 0) {
+        const { data: reactionsData } = await supabase
+          .from('dm_message_reactions')
+          .select('message_id, emoji, user_id')
+          .in('message_id', messageIds);
+        for (const r of reactionsData || []) {
+          if (!reactionsMap[r.message_id]) reactionsMap[r.message_id] = [];
+          reactionsMap[r.message_id].push({ emoji: r.emoji, user_id: r.user_id });
+        }
+      }
+
+      const formattedMessages: DMMessage[] = (data || []).map(m => {
+        const rawReactions = reactionsMap[m.id] || [];
+        const reactionSummary = rawReactions.reduce<Array<{ emoji: string; count: number; userReacted: boolean }>>((acc, r) => {
+          const existing = acc.find(x => x.emoji === r.emoji);
+          if (existing) {
+            existing.count++;
+            if (r.user_id === user.id) existing.userReacted = true;
+          } else {
+            acc.push({ emoji: r.emoji, count: 1, userReacted: r.user_id === user.id });
+          }
+          return acc;
+        }, []);
+
+        return {
+          id: m.id,
+          conversationId: m.conversation_id,
+          senderId: m.sender_id,
+          senderName: profileMap.get(m.sender_id) || 'Unknown',
+          content: m.content,
+          contentAr: m.content_ar,
+          messageType: m.message_type,
+          isRead: m.is_read,
+          createdAt: m.created_at,
+          isMine: m.sender_id === user.id,
+          transferAmount: m.transfer_amount,
+          transferRecipientId: m.transfer_recipient_id,
+          imageUrl: (m as any).image_url || null,
+          replyToId: (m as any).reply_to_id || null,
+          replyToContent: (m as any).reply_to_content || null,
+          replyToSender: (m as any).reply_to_sender || null,
+          deletedAt: (m as any).deleted_at || null,
+          reactions: reactionSummary,
+        };
+      });
 
       setMessages(prev => ({ ...prev, [conversationId]: formattedMessages }));
 
@@ -166,16 +206,24 @@ export function useDirectMessages() {
 
   // Send message with OPTIMISTIC UI - instant local display
   const sendMessage = useCallback(async (
-    conversationId: string, 
+    conversationId: string,
     content: string,
     transferAmount?: number,
-    transferRecipientId?: string
+    transferRecipientId?: string,
+    imageUrl?: string,
+    replyToId?: string,
+    replyToContent?: string,
+    replyToSender?: string,
   ) => {
     if (!user) return;
 
     const tempId = `temp-${Date.now()}-${Math.random()}`;
     const now = new Date().toISOString();
-    
+
+    let messageType = 'text';
+    if (transferAmount) messageType = 'transfer';
+    else if (imageUrl) messageType = 'image';
+
     // OPTIMISTIC: Add message to local state IMMEDIATELY
     const optimisticMessage: DMMessage = {
       id: tempId,
@@ -184,12 +232,18 @@ export function useDirectMessages() {
       senderName: user.user_metadata?.name || 'You',
       content,
       contentAr: null,
-      messageType: transferAmount ? 'transfer' : 'text',
+      messageType,
       isRead: false,
       createdAt: now,
       isMine: true,
       transferAmount: transferAmount || null,
       transferRecipientId: transferRecipientId || null,
+      imageUrl: imageUrl || null,
+      replyToId: replyToId || null,
+      replyToContent: replyToContent || null,
+      replyToSender: replyToSender || null,
+      deletedAt: null,
+      reactions: [],
       isPending: true,
       tempId,
     };
@@ -219,10 +273,14 @@ export function useDirectMessages() {
           conversation_id: conversationId,
           sender_id: user.id,
           content,
-          message_type: transferAmount ? 'transfer' : 'text',
+          message_type: messageType,
           transfer_amount: transferAmount,
           transfer_recipient_id: transferRecipientId,
-        })
+          image_url: imageUrl || null,
+          reply_to_id: replyToId || null,
+          reply_to_content: replyToContent || null,
+          reply_to_sender: replyToSender || null,
+        } as any)
         .select('id')
         .single();
 
@@ -263,6 +321,72 @@ export function useDirectMessages() {
       });
     }
   }, [user]);
+
+  // Soft-delete a message
+  const deleteMessage = useCallback(async (conversationId: string, messageId: string) => {
+    if (!user) return;
+    const now = new Date().toISOString();
+
+    // Optimistic update
+    setMessages(prev => ({
+      ...prev,
+      [conversationId]: (prev[conversationId] || []).map(m =>
+        m.id === messageId ? { ...m, deletedAt: now } : m
+      ),
+    }));
+
+    await supabase
+      .from('direct_messages')
+      .update({ deleted_at: now } as any)
+      .eq('id', messageId)
+      .eq('sender_id', user.id);
+  }, [user]);
+
+  // Toggle reaction (add if not present, remove if already reacted)
+  const toggleReaction = useCallback(async (conversationId: string, messageId: string, emoji: string) => {
+    if (!user) return;
+
+    const msgs = messages[conversationId] || [];
+    const msg = msgs.find(m => m.id === messageId);
+    if (!msg) return;
+
+    const alreadyReacted = msg.reactions.some(r => r.emoji === emoji && r.userReacted);
+
+    // Optimistic update
+    setMessages(prev => ({
+      ...prev,
+      [conversationId]: (prev[conversationId] || []).map(m => {
+        if (m.id !== messageId) return m;
+        if (alreadyReacted) {
+          return {
+            ...m,
+            reactions: m.reactions
+              .map(r => r.emoji === emoji ? { ...r, count: r.count - 1, userReacted: false } : r)
+              .filter(r => r.count > 0),
+          };
+        } else {
+          const existing = m.reactions.find(r => r.emoji === emoji);
+          if (existing) {
+            return { ...m, reactions: m.reactions.map(r => r.emoji === emoji ? { ...r, count: r.count + 1, userReacted: true } : r) };
+          }
+          return { ...m, reactions: [...m.reactions, { emoji, count: 1, userReacted: true }] };
+        }
+      }),
+    }));
+
+    if (alreadyReacted) {
+      await supabase
+        .from('dm_message_reactions')
+        .delete()
+        .eq('message_id', messageId)
+        .eq('user_id', user.id)
+        .eq('emoji', emoji);
+    } else {
+      await supabase
+        .from('dm_message_reactions')
+        .insert({ message_id: messageId, user_id: user.id, emoji } as any);
+    }
+  }, [user, messages]);
 
   // Set active conversation for read tracking
   const setActiveConversation = useCallback((conversationId: string | null) => {
@@ -550,6 +674,8 @@ export function useDirectMessages() {
     fetchConversations,
     fetchMessages,
     sendMessage,
+    deleteMessage,
+    toggleReaction,
     getOrCreateConversation,
     setActiveConversation,
   };
