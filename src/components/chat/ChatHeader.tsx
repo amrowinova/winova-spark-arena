@@ -147,16 +147,16 @@ export function ChatHeader({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onViewProfile}>
+            <DropdownMenuItem onClick={() => setInfoSheetOpen(true)}>
               {language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'}
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setInfoSheetOpen(true)}>
               {language === 'ar' ? 'كتم الإشعارات' : 'Mute Notifications'}
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setInfoSheetOpen(true)}>
               {language === 'ar' ? 'مسح المحادثة' : 'Clear Chat'}
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem className="text-destructive" onClick={() => setInfoSheetOpen(true)}>
               {language === 'ar' ? 'حظر' : 'Block'}
             </DropdownMenuItem>
           </DropdownMenuContent>

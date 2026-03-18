@@ -130,6 +130,23 @@
     --spacing: 0.25rem;
   }
 
+  /* WhatsApp-style chat bubble colors */
+  :root {
+    --wa-chat-bg: #ece5dd;
+    --wa-sent-bg: #dcf8c6;
+    --wa-sent-text: #111b21;
+    --wa-recv-bg: #ffffff;
+    --wa-recv-text: #111b21;
+  }
+
+  .dark {
+    --wa-chat-bg: #0b141a;
+    --wa-sent-bg: #005c4b;
+    --wa-sent-text: #e9edef;
+    --wa-recv-bg: #202c33;
+    --wa-recv-text: #e9edef;
+  }
+
   .dark {
     /* Dark mode - Clean dark theme (optional) */
     --background: 240 5% 10%;

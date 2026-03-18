@@ -303,6 +303,10 @@ export function DMChatView({
       <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto overscroll-contain"
+        style={{
+          background: 'var(--wa-chat-bg, #ece5dd)',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='5' cy='5' r='1.5' fill='%23000' fill-opacity='0.03'/%3E%3Ccircle cx='30' cy='5' r='1.5' fill='%23000' fill-opacity='0.03'/%3E%3Ccircle cx='55' cy='5' r='1.5' fill='%23000' fill-opacity='0.03'/%3E%3Ccircle cx='5' cy='30' r='1.5' fill='%23000' fill-opacity='0.03'/%3E%3Ccircle cx='30' cy='30' r='1.5' fill='%23000' fill-opacity='0.03'/%3E%3Ccircle cx='55' cy='30' r='1.5' fill='%23000' fill-opacity='0.03'/%3E%3Ccircle cx='5' cy='55' r='1.5' fill='%23000' fill-opacity='0.03'/%3E%3Ccircle cx='30' cy='55' r='1.5' fill='%23000' fill-opacity='0.03'/%3E%3Ccircle cx='55' cy='55' r='1.5' fill='%23000' fill-opacity='0.03'/%3E%3C/svg%3E")`,
+        }}
       >
         <div className="p-4 space-y-1 pb-2">
           {formattedMessages.length === 0 ? (

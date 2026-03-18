@@ -234,11 +234,11 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
       }
 
       if (message.isRead) {
-        return <CheckCheck className="h-3.5 w-3.5 text-info" />;
+        return <CheckCheck className="h-3.5 w-3.5" style={{ color: '#53bdeb' }} />;
       } else if (message.deliveredAt) {
-        return <CheckCheck className="h-3.5 w-3.5 text-muted-foreground/60" />;
+        return <CheckCheck className="h-3.5 w-3.5 opacity-50" />;
       } else {
-        return <Check className="h-3.5 w-3.5 text-muted-foreground/60" />;
+        return <Check className="h-3.5 w-3.5 opacity-40" />;
       }
     };
 
@@ -303,14 +303,37 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
             </div>
           )}
 
+          {/* Bubble wrapper with WhatsApp-style tail */}
+          <div className="relative">
+            {/* Tail */}
+            {message.isMine ? (
+              <svg
+                className="absolute -right-[7px] bottom-[2px] pointer-events-none z-10"
+                width="8" height="13" viewBox="0 0 8 13"
+                style={{ filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.08))' }}
+              >
+                <path d="M0 0 C0 8 8 11 8 13 L0 13 Z"
+                  style={{ fill: 'var(--wa-sent-bg, #dcf8c6)' }} />
+              </svg>
+            ) : (
+              <svg
+                className="absolute -left-[7px] bottom-[2px] pointer-events-none z-10"
+                width="8" height="13" viewBox="0 0 8 13"
+                style={{ filter: 'drop-shadow(-1px 1px 1px rgba(0,0,0,0.08))' }}
+              >
+                <path d="M8 0 C8 8 0 11 0 13 L8 13 Z"
+                  style={{ fill: 'var(--wa-recv-bg, #ffffff)' }} />
+              </svg>
+            )}
+
           {/* Reply preview */}
           {message.replyTo && (
             <div
               onClick={handleReplyClick}
               className={`mb-1 px-3 py-1.5 rounded-lg text-xs border-s-2 cursor-pointer hover:opacity-80 transition-opacity ${
                 message.isMine
-                  ? 'bg-primary/20 border-primary-foreground/50'
-                  : 'bg-muted border-primary'
+                  ? 'bg-black/10 border-white/40'
+                  : 'bg-black/5 border-primary'
               }`}
             >
               <p className="font-medium text-[10px] opacity-70">{message.replyTo.sender}</p>
@@ -320,13 +343,13 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
 
           {/* Message bubble */}
           <div
-            className={`relative px-3 py-2 rounded-2xl transition-opacity ${
+            className={`relative px-3 py-2 rounded-[8px] shadow-sm transition-opacity ${
               message.isPending ? 'opacity-70' : ''
-            } ${
-              message.isMine
-                ? 'bg-primary text-primary-foreground rounded-br-sm'
-                : 'bg-muted rounded-bl-sm'
             }`}
+            style={message.isMine
+              ? { background: 'var(--wa-sent-bg, #dcf8c6)', color: 'var(--wa-sent-text, #111b21)' }
+              : { background: 'var(--wa-recv-bg, #ffffff)', color: 'var(--wa-recv-text, #111b21)' }
+            }
           >
             {!message.isMine && (
               <p className="text-xs font-medium mb-1 opacity-70">
@@ -425,6 +448,8 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
               {getStatusIndicator()}
             </div>
           </div>
+
+          </div>{/* end bubble wrapper with tail */}
 
           {/* Reactions */}
           {message.reactions && message.reactions.length > 0 && (
