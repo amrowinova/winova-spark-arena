@@ -177,20 +177,6 @@ export function getContestTiming(): ContestTimingInfo {
   const saudiDateStr = getSaudiDateStr(ksa);
   const saudiDayName = getSaudiDayNameAr(ksa);
 
-  // Debug logging
-  console.log('Contest Debug (KSA):', {
-    saudiTime: `${ksa.getHours()}:${String(ksa.getMinutes()).padStart(2, '0')}:${String(ksa.getSeconds()).padStart(2, '0')}`,
-    saudiDate: saudiDateStr,
-    saudiDay: saudiDayName,
-    currentMinutes,
-    computedPhase: currentPhase,
-    canJoin,
-    joinOpenAt: joinOpenAt.toISOString(),
-    joinCloseAt: joinCloseAt.toISOString(),
-    finalStart: finalStart.toISOString(),
-    finalEnd: finalEnd.toISOString(),
-    timeRemainingMs: timeRemaining,
-  });
 
   return {
     currentPhase,
