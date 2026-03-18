@@ -507,14 +507,16 @@ function ChatContent() {
           sentCount++;
         }
       } catch (e) {
-        console.error('Forward failed for', recipientId, e);
+        showError(language === 'ar' ? 'فشل إرسال الرسالة لبعض جهات الاتصال' : 'Failed to forward to some contacts');
       }
     }
-    showSuccess(
-      language === 'ar'
-        ? `تم إعادة التوجيه إلى ${sentCount} جهة اتصال`
-        : `Forwarded to ${sentCount} contact${sentCount !== 1 ? 's' : ''}`
-    );
+    if (sentCount > 0) {
+      showSuccess(
+        language === 'ar'
+          ? `تم إعادة التوجيه إلى ${sentCount} جهة اتصال`
+          : `Forwarded to ${sentCount} contact${sentCount !== 1 ? 's' : ''}`
+      );
+    }
   };
 
   const scrollToMessage = (messageId: string) => {
