@@ -151,9 +151,10 @@ export function AddNovaDialog({ open, onOpenChange, user, onSuccess }: AddNovaDi
       setOperation('add');
       onOpenChange(false);
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating Nova balance:', error);
-      toast.error(isRTL ? 'حدث خطأ' : 'An error occurred');
+      const msg = error?.message || error?.details || (isRTL ? 'حدث خطأ' : 'An error occurred');
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
