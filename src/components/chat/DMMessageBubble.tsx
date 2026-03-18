@@ -27,6 +27,8 @@ export interface DMMessageData {
   createdAt: string;
   isMine: boolean;
   transferAmount?: number | null;
+  imageUrl?: string | null;
+  deletedAt?: string | null;
   replyTo?: {
     id: string;
     sender: string;
@@ -88,9 +90,11 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
     // Feature flag check
     const chatReliabilityEnabled = isFeatureEnabled('chat_reliability_v1');
     
+    const isDeleted = !!message.deletedAt;
+
     // Check if message is long
-    const isLongMessage = message.content.length > MAX_MESSAGE_LENGTH;
-    const displayContent = isLongMessage && !isExpanded 
+    const isLongMessage = !isDeleted && message.content.length > MAX_MESSAGE_LENGTH;
+    const displayContent = isLongMessage && !isExpanded
       ? message.content.slice(0, MAX_MESSAGE_LENGTH) + '...'
       : message.content;
     
@@ -240,21 +244,46 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
               </p>
             )}
 
-            {/* Transfer indicator */}
-            {message.messageType === 'transfer' && message.transferAmount ? (
-              <div className="bg-success/20 rounded-lg p-2 mb-1">
-                <p className="text-sm font-medium">
-                  💸 {language === 'ar' ? 'تحويل Nova' : 'Nova Transfer'}
-                </p>
-                <p className="text-lg font-bold">{message.transferAmount} И</p>
-              </div>
-            ) : null}
+            {/* Deleted message */}
+            {isDeleted ? (
+              <p className="text-sm italic opacity-50">
+                🚫 {language === 'ar' ? 'تم حذف هذه الرسالة' : 'This message was deleted'}
+              </p>
+            ) : (
+              <>
+                {/* Transfer indicator */}
+                {message.messageType === 'transfer' && message.transferAmount ? (
+                  <div className="bg-success/20 rounded-lg p-2 mb-1">
+                    <p className="text-sm font-medium">
+                      💸 {language === 'ar' ? 'تحويل Nova' : 'Nova Transfer'}
+                    </p>
+                    <p className="text-lg font-bold">{message.transferAmount} И</p>
+                  </div>
+                ) : null}
 
-            {/* Message content with expand/collapse for long messages */}
-            <p className="text-sm whitespace-pre-wrap break-words">{displayContent}</p>
+                {/* Image */}
+                {message.imageUrl && (
+                  <a href={message.imageUrl} target="_blank" rel="noopener noreferrer" className="block mb-1">
+                    <img
+                      src={message.imageUrl}
+                      alt="image"
+                      className="max-w-full rounded-lg max-h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      loading="lazy"
+                    />
+                  </a>
+                )}
+
+                {/* Message text (skip if image-only) */}
+                {(message.content && message.messageType !== 'image') || (message.imageUrl && message.content && message.content !== '📷 Image' && message.content !== '📷 صورة') ? (
+                  <p className="text-sm whitespace-pre-wrap break-words">{displayContent}</p>
+                ) : !message.imageUrl ? (
+                  <p className="text-sm whitespace-pre-wrap break-words">{displayContent}</p>
+                ) : null}
+              </>
+            )}
             
             {/* Show more/less button for long messages */}
-            {chatReliabilityEnabled && isLongMessage && (
+            {!isDeleted && chatReliabilityEnabled && isLongMessage && (
               <Button
                 variant="ghost"
                 size="sm"
