@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Image, X, DollarSign } from 'lucide-react';
+import { Send, Image, X, Zap, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -9,11 +9,14 @@ import { ChatHeader } from './ChatHeader';
 import { ReplyBar } from './ReplyBar';
 import { ForwardDialog } from './ForwardDialog';
 import { MessageInfoSheet } from './MessageInfoSheet';
-import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 import { DMConversation, DMMessage } from '@/hooks/useDirectMessages';
 import { useDMMediaUpload } from '@/hooks/useDMMediaUpload';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useChatPresence } from '@/hooks/useChatPresence';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/contexts/UserContext';
+import { useWallet } from '@/hooks/useWallet';
+import { executeTransfer } from '@/lib/walletService';
 
 const AI_SYSTEM_USER_ID = '00000000-0000-0000-0000-a10000000001';
 
@@ -47,6 +50,9 @@ export function DMChatView({
 }: DMChatViewProps) {
   const { language } = useLanguage();
   const { info: showInfo, success: showSuccess, error: showError } = useBanner();
+  const { user: authUser } = useAuth();
+  const { user } = useUser();
+  const { refetch: refetchWallet } = useWallet();
   const isRTL = language === 'ar';
   const isSystemChat = conversation.participantId === AI_SYSTEM_USER_ID;
 
@@ -54,8 +60,14 @@ export function DMChatView({
   const [replyTo, setReplyTo] = useState<DMMessageData | null>(null);
   const [forwardMessage, setForwardMessage] = useState<DMMessageData | null>(null);
   const [messageInfo, setMessageInfo] = useState<DMMessageData | null>(null);
-  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  // Quick Transfer state
+  const [showQuickTransfer, setShowQuickTransfer] = useState(false);
+  const [customAmount, setCustomAmount] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
+
+  const QUICK_AMOUNTS = [50, 100, 200];
 
   // Image upload state
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -205,6 +217,45 @@ export function DMChatView({
     showInfo(isRTL ? 'تم حذف الرسالة' : 'Message deleted');
   };
 
+  const handleQuickTransfer = async (amount: number) => {
+    if (!authUser || amount <= 0 || isTransferring) return;
+    if (amount > user.novaBalance) {
+      showError(isRTL ? 'رصيد غير كافٍ' : 'Insufficient balance');
+      return;
+    }
+    setIsTransferring(true);
+    try {
+      const result = await executeTransfer(
+        authUser.id,
+        conversation.participantId,
+        amount,
+        'nova',
+        'dm_transfer',
+        undefined,
+        isRTL ? `تحويل Nova` : 'Nova Transfer',
+        'تحويل Nova',
+      );
+      if (!result.success) {
+        showError(result.error || (isRTL ? 'فشل التحويل' : 'Transfer failed'));
+        return;
+      }
+      await onSendMessage(
+        conversation.id,
+        isRTL ? `💸 تم تحويل И${amount} Nova` : `💸 Sent И${amount} Nova`,
+        amount,
+        conversation.participantId,
+      );
+      showSuccess(isRTL ? `تم تحويل И${amount} بنجاح ✓` : `Sent И${amount} successfully ✓`);
+      setShowQuickTransfer(false);
+      setCustomAmount('');
+      await refetchWallet();
+    } catch {
+      showError(isRTL ? 'فشل التحويل' : 'Transfer failed');
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
   const handleForwardSubmit = (recipientIds: string[]) => {
     if (forwardMessage && onForwardMessage) {
       onForwardMessage(forwardMessage.content, recipientIds);
@@ -215,16 +266,6 @@ export function DMChatView({
         : `Forwarded to ${recipientIds.length} contacts`,
     );
     setForwardMessage(null);
-  };
-
-  const handleTransferComplete = (receipt: { amount: number }) => {
-    onSendMessage(
-      conversation.id,
-      isRTL ? `تم تحويل ${receipt.amount} Nova` : `Transferred ${receipt.amount} Nova`,
-      receipt.amount,
-      conversation.participantId,
-    );
-    setTransferDialogOpen(false);
   };
 
   // Group consecutive messages from same sender
@@ -254,7 +295,6 @@ export function DMChatView({
           lastSeen={isSystemChat ? (isRTL ? 'نظام ذكي' : 'AI System') : (getLastSeenText(language as 'ar' | 'en') || undefined)}
           isTyping={isSystemChat ? false : !!otherUserTyping}
           onBack={onBack}
-          onTransfer={isSystemChat ? undefined : () => setTransferDialogOpen(true)}
           onScrollToMessage={scrollToMessage}
         />
       </div>
@@ -331,6 +371,60 @@ export function DMChatView({
             </div>
           )}
 
+          {/* Quick Transfer Panel */}
+          {showQuickTransfer && (
+            <div className="px-3 pt-2 pb-1 border-b border-border bg-success/5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-medium text-success">
+                  {isRTL ? `💸 تحويل سريع — رصيدك: И${user.novaBalance}` : `💸 Quick Transfer — Balance: И${user.novaBalance}`}
+                </span>
+                <button
+                  onClick={() => { setShowQuickTransfer(false); setCustomAmount(''); }}
+                  className="ms-auto text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {QUICK_AMOUNTS.map(amt => (
+                  <Button
+                    key={amt}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-sm font-medium border-success/40 hover:bg-success/10 hover:border-success"
+                    onClick={() => handleQuickTransfer(amt)}
+                    disabled={isTransferring || amt > user.novaBalance}
+                  >
+                    И{amt}
+                  </Button>
+                ))}
+                <div className="flex items-center gap-1 flex-1 min-w-[100px]">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={customAmount}
+                    onChange={e => setCustomAmount(e.target.value)}
+                    placeholder={isRTL ? 'مبلغ حر' : 'Custom'}
+                    className="h-8 text-sm"
+                    disabled={isTransferring}
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8 px-3 bg-success hover:bg-success/90 text-success-foreground shrink-0"
+                    onClick={() => handleQuickTransfer(Number(customAmount))}
+                    disabled={isTransferring || !customAmount || Number(customAmount) <= 0}
+                  >
+                    {isTransferring ? (
+                      <div className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Send className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Input Bar */}
           <div className="p-3 flex items-center gap-2">
             {/* Image picker */}
@@ -351,16 +445,16 @@ export function DMChatView({
               <Image className="h-5 w-5" />
             </Button>
 
-            {/* Quick transfer */}
+            {/* Quick transfer toggle */}
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 h-10 w-10 text-muted-foreground hover:text-success"
-              onClick={() => setTransferDialogOpen(true)}
-              title={isRTL ? 'تحويل Nova' : 'Transfer Nova'}
+              className={`shrink-0 h-10 w-10 transition-colors ${showQuickTransfer ? 'text-success bg-success/10' : 'text-muted-foreground hover:text-success'}`}
+              onClick={() => setShowQuickTransfer(!showQuickTransfer)}
+              title={isRTL ? 'تحويل سريع' : 'Quick Transfer'}
               disabled={isBusy}
             >
-              <DollarSign className="h-5 w-5" />
+              <Zap className="h-5 w-5" />
             </Button>
 
             <Input
@@ -388,16 +482,6 @@ export function DMChatView({
           </div>
         </div>
       )}
-
-      {/* Transfer Dialog */}
-      <TransferNovaDialog
-        open={transferDialogOpen}
-        onClose={() => setTransferDialogOpen(false)}
-        recipientId={conversation.participantId}
-        recipientName={conversation.participantName}
-        recipientUsername={conversation.participantUsername}
-        onTransferComplete={handleTransferComplete}
-      />
 
       {/* Forward Dialog */}
       <ForwardDialog
