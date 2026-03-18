@@ -14,6 +14,7 @@ import { ChatInfoSheet } from './ChatInfoSheet';
 
 interface ChatHeaderProps {
   id?: string;
+  conversationId?: string;
   name: string;
   username?: string;
   avatar: string;
@@ -30,10 +31,12 @@ interface ChatHeaderProps {
   onBack: () => void;
   onTransfer?: () => void;
   onViewProfile?: () => void;
+  onScrollToMessage?: (messageId: string) => void;
 }
 
 export function ChatHeader({
   id = '1',
+  conversationId,
   name,
   username,
   avatar,
@@ -47,6 +50,7 @@ export function ChatHeader({
   onBack,
   onTransfer,
   onViewProfile,
+  onScrollToMessage,
 }: ChatHeaderProps) {
   const { language } = useLanguage();
   const [infoSheetOpen, setInfoSheetOpen] = useState(false);
@@ -163,6 +167,8 @@ export function ChatHeader({
       <ChatInfoSheet
         open={infoSheetOpen}
         onOpenChange={setInfoSheetOpen}
+        conversationId={conversationId}
+        onScrollToMessage={onScrollToMessage}
         user={{
           id,
           name,
