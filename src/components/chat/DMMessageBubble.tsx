@@ -7,6 +7,8 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  Reply,
+  Forward,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { MessageReactions } from './MessageReactions';
@@ -27,6 +29,8 @@ export interface DMMessageData {
   createdAt: string;
   isMine: boolean;
   transferAmount?: number | null;
+  imageUrl?: string | null;
+  deletedAt?: string | null;
   replyTo?: {
     id: string;
     sender: string;
@@ -59,6 +63,11 @@ interface DMMessageBubbleProps {
 // Max chars before showing "Show more" button
 const MAX_MESSAGE_LENGTH = 300;
 
+// Swipe thresholds
+const SWIPE_THRESHOLD = 60;
+const MAX_SWIPE = 80;
+const SWIPE_RESISTANCE = 0.6;
+
 export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
   function DMMessageBubble(
     {
@@ -82,18 +91,32 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [swipeOffset, setSwipeOffset] = useState(0);
     const longPressTimer = useRef<NodeJS.Timeout | null>(null);
     const bubbleRef = useRef<HTMLDivElement>(null);
-    
+    const swipeStartXRef = useRef<number | null>(null);
+    const swipeStartYRef = useRef<number | null>(null);
+    const isHorizontalSwipe = useRef(false);
+    const swipeTriggered = useRef(false);
+    const isActiveSwipe = useRef(false);
+
     // Feature flag check
     const chatReliabilityEnabled = isFeatureEnabled('chat_reliability_v1');
-    
+
+    const isDeleted = !!message.deletedAt;
+
     // Check if message is long
-    const isLongMessage = message.content.length > MAX_MESSAGE_LENGTH;
-    const displayContent = isLongMessage && !isExpanded 
+    const isLongMessage = !isDeleted && message.content.length > MAX_MESSAGE_LENGTH;
+    const displayContent = isLongMessage && !isExpanded
       ? message.content.slice(0, MAX_MESSAGE_LENGTH) + '...'
       : message.content;
-    
+
+    // Swipe icon visibility
+    const replyIconOpacity = Math.min(1, Math.max(0, swipeOffset / SWIPE_THRESHOLD));
+    const forwardIconOpacity = Math.min(1, Math.max(0, -swipeOffset / SWIPE_THRESHOLD));
+    const replyReached = swipeOffset >= SWIPE_THRESHOLD;
+    const forwardReached = swipeOffset <= -SWIPE_THRESHOLD;
+
     // Quick copy handler
     const handleQuickCopy = async () => {
       try {
@@ -113,11 +136,48 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
       }
     };
 
-    // Long press detection
-    const handleTouchStart = () => {
+    // Long press + swipe detection
+    const handleTouchStart = (e: React.TouchEvent) => {
+      swipeStartXRef.current = e.touches[0].clientX;
+      swipeStartYRef.current = e.touches[0].clientY;
+      isHorizontalSwipe.current = false;
+      swipeTriggered.current = false;
+      isActiveSwipe.current = false;
+
       longPressTimer.current = setTimeout(() => {
-        setShowActions(true);
+        if (!isActiveSwipe.current) {
+          setShowActions(true);
+        }
       }, 500);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (swipeStartXRef.current === null || swipeStartYRef.current === null) return;
+
+      const dx = e.touches[0].clientX - swipeStartXRef.current;
+      const dy = e.touches[0].clientY - swipeStartYRef.current;
+
+      if (!isHorizontalSwipe.current) {
+        if (Math.abs(dx) > 8) {
+          if (Math.abs(dx) > Math.abs(dy)) {
+            isHorizontalSwipe.current = true;
+            isActiveSwipe.current = true;
+            // Cancel long press when swiping
+            if (longPressTimer.current) {
+              clearTimeout(longPressTimer.current);
+              longPressTimer.current = null;
+            }
+          } else {
+            // Vertical scroll detected, ignore horizontal
+            return;
+          }
+        } else {
+          return;
+        }
+      }
+
+      const clampedOffset = Math.max(-MAX_SWIPE, Math.min(MAX_SWIPE, dx * SWIPE_RESISTANCE));
+      setSwipeOffset(clampedOffset);
     };
 
     const handleTouchEnd = () => {
@@ -125,6 +185,23 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
         clearTimeout(longPressTimer.current);
         longPressTimer.current = null;
       }
+
+      if (isHorizontalSwipe.current && !swipeTriggered.current) {
+        if (swipeOffset >= SWIPE_THRESHOLD) {
+          swipeTriggered.current = true;
+          onReply?.(message);
+        } else if (swipeOffset <= -SWIPE_THRESHOLD) {
+          swipeTriggered.current = true;
+          onForward?.(message);
+        }
+      }
+
+      // Snap back
+      setSwipeOffset(0);
+      swipeStartXRef.current = null;
+      swipeStartYRef.current = null;
+      isHorizontalSwipe.current = false;
+      isActiveSwipe.current = false;
     };
 
     const handleContextMenu = (e: React.MouseEvent) => {
@@ -169,38 +246,76 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
       setShowReactionPicker(false);
     };
 
-    // Get read status indicator - Now with delivered support
+    // Get read status indicator
     const getStatusIndicator = () => {
       if (!message.isMine || !showReadReceipts) return null;
 
-      // Pending message
       if (message.isPending) {
         return <Check className="h-3.5 w-3.5 text-muted-foreground/40 animate-pulse" />;
       }
 
       if (message.isRead) {
-        // Read - blue double check
         return <CheckCheck className="h-3.5 w-3.5 text-info" />;
       } else if (message.deliveredAt) {
-        // Delivered - gray double check
         return <CheckCheck className="h-3.5 w-3.5 text-muted-foreground/60" />;
       } else {
-        // Sent - single check
         return <Check className="h-3.5 w-3.5 text-muted-foreground/60" />;
       }
     };
 
     return (
       <motion.div
-        ref={ref || bubbleRef}
+        ref={ref}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`group relative flex ${message.isMine ? 'justify-end' : 'justify-start'} mb-1`}
+        className={`group relative flex items-center ${message.isMine ? 'justify-end' : 'justify-start'} mb-1`}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onContextMenu={handleContextMenu}
       >
-        <div className="max-w-[85%]" ref={bubbleRef}>
+        {/* Reply icon (shown when swiping right) */}
+        <div
+          className="absolute left-1 flex items-center justify-center pointer-events-none z-10"
+          style={{ opacity: replyIconOpacity, transform: `scale(${0.7 + replyIconOpacity * 0.3})` }}
+        >
+          <div
+            className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-colors duration-150 ${
+              replyReached
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted/90 text-muted-foreground backdrop-blur-sm'
+            }`}
+          >
+            <Reply className="h-4 w-4" />
+          </div>
+        </div>
+
+        {/* Forward icon (shown when swiping left) */}
+        <div
+          className="absolute right-1 flex items-center justify-center pointer-events-none z-10"
+          style={{ opacity: forwardIconOpacity, transform: `scale(${0.7 + forwardIconOpacity * 0.3})` }}
+        >
+          <div
+            className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-colors duration-150 ${
+              forwardReached
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted/90 text-muted-foreground backdrop-blur-sm'
+            }`}
+          >
+            <Forward className="h-4 w-4" />
+          </div>
+        </div>
+
+        {/* Message bubble - slides on swipe */}
+        <div
+          className="max-w-[85%]"
+          ref={bubbleRef}
+          style={{
+            transform: `translateX(${swipeOffset}px)`,
+            transition: isActiveSwipe.current ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            willChange: 'transform',
+          }}
+        >
           {/* Forwarded Label */}
           {message.isForwarded && (
             <div className={`flex items-center gap-1 text-xs text-muted-foreground mb-1 ${message.isMine ? 'justify-end' : ''}`}>
@@ -240,21 +355,46 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
               </p>
             )}
 
-            {/* Transfer indicator */}
-            {message.messageType === 'transfer' && message.transferAmount ? (
-              <div className="bg-success/20 rounded-lg p-2 mb-1">
-                <p className="text-sm font-medium">
-                  💸 {language === 'ar' ? 'تحويل Nova' : 'Nova Transfer'}
-                </p>
-                <p className="text-lg font-bold">{message.transferAmount} И</p>
-              </div>
-            ) : null}
+            {/* Deleted message */}
+            {isDeleted ? (
+              <p className="text-sm italic opacity-50">
+                🚫 {language === 'ar' ? 'تم حذف هذه الرسالة' : 'This message was deleted'}
+              </p>
+            ) : (
+              <>
+                {/* Transfer indicator */}
+                {message.messageType === 'transfer' && message.transferAmount ? (
+                  <div className="bg-success/20 rounded-lg p-2 mb-1">
+                    <p className="text-sm font-medium">
+                      💸 {language === 'ar' ? 'تحويل Nova' : 'Nova Transfer'}
+                    </p>
+                    <p className="text-lg font-bold">{message.transferAmount} И</p>
+                  </div>
+                ) : null}
 
-            {/* Message content with expand/collapse for long messages */}
-            <p className="text-sm whitespace-pre-wrap break-words">{displayContent}</p>
-            
-            {/* Show more/less button for long messages */}
-            {chatReliabilityEnabled && isLongMessage && (
+                {/* Image */}
+                {message.imageUrl && (
+                  <a href={message.imageUrl} target="_blank" rel="noopener noreferrer" className="block mb-1">
+                    <img
+                      src={message.imageUrl}
+                      alt="image"
+                      className="max-w-full rounded-lg max-h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      loading="lazy"
+                    />
+                  </a>
+                )}
+
+                {/* Message text */}
+                {(message.content && message.messageType !== 'image') || (message.imageUrl && message.content && message.content !== '📷 Image' && message.content !== '📷 صورة') ? (
+                  <p className="text-sm whitespace-pre-wrap break-words">{displayContent}</p>
+                ) : !message.imageUrl ? (
+                  <p className="text-sm whitespace-pre-wrap break-words">{displayContent}</p>
+                ) : null}
+              </>
+            )}
+
+            {/* Show more/less for long messages */}
+            {!isDeleted && chatReliabilityEnabled && isLongMessage && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -278,9 +418,8 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
               </Button>
             )}
 
-            {/* Time, status, and quick copy */}
+            {/* Time, status, quick copy */}
             <div className={`flex items-center gap-1 mt-1 ${message.isMine ? 'justify-end' : ''}`}>
-              {/* Quick copy button - visible on hover/tap */}
               {chatReliabilityEnabled && (
                 <Button
                   variant="ghost"
