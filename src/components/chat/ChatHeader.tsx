@@ -28,7 +28,7 @@ interface ChatHeaderProps {
   };
   isTyping?: boolean;
   onBack: () => void;
-  onTransfer: () => void;
+  onTransfer?: () => void;
   onViewProfile?: () => void;
 }
 
@@ -123,15 +123,17 @@ export function ChatHeader({
           </div>
         </div>
 
-        {/* Transfer button */}
-        <Button 
-          size="sm" 
-          onClick={onTransfer}
-          className="gap-1.5"
-        >
-          <span className="font-bold">И</span>
-          <span>{language === 'ar' ? 'إرسال' : 'Send'}</span>
-        </Button>
+        {/* Transfer button - only shown when transfer is available */}
+        {onTransfer && (
+          <Button
+            size="sm"
+            onClick={onTransfer}
+            className="gap-1.5"
+          >
+            <span className="font-bold">И</span>
+            <span>{language === 'ar' ? 'إرسال' : 'Send'}</span>
+          </Button>
+        )}
 
         {/* More options */}
         <DropdownMenu>

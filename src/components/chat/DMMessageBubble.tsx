@@ -88,7 +88,6 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
     const { language } = useLanguage();
     const { toast } = useToast();
     const [showActions, setShowActions] = useState(false);
-    const [showReactionPicker, setShowReactionPicker] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [copied, setCopied] = useState(false);
     const [swipeOffset, setSwipeOffset] = useState(0);
@@ -209,25 +208,7 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
       setShowActions(true);
     };
 
-    // Close actions when clicking outside
-    useEffect(() => {
-      const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-        if (bubbleRef.current && !bubbleRef.current.contains(e.target as Node)) {
-          setShowActions(false);
-          setShowReactionPicker(false);
-        }
-      };
-
-      if (showActions || showReactionPicker) {
-        document.addEventListener('mousedown', handleClickOutside);
-        document.addEventListener('touchstart', handleClickOutside);
-      }
-
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('touchstart', handleClickOutside);
-      };
-    }, [showActions, showReactionPicker]);
+    // No need for click-outside listener; the overlay handles closing via backdrop click
 
     const handleReplyClick = () => {
       if (message.replyTo?.id && onScrollToMessage) {
@@ -237,13 +218,11 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
 
     const handleReact = (emoji: string) => {
       onReact?.(message.id, emoji);
-      setShowReactionPicker(false);
       setShowActions(false);
     };
 
     const closeActions = () => {
       setShowActions(false);
-      setShowReactionPicker(false);
     };
 
     // Get read status indicator
@@ -456,13 +435,12 @@ export const DMMessageBubble = forwardRef<HTMLDivElement, DMMessageBubbleProps>(
             />
           )}
 
-          {/* Long-press action menu */}
+          {/* Long-press action menu (portal-like fixed overlay) */}
           <AnimatePresence>
             {showActions && (
               <MessageActionMenu
                 isMine={message.isMine}
-                showReactionPicker={showReactionPicker}
-                onToggleReactionPicker={() => setShowReactionPicker(!showReactionPicker)}
+                onClose={closeActions}
                 onReact={handleReact}
                 onReply={() => {
                   onReply?.(message);
