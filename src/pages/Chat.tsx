@@ -102,12 +102,14 @@ function ChatContent() {
   const { messages: supportMessages, totalUnread: supportUnread, currentTicket } = useSupport();
   
   // Real DM hook
-  const { 
-    conversations: dmConversations, 
-    messages: dmMessages, 
+  const {
+    conversations: dmConversations,
+    messages: dmMessages,
     isLoading: dmLoading,
     fetchMessages: fetchDMMessages,
     sendMessage: sendDMMessage,
+    deleteMessage: deleteDMMessage,
+    toggleReaction: toggleDMReaction,
     getOrCreateConversation,
     setActiveConversation: setActiveDMConversationId,
   } = useDirectMessages();
@@ -118,6 +120,7 @@ function ChatContent() {
     messages: teamMessages,
     fetchMessages: fetchTeamMessages,
     sendMessage: sendTeamMessage,
+    toggleReaction: toggleTeamReaction,
     fetchMembers: fetchTeamMembers,
   } = useTeamChat();
   
@@ -804,6 +807,7 @@ function ChatContent() {
           members={activeTeamMembers}
           onBack={handleBackFromChat}
           onSendMessage={sendTeamMessage}
+          onToggleReaction={toggleTeamReaction}
         />
       </AppLayout>
     );
@@ -832,6 +836,8 @@ function ChatContent() {
           onBack={handleBackFromChat}
           onSendMessage={sendDMMessage}
           onForwardMessage={handleForwardMessage}
+          onDeleteMessage={deleteDMMessage}
+          onToggleReaction={toggleDMReaction}
         />
       </AppLayout>
     );
