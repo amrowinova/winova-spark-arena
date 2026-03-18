@@ -95,7 +95,7 @@ export function initializeFeatureFlags(context: {
 }): void {
   userContext = context;
   // In future, could fetch flags from server here
-  console.log('[FeatureFlags] Initialized with context:', context);
+
 }
 
 /**
@@ -138,7 +138,7 @@ export function getAllFeatureFlags(): Record<FeatureFlag, FeatureFlagConfig> {
 export function setFeatureFlag(flag: FeatureFlag, enabled: boolean): void {
   if (cachedFlags[flag]) {
     cachedFlags[flag] = { ...cachedFlags[flag], enabled };
-    console.log('[FeatureFlags] Updated:', flag, '=', enabled);
+
   }
 }
 
@@ -147,7 +147,7 @@ export function setFeatureFlag(flag: FeatureFlag, enabled: boolean): void {
  */
 export function resetFeatureFlags(): void {
   cachedFlags = { ...DEFAULT_FLAGS };
-  console.log('[FeatureFlags] Reset to defaults');
+
 }
 
 /**

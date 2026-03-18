@@ -102,12 +102,14 @@ function ChatContent() {
   const { messages: supportMessages, totalUnread: supportUnread, currentTicket } = useSupport();
   
   // Real DM hook
-  const { 
-    conversations: dmConversations, 
-    messages: dmMessages, 
+  const {
+    conversations: dmConversations,
+    messages: dmMessages,
     isLoading: dmLoading,
     fetchMessages: fetchDMMessages,
     sendMessage: sendDMMessage,
+    deleteMessage: deleteDMMessage,
+    toggleReaction: toggleDMReaction,
     getOrCreateConversation,
     setActiveConversation: setActiveDMConversationId,
   } = useDirectMessages();
@@ -118,6 +120,7 @@ function ChatContent() {
     messages: teamMessages,
     fetchMessages: fetchTeamMessages,
     sendMessage: sendTeamMessage,
+    toggleReaction: toggleTeamReaction,
     fetchMembers: fetchTeamMembers,
   } = useTeamChat();
   
@@ -507,14 +510,16 @@ function ChatContent() {
           sentCount++;
         }
       } catch (e) {
-        console.error('Forward failed for', recipientId, e);
+        showError(language === 'ar' ? 'فشل إرسال الرسالة لبعض جهات الاتصال' : 'Failed to forward to some contacts');
       }
     }
-    showSuccess(
-      language === 'ar'
-        ? `تم إعادة التوجيه إلى ${sentCount} جهة اتصال`
-        : `Forwarded to ${sentCount} contact${sentCount !== 1 ? 's' : ''}`
-    );
+    if (sentCount > 0) {
+      showSuccess(
+        language === 'ar'
+          ? `تم إعادة التوجيه إلى ${sentCount} جهة اتصال`
+          : `Forwarded to ${sentCount} contact${sentCount !== 1 ? 's' : ''}`
+      );
+    }
   };
 
   const scrollToMessage = (messageId: string) => {
@@ -802,6 +807,7 @@ function ChatContent() {
           members={activeTeamMembers}
           onBack={handleBackFromChat}
           onSendMessage={sendTeamMessage}
+          onToggleReaction={toggleTeamReaction}
         />
       </AppLayout>
     );
@@ -830,6 +836,8 @@ function ChatContent() {
           onBack={handleBackFromChat}
           onSendMessage={sendDMMessage}
           onForwardMessage={handleForwardMessage}
+          onDeleteMessage={deleteDMMessage}
+          onToggleReaction={toggleDMReaction}
         />
       </AppLayout>
     );

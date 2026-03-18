@@ -586,22 +586,54 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Support actions
-  const joinDispute = useCallback((_orderId: string) => {
-    // TODO: Implement support system
-  }, []);
+  const joinDispute = useCallback(async (orderId: string) => {
+    if (!user) return;
+    try {
+      await db.sendSystemMessage(
+        orderId,
+        'support_joined',
+        '🛡️ Support staff has joined this dispute',
+        '🛡️ انضم فريق الدعم إلى هذا النزاع',
+      );
+    } catch (err) {
+      console.error('Failed to join dispute:', err);
+    }
+  }, [user, db]);
 
-  const requestProof = useCallback((_orderId: string) => {
-    // TODO: Implement support system
-  }, []);
+  const requestProof = useCallback(async (orderId: string) => {
+    if (!user) return;
+    try {
+      await db.sendSystemMessage(
+        orderId,
+        'support_joined',
+        '📎 Support has requested payment proof from both parties',
+        '📎 طلب الدعم إثبات الدفع من الطرفين',
+      );
+    } catch (err) {
+      console.error('Failed to request proof:', err);
+    }
+  }, [user, db]);
 
   const resolveDispute = useCallback(async (orderId: string, resolution: 'release_to_buyer' | 'return_to_seller') => {
-    if (resolution === 'release_to_buyer') {
-      const result = await db.releaseFunds(orderId);
-      if (!result.success) return;
-    } else {
-      await db.cancelOrder(orderId, 'Dispute resolved - returned to seller');
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.rpc('p2p_resolve_dispute', {
+        p_order_id: orderId,
+        p_staff_id: user.id,
+        p_resolution: resolution,
+      });
+      if (error) {
+        console.error('Dispute resolution error:', error);
+        return;
+      }
+      const result = data as { success: boolean; error?: string };
+      if (!result?.success) {
+        console.error('Dispute resolution failed:', result?.error);
+      }
+    } catch (err) {
+      console.error('Failed to resolve dispute:', err);
     }
-  }, [db]);
+  }, [user]);
 
   // Rating
   const rateOrder = useCallback(async (orderId: string, isPositive: boolean) => {

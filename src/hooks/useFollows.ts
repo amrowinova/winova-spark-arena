@@ -79,7 +79,7 @@ export function useFollows(targetUserId: string | undefined) {
       if (error) {
         if (error.code === '23505') {
           // Already following
-          console.log('Already following this user');
+
         } else {
           throw error;
         }

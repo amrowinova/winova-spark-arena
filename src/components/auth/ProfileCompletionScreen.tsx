@@ -142,6 +142,11 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
       return;
     }
 
+    if (fullName.trim().length > 60) {
+      setError(isRTL ? 'الاسم طويل جداً (60 حرفاً كحد أقصى)' : 'Name is too long (max 60 characters)');
+      return;
+    }
+
     // Location is required if no referral code
     if (!referralCode && (!country || !city || !area)) {
       setError(isRTL ? 'يرجى إدخال الموقع أو كود الإحالة' : 'Please enter location or referral code');

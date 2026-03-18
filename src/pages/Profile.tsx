@@ -423,7 +423,7 @@ function ProfileContent() {
               <UserWinsSection 
                 wins={wins}
                 isOwnProfile={true}
-                onViewContest={(id) => console.log('View contest:', id)}
+                onViewContest={() => {}}
               />
             </motion.section>
           )}

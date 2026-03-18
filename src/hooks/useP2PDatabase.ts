@@ -78,7 +78,7 @@ export interface DBP2PParticipant {
 }
 
 // Convert profile to participant
-function profileToParticipant(profile: ProfileRow | null, userId: string): DBP2PParticipant {
+function profileToParticipant(profile: ProfileRow | null, userId: string, rating = 5.0): DBP2PParticipant {
   if (!profile) {
     return {
       id: userId,
@@ -86,18 +86,18 @@ function profileToParticipant(profile: ProfileRow | null, userId: string): DBP2P
       nameAr: 'مستخدم',
       username: 'user',
       avatar: '👤',
-      rating: 5.0,
+      rating,
       country: 'Unknown',
     };
   }
-  
+
   return {
     id: profile.user_id,
     name: profile.name,
-    nameAr: profile.name, // Use same name for now
+    nameAr: profile.name,
     username: profile.username,
     avatar: profile.avatar_url || '👤',
-    rating: 5.0, // TODO: Implement rating system
+    rating,
     country: profile.country,
   };
 }
@@ -164,18 +164,26 @@ export function useP2PDatabase() {
         if (order.executor_id) userIds.add(order.executor_id);
       });
 
-      // Fetch profiles for all users
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('user_id', Array.from(userIds));
+      // Fetch profiles and reputation scores in parallel
+      const userIdsArr = Array.from(userIds);
+      const [profilesResult, reputationResult] = await Promise.all([
+        supabase.from('profiles').select('*').in('user_id', userIdsArr),
+        supabase.from('p2p_user_reputation').select('user_id, reputation_score').in('user_id', userIdsArr),
+      ]);
 
-      if (profilesError) throw profilesError;
+      if (profilesResult.error) throw profilesResult.error;
 
       // Create a map of user_id to profile
       const profilesMap = new Map<string, ProfileRow>();
-      profilesData?.forEach(profile => {
+      profilesResult.data?.forEach(profile => {
         profilesMap.set(profile.user_id, profile);
+      });
+
+      // Create a map of user_id to star rating (convert 0-100 score to 1-5 stars)
+      const ratingMap = new Map<string, number>();
+      reputationResult.data?.forEach(rep => {
+        const score = rep.reputation_score ?? 100;
+        ratingMap.set(rep.user_id, Math.round(((score / 100) * 4 + 1) * 10) / 10);
       });
 
       // Combine orders with profiles and UI status
@@ -203,6 +211,8 @@ export function useP2PDatabase() {
           updated_at: order.updated_at,
           creator_profile: profilesMap.get(order.creator_id) || null,
           executor_profile: order.executor_id ? profilesMap.get(order.executor_id) || null : null,
+          creator_rating: ratingMap.get(order.creator_id) ?? 5.0,
+          executor_rating: order.executor_id ? (ratingMap.get(order.executor_id) ?? 5.0) : 5.0,
         };
       });
       setOrders(ordersWithProfiles);
@@ -641,9 +651,10 @@ export function useP2PDatabase() {
 
   // Get participant from order
   const getParticipants = useCallback((order: P2POrderWithProfiles) => {
-    const creator = profileToParticipant(order.creator_profile, order.creator_id);
-    const executor = order.executor_id 
-      ? profileToParticipant(order.executor_profile, order.executor_id)
+    const extOrder = order as P2POrderWithProfiles & { creator_rating?: number; executor_rating?: number };
+    const creator = profileToParticipant(order.creator_profile, order.creator_id, extOrder.creator_rating ?? 5.0);
+    const executor = order.executor_id
+      ? profileToParticipant(order.executor_profile, order.executor_id, extOrder.executor_rating ?? 5.0)
       : null;
     
     // For buy orders: creator is buyer, executor is seller

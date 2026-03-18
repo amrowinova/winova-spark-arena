@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/sheet';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
+import { useFrozenWalletGuard } from '@/hooks/useFrozenWalletGuard';
 import { P2PAmountSelector } from './P2PAmountSelector';
 import { P2PTimeSelector } from './P2PTimeSelector';
 import { CountryConfig, PaymentMethod, useP2PCountries } from './P2PCountrySelector';
@@ -64,6 +65,7 @@ export function P2PCreateOrderDialog({
 }: P2PCreateOrderDialogProps) {
   const { language } = useLanguage();
   const { user } = useUser();
+  const { isFrozen, message: frozenMsg, messageAr: frozenMsgAr } = useFrozenWalletGuard();
   const isRTL = language === 'ar';
   const allCountries = useP2PCountries();
 
@@ -117,7 +119,7 @@ export function P2PCreateOrderDialog({
   const insufficientBalance = orderType === 'sell' && amount && amount > user.novaBalance;
   const noSavedMethods = orderType === 'sell' && savedMethods.length === 0;
 
-  const canCreate = amount && timeLimit && (
+  const canCreate = !isFrozen && amount && timeLimit && (
     (orderType === 'buy' && selectedBuyMethodIds.size > 0) ||
     (orderType === 'sell' && sellPaymentMethodId)
   );
@@ -189,6 +191,13 @@ export function P2PCreateOrderDialog({
           </DialogHeader>
 
           <div className="space-y-5">
+            {/* Frozen wallet warning */}
+            {isFrozen && (
+              <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{isRTL ? frozenMsgAr : frozenMsg}</span>
+              </div>
+            )}
             {/* Order Type */}
             <div className="grid grid-cols-2 gap-2">
               <Button

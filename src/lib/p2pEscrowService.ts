@@ -91,7 +91,6 @@ export async function createSellOrder(
     });
 
     if (error) {
-      console.error('p2p_create_sell_order RPC error:', error);
       logFailure({ rpc_name: 'p2p_create_sell_order', user_id: creatorId, error_message: error.message, parameters: { novaAmount, localAmount, country } as any });
       logActivity({ user_id: creatorId, action_type: 'p2p_create_sell', entity_type: 'p2p_order', success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', reference_id: undefined, payload: { rpc: 'p2p_create_sell_order', error: error.message, user_id: creatorId } as any });
@@ -105,7 +104,6 @@ export async function createSellOrder(
     }
     return result;
   } catch (err) {
-    console.error('createSellOrder error:', err);
     logFailure({ rpc_name: 'p2p_create_sell_order', user_id: creatorId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
@@ -136,7 +134,6 @@ export async function createBuyOrder(
     });
 
     if (error) {
-      console.error('p2p_create_buy_order RPC error:', error);
       logFailure({ rpc_name: 'p2p_create_buy_order', user_id: creatorId, error_message: error.message, parameters: { novaAmount, localAmount, country } as any });
       logActivity({ user_id: creatorId, action_type: 'p2p_create_buy', entity_type: 'p2p_order', success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', payload: { rpc: 'p2p_create_buy_order', error: error.message, user_id: creatorId } as any });
@@ -147,7 +144,6 @@ export async function createBuyOrder(
     logActivity({ user_id: creatorId, action_type: 'p2p_create_buy', entity_type: 'p2p_order', entity_id: result.order_id, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
-    console.error('createBuyOrder error:', err);
     logFailure({ rpc_name: 'p2p_create_buy_order', user_id: creatorId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
@@ -172,7 +168,6 @@ export async function executeOrder(
     });
 
     if (error) {
-      console.error('p2p_execute_order RPC error:', error);
       logFailure({ rpc_name: 'p2p_execute_order', user_id: executorId, error_message: error.message, parameters: { orderId } as any });
       logActivity({ user_id: executorId, action_type: 'p2p_execute', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', reference_id: orderId, payload: { rpc: 'p2p_execute_order', error: error.message, user_id: executorId } as any });
@@ -183,7 +178,6 @@ export async function executeOrder(
     logActivity({ user_id: executorId, action_type: 'p2p_execute', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
-    console.error('executeOrder error:', err);
     logFailure({ rpc_name: 'p2p_execute_order', user_id: executorId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
@@ -205,7 +199,6 @@ export async function confirmPayment(
     });
 
     if (error) {
-      console.error('p2p_confirm_payment RPC error:', error);
       logFailure({ rpc_name: 'p2p_confirm_payment', user_id: userId, error_message: error.message, parameters: { orderId } as any });
       logActivity({ user_id: userId, action_type: 'p2p_confirm_payment', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', reference_id: orderId, payload: { rpc: 'p2p_confirm_payment', error: error.message, user_id: userId } as any });
@@ -216,7 +209,6 @@ export async function confirmPayment(
     logActivity({ user_id: userId, action_type: 'p2p_confirm_payment', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
-    console.error('confirmPayment error:', err);
     logFailure({ rpc_name: 'p2p_confirm_payment', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
@@ -241,7 +233,6 @@ export async function releaseEscrow(
     });
 
     if (error) {
-      console.error('p2p_release_escrow RPC error:', error);
       logFailure({ rpc_name: 'p2p_release_escrow', user_id: userId, error_message: error.message, parameters: { orderId } as any });
       logActivity({ user_id: userId, action_type: 'p2p_release_escrow', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       logKnowledge({ source: 'system', event_type: 'rpc_failure', area: 'p2p', reference_id: orderId, payload: { rpc: 'p2p_release_escrow', error: error.message, user_id: userId } as any });
@@ -255,7 +246,6 @@ export async function releaseEscrow(
     }
     return result;
   } catch (err) {
-    console.error('releaseEscrow error:', err);
     logFailure({ rpc_name: 'p2p_release_escrow', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
@@ -282,7 +272,6 @@ export async function cancelOrder(
     });
 
     if (error) {
-      console.error('p2p_cancel_order RPC error:', error);
       logFailure({ rpc_name: 'p2p_cancel_order', user_id: userId, error_message: error.message, parameters: { orderId, reason } as any });
       logActivity({ user_id: userId, action_type: 'p2p_cancel', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
@@ -295,7 +284,6 @@ export async function cancelOrder(
     }
     return result;
   } catch (err) {
-    console.error('cancelOrder error:', err);
     logFailure({ rpc_name: 'p2p_cancel_order', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
@@ -317,7 +305,6 @@ export async function deleteOrder(
     });
 
     if (error) {
-      console.error('p2p_delete_order RPC error:', error);
       logFailure({ rpc_name: 'p2p_delete_order', user_id: userId, error_message: error.message, parameters: { orderId } as any });
       logActivity({ user_id: userId, action_type: 'p2p_delete', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
@@ -327,7 +314,6 @@ export async function deleteOrder(
     logActivity({ user_id: userId, action_type: 'p2p_delete', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
-    console.error('deleteOrder error:', err);
     logFailure({ rpc_name: 'p2p_delete_order', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
@@ -351,7 +337,6 @@ export async function relistOrder(
     });
 
     if (error) {
-      console.error('p2p_relist_order RPC error:', error);
       logFailure({ rpc_name: 'p2p_relist_order', user_id: userId, error_message: error.message, parameters: { orderId, reason } as any });
       logActivity({ user_id: userId, action_type: 'p2p_relist', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
@@ -361,7 +346,6 @@ export async function relistOrder(
     logActivity({ user_id: userId, action_type: 'p2p_relist', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
-    console.error('relistOrder error:', err);
     logFailure({ rpc_name: 'p2p_relist_order', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
@@ -384,7 +368,6 @@ export async function openDispute(
     });
 
     if (error) {
-      console.error('p2p_open_dispute RPC error:', error);
       logFailure({ rpc_name: 'p2p_open_dispute', user_id: userId, error_message: error.message, parameters: { orderId, reason } as any });
       logActivity({ user_id: userId, action_type: 'p2p_dispute_open', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       return { success: false, error: error.message };
@@ -394,7 +377,6 @@ export async function openDispute(
     logActivity({ user_id: userId, action_type: 'p2p_dispute_open', entity_type: 'p2p_order', entity_id: orderId, success: result.success, duration_ms: Date.now() - t0 });
     return result;
   } catch (err) {
-    console.error('openDispute error:', err);
     logFailure({ rpc_name: 'p2p_open_dispute', user_id: userId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }
@@ -418,7 +400,6 @@ export async function resolveDispute(
     });
 
     if (error) {
-      console.error('p2p_resolve_dispute RPC error:', error);
       logFailure({ rpc_name: 'p2p_resolve_dispute', user_id: staffId, error_message: error.message, parameters: { orderId, resolution } as any });
       logActivity({ user_id: staffId, role: 'support', action_type: 'p2p_dispute_resolve', entity_type: 'p2p_order', entity_id: orderId, success: false, error_code: error.code, duration_ms: Date.now() - t0 });
       logKnowledge({ source: 'support', event_type: 'rpc_failure', area: 'p2p', reference_id: orderId, payload: { rpc: 'p2p_resolve_dispute', error: error.message, staff_id: staffId } as any });
@@ -432,7 +413,6 @@ export async function resolveDispute(
     }
     return result;
   } catch (err) {
-    console.error('resolveDispute error:', err);
     logFailure({ rpc_name: 'p2p_resolve_dispute', user_id: staffId, error_message: String(err) });
     return { success: false, error: 'Network error' };
   }

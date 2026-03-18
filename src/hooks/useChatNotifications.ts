@@ -26,7 +26,7 @@ const playNotificationSound = () => {
     oscillator.stop(audioContext.currentTime + 0.2);
   } catch (e) {
     // Audio not supported or blocked
-    console.log('Could not play notification sound:', e);
+
   }
 };
 
