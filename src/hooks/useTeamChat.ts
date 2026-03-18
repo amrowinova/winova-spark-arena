@@ -26,6 +26,10 @@ export interface TeamMessage {
   messageType: 'text' | 'system' | 'announcement';
   createdAt: string;
   isMine: boolean;
+  replyToId: string | null;
+  replyToContent: string | null;
+  replyToSender: string | null;
+  reactions: Array<{ emoji: string; count: number; userReacted: boolean }>;
 }
 
 export function useTeamChat() {
@@ -111,8 +115,34 @@ export function useTeamChat() {
 
     const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
 
+    // Fetch reactions
+    const msgIds = (data || []).map(m => m.id);
+    let reactionsMap: Record<string, Array<{ emoji: string; user_id: string }>> = {};
+    if (msgIds.length > 0) {
+      const { data: rxData } = await supabase
+        .from('team_message_reactions')
+        .select('message_id, emoji, user_id')
+        .in('message_id', msgIds);
+      for (const r of rxData || []) {
+        if (!reactionsMap[r.message_id]) reactionsMap[r.message_id] = [];
+        reactionsMap[r.message_id].push({ emoji: r.emoji, user_id: r.user_id });
+      }
+    }
+
     const mapped: TeamMessage[] = (data || []).map(m => {
       const profile = profileMap.get(m.sender_id);
+      const rawRx = reactionsMap[m.id] || [];
+      const reactionSummary = rawRx.reduce<Array<{ emoji: string; count: number; userReacted: boolean }>>((acc, r) => {
+        const existing = acc.find(x => x.emoji === r.emoji);
+        if (existing) {
+          existing.count++;
+          if (r.user_id === user.id) existing.userReacted = true;
+        } else {
+          acc.push({ emoji: r.emoji, count: 1, userReacted: r.user_id === user.id });
+        }
+        return acc;
+      }, []);
+
       return {
         id: m.id,
         conversationId: m.conversation_id,
@@ -123,14 +153,54 @@ export function useTeamChat() {
         messageType: m.message_type as 'text' | 'system' | 'announcement',
         createdAt: m.created_at,
         isMine: m.sender_id === user.id,
+        replyToId: (m as any).reply_to_id || null,
+        replyToContent: (m as any).reply_to_content || null,
+        replyToSender: (m as any).reply_to_sender || null,
+        reactions: reactionSummary,
       };
     });
 
     setMessages(prev => ({ ...prev, [conversationId]: mapped }));
   }, [user?.id]);
 
+  // Toggle reaction
+  const toggleReaction = useCallback(async (conversationId: string, messageId: string, emoji: string) => {
+    if (!user?.id) return;
+    const msgs = messages[conversationId] || [];
+    const msg = msgs.find(m => m.id === messageId);
+    if (!msg) return;
+    const alreadyReacted = msg.reactions.some(r => r.emoji === emoji && r.userReacted);
+
+    setMessages(prev => ({
+      ...prev,
+      [conversationId]: (prev[conversationId] || []).map(m => {
+        if (m.id !== messageId) return m;
+        if (alreadyReacted) {
+          return { ...m, reactions: m.reactions.map(r => r.emoji === emoji ? { ...r, count: r.count - 1, userReacted: false } : r).filter(r => r.count > 0) };
+        }
+        const existing = m.reactions.find(r => r.emoji === emoji);
+        if (existing) return { ...m, reactions: m.reactions.map(r => r.emoji === emoji ? { ...r, count: r.count + 1, userReacted: true } : r) };
+        return { ...m, reactions: [...m.reactions, { emoji, count: 1, userReacted: true }] };
+      }),
+    }));
+
+    if (alreadyReacted) {
+      await supabase.from('team_message_reactions').delete()
+        .eq('message_id', messageId).eq('user_id', user.id).eq('emoji', emoji);
+    } else {
+      await supabase.from('team_message_reactions').insert({ message_id: messageId, user_id: user.id, emoji } as any);
+    }
+  }, [user?.id, messages]);
+
   // Send a message
-  const sendMessage = useCallback(async (conversationId: string, content: string, messageType: 'text' | 'announcement' = 'text') => {
+  const sendMessage = useCallback(async (
+    conversationId: string,
+    content: string,
+    messageType: 'text' | 'announcement' = 'text',
+    replyToId?: string,
+    replyToContent?: string,
+    replyToSender?: string,
+  ) => {
     if (!user?.id || !content.trim()) return;
 
     // Optimistic insert
@@ -145,6 +215,10 @@ export function useTeamChat() {
       messageType,
       createdAt: new Date().toISOString(),
       isMine: true,
+      replyToId: replyToId || null,
+      replyToContent: replyToContent || null,
+      replyToSender: replyToSender || null,
+      reactions: [],
     };
 
     setMessages(prev => ({
@@ -159,7 +233,10 @@ export function useTeamChat() {
         sender_id: user.id,
         content: content.trim(),
         message_type: messageType,
-      });
+        reply_to_id: replyToId || null,
+        reply_to_content: replyToContent || null,
+        reply_to_sender: replyToSender || null,
+      } as any);
 
     if (error) {
       console.error('Error sending team message:', error);
@@ -298,5 +375,6 @@ export function useTeamChat() {
     fetchMessages,
     sendMessage,
     fetchMembers,
+    toggleReaction,
   };
 }
