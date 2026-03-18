@@ -65,29 +65,30 @@ export default function AdminWallets() {
       return;
     }
 
-    // Join with profiles
-    const walletsWithProfiles = await Promise.all(
-      (walletsData || []).map(async (wallet) => {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name, avatar_url, username, country, wallet_country')
-          .eq('user_id', wallet.user_id)
-          .single();
+    // Batch fetch all profiles in a single query
+    const userIds = (walletsData || []).map(w => w.user_id);
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('user_id, name, avatar_url, username, country, wallet_country')
+      .in('user_id', userIds);
 
-        return {
-          id: wallet.id,
-          user_id: wallet.user_id,
-          nova_balance: wallet.nova_balance,
-          aura_balance: wallet.aura_balance,
-          locked_nova_balance: wallet.locked_nova_balance,
-          is_frozen: wallet.is_frozen,
-          user_name: profile?.name || 'Unknown',
-          user_avatar: profile?.avatar_url,
-          username: profile?.username || 'unknown',
-          country: profile?.wallet_country || profile?.country || 'Egypt',
-        } as WalletWithProfile;
-      })
-    );
+    const profileMap = new Map((profilesData || []).map(p => [p.user_id, p]));
+
+    const walletsWithProfiles = (walletsData || []).map((wallet) => {
+      const profile = profileMap.get(wallet.user_id);
+      return {
+        id: wallet.id,
+        user_id: wallet.user_id,
+        nova_balance: wallet.nova_balance,
+        aura_balance: wallet.aura_balance,
+        locked_nova_balance: wallet.locked_nova_balance,
+        is_frozen: wallet.is_frozen,
+        user_name: profile?.name || 'Unknown',
+        user_avatar: profile?.avatar_url,
+        username: profile?.username || 'unknown',
+        country: profile?.wallet_country || profile?.country || 'Egypt',
+      } as WalletWithProfile;
+    });
 
     setWallets(walletsWithProfiles);
     setIsLoading(false);
