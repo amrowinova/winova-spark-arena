@@ -32,7 +32,7 @@ export function FinalStageUserCard({ userRank, userVotes, isQualified, totalPart
     );
   }
   
-  const isTop5 = userRank !== null && userRank <= 5;
+  const isTop5 = totalParticipants <= 5 ? true : (userRank !== null && userRank <= 5);
   
   return (
     <motion.div
