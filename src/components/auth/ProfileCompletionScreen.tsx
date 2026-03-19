@@ -405,6 +405,30 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
             </p>
           )}
 
+          {/* Pioneer message - no one in this area yet */}
+          {!referralCode.trim() && !referrer && country && !loadingSuggestions && suggestedReferrers.length === 0 && (
+            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <p className="text-sm font-medium text-primary mb-1">
+                {isRTL ? '🌟 ستكون رائداً!' : '🌟 You\'ll be a pioneer!'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isRTL
+                  ? area
+                    ? `لا يوجد أعضاء نشطون في ${locationData.find(c => c.code === country)?.cities.find(ci => ci.code === city)?.districts.find(d => d.code === area)?.nameAr || 'حيّك'} حتى الآن — ستكون أول شخص!`
+                    : city
+                      ? `لا يوجد أعضاء نشطون في ${availableCities.find(c => c.code === city)?.nameAr || 'مدينتك'} حتى الآن — ستكون أول شخص!`
+                      : `لا يوجد أعضاء نشطون في ${locationData.find(c => c.code === country)?.nameAr || 'بلدك'} حتى الآن — ستكون أول شخص!`
+                  : area
+                    ? `No active members in your district yet — you'll be the first!`
+                    : city
+                      ? `No active members in ${availableCities.find(c => c.code === city)?.name || 'your city'} yet — you'll be the first!`
+                      : `No active members in ${locationData.find(c => c.code === country)?.name || 'your country'} yet — you'll be the first!`
+                }
+              </p>
+            </motion.div>
+          )}
+
           {/* Auto suggestions when country selected and no code entered */}
           {!referralCode.trim() && !referrer && country && suggestedReferrers.length > 0 && (
             <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}

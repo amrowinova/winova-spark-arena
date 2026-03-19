@@ -707,6 +707,33 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
                   </p>
                 )}
 
+                {/* Pioneer message - no active referrers in this area */}
+                {!referralCode.trim() && !referralVerified && selectedCountry && !loadingSuggestions && suggestedReferrers.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-lg border border-primary/20 bg-primary/5 p-3"
+                  >
+                    <p className="text-sm font-medium text-primary mb-1">
+                      {isRTL ? '🌟 ستكون رائداً!' : '🌟 You\'ll be a pioneer!'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isRTL
+                        ? selectedDistrict
+                          ? `لا يوجد أعضاء نشطون في حيّك حتى الآن — ستكون أول شخص!`
+                          : selectedCity
+                            ? `لا يوجد أعضاء نشطون في ${districts.length > 0 ? locationData.find(c => c.code === selectedCountry)?.cities.find(ci => ci.code === selectedCity)?.nameAr || 'مدينتك' : 'مدينتك'} حتى الآن — ستكون أول شخص!`
+                            : `لا يوجد أعضاء نشطون في ${locationData.find(c => c.code === selectedCountry)?.nameAr || 'بلدك'} حتى الآن — ستكون أول شخص!`
+                        : selectedDistrict
+                          ? `No active members in your district yet — you'll be the first!`
+                          : selectedCity
+                            ? `No active members in your city yet — you'll be the first!`
+                            : `No active members in ${locationData.find(c => c.code === selectedCountry)?.name || 'your country'} yet — you'll be the first!`
+                      }
+                    </p>
+                  </motion.div>
+                )}
+
                 {/* Auto-suggestions when no code entered but country selected */}
                 {!referralCode.trim() && !referralVerified && selectedCountry && suggestedReferrers.length > 0 && (
                   <motion.div
