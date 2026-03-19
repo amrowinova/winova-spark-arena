@@ -122,16 +122,28 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
     return city?.districts || [];
   }, [selectedCountry, selectedCity]);
 
-  // Handle country change - reset city and district; auto-fetch suggestions
+  // Handle country change - reset city and district; re-check referral mismatch
   const handleCountryChange = (value: string) => {
     setSelectedCountry(value);
     setSelectedCity('');
     setSelectedDistrict('');
-    // If no referral code entered, auto-show top referrers from this country
-    if (!referralCode.trim()) {
-      const countryData = locationData.find(c => c.code === value);
-      if (countryData?.name) {
-        fetchSuggestedReferrers(countryData.name);
+
+    const countryData = locationData.find(c => c.code === value);
+    const userCountryName = countryData?.name || value;
+
+    if (referralVerified) {
+      // Re-check mismatch against the already-verified referral code
+      const mismatch = referralVerified.country !== userCountryName;
+      setReferralCountryMismatch(mismatch);
+      if (mismatch) {
+        fetchSuggestedReferrers(userCountryName);
+      } else {
+        setSuggestedReferrers([]);
+      }
+    } else if (!referralCode.trim()) {
+      // No referral code yet — auto-show top referrers from this country
+      if (userCountryName) {
+        fetchSuggestedReferrers(userCountryName);
       }
     }
   };
