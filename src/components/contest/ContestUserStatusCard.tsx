@@ -35,6 +35,7 @@ export function ContestUserStatusCard({
   userVotes, 
   stage,
   prizePool,
+  totalParticipants = 0,
   votesNeededForTop50 = 0,
   votesNeededForTop5 = 0,
   votesNeededForRank1 = 0,
