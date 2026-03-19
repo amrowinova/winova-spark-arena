@@ -1,6 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity, logMoneyFlow, logFailure } from '@/lib/ai/logger';
 
+// Client-side rate limit: one transfer per sender per 3 seconds
+const TRANSFER_COOLDOWN_MS = 3000;
+const lastTransferTimestamp = new Map<string, number>();
+
 export interface TransferResult {
   success: boolean;
   /** Human-readable message returned by backend or transport layer */
@@ -46,6 +50,13 @@ export async function executeTransfer(
     if (!senderId || !recipientId) {
       return { success: false, error: 'Missing sender or recipient ID' };
     }
+
+    // Client-side rate limit: reject if sender called too recently
+    const lastCall = lastTransferTimestamp.get(senderId) ?? 0;
+    if (t0 - lastCall < TRANSFER_COOLDOWN_MS) {
+      return { success: false, error: 'Please wait a moment before sending another transfer', errorCode: 'RATE_LIMITED' };
+    }
+    lastTransferTimestamp.set(senderId, t0);
     
     if (amount <= 0) {
       return { success: false, error: 'Amount must be positive' };

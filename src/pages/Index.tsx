@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Wallet, AlertCircle } from 'lucide-react';
 import { useP2PSafe } from '@/contexts/P2PContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthRequired } from '@/contexts/AuthRequiredContext';
 import { supabase } from '@/integrations/supabase/client';
 
 // Home Components
@@ -55,6 +56,19 @@ export default function HomePage() {
   const { user } = useUser();
   const { chats: p2pChats } = useP2PSafe();
   const { success: showSuccess, error: showError } = useBanner();
+  const { openAuthFlow } = useAuthRequired();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // On mount: if ?ref=CODE is present and user is not logged in, open signup with pre-filled referral
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode && !authUser) {
+      openAuthFlow('signup', refCode.toUpperCase());
+      // Remove the ?ref= param from the URL so it doesn't re-trigger on re-renders
+      setSearchParams({}, { replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Check for active P2P orders, disputes, or unread messages
   const hasActiveP2POrder = p2pChats.some(chat => 

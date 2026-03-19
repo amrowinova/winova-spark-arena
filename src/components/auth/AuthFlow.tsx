@@ -24,9 +24,10 @@ export interface AuthFlowProps {
   onOpenChange: (open: boolean) => void;
   onAuthSuccess?: () => void;
   initialScreen?: 'login' | 'signup';
+  initialReferralCode?: string;
 }
 
-export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: AuthFlowProps) {
+export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen, initialReferralCode }: AuthFlowProps) {
   const [currentScreen, setCurrentScreen] = useState<AuthScreen>(initialScreen || 'landing');
   const [email, setEmail] = useState('');
   const { language } = useLanguage();
@@ -260,6 +261,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
                 onLogin={() => setCurrentScreen('login')}
                 onSendOTP={handleSignupSendOTP}
                 onSignupSuccess={handleSignupSuccess}
+                initialReferralCode={initialReferralCode}
               />
             </motion.div>
           )}

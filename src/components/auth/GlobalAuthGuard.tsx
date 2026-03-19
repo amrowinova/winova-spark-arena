@@ -4,7 +4,7 @@ import { useAuthRequired } from '@/contexts/AuthRequiredContext';
 import { useCallback } from 'react';
 
 export function GlobalAuthGuard() {
-  const { authFlowOpen, authFlowMode, closeAuthFlow } = useAuthRequired();
+  const { authFlowOpen, authFlowMode, initialReferralCode, closeAuthFlow } = useAuthRequired();
 
   // Handle auth flow close - only mark as success if explicitly told
   const handleAuthFlowChange = useCallback((open: boolean) => {
@@ -17,10 +17,11 @@ export function GlobalAuthGuard() {
   return (
     <>
       <AuthRequiredModal />
-      <AuthFlow 
-        open={authFlowOpen} 
+      <AuthFlow
+        open={authFlowOpen}
         onOpenChange={handleAuthFlowChange}
         initialScreen={authFlowMode}
+        initialReferralCode={initialReferralCode ?? undefined}
         onAuthSuccess={() => closeAuthFlow(true)}
       />
     </>

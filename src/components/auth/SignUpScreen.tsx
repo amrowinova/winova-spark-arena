@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,9 +16,10 @@ interface SignUpScreenProps {
   onLogin: () => void;
   onSendOTP: (email: string) => void;
   onSignupSuccess?: (name: string, isPioneer: boolean) => void;
+  initialReferralCode?: string;
 }
 
-export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: SignUpScreenProps) {
+export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess, initialReferralCode }: SignUpScreenProps) {
   const { language } = useLanguage();
   const { signUp, signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
   const isRTL = language === 'ar';
@@ -41,7 +42,7 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
   const [selectedDistrict, setSelectedDistrict] = useState('');
   
   // Referral code
-  const [referralCode, setReferralCode] = useState('');
+  const [referralCode, setReferralCode] = useState(initialReferralCode ?? '');
   const [referralVerified, setReferralVerified] = useState<{ name: string; avatar: string | null; country: string } | null>(null);
   const [verifyingReferral, setVerifyingReferral] = useState(false);
   const [referralCountryMismatch, setReferralCountryMismatch] = useState(false);
@@ -53,6 +54,14 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
     district: string | null;
   }>>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+  // Auto-verify referral code when pre-filled from URL
+  useEffect(() => {
+    if (initialReferralCode && initialReferralCode.length >= 6) {
+      verifyReferralCode(initialReferralCode);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialReferralCode]);
 
   // Auto-generate username from name
   const generateUsername = (inputName: string): string => {

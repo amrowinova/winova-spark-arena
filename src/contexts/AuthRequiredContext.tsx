@@ -7,9 +7,10 @@ interface AuthRequiredContextType {
   requireAuth: (action: () => void) => void;
   isModalOpen: boolean;
   closeModal: () => void;
-  openAuthFlow: (mode: 'login' | 'signup') => void;
+  openAuthFlow: (mode: 'login' | 'signup', referralCode?: string) => void;
   authFlowOpen: boolean;
   authFlowMode: 'login' | 'signup';
+  initialReferralCode: string | null;
   closeAuthFlow: (isSuccess?: boolean) => void;
   isAuthTransitioning: boolean;
   markAuthComplete: () => void;
@@ -22,6 +23,7 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authFlowOpen, setAuthFlowOpen] = useState(false);
   const [authFlowMode, setAuthFlowMode] = useState<'login' | 'signup'>('login');
+  const [initialReferralCode, setInitialReferralCode] = useState<string | null>(null);
   const [isAuthTransitioning, setIsAuthTransitioning] = useState(false);
   
   // Track if we just completed auth to prevent modal from showing during transition
@@ -105,23 +107,18 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
    * Opens the auth flow without signing out existing user.
    * Only for unauthenticated users to start login/signup.
    */
-  const openAuthFlow = useCallback((mode: 'login' | 'signup') => {
-    // Don't open auth flow if user is already authenticated
-    if (user) {
-      return;
-    }
-    
+  const openAuthFlow = useCallback((mode: 'login' | 'signup', referralCode?: string) => {
+    if (user) return;
     setIsModalOpen(false);
     setAuthFlowMode(mode);
+    setInitialReferralCode(referralCode ?? null);
     setAuthFlowOpen(true);
   }, [user]);
 
   const closeAuthFlow = useCallback((isSuccess?: boolean) => {
     setAuthFlowOpen(false);
-    // Only mark auth complete if it was a successful auth
-    if (isSuccess) {
-      markAuthComplete();
-    }
+    setInitialReferralCode(null);
+    if (isSuccess) markAuthComplete();
   }, [markAuthComplete]);
 
   return (
@@ -134,6 +131,7 @@ export function AuthRequiredProvider({ children }: { children: ReactNode }) {
         openAuthFlow,
         authFlowOpen,
         authFlowMode,
+        initialReferralCode,
         closeAuthFlow,
         isAuthTransitioning,
         markAuthComplete,
