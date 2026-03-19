@@ -189,8 +189,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event) => {
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          // Small delay to ensure DB triggers have completed
+        // TOKEN_REFRESHED fires hourly — skip refetch since wallet balance is
+        // kept in sync by the Realtime wallets UPDATE subscription
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
           setTimeout(() => {
             fetchUserData();
           }, 500);

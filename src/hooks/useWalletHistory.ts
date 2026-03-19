@@ -87,7 +87,7 @@ export function useWalletHistory(options: UseWalletHistoryOptions = {}) {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel('wallet_ledger_changes')
+      .channel(`wallet_ledger_changes_${user.id}`)
       .on(
         'postgres_changes',
         {

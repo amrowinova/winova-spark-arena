@@ -576,7 +576,7 @@ export function useDirectMessages() {
       const convIds = convs?.map(c => c.id) || [];
 
       const channel = supabase
-        .channel('dm-realtime-backup')
+        .channel(`dm-realtime-backup_${user.id}`)
         .on(
           'postgres_changes',
           {

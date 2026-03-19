@@ -73,7 +73,7 @@ export function useRealtimeDM(options: RealtimeDMOptions = {}) {
       const filter = `conversation_id=in.(${convIds.join(',')})`;
 
       const channel = supabase
-        .channel('dm-realtime-notifications')
+        .channel(`dm-realtime-notifications_${user.id}`)
         .on(
           'postgres_changes',
           {

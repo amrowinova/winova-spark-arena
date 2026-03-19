@@ -202,7 +202,7 @@ export function SupportProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     const channel = supabase
-      .channel('support_ticket_updates')
+      .channel(`support_ticket_updates_${user.id}`)
       .on(
         'postgres_changes',
         {

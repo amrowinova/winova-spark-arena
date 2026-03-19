@@ -256,7 +256,7 @@ export function useTeamChat() {
     const filter = `conversation_id=in.(${convIds.join(',')})`;
 
     const channel = supabase
-      .channel('team-chat-realtime')
+      .channel(`team-chat-realtime_${user.id}`)
       .on(
         'postgres_changes',
         {

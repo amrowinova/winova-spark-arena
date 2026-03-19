@@ -164,7 +164,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
   // Realtime subscription for open orders
   useEffect(() => {
     const channel: RealtimeChannel = supabase
-      .channel('marketplace-orders')
+      .channel(`marketplace-orders_${user?.id ?? 'anon'}`)
       .on(
         'postgres_changes',
         {
@@ -189,7 +189,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
   // Also listen for status changes (order becoming open or no longer open)
   useEffect(() => {
     const channel: RealtimeChannel = supabase
-      .channel('marketplace-orders-status')
+      .channel(`marketplace-orders-status_${user?.id ?? 'anon'}`)
       .on(
         'postgres_changes',
         {

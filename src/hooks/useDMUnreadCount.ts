@@ -78,7 +78,7 @@ export function useDMUnreadCount() {
       const filter = `conversation_id=in.(${convIds.join(',')})`;
 
       const channel = supabase
-        .channel('dm-unread-count-v2')
+        .channel(`dm-unread-count_${user.id}`)
         .on(
           'postgres_changes',
           {

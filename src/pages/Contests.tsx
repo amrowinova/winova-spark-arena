@@ -187,10 +187,14 @@ export default function ContestsPage() {
         if (entriesData && entriesData.length > 0) {
           const userIds = entriesData.map(e => e.user_id);
           
-          const { data: profilesData } = await supabase
+          const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
             .select('user_id, name, username, country')
             .in('user_id', userIds);
+
+          if (profilesError) {
+            console.error('Failed to fetch contestant profiles:', profilesError);
+          }
 
           const profileMap: Record<string, { name: string; username: string; country: string }> = {};
           for (const p of profilesData || []) {

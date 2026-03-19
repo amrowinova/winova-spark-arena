@@ -89,7 +89,7 @@ export function useChatNotifications(options: UseChatNotificationsOptions = {}) 
 
       // Subscribe with filter — only MY conversations
       const ch = supabase
-        .channel('chat-notifications')
+        .channel(`chat-notifications_${user.id}`)
         .on(
           'postgres_changes',
           {

@@ -2,14 +2,14 @@ import type { User } from '@/contexts/UserContext';
 import type { P2PParticipant, P2PPaymentDetails } from '@/contexts/P2PContext';
 import type { P2POffer, PaymentMethod, SavedPaymentMethod } from '@/components/p2p';
 
-export function p2pParticipantFromUser(user: User): P2PParticipant {
+export function p2pParticipantFromUser(user: User, rating = 5.0): P2PParticipant {
   return {
     id: user.id,
     name: user.name,
-    nameAr: user.name, // No Arabic name in UserContext (mock)
+    nameAr: user.name, // No Arabic name in UserContext
     username: user.username,
     avatar: user.avatar || '👤',
-    rating: 4.9, // Mock rating
+    rating, // Caller can pass real rating from p2p_user_reputation; defaults to 5.0
     country: user.country,
   };
 }

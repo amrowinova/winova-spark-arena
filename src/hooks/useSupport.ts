@@ -271,7 +271,7 @@ export function useSupport() {
     if (!user) return;
 
     const channel = supabase
-      .channel('support_changes')
+      .channel(`support_changes_${user.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'support_tickets' },

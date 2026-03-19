@@ -78,7 +78,7 @@ export function useContestEngagement(): ContestEngagement {
     if (!authUser?.id) return;
 
     const channel = supabase
-      .channel('contest-engagement-changes')
+      .channel(`contest-engagement-changes_${authUser.id}`)
       .on(
         'postgres_changes',
         {
