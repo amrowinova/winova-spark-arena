@@ -83,19 +83,21 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   }, [open, initialScreen]);
 
   // Watch for auth state changes to auto-close and redirect
-  useEffect(() => {
-    if ((user || session) && open) {
-      // User is authenticated, close modal and show welcome message
-      handleAuthComplete();
-    }
-  }, [user, session, open, handleAuthComplete]);
+  // Skip during signup-otp and profile-completion - user is authenticated but hasn't finished profile yet
+  const isCompletingSignup = currentScreen === 'signup-otp' || currentScreen === 'profile-completion';
 
-  // Extra safety: on SIGNED_IN, force navigation to home
   useEffect(() => {
-    if (lastAuthEvent === 'SIGNED_IN' && open) {
+    if ((user || session) && open && !isCompletingSignup) {
       handleAuthComplete();
     }
-  }, [lastAuthEvent, open, handleAuthComplete]);
+  }, [user, session, open, isCompletingSignup, handleAuthComplete]);
+
+  // Extra safety: on SIGNED_IN, force navigation to home (only for login flows)
+  useEffect(() => {
+    if (lastAuthEvent === 'SIGNED_IN' && open && !isCompletingSignup) {
+      handleAuthComplete();
+    }
+  }, [lastAuthEvent, open, isCompletingSignup, handleAuthComplete]);
 
   // Login success handler (for password login)
   const handleLoginSuccess = useCallback(async () => {

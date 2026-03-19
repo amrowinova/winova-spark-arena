@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight, User, MapPin, Gift, Lock, Info, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, User, MapPin, Gift, Lock, Info, CheckCircle2, AlertCircle, Globe } from 'lucide-react';
 import { locationData, getCitiesByCountry, getDistrictsByCity, type City, type District } from '@/lib/locationData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AssignedLeaderDialog } from './AssignedLeaderDialog';
@@ -57,7 +57,17 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
   // Referral state
   const [referralCode, setReferralCode] = useState('');
   const [referrer, setReferrer] = useState<Referrer | null>(null);
+  const [referrerCountry, setReferrerCountry] = useState('');
+  const [referralCountryMismatch, setReferralCountryMismatch] = useState(false);
   const [isCheckingReferral, setIsCheckingReferral] = useState(false);
+  const [suggestedReferrers, setSuggestedReferrers] = useState<Array<{
+    name: string;
+    avatar_url: string | null;
+    referral_code: string;
+    city: string | null;
+    district: string | null;
+  }>>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   
   // Password state
   const [password, setPassword] = useState('');
@@ -100,7 +110,47 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
     }
   }, [country, city]);
 
-  // Check referral code against database
+  // Fetch top suggested referrers from user's country/city/district
+  const fetchSuggestedReferrers = async (countryName: string) => {
+    if (!countryName) return;
+    setLoadingSuggestions(true);
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('name, avatar_url, referral_code, city, district')
+        .eq('country', countryName)
+        .not('referral_code', 'is', null)
+        .eq('weekly_active', true)
+        .order('spotlight_points', { ascending: false })
+        .limit(5);
+      setSuggestedReferrers(data || []);
+    } catch {
+      setSuggestedReferrers([]);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  // Re-check mismatch when country changes
+  useEffect(() => {
+    if (!country) return;
+    const countryData = locationData.find(c => c.code === country);
+    const userCountryName = countryData?.name || country;
+
+    if (referrer && referrerCountry) {
+      const mismatch = referrerCountry !== userCountryName;
+      setReferralCountryMismatch(mismatch);
+      if (mismatch) {
+        fetchSuggestedReferrers(userCountryName);
+      } else {
+        setSuggestedReferrers([]);
+      }
+    } else if (!referralCode.trim()) {
+      fetchSuggestedReferrers(userCountryName);
+    }
+  }, [country]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check referral code against database (with country)
   useEffect(() => {
     if (referralCode.length >= 6) {
       setIsCheckingReferral(true);
@@ -108,29 +158,45 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
         try {
           const { data, error } = await supabase
             .from('profiles')
-            .select('id, name, avatar_url')
+            .select('id, name, avatar_url, country')
             .eq('referral_code', referralCode.toUpperCase())
             .maybeSingle();
-          
+
           if (data && !error) {
-            setReferrer({
-              id: data.id,
-              name: data.name,
-              avatar_url: data.avatar_url,
-            });
+            setReferrer({ id: data.id, name: data.name, avatar_url: data.avatar_url });
+            setReferrerCountry(data.country || '');
+
+            // Check mismatch against selected country
+            if (country) {
+              const countryData = locationData.find(c => c.code === country);
+              const userCountryName = countryData?.name || country;
+              const mismatch = (data.country || '') !== userCountryName;
+              setReferralCountryMismatch(mismatch);
+              if (mismatch) {
+                fetchSuggestedReferrers(userCountryName);
+              } else {
+                setSuggestedReferrers([]);
+              }
+            }
           } else {
             setReferrer(null);
+            setReferrerCountry('');
+            setReferralCountryMismatch(false);
           }
-        } catch (err) {
+        } catch {
           setReferrer(null);
+          setReferrerCountry('');
+          setReferralCountryMismatch(false);
         }
         setIsCheckingReferral(false);
       }, 500);
       return () => clearTimeout(timer);
     } else {
       setReferrer(null);
+      setReferrerCountry('');
+      setReferralCountryMismatch(false);
     }
-  }, [referralCode]);
+  }, [referralCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,6 +216,14 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
     // Location is always required
     if (!country || !city || !area) {
       setError(isRTL ? 'يرجى اختيار الدولة والمدينة والحي' : 'Please select your country, city, and district');
+      return;
+    }
+
+    // Block cross-country referral codes
+    if (referralCode.trim() && referralCountryMismatch) {
+      setError(isRTL
+        ? 'كود الإحالة من دولة مختلفة. اختر أحد الاقتراحات أدناه أو اتركه فارغاً.'
+        : 'Referral code is from a different country. Choose a suggestion below or leave it empty.');
       return;
     }
 
@@ -331,25 +405,106 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
             </p>
           )}
 
-          {referrer && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg"
-            >
+          {/* Auto suggestions when country selected and no code entered */}
+          {!referralCode.trim() && !referrer && country && suggestedReferrers.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <p className="text-xs font-medium text-foreground">
+                {isRTL ? 'أنشط الأشخاص في بلدك — اختر مسؤولك:' : 'Top active people in your country:'}
+              </p>
+              {suggestedReferrers.map((s, i) => (
+                <button key={i} type="button"
+                  onClick={() => {
+                    setReferralCode(s.referral_code);
+                    setReferralCountryMismatch(false);
+                    setSuggestedReferrers([]);
+                    const countryData = locationData.find(c => c.code === country);
+                    setReferrer({ id: '', name: s.name, avatar_url: s.avatar_url });
+                    setReferrerCountry(countryData?.name || country);
+                  }}
+                  className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-muted/60 transition-colors text-start">
+                  <Avatar className="h-7 w-7 flex-shrink-0">
+                    <AvatarImage src={s.avatar_url || undefined} />
+                    <AvatarFallback className="text-xs">{s.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-sm font-medium truncate">{s.name}</span>
+                    {(s.city || s.district) && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />{[s.district, s.city].filter(Boolean).join('، ')}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-primary flex-shrink-0">{isRTL ? 'اختر' : 'Select'}</span>
+                </button>
+              ))}
+            </motion.div>
+          )}
+
+          {/* Referrer found - valid */}
+          {referrer && !referralCountryMismatch && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={referrer.avatar_url || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                  {referrer.name.charAt(0)}
-                </AvatarFallback>
+                <AvatarFallback className="bg-primary/10 text-primary text-sm">{referrer.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">{referrer.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {isRTL ? 'سيكون مسؤولك المباشر' : 'Will be your direct manager'}
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Globe className="w-3 h-3" />{referrerCountry}
                 </p>
               </div>
               <CheckCircle2 className="w-5 h-5 text-primary" />
+            </motion.div>
+          )}
+
+          {/* Country mismatch warning */}
+          {referrer && referralCountryMismatch && (
+            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-destructive">
+                  {isRTL
+                    ? `هذا الشخص من ${referrerCountry}، وأنت من ${locationData.find(c => c.code === country)?.nameAr || country}. الإحالة بين دول مختلفة غير مسموحة.`
+                    : `This person is from ${referrerCountry}, but you are from ${locationData.find(c => c.code === country)?.name || country}. Cross-country referrals are not allowed.`}
+                </p>
+              </div>
+              {loadingSuggestions && (
+                <p className="text-xs text-muted-foreground ps-6">{isRTL ? 'جارٍ البحث...' : 'Searching...'}</p>
+              )}
+              {!loadingSuggestions && suggestedReferrers.length > 0 && (
+                <div className="space-y-2 ps-1">
+                  <p className="text-xs font-medium">{isRTL ? 'أفضل 5 حسابات في بلدك:' : 'Top 5 in your country:'}</p>
+                  {suggestedReferrers.map((s, i) => (
+                    <button key={i} type="button"
+                      onClick={() => {
+                        setReferralCode(s.referral_code);
+                        setReferralCountryMismatch(false);
+                        setSuggestedReferrers([]);
+                        const countryData = locationData.find(c => c.code === country);
+                        setReferrer({ id: '', name: s.name, avatar_url: s.avatar_url });
+                        setReferrerCountry(countryData?.name || country);
+                      }}
+                      className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-muted/60 transition-colors text-start">
+                      <Avatar className="h-7 w-7 flex-shrink-0">
+                        <AvatarImage src={s.avatar_url || undefined} />
+                        <AvatarFallback className="text-xs">{s.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-sm font-medium truncate">{s.name}</span>
+                        {(s.city || s.district) && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />{[s.district, s.city].filter(Boolean).join('، ')}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-primary flex-shrink-0">{isRTL ? 'اختر' : 'Select'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 
