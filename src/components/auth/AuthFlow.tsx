@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AuthLanding } from './AuthLanding';
 import { LoginScreen } from './LoginScreen';
@@ -34,22 +34,42 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   const { markAuthComplete } = useAuthRequired();
   const isRTL = language === 'ar';
   const navigate = useNavigate();
+  // Ref to carry signup meta from handleSignupSuccess → handleAuthComplete (avoids race condition)
+  const signupMetaRef = useRef<{ name: string; isPioneer: boolean } | null>(null);
 
   const handleClose = useCallback(() => {
     onOpenChange(false);
   }, [onOpenChange]);
 
   const handleAuthComplete = useCallback(async () => {
-    // Mark auth as complete FIRST to prevent any modals from showing
     markAuthComplete();
-    
-    // Trigger callback first (this will close the flow properly)
     onAuthSuccess?.();
-
-    // Always enter the app after successful sign-in
     navigate('/', { replace: true });
-    
-    // Get user profile to get the name
+
+    // Check if this was a fresh signup (set synchronously by handleSignupSuccess)
+    const signupMeta = signupMetaRef.current;
+    signupMetaRef.current = null;
+
+    if (signupMeta) {
+      // Fresh signup toast
+      if (signupMeta.isPioneer) {
+        toast({
+          title: isRTL ? '🌟 مرحباً أيها الرائد!' : '🌟 Welcome, Pioneer!',
+          description: isRTL
+            ? `${signupMeta.name}، أنت أول من يسجّل في منطقتك — شارك كود إحالتك وابدأ مجتمعك!`
+            : `${signupMeta.name}, you're the first in your area — share your referral code and build your community!`,
+          duration: 6000,
+        });
+      } else {
+        toast({
+          title: isRTL ? 'تم إنشاء الحساب بنجاح! 🎉' : 'Account created successfully! 🎉',
+          description: isRTL ? `مرحباً ${signupMeta.name}` : `Welcome ${signupMeta.name}`,
+        });
+      }
+      return;
+    }
+
+    // Login: fetch profile name for welcome-back toast
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData?.session?.user) {
@@ -58,15 +78,10 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
           .select('name')
           .eq('user_id', sessionData.session.user.id)
           .single();
-        
         const userName = profile?.name || sessionData.session.user.user_metadata?.name || 'User';
-        
-        // Show welcome notification
         toast({
           title: isRTL ? 'مرحباً بعودتك! 👋' : 'Welcome back! 👋',
-          description: isRTL 
-            ? `أهلاً ${userName}` 
-            : `Hello ${userName}`,
+          description: isRTL ? `أهلاً ${userName}` : `Hello ${userName}`,
         });
       }
     } catch (error) {
@@ -83,8 +98,8 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   }, [open, initialScreen]);
 
   // Watch for auth state changes to auto-close and redirect
-  // Skip during signup-otp and profile-completion - user is authenticated but hasn't finished profile yet
-  const isCompletingSignup = currentScreen === 'signup-otp' || currentScreen === 'profile-completion';
+  // Skip during signup screens - handleSignupSuccess is the sole handler there
+  const isCompletingSignup = currentScreen === 'signup' || currentScreen === 'signup-otp' || currentScreen === 'profile-completion';
 
   useEffect(() => {
     if ((user || session) && open && !isCompletingSignup) {
@@ -117,27 +132,12 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
     });
   }, [markAuthComplete, onAuthSuccess, isRTL, navigate]);
 
-  // Signup success handler (for password signup with name)
+  // Signup success handler (password mode)
+  // Sets signupMetaRef synchronously so handleAuthComplete shows the right toast
   const handleSignupSuccess = useCallback((name: string, isPioneer: boolean) => {
-    markAuthComplete();
-    handleClose();
-    if (isPioneer) {
-      toast({
-        title: isRTL ? '🌟 مرحباً أيها الرائد!' : '🌟 Welcome, Pioneer!',
-        description: isRTL
-          ? `${name}، أنت أول من يسجّل في منطقتك — شارك كود إحالتك وابدأ مجتمعك!`
-          : `${name}, you're the first in your area — share your referral code and build your community!`,
-        duration: 6000,
-      });
-    } else {
-      toast({
-        title: isRTL ? 'تم إنشاء الحساب بنجاح! 🎉' : 'Account created successfully! 🎉',
-        description: isRTL ? `مرحباً ${name}` : `Welcome ${name}`,
-      });
-    }
-    onAuthSuccess?.();
-    navigate('/', { replace: true });
-  }, [markAuthComplete, handleClose, onAuthSuccess, isRTL, navigate]);
+    signupMetaRef.current = { name, isPioneer };
+    handleAuthComplete();
+  }, [handleAuthComplete]);
 
   // Login flow: email → OTP → success
   const handleLoginSendOTP = (userEmail: string) => {
