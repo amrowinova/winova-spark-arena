@@ -877,12 +877,12 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
             </motion.div>
           )}
 
-          {/* Info Note */}
-          <p className="text-xs text-muted-foreground text-center pt-2">
-            {usePassword 
-              ? (isRTL ? 'أكمل بياناتك لإنشاء حسابك' : 'Complete your details to create your account')
-              : (isRTL ? 'سنرسل لك رمز تحقق مكون من 6 أرقام للتحقق من بريدك' : "We'll send you a 6-digit code to verify your email")}
-          </p>
+          {/* Info Note - OTP only */}
+          {!usePassword && (
+            <p className="text-xs text-muted-foreground text-center pt-2">
+              {isRTL ? 'سنرسل لك رمز تحقق مكون من 6 أرقام للتحقق من بريدك' : "We'll send you a 6-digit code to verify your email"}
+            </p>
+          )}
 
           {/* Error Message */}
           {error && (
