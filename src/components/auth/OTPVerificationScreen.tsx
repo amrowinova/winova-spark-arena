@@ -32,6 +32,8 @@ export function OTPVerificationScreen({
   const [error, setError] = useState('');
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  const [resendCount, setResendCount] = useState(0);
+  const MAX_RESENDS = 5;
 
   // Countdown timer for resend
   useEffect(() => {
@@ -66,21 +68,21 @@ export function OTPVerificationScreen({
   };
 
   const handleResend = async () => {
-    if (!canResend) return;
-    
+    if (!canResend || resendCount >= MAX_RESENDS) return;
+
     setCanResend(false);
     setResendTimer(60);
     setError('');
-    
-    // Resend OTP via Supabase Auth
+
     const { error: authError } = await signInWithOtp(email);
-    
+
     if (authError) {
       setError(isRTL ? 'حدث خطأ أثناء إعادة الإرسال' : 'Failed to resend code');
       setCanResend(true);
       return;
     }
-    
+
+    setResendCount(c => c + 1);
     onResend();
   };
 
@@ -169,25 +171,33 @@ export function OTPVerificationScreen({
         </Button>
 
         {/* Resend Code */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">
-            {isRTL ? 'لم تستلم الرمز؟' : "Didn't receive the code?"}
-          </span>
-          <button
-            onClick={handleResend}
-            disabled={!canResend}
-            className={`flex items-center gap-1 font-medium ${
-              canResend 
-                ? 'text-primary hover:underline' 
-                : 'text-muted-foreground cursor-not-allowed'
-            }`}
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            {canResend 
-              ? (isRTL ? 'إعادة إرسال' : 'Resend')
-              : (isRTL ? `${resendTimer} ثانية` : `${resendTimer}s`)}
-          </button>
-        </div>
+        {resendCount >= MAX_RESENDS ? (
+          <p className="text-sm text-destructive text-center max-w-xs">
+            {isRTL
+              ? 'تجاوزت الحد الأقصى لإعادة الإرسال. تواصل مع الدعم أو حاول مجدداً لاحقاً.'
+              : 'Maximum resend attempts reached. Please contact support or try again later.'}
+          </p>
+        ) : (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">
+              {isRTL ? 'لم تستلم الرمز؟' : "Didn't receive the code?"}
+            </span>
+            <button
+              onClick={handleResend}
+              disabled={!canResend}
+              className={`flex items-center gap-1 font-medium ${
+                canResend
+                  ? 'text-primary hover:underline'
+                  : 'text-muted-foreground cursor-not-allowed'
+              }`}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {canResend
+                ? (isRTL ? `إعادة إرسال (${MAX_RESENDS - resendCount} متبقية)` : `Resend (${MAX_RESENDS - resendCount} left)`)
+                : (isRTL ? `${resendTimer} ثانية` : `${resendTimer}s`)}
+            </button>
+          </div>
+        )}
       </motion.div>
     </div>
   );

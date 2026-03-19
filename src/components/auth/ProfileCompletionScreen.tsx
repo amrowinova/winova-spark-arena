@@ -147,9 +147,9 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
       return;
     }
 
-    // Location is required if no referral code
-    if (!referralCode && (!country || !city || !area)) {
-      setError(isRTL ? 'يرجى إدخال الموقع أو كود الإحالة' : 'Please enter location or referral code');
+    // Location is always required
+    if (!country || !city || !area) {
+      setError(isRTL ? 'يرجى اختيار الدولة والمدينة والحي' : 'Please select your country, city, and district');
       return;
     }
 
@@ -251,8 +251,8 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
 
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
 
-  // Check if location is required
-  const locationRequired = !referralCode;
+  // Location is always required
+  const locationRequired = true;
 
   return (
     <div className="min-h-full bg-background flex flex-col">
@@ -365,12 +365,7 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
           <div className="flex items-center gap-2 text-sm font-medium text-primary">
             <MapPin className="w-4 h-4" />
             <span>{isRTL ? 'الموقع' : 'Location'}</span>
-            {locationRequired && <span className="text-destructive">*</span>}
-            {!locationRequired && (
-              <span className="text-xs text-muted-foreground">
-                ({isRTL ? 'اختياري' : 'Optional'})
-              </span>
-            )}
+            <span className="text-destructive">*</span>
           </div>
 
           {/* Country Dropdown */}

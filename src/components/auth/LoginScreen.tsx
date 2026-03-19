@@ -1,11 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Mail, Lock, Eye, EyeOff, ShieldAlert } from 'lucide-react';
+
+const RATE_LIMIT_KEY = 'login_attempts';
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+interface AttemptData {
+  count: number;
+  lockedUntil: number | null;
+}
+
+function getAttemptData(email: string): AttemptData {
+  try {
+    const raw = localStorage.getItem(`${RATE_LIMIT_KEY}_${email.toLowerCase()}`);
+    if (!raw) return { count: 0, lockedUntil: null };
+    return JSON.parse(raw) as AttemptData;
+  } catch {
+    return { count: 0, lockedUntil: null };
+  }
+}
+
+function saveAttemptData(email: string, data: AttemptData) {
+  localStorage.setItem(`${RATE_LIMIT_KEY}_${email.toLowerCase()}`, JSON.stringify(data));
+}
+
+function clearAttemptData(email: string) {
+  localStorage.removeItem(`${RATE_LIMIT_KEY}_${email.toLowerCase()}`);
+}
 
 interface LoginScreenProps {
   onBack: () => void;
@@ -21,18 +48,37 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword, onL
   const { language } = useLanguage();
   const { signIn, signInWithOtp, signInWithGoogle, signInWithApple } = useAuth();
   const isRTL = language === 'ar';
-  
+
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
+
+  // Countdown ticker for lockout
+  useEffect(() => {
+    if (lockoutRemaining <= 0) return;
+    const t = setTimeout(() => setLockoutRemaining(r => Math.max(0, r - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [lockoutRemaining]);
+
+  // Re-check lockout when email changes
+  useEffect(() => {
+    if (!email) { setLockoutRemaining(0); return; }
+    const data = getAttemptData(email);
+    if (data.lockedUntil && data.lockedUntil > Date.now()) {
+      setLockoutRemaining(Math.ceil((data.lockedUntil - Date.now()) / 1000));
+    } else {
+      setLockoutRemaining(0);
+    }
+  }, [email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email) {
       setError(isRTL ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter your email');
       return;
@@ -44,29 +90,56 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword, onL
       return;
     }
 
+    // Check lockout before attempting
+    if (loginMethod === 'password') {
+      const attemptData = getAttemptData(email);
+      if (attemptData.lockedUntil && attemptData.lockedUntil > Date.now()) {
+        const secs = Math.ceil((attemptData.lockedUntil - Date.now()) / 1000);
+        setLockoutRemaining(secs);
+        return;
+      }
+    }
+
     setIsLoading(true);
-    
+
     if (loginMethod === 'password') {
       if (!password) {
         setError(isRTL ? 'يرجى إدخال كلمة المرور' : 'Please enter your password');
         setIsLoading(false);
         return;
       }
-      
+
       const { error: authError } = await signIn(email, password);
       setIsLoading(false);
-      
+
       if (authError) {
-        setError(isRTL ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Invalid email or password');
+        // Increment failed attempt counter
+        const data = getAttemptData(email);
+        const newCount = data.count + 1;
+        if (newCount >= MAX_ATTEMPTS) {
+          const lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+          saveAttemptData(email, { count: newCount, lockedUntil });
+          setLockoutRemaining(LOCKOUT_DURATION_MS / 1000);
+          setError('');
+        } else {
+          saveAttemptData(email, { count: newCount, lockedUntil: null });
+          const remaining = MAX_ATTEMPTS - newCount;
+          setError(
+            isRTL
+              ? `البريد الإلكتروني أو كلمة المرور غير صحيحة. (${remaining} محاولة متبقية)`
+              : `Invalid email or password. (${remaining} attempt${remaining === 1 ? '' : 's'} remaining)`
+          );
+        }
         return;
       }
-      
-      // Success! Trigger the success callback (we'll get the name from the session)
+
+      // Success — clear lockout data
+      clearAttemptData(email);
       onLoginSuccess?.('');
     } else {
       const { error: authError } = await signInWithOtp(email);
       setIsLoading(false);
-      
+
       if (authError) {
         setError(isRTL ? 'حدث خطأ أثناء الإرسال. حاول مرة أخرى.' : 'An error occurred. Please try again.');
         return;
@@ -245,8 +318,24 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword, onL
               : (isRTL ? 'سنرسل لك رمز تحقق مكون من 6 أرقام' : "We'll send you a 6-digit verification code")}
           </p>
 
+          {/* Lockout Message */}
+          {lockoutRemaining > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30"
+            >
+              <ShieldAlert className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-destructive">
+                {isRTL
+                  ? `تم تعليق الحساب مؤقتاً بسبب محاولات متعددة. حاول بعد ${Math.floor(lockoutRemaining / 60)}:${String(lockoutRemaining % 60).padStart(2, '0')} دقيقة.`
+                  : `Account temporarily locked due to multiple failed attempts. Try again in ${Math.floor(lockoutRemaining / 60)}:${String(lockoutRemaining % 60).padStart(2, '0')}.`}
+              </p>
+            </motion.div>
+          )}
+
           {/* Error Message */}
-          {error && (
+          {error && !lockoutRemaining && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -259,7 +348,7 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword, onL
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || lockoutRemaining > 0}
             className="w-full h-12 text-base font-semibold"
           >
             {isLoading 
