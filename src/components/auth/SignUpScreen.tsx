@@ -137,14 +137,14 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
       const mismatch = referralVerified.country !== userCountryName;
       setReferralCountryMismatch(mismatch);
       if (mismatch) {
-        fetchSuggestedReferrers(userCountryName);
+        fetchSuggestedReferrers(userCountryName, value);
       } else {
         setSuggestedReferrers([]);
       }
     } else if (!referralCode.trim()) {
       // No referral code yet — auto-show top referrers from this country
       if (userCountryName) {
-        fetchSuggestedReferrers(userCountryName);
+        fetchSuggestedReferrers(userCountryName, value);
       }
     }
   };
@@ -156,66 +156,55 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
   };
 
   // Fetch top 5 suggested referrers from user's country
-  const fetchSuggestedReferrers = async (userCountryName: string) => {
+  // countryCode is passed explicitly to avoid stale closure on selectedCountry
+  const fetchSuggestedReferrers = async (userCountryName: string, countryCode: string) => {
     setLoadingSuggestions(true);
     try {
-      const countryData = locationData.find(c => c.code === selectedCountry);
+      const countryData = locationData.find(c => c.code === countryCode);
       const cityData = countryData?.cities.find(c => c.code === selectedCity);
       const districtData = cityData?.districts.find(d => d.code === selectedDistrict);
 
-      // Try district first, then city, then country
-      let query = supabase
-        .from('profiles')
-        .select('name, avatar_url, referral_code, city, district, spotlight_points')
-        .eq('country', userCountryName)
-        .not('referral_code', 'is', null)
-        .eq('weekly_active', true)
-        .order('spotlight_points', { ascending: false })
-        .limit(5);
+      let data: Array<{ name: string; avatar_url: string | null; referral_code: string; city: string | null; district: string | null }> = [];
 
+      // Try district first (no weekly_active filter — show all registered members)
       if (districtData?.name) {
-        query = supabase
+        const r = await supabase
           .from('profiles')
           .select('name, avatar_url, referral_code, city, district, spotlight_points')
           .eq('country', userCountryName)
           .eq('district', districtData.name)
           .not('referral_code', 'is', null)
-          .eq('weekly_active', true)
           .order('spotlight_points', { ascending: false })
           .limit(5);
+        data = r.data || [];
       }
 
-      let { data } = await query;
-
       // Fallback to city
-      if (!data || data.length < 3) {
-        const cityQuery = await supabase
+      if (data.length < 3 && cityData?.name) {
+        const r = await supabase
           .from('profiles')
           .select('name, avatar_url, referral_code, city, district, spotlight_points')
           .eq('country', userCountryName)
-          .eq('city', cityData?.name || '')
+          .eq('city', cityData.name)
           .not('referral_code', 'is', null)
-          .eq('weekly_active', true)
           .order('spotlight_points', { ascending: false })
           .limit(5);
-        if (cityQuery.data && cityQuery.data.length > (data?.length || 0)) {
-          data = cityQuery.data;
-        }
+        if ((r.data || []).length > data.length) data = r.data || [];
       }
 
       // Fallback to full country
-      if (!data || data.length === 0) {
-        const countryQuery = await supabase
+      if (data.length === 0) {
+        const r = await supabase
           .from('profiles')
           .select('name, avatar_url, referral_code, city, district, spotlight_points')
           .eq('country', userCountryName)
           .not('referral_code', 'is', null)
           .order('spotlight_points', { ascending: false })
           .limit(5);
-        data = countryQuery.data;
+        data = r.data || [];
       }
 
-      setSuggestedReferrers(data || []);
+      setSuggestedReferrers(data);
     } catch {
       setSuggestedReferrers([]);
     } finally {
@@ -251,7 +240,7 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
           const mismatch = referrerCountry !== userCountryName;
           setReferralCountryMismatch(mismatch);
           if (mismatch) {
-            fetchSuggestedReferrers(userCountryName);
+            fetchSuggestedReferrers(userCountryName, selectedCountry);
           } else {
             setSuggestedReferrers([]);
           }
@@ -376,7 +365,7 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
       }
       
       // Success! Trigger the success callback
-      const isPioneer = !referralCode.trim() && suggestedReferrers.length === 0;
+      const isPioneer = !referralCode.trim() && suggestedReferrers.length === 0 && !loadingSuggestions;
       setIsLoading(false);
       onSignupSuccess?.(name, isPioneer);
     } else {
