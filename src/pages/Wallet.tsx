@@ -227,13 +227,33 @@ function WalletContent() {
 
                 {/* Aura Balance */}
                 <div className="bg-aura/5 border border-aura/20 rounded-xl p-4">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-aura text-lg font-bold">✦</span>
-                    <span className="text-foreground/70 text-xs font-medium">Aura</span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-aura text-lg font-bold">✦</span>
+                      <span className="text-foreground/70 text-xs font-medium">Aura</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground bg-aura/10 rounded-full px-2 py-0.5">
+                      {isRTL ? `الإجمالي: ${formatBalance(user.auraBalance + user.freeAuraBalance)}` : `Total: ${formatBalance(user.auraBalance + user.freeAuraBalance)}`}
+                    </span>
                   </div>
-                  <p className="text-foreground text-2xl font-bold">{formatBalance(user.auraBalance)}</p>
-                  <p className="text-muted-foreground text-xs mt-1">
-                    {isRTL ? 'نقاط تصويت' : 'Voting Points'}
+                  {/* Paid Aura */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-foreground/60">
+                      {isRTL ? 'Aura مدفوعة' : 'Paid Aura'}
+                    </span>
+                    <span className="text-foreground font-bold text-lg">{formatBalance(user.auraBalance)}</span>
+                  </div>
+                  {/* Free Aura */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-foreground/60">
+                      {isRTL ? 'Aura مجانية' : 'Free Aura'}
+                    </span>
+                    <span className="text-aura/70 font-semibold text-base">{formatBalance(user.freeAuraBalance)}</span>
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-2 border-t border-aura/10 pt-2">
+                    {isRTL
+                      ? 'Aura المدفوعة تُولّد عمولات · المجانية للتأهل فقط'
+                      : 'Paid Aura earns commission · Free Aura for qualification only'}
                   </p>
                 </div>
               </div>

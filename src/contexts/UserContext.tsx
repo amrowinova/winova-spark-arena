@@ -17,6 +17,7 @@ export interface User {
   novaBalance: number;
   lockedNovaBalance: number;
   auraBalance: number;
+  freeAuraBalance: number;
   rank: UserRank;
   teamSize: number;
   directTeam: number;
@@ -59,6 +60,7 @@ const guestUser: User = {
   novaBalance: 0,
   lockedNovaBalance: 0,
   auraBalance: 0,
+  freeAuraBalance: 0,
   rank: 'subscriber',
   teamSize: 0,
   directTeam: 0,
@@ -141,6 +143,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           novaBalance: Number(wallet.nova_balance) || 0,
           lockedNovaBalance: Number(wallet.locked_nova_balance) || 0,
           auraBalance: Number(wallet.aura_balance) || 0,
+          freeAuraBalance: Number(wallet.free_aura_balance) || 0,
           rank: profile.rank as UserRank,
           teamSize: totalTeam,
           directTeam,
@@ -218,12 +221,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
           filter: `user_id=eq.${authUser.id}`,
         },
         (payload) => {
-          const newWallet = payload.new as { nova_balance: number; locked_nova_balance: number; aura_balance: number };
+          const newWallet = payload.new as { nova_balance: number; locked_nova_balance: number; aura_balance: number; free_aura_balance: number };
           setUser((prev) => ({
             ...prev,
             novaBalance: Number(newWallet.nova_balance) || 0,
             lockedNovaBalance: Number(newWallet.locked_nova_balance) || 0,
             auraBalance: Number(newWallet.aura_balance) || 0,
+            freeAuraBalance: Number(newWallet.free_aura_balance) || 0,
           }));
         }
       )

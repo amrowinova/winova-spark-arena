@@ -115,12 +115,18 @@ export function useWallet() {
 
   // Nova balance (available)
   const novaBalance = wallet?.nova_balance ? Number(wallet.nova_balance) : 0;
-  
+
   // Locked Nova (team earnings - released on 15th & 30th)
   const lockedNovaBalance = wallet?.locked_nova_balance ? Number(wallet.locked_nova_balance) : 0;
-  
-  // Aura balance (voting points)
+
+  // Aura balance — paid only (converted from Nova)
   const auraBalance = wallet?.aura_balance ? Number(wallet.aura_balance) : 0;
+
+  // Free Aura balance — granted by platform, no commission, qualification only
+  const freeAuraBalance = wallet?.free_aura_balance ? Number(wallet.free_aura_balance) : 0;
+
+  // Total Aura for qualification purposes
+  const totalAuraBalance = auraBalance + freeAuraBalance;
 
   // Is wallet frozen
   const isFrozen = wallet?.is_frozen ?? false;
@@ -132,6 +138,8 @@ export function useWallet() {
     novaBalance,
     lockedNovaBalance,
     auraBalance,
+    freeAuraBalance,
+    totalAuraBalance,
     isFrozen,
     isLoading,
     error,
