@@ -265,7 +265,7 @@ export default function HomePage() {
 
         {/* 1️⃣ Welcome Message */}
         <motion.div variants={itemVariants} className="text-center px-2">
-          <p className="text-xl font-bold text-foreground mb-1">عمرو يا حوت</p>
+          <p className="text-xl font-bold text-foreground mb-1">{language === 'ar' ? `أهلاً ${user.name}` : `Hey ${user.name}`}</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {language === 'ar' 
               ? 'أهلاً بك في WINOVA 👋\n\nاليوم فرصتك تربح، تصوّت، وتزيد ترتيبك.'

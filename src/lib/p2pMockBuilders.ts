@@ -19,7 +19,7 @@ export function p2pParticipantFromOfferUser(offer: P2POffer): P2PParticipant {
     id: offer.user.id,
     name: offer.user.name,
     nameAr: offer.user.nameAr,
-    username: offer.user.id, // Mock username (offer doesn't have username)
+    username: `user_${offer.user.id.slice(0, 8)}`, // Offer type has no username field; show truncated ID
     avatar: offer.user.avatar,
     rating: offer.user.rating,
     country: offer.country.name,
@@ -45,7 +45,7 @@ export function p2pPaymentDetailsFromOffer(offer: P2POffer): P2PPaymentDetails {
   const primary = offer.paymentMethods[0];
   return {
     bankName: primary?.name || 'Bank Transfer',
-    accountNumber: 'SA0000000000000000000',
+    accountNumber: '—', // Offer data does not include seller's account number; shown after order is matched
     accountHolder: offer.user.nameAr || offer.user.name,
     isLocked: true,
   };
