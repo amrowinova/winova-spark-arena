@@ -7,6 +7,7 @@ interface FinalStageUserCardProps {
   userRank: number | null;
   userVotes: number;
   isQualified: boolean;
+  totalParticipants?: number;
 }
 
 export function FinalStageUserCard({ userRank, userVotes, isQualified }: FinalStageUserCardProps) {
