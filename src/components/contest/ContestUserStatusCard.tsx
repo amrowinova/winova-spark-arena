@@ -11,6 +11,7 @@ interface ContestUserStatusCardProps {
   userVotes: number;
   stage: ContestStage;
   prizePool: number;
+  totalParticipants?: number;
   // Stage 1 props
   votesNeededForTop50?: number;
   // Final stage props
