@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -17,7 +17,7 @@ export interface WalletTransaction {
   counterparty_name: string | null;
   counterparty_username: string | null;
   created_at: string;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
 }
 
 interface UseWalletHistoryOptions {
@@ -35,6 +35,10 @@ export function useWalletHistory(options: UseWalletHistoryOptions = {}) {
 
   const limit = options.limit || 50;
 
+  // Ref so fetchTransactions always reads the latest offset without being in deps
+  const offsetRef = useRef(offset);
+  offsetRef.current = offset;
+
   const fetchTransactions = useCallback(async (reset = false) => {
     if (!user?.id) {
       setLoading(false);
@@ -43,7 +47,7 @@ export function useWalletHistory(options: UseWalletHistoryOptions = {}) {
 
     try {
       setLoading(true);
-      const currentOffset = reset ? 0 : offset;
+      const currentOffset = reset ? 0 : offsetRef.current;
 
       const { data, error: rpcError } = await supabase.rpc('get_wallet_history', {
         p_user_id: user.id,
@@ -71,12 +75,12 @@ export function useWalletHistory(options: UseWalletHistoryOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, options.currency, limit, offset]);
+  }, [user?.id, options.currency, limit]);
 
-  // Initial fetch
+  // Initial fetch + refetch when user or currency changes
   useEffect(() => {
     fetchTransactions(true);
-  }, [user?.id, options.currency]);
+  }, [fetchTransactions]);
 
   // Subscribe to realtime updates on wallet_ledger
   useEffect(() => {
@@ -93,7 +97,6 @@ export function useWalletHistory(options: UseWalletHistoryOptions = {}) {
           filter: `user_id=eq.${user.id}`
         },
         () => {
-          // Refetch on new transaction
           fetchTransactions(true);
         }
       )
@@ -102,7 +105,7 @@ export function useWalletHistory(options: UseWalletHistoryOptions = {}) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, fetchTransactions]);
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -111,9 +114,8 @@ export function useWalletHistory(options: UseWalletHistoryOptions = {}) {
   }, [loading, hasMore, fetchTransactions]);
 
   const refresh = useCallback(() => {
-    setOffset(0);
     fetchTransactions(true);
-  }, []);
+  }, [fetchTransactions]);
 
   return {
     transactions,

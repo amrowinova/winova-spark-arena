@@ -277,10 +277,15 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
           return;
         }
         // Update the profile row
-        await supabase
+        const { error: profileUpdateError } = await supabase
           .from('profiles')
           .update({ name: fullName, username, country: countryName, city: cityName, district: districtName })
           .eq('user_id', user.id);
+        if (profileUpdateError) {
+          setError(isRTL ? 'حدث خطأ أثناء تحديث الملف الشخصي' : 'Error updating profile');
+          setIsLoading(false);
+          return;
+        }
 
         targetUserId = user.id;
       } else {

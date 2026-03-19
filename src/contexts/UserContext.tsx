@@ -85,6 +85,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User>(guestUser);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Track the latest fetch call to prevent stale responses from overwriting fresh ones
+  const fetchCounterRef = useRef(0);
+
   // Fetch user data from database
   const fetchUserData = useCallback(async () => {
     if (!authUser) {
@@ -93,6 +96,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return;
     }
+
+    const callId = ++fetchCounterRef.current;
 
     try {
       setIsLoading(true);
@@ -118,6 +123,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const profile = profileResult.data as Profile | null;
       const wallet = walletResult.data as Wallet | null;
       const teamMembers = teamResult.data || [];
+
+      // Discard if a newer fetch has already started
+      if (callId !== fetchCounterRef.current) return;
 
       if (profile && wallet) {
         // Calculate team sizes
@@ -165,7 +173,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // On error, reset to guest
       setUser(guestUser);
     } finally {
-      setIsLoading(false);
+      // Only update loading if this is still the latest call
+      if (callId === fetchCounterRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [authUser]);
 

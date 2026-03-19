@@ -131,11 +131,22 @@ export function useRealtimeDM(options: RealtimeDMOptions = {}) {
       return channel;
     };
 
-    let channelRef: ReturnType<typeof supabase.channel> | null = null;
-    setupChannel().then(ch => { channelRef = ch; });
+    // Use a ref to bridge the async gap between setup and cleanup
+    const cleanupRef = { channel: null as ReturnType<typeof supabase.channel> | null };
+    let cancelled = false;
+
+    setupChannel().then(ch => {
+      if (cancelled) {
+        // Component unmounted before setup finished — remove immediately
+        if (ch) supabase.removeChannel(ch);
+      } else {
+        cleanupRef.channel = ch;
+      }
+    });
 
     return () => {
-      if (channelRef) supabase.removeChannel(channelRef);
+      cancelled = true;
+      if (cleanupRef.channel) supabase.removeChannel(cleanupRef.channel);
     };
   }, [user, onNewMessage, onMessageRead, getSenderProfile]);
 
