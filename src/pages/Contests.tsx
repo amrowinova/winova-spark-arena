@@ -306,8 +306,8 @@ export default function ContestsPage() {
   // In final stage, only top 50 are shown
   const displayParticipants = isFinal ? participants.slice(0, 50) : participants;
   
-  // Check if user qualified for final
-  const userQualified = userRank <= 50 && userRank > 0;
+  // Check if user qualified for final (all qualify if ≤50 participants)
+  const userQualified = participants.length <= 50 ? (userRank > 0) : (userRank <= 50 && userRank > 0);
   
   // Votes needed for different thresholds
   const top50Threshold = participants[49]?.votes || 0;
