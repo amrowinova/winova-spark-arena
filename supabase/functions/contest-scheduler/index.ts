@@ -4,19 +4,28 @@
  * Automatically creates and manages daily contests aligned to KSA (UTC+3) schedule.
  *
  * Invocation options:
- *   - Cron trigger (pg_cron job) at ~10:00 AM KSA daily
- *   - Manual HTTP call for testing/emergency
+ *   - Cron trigger (pg_cron job) using CRON_SECRET in Authorization header
+ *   - Manual HTTP call by authenticated admin users
  *
  * Actions:
  *   1. ensure_today_contest: Creates today's contest if not present
  *   2. transition_stages: Updates contest status based on current KSA time
  *   3. finalize: Marks contest as 'completed' after 10 PM KSA
+ *
+ * Required environment variables:
+ *   - SUPABASE_URL
+ *   - SUPABASE_SERVICE_ROLE_KEY
+ *   - CRON_SECRET (random 32+ char secret, shared only with pg_cron job)
+ *
+ * pg_cron job must send:
+ *   Authorization: Bearer <CRON_SECRET>
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
+// CORS: restricted to the app domain only — never open to *
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://winova-spark-arena.lovable.app",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -46,57 +55,51 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // SECURITY: allow service-role, scheduled anon cron token, or authenticated admin users
-  const authHeader = req.headers.get('Authorization');
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const bearerToken = authHeader?.replace('Bearer ', '') || '';
-  const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] ?? null;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
 
-  const decodeJwtPayload = (token: string) => {
-    try {
-      const payload = token.split('.')[1];
-      if (!payload) return null;
-      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-      return JSON.parse(atob(padded));
-    } catch {
-      return null;
-    }
-  };
+  const authHeader = req.headers.get("Authorization");
+  const bearerToken = authHeader?.replace("Bearer ", "") ?? "";
 
-  const tokenPayload = decodeJwtPayload(bearerToken);
+  // ── Authentication: accept service-role key OR CRON_SECRET OR admin JWT ──
   const isServiceRole = bearerToken === serviceRoleKey;
-  const isCronAnonToken = tokenPayload?.role === 'anon' && (!projectRef || tokenPayload?.ref === projectRef);
+  const isCronSecret = cronSecret.length > 0 && bearerToken === cronSecret;
 
-  if (!isServiceRole && !isCronAnonToken) {
-    const tempClient = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+  if (!isServiceRole && !isCronSecret) {
+    // Fallback: allow authenticated admin user (manual invocation)
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const tempClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
     const { data: { user } } = await tempClient.auth.getUser(bearerToken);
     if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { data: roles } = await tempClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
 
-    if (!roles?.some((r: { role: string }) => r.role === 'admin')) {
-      return new Response(JSON.stringify({ error: 'Admin or service role only' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!roles?.some((r: { role: string }) => r.role === "admin")) {
+      return new Response(
+        JSON.stringify({ error: "Admin, service-role, or cron secret required" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
   }
 

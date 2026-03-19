@@ -1,7 +1,26 @@
+/**
+ * P2P Auto-Expire Edge Function
+ * ──────────────────────────────────
+ * Automatically expires stale P2P orders that exceed their time limits.
+ *
+ * Invocation options:
+ *   - Cron trigger (pg_cron job) using CRON_SECRET in Authorization header
+ *   - Manual HTTP call by authenticated admin users
+ *
+ * Required environment variables:
+ *   - SUPABASE_URL
+ *   - SUPABASE_SERVICE_ROLE_KEY
+ *   - CRON_SECRET (random 32+ char secret, shared only with pg_cron job)
+ *
+ * pg_cron job must send:
+ *   Authorization: Bearer <CRON_SECRET>
+ */
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// CORS: restricted to the app domain only — never open to *
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://winova-spark-arena.lovable.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -13,30 +32,44 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
 
-    // SECURITY: Validate caller is service-role or admin
     const authHeader = req.headers.get('Authorization');
-    const bearerToken = authHeader?.replace('Bearer ', '') || '';
-    const isServiceRole = bearerToken === supabaseServiceKey;
+    const bearerToken = authHeader?.replace('Bearer ', '') ?? '';
 
-    if (!isServiceRole) {
+    // ── Authentication: accept service-role key OR CRON_SECRET OR admin JWT ──
+    const isServiceRole = bearerToken === supabaseServiceKey;
+    const isCronSecret = cronSecret.length > 0 && bearerToken === cronSecret;
+
+    if (!isServiceRole && !isCronSecret) {
+      // Fallback: allow authenticated admin user (manual invocation)
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      const tempClient = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
+      const tempClient = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+
       const { data: { user } } = await tempClient.auth.getUser(bearerToken);
       if (!user) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      const { data: roles } = await tempClient.from('user_roles').select('role').eq('user_id', user.id);
-      if (!roles?.some((r: any) => r.role === 'admin')) {
-        return new Response(JSON.stringify({ error: 'Admin or service role only' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+
+      const { data: roles } = await tempClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      if (!roles?.some((r: { role: string }) => r.role === 'admin')) {
+        return new Response(
+          JSON.stringify({ error: 'Admin, service-role, or cron secret required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
