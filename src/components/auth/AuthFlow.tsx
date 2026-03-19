@@ -118,13 +118,23 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   }, [markAuthComplete, onAuthSuccess, isRTL, navigate]);
 
   // Signup success handler (for password signup with name)
-  const handleSignupSuccess = useCallback((name: string) => {
+  const handleSignupSuccess = useCallback((name: string, isPioneer: boolean) => {
     markAuthComplete();
-    handleClose(); // Close the sheet explicitly
-    toast({
-      title: isRTL ? 'تم إنشاء الحساب بنجاح! 🎉' : 'Account created successfully! 🎉',
-      description: isRTL ? `مرحباً ${name}` : `Welcome ${name}`,
-    });
+    handleClose();
+    if (isPioneer) {
+      toast({
+        title: isRTL ? '🌟 مرحباً أيها الرائد!' : '🌟 Welcome, Pioneer!',
+        description: isRTL
+          ? `${name}، أنت أول من يسجّل في منطقتك — شارك كود إحالتك وابدأ مجتمعك!`
+          : `${name}, you're the first in your area — share your referral code and build your community!`,
+        duration: 6000,
+      });
+    } else {
+      toast({
+        title: isRTL ? 'تم إنشاء الحساب بنجاح! 🎉' : 'Account created successfully! 🎉',
+        description: isRTL ? `مرحباً ${name}` : `Welcome ${name}`,
+      });
+    }
     onAuthSuccess?.();
     navigate('/', { replace: true });
   }, [markAuthComplete, handleClose, onAuthSuccess, isRTL, navigate]);

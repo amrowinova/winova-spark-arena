@@ -15,7 +15,7 @@ interface SignUpScreenProps {
   onBack: () => void;
   onLogin: () => void;
   onSendOTP: (email: string) => void;
-  onSignupSuccess?: (name: string) => void;
+  onSignupSuccess?: (name: string, isPioneer: boolean) => void;
 }
 
 export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: SignUpScreenProps) {
@@ -376,8 +376,9 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
       }
       
       // Success! Trigger the success callback
+      const isPioneer = !referralCode.trim() && suggestedReferrers.length === 0;
       setIsLoading(false);
-      onSignupSuccess?.(name);
+      onSignupSuccess?.(name, isPioneer);
     } else {
       const { error: authError } = await signInWithOtp(email);
       setIsLoading(false);
