@@ -932,6 +932,26 @@ export default function ContestsPage() {
     );
   }
 
+  // Loading guard — never render vote buttons until DB data is confirmed.
+  // hasJoined starts as false; showing cards before fetchContestData finishes
+  // means a logged-in user sees disabled buttons with no explanation.
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="h-12 w-12 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            <p className="text-sm text-muted-foreground">
+              {language === 'ar' ? 'جارٍ تحميل المسابقة...' : 'Loading contest...'}
+            </p>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
   // Empty state - no participants yet (for Stage 1 / Final)
   if (!isLoading && participants.length === 0) {
     return (
