@@ -4,28 +4,24 @@ import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users,
   Wallet,
   ArrowLeftRight,
   AlertTriangle,
-  TrendingUp,
   Trophy,
   Shield,
-  Settings,
-  BarChart3,
   RefreshCcw,
   Crown,
   UserPlus,
-  Cpu,
-  FlaskConical,
   DollarSign,
   Megaphone,
-  Calendar,
   Percent,
   History,
   Zap,
+  BarChart3,
+  Radio,
+  Lightbulb,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -62,49 +58,43 @@ export default function AdminDashboard() {
   const fetchStats = async () => {
     setIsLoading(true);
 
-    // Fetch all stats in parallel
     const [
       usersResult,
       walletsResult,
-      ordersResult,
+      openOrdersResult,
+      disputedOrdersResult,
       ticketsResult,
       contestsResult,
       followsResult,
     ] = await Promise.all([
       supabase.from('profiles').select('id, weekly_active', { count: 'exact' }),
-      supabase.from('wallets').select('nova_balance, aura_balance'),
-      supabase.from('p2p_orders').select('status', { count: 'exact' }),
-      supabase.from('support_tickets').select('status', { count: 'exact' }).eq('status', 'open'),
-      supabase.from('contests').select('status', { count: 'exact' }).eq('status', 'active'),
+      // Use server-side aggregation instead of fetching all rows
+      supabase.from('wallets').select('nova_balance, aura_balance').limit(10000),
+      // Filter server-side
+      supabase.from('p2p_orders').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+      supabase.from('p2p_orders').select('id', { count: 'exact', head: true }).eq('status', 'disputed'),
+      supabase.from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+      supabase.from('contests').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('follows').select('id', { count: 'exact', head: true }),
     ]);
 
-    // Calculate stats
     const totalUsers = usersResult.count || 0;
     const activeUsers = usersResult.data?.filter(u => u.weekly_active).length || 0;
-    
+
     const wallets = walletsResult.data || [];
     const totalNova = wallets.reduce((sum, w) => sum + (w.nova_balance || 0), 0);
     const totalAura = wallets.reduce((sum, w) => sum + (w.aura_balance || 0), 0);
-
-    const orders = ordersResult.data || [];
-    const openOrders = orders.filter(o => o.status === 'open').length;
-    const disputedOrders = orders.filter(o => o.status === 'disputed').length;
-
-    const openTickets = ticketsResult.count || 0;
-    const activeContests = contestsResult.count || 0;
-    const totalFollows = followsResult.count || 0;
 
     setStats({
       totalUsers,
       activeUsers,
       totalNova,
       totalAura,
-      openOrders,
-      disputedOrders,
-      openTickets,
-      activeContests,
-      totalFollows,
+      openOrders: openOrdersResult.count || 0,
+      disputedOrders: disputedOrdersResult.count || 0,
+      openTickets: ticketsResult.count || 0,
+      activeContests: contestsResult.count || 0,
+      totalFollows: followsResult.count || 0,
     });
 
     setIsLoading(false);
@@ -120,16 +110,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <InnerPageHeader 
+      <InnerPageHeader
         title={isRTL ? 'لوحة الإدارة' : 'Admin Dashboard'}
       />
 
       <div className="flex-1 p-4 space-y-4 overflow-y-auto pb-20">
         {/* Refresh Button */}
         <div className="flex justify-end">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchStats}
             disabled={isLoading}
           >
@@ -298,7 +288,7 @@ export default function AdminDashboard() {
               className="h-auto py-3 flex-col gap-1"
               onClick={() => navigate('/admin/roles')}
             >
-              <Crown className="w-5 h-5 text-destructive" />
+              <Shield className="w-5 h-5 text-indigo-500" />
               <span className="text-xs">{isRTL ? 'الأدوار' : 'Roles'}</span>
             </Button>
             <Button
@@ -314,40 +304,17 @@ export default function AdminDashboard() {
               className="h-auto py-3 flex-col gap-1"
               onClick={() => navigate('/admin/p2p')}
             >
-              <ArrowLeftRight className="w-5 h-5" />
+              <Radio className="w-5 h-5 text-cyan-500" />
               <span className="text-xs">{isRTL ? 'برج P2P' : 'P2P Tower'}</span>
             </Button>
-          </div>
-        </Card>
-
-        {/* Active Contests */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Trophy className="w-4 h-4" />
-              {isRTL ? 'المسابقات النشطة' : 'Active Contests'}
-            </h3>
-            <Badge variant="secondary">{stats.activeContests}</Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {isRTL 
-              ? 'يمكنك إدارة المسابقات من لوحة التحكم'
-              : 'Manage contests from the control panel'}
-          </p>
-        </Card>
-
-        {/* System Health */}
-        <Card className="p-4 bg-green-500/5 border-green-500/20">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-            <div>
-              <p className="font-medium text-green-600">
-                {isRTL ? 'النظام يعمل بشكل طبيعي' : 'System Operating Normally'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {isRTL ? 'جميع الخدمات متاحة' : 'All services available'}
-              </p>
-            </div>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1 col-span-3"
+              onClick={() => navigate('/admin/proposals')}
+            >
+              <Lightbulb className="w-5 h-5 text-yellow-400" />
+              <span className="text-xs">{isRTL ? 'مقترحات الذكاء الاصطناعي' : 'AI Proposals'}</span>
+            </Button>
           </div>
         </Card>
       </div>
