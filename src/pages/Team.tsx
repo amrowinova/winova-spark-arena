@@ -1,7 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { FixedSizeList as List } from 'react-window';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { UserIdentityCard } from '@/components/team/UserIdentityCard';
@@ -13,9 +12,13 @@ import { TeamRankingCard } from '@/components/team/TeamRankingCard';
 import { TeamLevelBreakdown } from '@/components/team/TeamLevelBreakdown';
 import { DirectLeaderCard } from '@/components/team/DirectLeaderCard';
 import { TeamEarningsSummaryCard } from '@/components/team/TeamEarningsSummaryCard';
+import { MemberDetailPanel } from '@/components/team/MemberDetailPanel';
+import { SupervisorChangeSheet } from '@/components/team/SupervisorChangeSheet';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTeamHierarchy } from '@/hooks/useTeamHierarchy';
 import { useTeamStats } from '@/hooks/useTeamStats';
+import { useUser } from '@/contexts/UserContext';
+import { toast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,10 +27,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Users, ChevronRight, Loader2, UserCheck, UserX,
-  Search, X, Star, ArrowRight,
+  Users, ChevronRight, UserCheck, UserX,
+  Search, X, Star, ArrowRight, AlertTriangle,
 } from 'lucide-react';
 import type { TeamMemberData } from '@/hooks/useTeamHierarchy';
+import type { TeamMember } from '@/components/team/TeamMemberCard';
 
 type FilterType = 'all' | 'active' | 'inactive';
 
@@ -36,8 +40,6 @@ interface BreadcrumbEntry {
   memberId: string;
   name: string;
 }
-
-const ITEM_HEIGHT = 96;
 
 // ── Team Member Card ────────────────────────────────────────────────────────────
 function TeamMemberCard({
@@ -155,7 +157,7 @@ function SearchFilterBar({
   );
 }
 
-// ── Virtualized List ────────────────────────────────────────────────────────────
+// ── Scrollable List ──────────────────────────────────────────────────────────────
 function VirtualMemberList({
   members, isRTL, onViewProfile, onViewTeam, height,
 }: {
@@ -163,23 +165,6 @@ function VirtualMemberList({
   onViewProfile: (id: string) => void;
   onViewTeam?: (id: string) => void;
 }) {
-  const Row = useCallback(
-    ({ index, style }: { index: number; style: React.CSSProperties }) => {
-      const member = members[index];
-      return (
-        <div style={{ ...style, paddingBottom: 8, paddingLeft: 16, paddingRight: 16 }}>
-          <TeamMemberCard
-            member={member}
-            isRTL={isRTL}
-            onViewProfile={() => onViewProfile(member.member_id)}
-            onViewTeam={member.direct_count > 0 && onViewTeam ? () => onViewTeam(member.member_id) : undefined}
-          />
-        </div>
-      );
-    },
-    [members, isRTL, onViewProfile, onViewTeam]
-  );
-
   if (members.length === 0) {
     return (
       <div className="text-center py-16">
@@ -190,9 +175,17 @@ function VirtualMemberList({
   }
 
   return (
-    <List height={height} itemCount={members.length} itemSize={ITEM_HEIGHT} width="100%">
-      {Row}
-    </List>
+    <div className="space-y-2 overflow-y-auto" style={{ maxHeight: height }}>
+      {members.map(member => (
+        <TeamMemberCard
+          key={member.member_id}
+          member={member}
+          isRTL={isRTL}
+          onViewProfile={() => onViewProfile(member.member_id)}
+          onViewTeam={member.direct_count > 0 && onViewTeam ? () => onViewTeam(member.member_id) : undefined}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -245,16 +238,42 @@ function applyFilter(members: TeamMemberData[], search: string, filter: FilterTy
   return list;
 }
 
+// ── Helpers: convert TeamMemberData → TeamMember (for MemberDetailPanel) ────────
+function toTeamMember(m: TeamMemberData, totalWeeks = 14): TeamMember {
+  return {
+    id: m.member_id,
+    name: m.name,
+    nameAr: m.name,
+    username: m.username,
+    rank: m.rank as TeamMember['rank'],
+    active: m.weekly_active,
+    avatar: m.avatar_url || m.name.charAt(0),
+    activeWeeks: m.active_weeks,
+    totalWeeks,
+    directTeam: m.direct_count,
+    indirectTeam: 0,
+    teamSize: m.direct_count,
+  };
+}
+
 // ── Main Component ──────────────────────────────────────────────────────────────
 function TeamContent() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
   const isRTL = language === 'ar';
+  const { user } = useUser();
 
   // Navigation state: breadcrumb trail for hierarchical drill-down
   const [breadcrumb, setBreadcrumb] = useState<BreadcrumbEntry[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Member detail panel state
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  // Supervisor change sheet
+  const [supervisorSheetOpen, setSupervisorSheetOpen] = useState(false);
 
   // Separate search state per view
   const [tabSearch,  setTabSearch]  = useState('');
@@ -266,11 +285,33 @@ function TeamContent() {
   const [showFullDirect, setShowFullDirect] = useState(false);
 
   const { members, directMembers, getIndirectByParent, loading: hierarchyLoading } = useTeamHierarchy(5);
-  const { directCount, indirectCount, activeDirectCount, loading: statsLoading } = useTeamStats();
+  const { directCount, indirectCount, activeDirectCount, loading: statsLoading, totalWeeks } = useTeamStats();
 
   const loading = hierarchyLoading || statsLoading;
   const inactiveCount = directCount - activeDirectCount;
   const listHeight = typeof window !== 'undefined' ? Math.floor(window.innerHeight * 0.58) : 440;
+
+  // Warning conditions (for toast + badge)
+  const userInactive = !user.weeklyActive;
+  const teamActivityLow = directCount > 0 && (inactiveCount / directCount) > 0.5;
+  const cycleEnding = user.currentWeek >= 12;
+  const activityLow = user.activeWeeks < user.currentWeek * 0.5;
+  const hasWarning = userInactive || teamActivityLow || cycleEnding || activityLow;
+
+  // Show warning toast once on mount
+  const toastShown = useRef(false);
+  useEffect(() => {
+    if (toastShown.current || loading || !hasWarning) return;
+    toastShown.current = true;
+    const title = userInactive
+      ? (isRTL ? 'أنت غير نشط هذا الأسبوع!' : 'You are inactive this week!')
+      : teamActivityLow
+        ? (isRTL ? `${inactiveCount} أعضاء غير نشطين` : `${inactiveCount} inactive members`)
+        : cycleEnding
+          ? (isRTL ? `${14 - user.currentWeek} أسابيع على نهاية الدورة` : `${14 - user.currentWeek} weeks left in cycle`)
+          : (isRTL ? 'نشاطك منخفض' : 'Your activity is low');
+    toast({ title, variant: 'destructive' });
+  }, [loading, hasWarning]);
 
   // Current view: root = directMembers, otherwise sub-team of last breadcrumb entry
   const currentParentId = breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1].memberId : null;
@@ -281,7 +322,15 @@ function TeamContent() {
   const tabFiltered  = useMemo(() => applyFilter(directMembers, tabSearch,  tabFilter),  [directMembers, tabSearch,  tabFilter]);
   const fullFiltered = useMemo(() => applyFilter(currentMembers, fullSearch, fullFilter), [currentMembers, fullSearch, fullFilter]);
 
-  const handleViewProfile = (memberId: string) => navigate(`/user/${memberId}`);
+  const handleViewProfile = (memberId: string) => {
+    const member = members.find(m => m.member_id === memberId);
+    if (member) {
+      setSelectedMember(toTeamMember(member, totalWeeks || 14));
+      setPanelOpen(true);
+    } else {
+      navigate(`/user/${memberId}`);
+    }
+  };
 
   const handleDrillDown = (memberId: string) => {
     const member = members.find(m => m.member_id === memberId);
@@ -362,7 +411,12 @@ function TeamContent() {
       <main className="flex-1 px-4 py-4 pb-20">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full grid grid-cols-4 mb-4">
-            <TabsTrigger value="overview" className="text-xs">{isRTL ? 'نظرة عامة' : 'Overview'}</TabsTrigger>
+            <TabsTrigger value="overview" className="text-xs relative">
+              {isRTL ? 'نظرة عامة' : 'Overview'}
+              {hasWarning && (
+                <span className="absolute top-1 end-1 w-2 h-2 rounded-full bg-destructive" />
+              )}
+            </TabsTrigger>
             <TabsTrigger value="direct"   className="text-xs">{isRTL ? 'المباشر'   : 'Direct'}</TabsTrigger>
             <TabsTrigger value="stats"    className="text-xs">{isRTL ? 'الإحصائيات' : 'Stats'}</TabsTrigger>
             <TabsTrigger value="referral" className="text-xs">{isRTL ? 'الإحالة'    : 'Referral'}</TabsTrigger>
@@ -371,6 +425,14 @@ function TeamContent() {
           {/* ── Overview ── */}
           <TabsContent value="overview" className="space-y-4 mt-0">
             <DirectLeaderCard />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs h-8 text-muted-foreground"
+              onClick={() => setSupervisorSheetOpen(true)}
+            >
+              {isRTL ? 'طلب تغيير المسؤول' : 'Request Supervisor Change'}
+            </Button>
             <UserIdentityCard />
 
             <Card className="p-4">
@@ -492,6 +554,26 @@ function TeamContent() {
         </Tabs>
       </main>
       <BottomNav />
+
+      {/* Supervisor Change Sheet */}
+      <SupervisorChangeSheet
+        open={supervisorSheetOpen}
+        onClose={() => setSupervisorSheetOpen(false)}
+      />
+
+      {/* Member Detail Panel (bottom sheet) */}
+      <MemberDetailPanel
+        member={selectedMember}
+        open={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        onViewTeam={selectedMember && selectedMember.teamSize > 0
+          ? () => {
+              setPanelOpen(false);
+              setBreadcrumb([{ memberId: selectedMember.id, name: selectedMember.name }]);
+              setShowFullDirect(true);
+            }
+          : undefined}
+      />
     </div>
   );
 }

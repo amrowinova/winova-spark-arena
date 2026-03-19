@@ -57,14 +57,14 @@ const promotionRequirements: Record<UserRank, {
   manager: {
     nextRank: 'president',
     directRequired: 10,
-    descriptionEn: 'Promote 10 direct Managers + be top in points',
-    descriptionAr: 'رقِّ 10 مدراء مباشرين وكن من الأعلى نقاطًا',
+    descriptionEn: 'Have 10+ active direct managers + win the end-of-cycle competition',
+    descriptionAr: 'امتلك 10+ مدير مباشر نشيط + فز بمنافسة نهاية الدورة',
   },
   president: {
     nextRank: null,
     directRequired: 15,
-    descriptionEn: 'Maintain 15+ active managers + be top in country',
-    descriptionAr: 'حافظ على +15 مدير نشيط وكن الأعلى نقاطًا في الدولة',
+    descriptionEn: 'Defend your position each cycle — re-elected based on team strength & activity',
+    descriptionAr: 'يُعاد انتخاب الرئيس كل دورة حسب قوة الفريق والنشاط — منافسة مفتوحة بين المدراء',
   },
 };
 

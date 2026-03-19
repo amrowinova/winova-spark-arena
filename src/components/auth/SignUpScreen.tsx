@@ -122,11 +122,18 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
     return city?.districts || [];
   }, [selectedCountry, selectedCity]);
 
-  // Handle country change - reset city and district
+  // Handle country change - reset city and district; auto-fetch suggestions
   const handleCountryChange = (value: string) => {
     setSelectedCountry(value);
     setSelectedCity('');
     setSelectedDistrict('');
+    // If no referral code entered, auto-show top referrers from this country
+    if (!referralCode.trim()) {
+      const countryData = locationData.find(c => c.code === value);
+      if (countryData?.name) {
+        fetchSuggestedReferrers(countryData.name);
+      }
+    }
   };
 
   // Handle city change - reset district
@@ -688,6 +695,52 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
                   </p>
                 )}
 
+                {/* Auto-suggestions when no code entered but country selected */}
+                {!referralCode.trim() && !referralVerified && selectedCountry && suggestedReferrers.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-lg border border-border bg-muted/30 p-3 space-y-2"
+                  >
+                    <p className="text-xs font-medium text-foreground">
+                      {isRTL ? 'أنشط الأشخاص في بلدك — اختر مسؤولك:' : 'Top active people in your country — choose your referrer:'}
+                    </p>
+                    {suggestedReferrers.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setReferralCode(s.referral_code);
+                          setReferralCountryMismatch(false);
+                          setSuggestedReferrers([]);
+                          setReferralVerified({ name: s.name, avatar: s.avatar_url, country: locationData.find(c => c.code === selectedCountry)?.name || selectedCountry });
+                        }}
+                        className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-muted/60 transition-colors text-start"
+                      >
+                        {s.avatar_url ? (
+                          <img src={s.avatar_url} alt={s.name} className="w-7 h-7 rounded-full flex-shrink-0" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <User className="w-3 h-3 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-sm font-medium text-foreground truncate">{s.name}</span>
+                          {(s.city || s.district) && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {[s.district, s.city].filter(Boolean).join('، ')}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-primary font-mono flex-shrink-0">
+                          {isRTL ? 'اختر' : 'Select'}
+                        </span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+
                 {/* Referrer found - show info */}
                 {referralVerified && (
                   <motion.div
@@ -729,8 +782,8 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
                       <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
                       <p className="text-sm text-destructive">
                         {isRTL
-                          ? `هذا الشخص من ${referralVerified.country}، وأنت من ${locationData.find(c => c.code === selectedCountry)?.name || selectedCountry}. يُنصح باختيار مسؤول من نفس بلدك.`
-                          : `This person is from ${referralVerified.country}, but you are from ${locationData.find(c => c.code === selectedCountry)?.name || selectedCountry}. We recommend choosing a referrer from your country.`}
+                          ? `هذا الشخص من ${referralVerified.country}، وأنت من ${locationData.find(c => c.code === selectedCountry)?.name || selectedCountry}. يجب اختيار مسؤول من نفس بلدك — الإحالة بين دول مختلفة غير مسموحة.`
+                          : `This person is from ${referralVerified.country}, but you are from ${locationData.find(c => c.code === selectedCountry)?.name || selectedCountry}. Cross-country referrals are not allowed — you must choose a referrer from your country.`}
                       </p>
                     </div>
 

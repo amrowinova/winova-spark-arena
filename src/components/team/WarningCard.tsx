@@ -58,12 +58,12 @@ export function WarningCard({ inactiveCount, directTeamCount }: WarningCardProps
     icon = Clock;
     bgClass = 'bg-primary/10 border-primary/30';
     textClass = 'text-primary';
-    title = language === 'ar' 
-      ? `${14 - user.currentWeek} أسابيع متبقية`
-      : `${14 - user.currentWeek} weeks remaining`;
-    description = language === 'ar' 
-      ? 'الدورة تنتهي قريباً، حافظ على نشاطك!'
-      : 'Cycle ending soon, stay active!';
+    title = language === 'ar'
+      ? `${14 - user.currentWeek} أسابيع على نهاية الدورة`
+      : `${14 - user.currentWeek} weeks left in cycle`;
+    description = language === 'ar'
+      ? 'الدورة تتجدد بعدها من أسبوع 1 — ستتراكم الأرباح والنقاط، والرئيس يُنتخب من جديد حسب المنافسة'
+      : 'Cycle renews from week 1 — earnings accumulate, and the President is re-elected by competition';
   } else if (activityLow) {
     warningType = 'activity_low';
     icon = TrendingDown;

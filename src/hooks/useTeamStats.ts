@@ -59,36 +59,33 @@ export function useTeamStats() {
       setLoading(true);
       setError(null);
 
-      // Fetch all stats in parallel using real RPCs
-      const [statsResult, referralResult, rankingResult, breakdownResult] = await Promise.all([
-        supabase.rpc('get_team_stats', { p_user_id: user.id }),
-        supabase.rpc('get_referral_stats', { p_user_id: user.id }),
-        supabase.rpc('get_team_ranking', { p_user_id: user.id }),
-        supabase.rpc('get_team_level_breakdown', { p_user_id: user.id, p_max_level: 5 })
-      ]);
+      // Single merged RPC — falls back to 4 parallel RPCs if not available
+      const mergedResult = await supabase.rpc('get_all_team_data', { p_user_id: user.id });
 
-      if (statsResult.error) {
-        console.error('Team stats error:', statsResult.error);
+      if (!mergedResult.error && mergedResult.data) {
+        const d = mergedResult.data as {
+          stats: TeamStats;
+          referral: ReferralStats;
+          ranking: TeamRanking;
+          breakdown: LevelBreakdown[];
+        };
+        setStats(d.stats);
+        setReferralStats(d.referral);
+        setRanking(d.ranking);
+        setLevelBreakdown(d.breakdown || []);
       } else {
-        setStats(statsResult.data as unknown as TeamStats);
-      }
+        // Fallback: 4 parallel RPCs
+        const [statsResult, referralResult, rankingResult, breakdownResult] = await Promise.all([
+          supabase.rpc('get_team_stats', { p_user_id: user.id }),
+          supabase.rpc('get_referral_stats', { p_user_id: user.id }),
+          supabase.rpc('get_team_ranking', { p_user_id: user.id }),
+          supabase.rpc('get_team_level_breakdown', { p_user_id: user.id, p_max_level: 5 })
+        ]);
 
-      if (referralResult.error) {
-        console.error('Referral stats error:', referralResult.error);
-      } else {
-        setReferralStats(referralResult.data as unknown as ReferralStats);
-      }
-
-      if (rankingResult.error) {
-        console.error('Ranking error:', rankingResult.error);
-      } else {
-        setRanking(rankingResult.data as unknown as TeamRanking);
-      }
-
-      if (breakdownResult.error) {
-        console.error('Breakdown error:', breakdownResult.error);
-      } else {
-        setLevelBreakdown((breakdownResult.data as unknown as LevelBreakdown[]) || []);
+        if (!statsResult.error)    setStats(statsResult.data as unknown as TeamStats);
+        if (!referralResult.error) setReferralStats(referralResult.data as unknown as ReferralStats);
+        if (!rankingResult.error)  setRanking(rankingResult.data as unknown as TeamRanking);
+        if (!breakdownResult.error) setLevelBreakdown((breakdownResult.data as unknown as LevelBreakdown[]) || []);
       }
     } catch (err) {
       console.error('Error fetching team stats:', err);
@@ -101,6 +98,34 @@ export function useTeamStats() {
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  // Realtime: refresh when own profile or team member profile changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`team_stats_realtime_${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `user_id=eq.${user.id}` },
+        () => { fetchStats(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `referred_by=eq.${user.id}` },
+        () => { fetchStats(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'profiles' },
+        () => { fetchStats(); }
+      )
+      .subscribe((status, err) => {
+        if (err) console.error('[TeamStats] realtime error:', err);
+      });
+
+    return () => { channel.unsubscribe(); };
+  }, [user?.id, fetchStats]);
 
   // Computed values with safe defaults - ALL FROM DATABASE
   const directCount = stats?.direct_count ?? 0;

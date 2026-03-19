@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Calendar, Users, Loader2 } from 'lucide-react';
+import { Calendar, Users, Loader2, Info } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ProgressRing } from '@/components/common/ProgressRing';
@@ -42,9 +42,20 @@ export function ActivityCard() {
       transition={{ delay: 0.1 }}
     >
       <Card className="p-4">
-        <h3 className="font-semibold mb-4">
-          {language === 'ar' ? 'النشاط' : 'Activity'}
-        </h3>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="font-semibold">
+            {language === 'ar' ? 'النشاط' : 'Activity'}
+          </h3>
+        </div>
+        {/* Definition of "active" */}
+        <div className="flex items-start gap-1.5 mb-3 p-2 bg-muted/50 rounded-lg">
+          <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            {language === 'ar'
+              ? 'المستخدم يُعدّ نشطاً إذا اشترك في مسابقة وصوّت خلال نفس الأسبوع'
+              : 'A user is active if they joined a contest and voted in the same week'}
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           {/* Personal Activity */}
