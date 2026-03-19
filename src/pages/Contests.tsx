@@ -986,6 +986,7 @@ export default function ContestsPage() {
           userVotes={userVotes}
           stage={isStage1 ? 'qualifying' : 'final'}
           prizePool={prizePool}
+          totalParticipants={participants.length}
           votesNeededForTop50={top50Threshold}
           votesNeededForTop5={top5Threshold}
           votesNeededForRank1={rank1Threshold}
