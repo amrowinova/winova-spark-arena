@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { List } from 'react-window';
+import { FixedSizeList as List } from 'react-window';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { UserIdentityCard } from '@/components/team/UserIdentityCard';
