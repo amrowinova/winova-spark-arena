@@ -119,23 +119,15 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
 
   // Signup success handler (for password signup with name)
   const handleSignupSuccess = useCallback((name: string) => {
-    // Mark auth complete FIRST to prevent any modals from showing
     markAuthComplete();
-    
-    // Show success notification with the name
+    handleClose(); // Close the sheet explicitly
     toast({
       title: isRTL ? 'تم إنشاء الحساب بنجاح! 🎉' : 'Account created successfully! 🎉',
-      description: isRTL 
-        ? `مرحباً ${name}` 
-        : `Welcome ${name}`,
+      description: isRTL ? `مرحباً ${name}` : `Welcome ${name}`,
     });
-    
-    // Trigger callback
     onAuthSuccess?.();
-
-    // Enter app - navigate to root (/)
     navigate('/', { replace: true });
-  }, [markAuthComplete, onAuthSuccess, isRTL, navigate]);
+  }, [markAuthComplete, handleClose, onAuthSuccess, isRTL, navigate]);
 
   // Login flow: email → OTP → success
   const handleLoginSendOTP = (userEmail: string) => {

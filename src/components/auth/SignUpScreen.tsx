@@ -33,6 +33,7 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
   const [usePassword, setUsePassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailAlreadyExists, setEmailAlreadyExists] = useState(false);
   
   // Location fields
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -351,12 +352,15 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
       if (authError) {
         setIsLoading(false);
         if (authError.message?.includes('already registered')) {
-          setError(isRTL ? 'هذا البريد مسجل مسبقاً' : 'This email is already registered');
+          setEmailAlreadyExists(true);
+          setError('');
         } else {
+          setEmailAlreadyExists(false);
           setError(isRTL ? 'حدث خطأ أثناء التسجيل' : 'An error occurred during signup');
         }
         return;
       }
+      setEmailAlreadyExists(false);
       
       // Process referral code if provided and verified
       const newUserId = signUpData?.user?.id;
@@ -882,6 +886,29 @@ export function SignUpScreen({ onBack, onLogin, onSendOTP, onSignupSuccess }: Si
             <p className="text-xs text-muted-foreground text-center pt-2">
               {isRTL ? 'سنرسل لك رمز تحقق مكون من 6 أرقام للتحقق من بريدك' : "We'll send you a 6-digit code to verify your email"}
             </p>
+          )}
+
+          {/* Email already exists - offer direct login */}
+          {emailAlreadyExists && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-2"
+            >
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                {isRTL ? 'هذا البريد الإلكتروني مسجّل مسبقاً' : 'This email is already registered'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isRTL ? 'هل تريد تسجيل الدخول بدلاً من ذلك؟' : 'Would you like to sign in instead?'}
+              </p>
+              <button
+                type="button"
+                onClick={onLogin}
+                className="text-sm font-semibold text-primary hover:underline"
+              >
+                {isRTL ? 'تسجيل الدخول ←' : '→ Sign In'}
+              </button>
+            </motion.div>
           )}
 
           {/* Error Message */}
