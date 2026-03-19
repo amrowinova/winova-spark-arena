@@ -1,7 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { FixedSizeList as List } from 'react-window';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { UserIdentityCard } from '@/components/team/UserIdentityCard';
@@ -36,8 +35,6 @@ interface BreadcrumbEntry {
   memberId: string;
   name: string;
 }
-
-const ITEM_HEIGHT = 96;
 
 // ── Team Member Card ────────────────────────────────────────────────────────────
 function TeamMemberCard({
@@ -155,7 +152,7 @@ function SearchFilterBar({
   );
 }
 
-// ── Virtualized List ────────────────────────────────────────────────────────────
+// ── Scrollable List ──────────────────────────────────────────────────────────────
 function VirtualMemberList({
   members, isRTL, onViewProfile, onViewTeam, height,
 }: {
@@ -163,23 +160,6 @@ function VirtualMemberList({
   onViewProfile: (id: string) => void;
   onViewTeam?: (id: string) => void;
 }) {
-  const Row = useCallback(
-    ({ index, style }: { index: number; style: React.CSSProperties }) => {
-      const member = members[index];
-      return (
-        <div style={{ ...style, paddingBottom: 8, paddingLeft: 16, paddingRight: 16 }}>
-          <TeamMemberCard
-            member={member}
-            isRTL={isRTL}
-            onViewProfile={() => onViewProfile(member.member_id)}
-            onViewTeam={member.direct_count > 0 && onViewTeam ? () => onViewTeam(member.member_id) : undefined}
-          />
-        </div>
-      );
-    },
-    [members, isRTL, onViewProfile, onViewTeam]
-  );
-
   if (members.length === 0) {
     return (
       <div className="text-center py-16">
@@ -190,9 +170,17 @@ function VirtualMemberList({
   }
 
   return (
-    <List height={height} itemCount={members.length} itemSize={ITEM_HEIGHT} width="100%">
-      {Row}
-    </List>
+    <div className="space-y-2 overflow-y-auto" style={{ maxHeight: height }}>
+      {members.map(member => (
+        <TeamMemberCard
+          key={member.member_id}
+          member={member}
+          isRTL={isRTL}
+          onViewProfile={() => onViewProfile(member.member_id)}
+          onViewTeam={member.direct_count > 0 && onViewTeam ? () => onViewTeam(member.member_id) : undefined}
+        />
+      ))}
+    </div>
   );
 }
 
