@@ -10,7 +10,7 @@
  * Actions:
  *   1. ensure_today_contest: Creates today's contest if not present
  *   2. transition_stages: Updates contest status based on current KSA time
- *   3. finalize: Marks contest as 'completed' after 10 PM KSA
+ *   3. finalize: Marks contest as 'completed' after 10 PM KSA + distributes prizes
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
@@ -38,6 +38,143 @@ function ksaTimestamp(hour: number, minute = 0): string {
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+03:00`;
+}
+
+// Prize distribution percentages for top 5
+const PRIZE_PERCENTAGES = [50, 20, 15, 10, 5];
+
+/**
+ * Distribute prizes to top contestants.
+ * If ≤5 contestants, ALL win (split proportionally among available positions).
+ * If >5, only top 5 by votes win.
+ */
+async function distributePrizes(supabase: any, contestId: string) {
+  // Get contest prize pool
+  const { data: contest, error: contestErr } = await supabase
+    .from("contests")
+    .select("prize_pool")
+    .eq("id", contestId)
+    .single();
+
+  if (contestErr || !contest) {
+    console.error("Failed to fetch contest for prize distribution:", contestErr);
+    return { distributed: false, error: contestErr?.message || "Contest not found" };
+  }
+
+  const prizePool = contest.prize_pool || 0;
+  if (prizePool <= 0) {
+    return { distributed: false, error: "No prize pool" };
+  }
+
+  // Check if prizes already distributed
+  const { data: existingPrizes } = await supabase
+    .from("contest_entries")
+    .select("id")
+    .eq("contest_id", contestId)
+    .gt("prize_won", 0)
+    .limit(1);
+
+  if (existingPrizes && existingPrizes.length > 0) {
+    return { distributed: false, error: "Prizes already distributed" };
+  }
+
+  // Get all entries sorted by votes
+  const { data: entries, error: entriesErr } = await supabase
+    .from("contest_entries")
+    .select("id, user_id, votes_received")
+    .eq("contest_id", contestId)
+    .order("votes_received", { ascending: false });
+
+  if (entriesErr || !entries || entries.length === 0) {
+    console.error("Failed to fetch entries:", entriesErr);
+    return { distributed: false, error: "No entries found" };
+  }
+
+  const totalContestants = entries.length;
+  // Winners = all if ≤5, otherwise top 5
+  const winnerCount = Math.min(totalContestants, 5);
+  const winners = entries.slice(0, winnerCount);
+
+  // Calculate prize percentages for available positions
+  // If <5 contestants, redistribute unused percentages proportionally
+  let activePercentages = PRIZE_PERCENTAGES.slice(0, winnerCount);
+  const totalActivePercent = activePercentages.reduce((a, b) => a + b, 0);
+  // Normalize to 100%
+  const normalizedPercentages = activePercentages.map(p => (p / totalActivePercent) * 100);
+
+  const results = [];
+
+  for (let i = 0; i < winners.length; i++) {
+    const entry = winners[i];
+    const prizeAmount = Math.round((prizePool * normalizedPercentages[i]) / 100 * 100) / 100;
+    const rank = i + 1;
+
+    // Update contest_entry with prize and rank
+    const { error: updateErr } = await supabase
+      .from("contest_entries")
+      .update({ prize_won: prizeAmount, rank: rank })
+      .eq("id", entry.id);
+
+    if (updateErr) {
+      console.error(`Failed to update entry ${entry.id}:`, updateErr);
+      continue;
+    }
+
+    // Credit winner's wallet
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("id, nova_balance")
+      .eq("user_id", entry.user_id)
+      .single();
+
+    if (wallet) {
+      const newBalance = (wallet.nova_balance || 0) + prizeAmount;
+
+      await supabase
+        .from("wallets")
+        .update({ nova_balance: newBalance, updated_at: new Date().toISOString() })
+        .eq("id", wallet.id);
+
+      // Record in wallet_ledger
+      await supabase
+        .from("wallet_ledger")
+        .insert({
+          user_id: entry.user_id,
+          wallet_id: wallet.id,
+          entry_type: "contest_win",
+          currency: "nova",
+          amount: prizeAmount,
+          balance_before: wallet.nova_balance || 0,
+          balance_after: newBalance,
+          reference_type: "contest",
+          reference_id: contestId,
+          description: `Contest prize - Rank #${rank}`,
+        });
+
+      // Record transaction
+      await supabase
+        .from("transactions")
+        .insert({
+          user_id: entry.user_id,
+          type: "deposit",
+          currency: "nova",
+          amount: prizeAmount,
+          description: `Contest prize - Rank #${rank}`,
+        });
+    }
+
+    results.push({ user_id: entry.user_id, rank, prize: prizeAmount });
+  }
+
+  // Update remaining entries with rank but no prize
+  for (let i = winnerCount; i < entries.length; i++) {
+    await supabase
+      .from("contest_entries")
+      .update({ rank: i + 1, prize_won: 0 })
+      .eq("id", entries[i].id);
+  }
+
+  return { distributed: true, winners: results };
 }
 
 Deno.serve(async (req) => {
@@ -154,6 +291,7 @@ Deno.serve(async (req) => {
     // ─────────────────────────────────────────────────────────────────────
     // Statuses: active (join open) → stage1 → final → completed
     let newStatus: string | null = null;
+    let prizeDistribution: any = null;
 
     if (hour >= 22) {
       // After 10 PM → completed (results display)
@@ -183,6 +321,14 @@ Deno.serve(async (req) => {
         .update({ status: newStatus })
         .eq("id", contestId);
       if (updateErr) throw updateErr;
+
+      // ─────────────────────────────────────────────────────────────────
+      // 3. Distribute prizes when transitioning to "completed"
+      // ─────────────────────────────────────────────────────────────────
+      if (newStatus === "completed") {
+        prizeDistribution = await distributePrizes(supabase, contestId);
+        console.log("Prize distribution result:", JSON.stringify(prizeDistribution));
+      }
     }
 
     return new Response(
@@ -192,6 +338,7 @@ Deno.serve(async (req) => {
         previousStatus: currentStatus,
         newStatus: newStatus || currentStatus,
         ksaTime: now.toISOString(),
+        prizeDistribution,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
