@@ -160,7 +160,8 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   };
 
   const handleProfileComplete = () => {
-    // Signup successful
+    // Close the sheet first, then complete auth
+    handleClose();
     handleAuthComplete();
   };
 

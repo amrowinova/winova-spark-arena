@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -248,52 +249,63 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
     }
 
     setIsLoading(true);
-    
+
     try {
-      // Generate username from name (clean, no random suffix)
       const baseUsername = fullName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
       const username = baseUsername || 'user' + Date.now().toString(36);
-      
-      // Get country/city/district names
+
       const countryData = locationData.find(c => c.code === country);
       const cityData = availableCities.find(c => c.code === city);
       const districtData = availableDistricts.find(d => d.code === area);
-      
+
       const countryName = countryData?.name || country || 'Saudi Arabia';
       const cityName = cityData?.name || city || '';
       const districtName = districtData?.name || area || '';
-      
-      // Sign up the user with password - include location + referral in metadata
-      const { data: signUpData, error: signUpError } = await signUp(email, password, {
-        name: fullName,
-        username,
-        country: countryName,
-        city: cityName,
-        district: districtName,
-        referral_code: referralCode || null,
-      });
 
-      if (signUpError) {
-        setError(isRTL ? 'حدث خطأ أثناء إنشاء الحساب' : 'An error occurred while creating account');
-        setIsLoading(false);
-        return;
+      let targetUserId: string | undefined;
+
+      if (user) {
+        // ── OTP flow: user already authenticated ──
+        // Update password + metadata without creating a new user
+        const { error: updateError } = await supabase.auth.updateUser({
+          password,
+          data: { name: fullName, username, country: countryName, city: cityName, district: districtName },
+        });
+        if (updateError) {
+          setError(isRTL ? 'حدث خطأ أثناء تحديث الحساب' : 'Error updating account');
+          setIsLoading(false);
+          return;
+        }
+        // Update the profile row
+        await supabase
+          .from('profiles')
+          .update({ name: fullName, username, country: countryName, city: cityName, district: districtName })
+          .eq('user_id', user.id);
+
+        targetUserId = user.id;
+      } else {
+        // ── Direct signup flow ──
+        const { data: signUpData, error: signUpError } = await signUp(email, password, {
+          name: fullName, username, country: countryName, city: cityName,
+          district: districtName, referral_code: referralCode || null,
+        });
+        if (signUpError) {
+          setError(isRTL ? 'حدث خطأ أثناء إنشاء الحساب' : 'An error occurred while creating account');
+          setIsLoading(false);
+          return;
+        }
+        targetUserId = signUpData?.user?.id;
       }
 
-      // If signup succeeded, we need to call assign_upline_auto to ensure proper team linking
-      // The trigger should do this, but we call it explicitly to get the leader info for display
-      const newUserId = signUpData?.user?.id;
-      
-      if (newUserId) {
-        // Call assign_upline_auto to get leader info (also ensures team link is created)
+      if (targetUserId) {
         const { data: assignResult } = await supabase.rpc('assign_upline_auto', {
-          p_new_user_id: newUserId,
+          p_new_user_id: targetUserId,
           p_country: countryName,
           p_city: cityName,
           p_district: districtName,
-          p_referral_code: referralCode || null
+          p_referral_code: referralCode || null,
         });
 
-        // If we got a leader back (either from referral or auto-assignment), show the dialog
         if (assignResult && (assignResult as any).success) {
           const leaderInfo = assignResult as any;
           setAssignedLeader({
@@ -301,12 +313,21 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
             username: leaderInfo.upline_username || 'leader',
             rank: leaderInfo.upline_rank || 'subscriber',
             avatar_url: leaderInfo.upline_avatar_url,
-            reason: leaderInfo.reason || 'fallback_any_user'
+            reason: leaderInfo.reason || 'fallback_any_user',
           });
           setShowLeaderDialog(true);
           setIsLoading(false);
-          return; // Don't call onComplete yet - wait for dialog
+          return;
         }
+
+        // No upline found → user is first in their area
+        const locationLabel = districtName || cityName || countryName;
+        toast({
+          title: isRTL ? '🌟 أنت الأول!' : '🌟 You\'re first!',
+          description: isRTL
+            ? `أنت أول شخص يسجّل في ${locationLabel}! ستكون الرائد في منطقتك.`
+            : `You're the first person to join from ${locationLabel}! You'll be the pioneer in your area.`,
+        });
       }
 
       onComplete();
@@ -314,7 +335,7 @@ export function ProfileCompletionScreen({ email, onBack, onComplete }: ProfileCo
       console.error('Signup error:', err);
       setError(isRTL ? 'حدث خطأ غير متوقع' : 'An unexpected error occurred');
     }
-    
+
     setIsLoading(false);
   };
   
