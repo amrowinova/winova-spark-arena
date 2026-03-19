@@ -65,7 +65,7 @@ export function useProfileEnsure(): EnsureResult {
 
       // If no profile, create one (fallback for trigger failure)
       if (!existingProfile) {
-        console.log('Profile not found, creating fallback profile for user:', user.id);
+
         
         const userName = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
         const username = user.user_metadata?.username || `user_${user.id.substring(0, 8)}`;
@@ -90,7 +90,7 @@ export function useProfileEnsure(): EnsureResult {
           // Might fail if another process already created it - that's fine
           console.warn('Failed to create fallback profile:', profileInsertError);
         } else {
-          console.log('✓ Fallback profile created successfully');
+
         }
       }
 
@@ -107,7 +107,7 @@ export function useProfileEnsure(): EnsureResult {
 
       // If no wallet, create one (fallback for trigger failure)
       if (!existingWallet) {
-        console.log('Wallet not found, creating fallback wallet for user:', user.id);
+
         
         const { error: walletInsertError } = await supabase
           .from('wallets')
@@ -121,7 +121,7 @@ export function useProfileEnsure(): EnsureResult {
         if (walletInsertError) {
           console.warn('Failed to create fallback wallet:', walletInsertError);
         } else {
-          console.log('✓ Fallback wallet created successfully');
+
         }
       }
 

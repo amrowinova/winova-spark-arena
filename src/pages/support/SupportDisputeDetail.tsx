@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 type ConfirmAction = 'release' | 'refund' | 'fraud' | null;
 
@@ -118,8 +119,9 @@ export default function SupportDisputeDetail() {
     const result = await claimCase();
     if (!result.success) {
       console.error('Claim case failed:', result.error);
-      // Show the exact error from the RPC
-      alert(result.error || 'Failed to claim case');
+      toast.error(result.error || 'Failed to claim case');
+    } else {
+      toast.success('Case claimed successfully');
     }
     setIsClaiming(false);
   };

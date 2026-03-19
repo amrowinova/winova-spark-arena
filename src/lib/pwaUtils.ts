@@ -7,7 +7,7 @@
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) {
-    console.log('[PWA] Service Workers not supported');
+
     return null;
   }
 
@@ -16,7 +16,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
       scope: '/'
     });
 
-    console.log('[PWA] Service Worker registered:', registration.scope);
+
 
     // Handle updates
     registration.addEventListener('updatefound', () => {
@@ -24,7 +24,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
       if (newWorker) {
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('[PWA] New version available');
+
             // Could dispatch event for UI notification
             window.dispatchEvent(new CustomEvent('pwa-update-available'));
           }
@@ -92,12 +92,12 @@ export function setupConnectivityListeners(
   onOffline?: () => void
 ): () => void {
   const handleOnline = () => {
-    console.log('[PWA] Back online');
+
     onOnline?.();
   };
 
   const handleOffline = () => {
-    console.log('[PWA] Gone offline');
+
     onOffline?.();
   };
 

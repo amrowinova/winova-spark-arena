@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   P2PReputationCard, 
@@ -233,16 +234,27 @@ function ProfileContent() {
           // Calculate average execution time (simplified)
           const avgTime = completedOrders.length > 0 ? '8 min' : '-';
 
+          // overallRating: 0-5 star equivalent based on completion rate
+          // 5.0 = 100% completion, scaled down by dispute rate
+          const completionRate = p2pOrders.length > 0
+            ? completedOrders.length / p2pOrders.length
+            : 0;
+          const disputePenalty = p2pOrders.length > 0
+            ? (disputedOrders.length / p2pOrders.length) * 0.5
+            : 0;
+          const starRating = completedOrders.length > 0
+            ? Math.min(5, Math.max(0, +(completionRate * 5 - disputePenalty * 5).toFixed(1)))
+            : 0;
+
           setP2pReputation({
-            overallRating: completedOrders.length > 0 ? 
-              Math.round((completedOrders.length / p2pOrders.length) * 100) : 0,
+            overallRating: starRating,
             totalTransactions: p2pOrders.length,
             completedOrders: completedOrders.length,
             avgExecutionTime: avgTime,
             disputeCount: disputedOrders.length,
             positiveCount: completedOrders.length,
             negativeCount: disputedOrders.length,
-            recentComments: [], // Would need a ratings table
+            recentComments: [],
           });
         }
 
@@ -277,15 +289,45 @@ function ProfileContent() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <AppLayout showHeader={false}>
+        <div className="min-h-screen bg-background">
+          <header className="sticky top-0 z-40 bg-background safe-top">
+            <div className="flex items-center justify-between px-4 py-3">
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}>
+                <ArrowLeft className={`h-5 w-5 ${isRTL ? 'rotate-180' : ''}`} />
+              </Button>
+            </div>
+          </header>
+          <div className="px-4 py-6 space-y-6">
+            <div className="flex flex-col items-center gap-3">
+              <Skeleton className="w-24 h-24 rounded-full" />
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 rounded-xl" />
+              ))}
+            </div>
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-48 rounded-xl" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout showHeader={false}>
       <div className="min-h-screen bg-background">
         {/* Unified Header - Back + Share only (no menu button) */}
         <header className="sticky top-0 z-40 bg-background safe-top">
           <div className="flex items-center justify-between px-4 py-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-9 w-9"
               onClick={() => navigate(-1)}
             >

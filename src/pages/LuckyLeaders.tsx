@@ -8,6 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { getCountryFlag } from '@/lib/countryFlags';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface LuckyLeaderEntry {
   id: string;
@@ -95,6 +96,7 @@ export default function LuckyLeadersPage() {
       } catch (err) {
         console.error('Error fetching lucky leaders:', err);
         setLeaders([]);
+        toast.error(isRTL ? 'فشل تحميل المحظوظين' : 'Failed to load Lucky Leaders');
       } finally {
         setIsLoading(false);
       }

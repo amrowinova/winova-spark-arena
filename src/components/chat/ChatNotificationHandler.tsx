@@ -14,7 +14,7 @@ export function ChatNotificationHandler() {
     enabled: !!user,
     onNewMessage: (message, senderName) => {
       // Additional handling if needed (analytics, etc.)
-      console.log(`New message from ${senderName}:`, message.content.substring(0, 50));
+
     },
   });
 

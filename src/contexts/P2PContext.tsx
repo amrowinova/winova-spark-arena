@@ -288,9 +288,35 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   const [activeChat, setActiveChatState] = useState<P2PChat | null>(null);
   const [activeOrder, setActiveOrderState] = useState<P2POrder | null>(null);
   const [ratedOrders, setRatedOrders] = useState<Set<string>>(new Set());
-  
+  const [paymentMethodsCache, setPaymentMethodsCache] = useState<Record<string, P2PPaymentDetails>>({});
+
   // Mock mode is disabled - we're using real database
   const MOCK_MODE = false;
+
+  // Fetch payment methods for orders that have payment_method_id
+  useEffect(() => {
+    if (!db.orders.length) return;
+    const ids = [...new Set(db.orders.map(o => o.payment_method_id).filter(Boolean) as string[])];
+    if (!ids.length) return;
+
+    supabase
+      .from('payment_methods')
+      .select('id, provider_name, account_number, iban, phone_number, full_name')
+      .in('id', ids)
+      .then(({ data }) => {
+        if (!data) return;
+        const cache: Record<string, P2PPaymentDetails> = {};
+        for (const pm of data) {
+          cache[pm.id] = {
+            bankName: pm.provider_name,
+            accountNumber: pm.account_number || pm.iban || pm.phone_number || '—',
+            accountHolder: pm.full_name,
+            isLocked: false,
+          };
+        }
+        setPaymentMethodsCache(cache);
+      });
+  }, [db.orders]);
 
   // Build chats from orders
   useEffect(() => {
@@ -305,17 +331,19 @@ export function P2PProvider({ children }: { children: ReactNode }) {
       const { buyer: dbBuyer, seller: dbSeller } = db.getParticipants(dbOrder);
       const buyer = toUIParticipant(dbBuyer);
       const seller = toUIParticipant(dbSeller);
-      
+
       const chatId = generateChatId(buyer.id, seller.id);
-      
-      // Get payment details (placeholder for now)
-      const paymentDetails: P2PPaymentDetails = {
-        bankName: 'Bank Transfer',
-        accountNumber: '****',
-        accountHolder: seller.name,
-        isLocked: true,
-      };
-      
+
+      // Use fetched payment method from DB, fall back to seller name only
+      const paymentDetails: P2PPaymentDetails = dbOrder.payment_method_id && paymentMethodsCache[dbOrder.payment_method_id]
+        ? paymentMethodsCache[dbOrder.payment_method_id]
+        : {
+            bankName: '—',
+            accountNumber: '—',
+            accountHolder: seller.name,
+            isLocked: true,
+          };
+
       const uiOrder = toUIOrder(dbOrder, buyer, seller, paymentDetails);
       
       // Get messages for this order
@@ -346,7 +374,7 @@ export function P2PProvider({ children }: { children: ReactNode }) {
     }
 
     setChats(Array.from(chatMap.values()));
-  }, [user, db.orders, db.messages, db.getParticipants]);
+  }, [user, db.orders, db.messages, db.getParticipants, paymentMethodsCache]);
 
   // Sync active chat/order when chats update
   useEffect(() => {

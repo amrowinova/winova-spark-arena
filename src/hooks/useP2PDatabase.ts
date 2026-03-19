@@ -362,6 +362,13 @@ export function useP2PDatabase() {
   }) => {
     if (!user) return null;
 
+    // Pre-check: block frozen wallets before hitting RPC
+    const frozen = await checkWalletFrozen();
+    if (frozen) {
+      console.warn('createOrder blocked: wallet is frozen');
+      return null;
+    }
+
     try {
       let result;
       
@@ -718,7 +725,10 @@ export function useP2PDatabase() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) console.error('[P2P] orders subscription error:', err);
+        if (status === 'CHANNEL_ERROR') fetchOrders();
+      });
 
     // Subscribe to messages changes
     messagesChannel = supabase
@@ -742,7 +752,9 @@ export function useP2PDatabase() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) console.error('[P2P] messages subscription error:', err);
+      });
 
     return () => {
       ordersChannel?.unsubscribe();

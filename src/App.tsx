@@ -18,6 +18,7 @@ import { ChatNotificationHandler } from "@/components/chat/ChatNotificationHandl
 import { AuthGuard, SupportGuard, AdminGuard } from "@/components/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { AppErrorBoundary } from "@/components/common/AppErrorBoundary";
 import "@/lib/i18n/index";
 
 // Pages
@@ -69,6 +70,7 @@ supabase.auth.onAuthStateChange((event) => {
 });
 
 const App = () => (
+  <AppErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <AuthProvider>
@@ -144,6 +146,7 @@ const App = () => (
       </AuthProvider>
     </LanguageProvider>
   </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;

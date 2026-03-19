@@ -49,8 +49,9 @@ export function Header({ title }: HeaderProps) {
         >
           <div className="flex items-center gap-2">
             {/* User Avatar - Clickable to Profile */}
-            <button 
+            <button
               onClick={handleAvatarClick}
+              aria-label={language === 'ar' ? 'الملف الشخصي' : 'Go to profile'}
               className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-primary/20 hover:ring-primary/40 transition-all"
             >
               <Avatar className="h-full w-full">
@@ -88,11 +89,12 @@ export function Header({ title }: HeaderProps) {
         </motion.div>
 
         <div className="flex items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-9 w-9 rounded-full relative"
             onClick={handleNotificationsClick}
+            aria-label={language === 'ar' ? 'الإشعارات' : 'Notifications'}
           >
             <Bell className="h-4 w-4" />
             {totalUnread > 0 && (
@@ -107,6 +109,7 @@ export function Header({ title }: HeaderProps) {
             size="icon"
             onClick={() => setDrawerOpen(true)}
             className="h-9 w-9 rounded-full"
+            aria-label={language === 'ar' ? 'القائمة' : 'Open menu'}
           >
             <Menu className="h-4 w-4" />
           </Button>

@@ -112,16 +112,18 @@ export default function ContestsPage() {
   const isResults = currentPhase === 'results';
   const entryFee = 10;
 
-  // Update timing every second
+  // Update timing every second — stop when results are live (no countdown needed)
   useEffect(() => {
+    if (isResults) return;
     const interval = setInterval(() => {
       const newTiming = getContestTiming();
       setTiming(newTiming);
       setTimeRemaining(formatTimeRemaining(newTiming.timeRemaining));
+      // Clear once we enter results phase so interval stops naturally
+      if (newTiming.phase === 'results') clearInterval(interval);
     }, 1000);
-    
     return () => clearInterval(interval);
-  }, []);
+  }, [isResults]);
 
   // Safety: if join dialog is open and join window closes (19:00 KSA), close it immediately.
   useEffect(() => {

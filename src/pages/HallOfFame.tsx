@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getCountryFlag } from '@/lib/countryFlags';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface HallOfFameEntry {
   id: string;
@@ -112,6 +113,7 @@ export default function HallOfFame() {
       } catch (err) {
         console.error('Error fetching hall of fame:', err);
         setWinners([]);
+        toast.error(isRTL ? 'فشل تحميل قاعة المشاهير' : 'Failed to load Hall of Fame');
       } finally {
         setIsLoading(false);
       }

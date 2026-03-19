@@ -163,7 +163,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen }: A
   };
 
   const handleResendOTP = () => {
-    console.log('Resending OTP to:', email);
+
   };
 
   return (

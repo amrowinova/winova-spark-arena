@@ -174,7 +174,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
           filter: 'status=eq.open',
         },
         (payload) => {
-          console.log('Marketplace order change:', payload);
+
           // Refetch on any change to open orders
           fetchOpenOrders();
         }
@@ -203,7 +203,7 @@ export function useP2PMarketplace(selectedCountry?: string) {
           
           // If status changed to/from open, refetch
           if (newStatus === 'open' || oldStatus === 'open') {
-            console.log('Order status changed to/from open, refetching marketplace');
+
             fetchOpenOrders();
           }
         }

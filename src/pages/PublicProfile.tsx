@@ -53,6 +53,7 @@ interface RealProfileData {
   engagement_status: 'both' | 'contest' | 'vote' | 'none';
   activity_percentage: number;
   spotlight_points: number;
+  referred_by: string | null;
 }
 
 // Stats from contest_entries
@@ -91,6 +92,7 @@ export default function PublicProfile() {
   const [showRatingsSheet, setShowRatingsSheet] = useState(false);
   const [showFollowersSheet, setShowFollowersSheet] = useState(false);
   const [followersSheetTab, setFollowersSheetTab] = useState<'followers' | 'following'>('followers');
+  const [teamLevel, setTeamLevel] = useState<number | null>(null);
 
   // Check if viewing own profile
   const isOwnProfile = currentUser?.id === userId;
@@ -131,6 +133,20 @@ export default function PublicProfile() {
 
         setProfile(profileData);
 
+        // Check if viewed user is in current user's team hierarchy
+        if (currentUser?.id && currentUser.id !== userId) {
+          if (profileData.referred_by === currentUser.id) {
+            setTeamLevel(1);
+          } else {
+            const { data: hierarchy } = await supabase.rpc('get_team_hierarchy', {
+              p_leader_id: currentUser.id,
+              p_max_depth: 5,
+            });
+            const found = (hierarchy || []).find((m: any) => m.member_id === userId);
+            if (found) setTeamLevel(found.level);
+          }
+        }
+
         // Fetch contest entries for this user (stats)
         const { data: entries } = await supabase
           .from('contest_entries')
@@ -146,10 +162,17 @@ export default function PublicProfile() {
           .select('id', { count: 'exact', head: true })
           .eq('contestant_id', userId);
 
+        // Fetch lucky wins from wallet ledger (contest_win entries)
+        const { count: luckyWinsCount } = await supabase
+          .from('wallet_ledger')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('entry_type', 'contest_win');
+
         setStats({
           contestsJoined,
           contestsWon,
-          luckyWins: 0, // Lucky wins feature not yet implemented
+          luckyWins: luckyWinsCount || 0,
           paidVotesReceived: votesReceived || 0,
         });
 
@@ -396,6 +419,19 @@ export default function PublicProfile() {
               @{profile.username}
             </span>
 
+            {/* Team Membership Badge */}
+            {teamLevel !== null && !isOwnProfile && (
+              <Badge
+                variant="outline"
+                className="mt-2 gap-1.5 bg-primary/10 text-primary border-primary/30 text-xs"
+              >
+                <Users className="h-3 w-3" />
+                {teamLevel === 1
+                  ? (language === 'ar' ? 'عضو مباشر في فريقي' : 'Direct Team Member')
+                  : (language === 'ar' ? `مستوى ${teamLevel} في فريقي` : `Level ${teamLevel} in Your Team`)}
+              </Badge>
+            )}
+
             {/* Followers / Following Stats - Clickable */}
             <div className="mt-3 flex items-center gap-4">
               <button
@@ -513,8 +549,8 @@ export default function PublicProfile() {
               }
             </h2>
             <div className="grid grid-cols-2 gap-3">
-              {statsCards.map((stat, index) => (
-                <Card key={index} className="border-border/50">
+              {statsCards.map((stat) => (
+                <Card key={stat.labelKey} className="border-border/50">
                   <CardContent className="p-4">
                     <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center mb-3", stat.bgColor)}>
                       <stat.icon className={cn("h-5 w-5", stat.color)} />

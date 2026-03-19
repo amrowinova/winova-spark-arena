@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
+import { toast } from 'sonner';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { ContestDetailsDialog, type ContestHistoryItem } from '@/components/contest';
 import { getCountryFlag } from '@/lib/countryFlags';
@@ -120,6 +121,7 @@ export default function Winners() {
         setContestHistory(contestRecords);
       } catch (err) {
         console.error('Error fetching contest history:', err);
+        toast.error(language === 'ar' ? 'فشل تحميل سجل المسابقات' : 'Failed to load contest history');
       } finally {
         setIsLoading(false);
       }
