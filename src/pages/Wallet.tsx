@@ -21,15 +21,7 @@ import { EarningsSummarySheet } from '@/components/wallet/EarningsSummarySheet';
 import { getNextReleaseDate } from '@/components/wallet/LockedEarningsCard';
 import { PaymentQRDialog } from '@/components/wallet/PaymentQRDialog';
 import { useBanner } from '@/contexts/BannerContext';
-
-// Rank commission rates
-const RANK_COMMISSION_RATES = {
-  subscriber: 0,
-  marketer: 0,
-  leader: 0.82,
-  manager: 0.15,
-  president: 0.03,
-} as const;
+import { RANK_COMMISSION_RATES } from '@/contexts/TransactionContext';
 
 // Format number
 const formatBalance = (value: number): string => {

@@ -7,7 +7,7 @@
  * This runs automatically on app load for authenticated users.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -30,6 +30,8 @@ export function useProfileEnsure(): EnsureResult {
   const [isEnsured, setIsEnsured] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  // Track which user ID has already been ensured to avoid re-running on token refresh
+  const ensuredUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (authLoading) {
@@ -39,6 +41,11 @@ export function useProfileEnsure(): EnsureResult {
     if (!user) {
       setIsLoading(false);
       setIsEnsured(true); // No user = nothing to ensure
+      return;
+    }
+
+    // Skip if already ensured for this user ID (prevents re-run on hourly token refresh)
+    if (ensuredUserIdRef.current === user.id) {
       return;
     }
 
@@ -71,9 +78,11 @@ export function useProfileEnsure(): EnsureResult {
         const username = user.user_metadata?.username || `user_${user.id.substring(0, 8)}`;
         const userCountry = user.user_metadata?.country || 'Saudi Arabia';
         
-        // Generate referral code in format WINOVA-{USERNAME}-{COUNTRY_CODE}
+        // Generate referral code: WINOVA-{USERNAME}-{COUNTRY_CODE}-{RANDOM4}
+        // Random suffix ensures uniqueness even if two users share the same username
         const countryCode = getCountryCode(userCountry);
-        const referralCode = `WINOVA-${username.toUpperCase()}-${countryCode}`;
+        const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const referralCode = `WINOVA-${username.toUpperCase()}-${countryCode}-${randomSuffix}`;
 
         const { error: profileInsertError } = await supabase
           .from('profiles')
@@ -143,6 +152,7 @@ export function useProfileEnsure(): EnsureResult {
         // This would need to be handled by the trigger or admin
       }
 
+      ensuredUserIdRef.current = user.id;
       setIsEnsured(true);
     } catch (err) {
       console.error('Error ensuring user records:', err);

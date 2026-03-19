@@ -129,9 +129,9 @@ export function getContestTiming(): ContestTimingInfo {
   let currentStage: 'closed' | 'stage1' | 'final' = 'closed';
 
   if (currentMinutes < REGISTRATION_START) {
-    // State A — Before 10:00 AM KSA (pre-registration allowed)
+    // State A — Before 10:00 AM KSA. Contest DB record doesn't exist yet so joining is not possible.
     currentPhase = 'pre_open';
-    canJoin = true; // pre-registration is allowed
+    canJoin = false;
     timeRemaining = joinOpenAt.getTime() - nowMs;
     nextPhaseLabel = 'opens';
     nextPhaseTime = joinOpenAt;

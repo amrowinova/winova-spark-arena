@@ -79,15 +79,18 @@ const queryClient = new QueryClient({
   },
 });
 
-// Clear React Query cache on auth state changes
-supabase.auth.onAuthStateChange((event) => {
-  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-    // Clear all cached queries to force fresh data fetch
-    queryClient.clear();
-  }
-});
+const App = () => {
+  // Clear React Query cache on auth state changes; clean up listener on unmount
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        queryClient.clear();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
-const App = () => (
+  return (
   <AppErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
@@ -172,6 +175,7 @@ const App = () => (
     </LanguageProvider>
   </QueryClientProvider>
   </AppErrorBoundary>
-);
+  );
+};
 
 export default App;

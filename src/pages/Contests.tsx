@@ -243,6 +243,32 @@ export default function ContestsPage() {
               setUserVotes(0);
               setFreeVoteUsed(false);
             }
+
+            // Restore votes-cast counts from DB so they survive page refresh
+            const { data: voteRows } = await supabase
+              .from('votes')
+              .select('aura_spent, created_at')
+              .eq('voter_id', authUser.id)
+              .eq('contest_id', contestData.id);
+
+            if (voteRows && voteRows.length > 0) {
+              const { stage1Start, stage1End, finalStart } = getContestTiming();
+              const s1StartMs = stage1Start.getTime();
+              const s1EndMs = stage1End.getTime();
+              const finalStartMs = finalStart.getTime();
+              let s1 = 0;
+              let fin = 0;
+              for (const v of voteRows) {
+                const ms = new Date(v.created_at).getTime();
+                if (ms >= s1StartMs && ms < s1EndMs) s1 += v.aura_spent || 0;
+                else if (ms >= finalStartMs) fin += v.aura_spent || 0;
+              }
+              setUsedVotesStage1(s1);
+              setUsedVotesFinal(fin);
+            } else {
+              setUsedVotesStage1(0);
+              setUsedVotesFinal(0);
+            }
           } else {
             setHasJoined(false);
             setUserRank(0);
