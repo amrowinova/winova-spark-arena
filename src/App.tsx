@@ -54,6 +54,12 @@ import AdminWallets from "./pages/admin/AdminWallets";
 import AdminRoles from "./pages/admin/AdminRoles";
 import AdminProposals from "./pages/admin/AdminProposals";
 import AdminP2P from "./pages/admin/AdminP2P";
+import AdminPricing from "./pages/admin/AdminPricing";
+import AdminChangeRequests from "./pages/admin/AdminChangeRequests";
+import AdminContests from "./pages/admin/AdminContests";
+import AdminCycles from "./pages/admin/AdminCycles";
+import AdminBroadcast from "./pages/admin/AdminBroadcast";
+import AdminCommissions from "./pages/admin/AdminCommissions";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
@@ -130,6 +136,12 @@ const App = () => (
                             <Route path="/admin/roles" element={<AdminGuard><AdminRoles /></AdminGuard>} />
                             <Route path="/admin/proposals" element={<AdminGuard><AdminProposals /></AdminGuard>} />
                             <Route path="/admin/p2p" element={<AdminGuard><AdminP2P /></AdminGuard>} />
+                            <Route path="/admin/pricing" element={<AdminGuard><AdminPricing /></AdminGuard>} />
+                            <Route path="/admin/change-requests" element={<AdminGuard><AdminChangeRequests /></AdminGuard>} />
+                            <Route path="/admin/contests" element={<AdminGuard><AdminContests /></AdminGuard>} />
+                            <Route path="/admin/cycles" element={<AdminGuard><AdminCycles /></AdminGuard>} />
+                            <Route path="/admin/broadcast" element={<AdminGuard><AdminBroadcast /></AdminGuard>} />
+                            <Route path="/admin/commissions" element={<AdminGuard><AdminCommissions /></AdminGuard>} />
                             
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />

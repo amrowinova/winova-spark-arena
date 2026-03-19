@@ -5,10 +5,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Users, 
-  Wallet, 
-  ArrowLeftRight, 
+import {
+  Users,
+  Wallet,
+  ArrowLeftRight,
   AlertTriangle,
   TrendingUp,
   Trophy,
@@ -19,7 +19,13 @@ import {
   Crown,
   UserPlus,
   Cpu,
-  FlaskConical
+  FlaskConical,
+  DollarSign,
+  Megaphone,
+  Calendar,
+  Percent,
+  History,
+  Zap,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -238,46 +244,78 @@ export default function AdminDashboard() {
             <BarChart3 className="w-4 h-4" />
             {isRTL ? 'الإجراءات السريعة' : 'Quick Actions'}
           </h3>
-          <div className="grid grid-cols-2 gap-2">
-            <Button 
-              variant="outline" 
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/wallets')}
+            >
+              <Wallet className="w-5 h-5 text-amber-500" />
+              <span className="text-xs">{isRTL ? 'المحافظ' : 'Wallets'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/pricing')}
+            >
+              <DollarSign className="w-5 h-5 text-green-500" />
+              <span className="text-xs">{isRTL ? 'الأسعار' : 'Pricing'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/broadcast')}
+            >
+              <Megaphone className="w-5 h-5 text-blue-500" />
+              <span className="text-xs">{isRTL ? 'النشرات' : 'Broadcast'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/contests')}
+            >
+              <Trophy className="w-5 h-5 text-yellow-500" />
+              <span className="text-xs">{isRTL ? 'المسابقات' : 'Contests'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/cycles')}
+            >
+              <Zap className="w-5 h-5 text-purple-500" />
+              <span className="text-xs">{isRTL ? 'الدورات' : 'Cycles'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/commissions')}
+            >
+              <Percent className="w-5 h-5 text-pink-500" />
+              <span className="text-xs">{isRTL ? 'العمولات' : 'Commissions'}</span>
+            </Button>
+            <Button
+              variant="outline"
               className="h-auto py-3 flex-col gap-1"
               onClick={() => navigate('/admin/roles')}
             >
               <Crown className="w-5 h-5 text-destructive" />
-              <span className="text-xs">{isRTL ? 'إدارة الأدوار' : 'Role Management'}</span>
+              <span className="text-xs">{isRTL ? 'الأدوار' : 'Roles'}</span>
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-auto py-3 flex-col gap-1"
-              onClick={() => navigate('/support/users')}
+              onClick={() => navigate('/admin/change-requests')}
             >
-              <Users className="w-5 h-5" />
-              <span className="text-xs">{isRTL ? 'المستخدمين' : 'Users'}</span>
+              <History className="w-5 h-5 text-orange-500" />
+              <span className="text-xs">{isRTL ? 'السجل' : 'Change Log'}</span>
             </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto py-3 flex-col gap-1"
-              onClick={() => navigate('/support/disputes')}
-            >
-              <Shield className="w-5 h-5" />
-              <span className="text-xs">{isRTL ? 'النزاعات والدعم' : 'Disputes & Support'}</span>
-            </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-auto py-3 flex-col gap-1"
               onClick={() => navigate('/admin/p2p')}
             >
               <ArrowLeftRight className="w-5 h-5" />
               <span className="text-xs">{isRTL ? 'برج P2P' : 'P2P Tower'}</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto py-3 flex-col gap-1"
-              onClick={() => navigate('/admin/wallets')}
-            >
-              <Wallet className="w-5 h-5" />
-              <span className="text-xs">{isRTL ? 'المحافظ' : 'Wallets'}</span>
             </Button>
           </div>
         </Card>
