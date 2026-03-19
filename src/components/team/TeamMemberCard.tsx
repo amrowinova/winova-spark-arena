@@ -49,7 +49,7 @@ export function TeamMemberCard({
   onRemind
 }: TeamMemberCardProps) {
   const { language } = useLanguage();
-  const memberActivity = Math.round((member.activeWeeks / member.totalWeeks) * 100);
+  const memberActivity = member.totalWeeks > 0 ? Math.round((member.activeWeeks / member.totalWeeks) * 100) : 0;
   
   // Calculate active members under this member
   const activeUnder = Math.round(member.teamSize * (memberActivity / 100));

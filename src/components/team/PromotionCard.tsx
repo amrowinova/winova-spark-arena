@@ -78,8 +78,9 @@ export function PromotionCard() {
     loading 
   } = useTeamStats();
   
-  // Use real rank from DB, fallback to context
-  const displayRank = (userRank as UserRank) || user.rank;
+  // Use real rank from DB, fallback to context, then to 'subscriber'
+  const rawRank = (userRank as UserRank) || user.rank;
+  const displayRank: UserRank = rawRank in promotionRequirements ? rawRank : 'subscriber';
   const currentPromotion = promotionRequirements[displayRank];
 
   if (loading) {
