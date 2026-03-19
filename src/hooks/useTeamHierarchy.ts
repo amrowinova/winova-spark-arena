@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -15,67 +16,70 @@ export interface TeamMemberData {
   parent_id: string;
 }
 
+const CACHE_KEY = (userId: string, depth: number) => ['team_hierarchy', userId, depth];
+// 5 minutes stale time — hierarchy doesn't change second-by-second
+const STALE_TIME = 5 * 60 * 1000;
+// Keep unused data for 10 minutes before garbage-collecting
+const GC_TIME = 10 * 60 * 1000;
+// Debounce realtime refetches: wait 3s after last event before hitting DB
+const REALTIME_DEBOUNCE_MS = 3000;
+
+async function fetchHierarchy(userId: string, maxDepth: number): Promise<TeamMemberData[]> {
+  const { data, error } = await supabase.rpc('get_team_hierarchy', {
+    p_leader_id: userId,
+    p_max_depth: maxDepth,
+  });
+
+  if (error) throw error;
+
+  return (data || []).map((m: any) => ({
+    member_id: m.member_id,
+    level: m.level,
+    name: m.name || 'Unknown',
+    username: m.username || 'unknown',
+    avatar_url: m.avatar_url,
+    rank: m.rank || 'subscriber',
+    weekly_active: m.weekly_active || false,
+    active_weeks: m.active_weeks || 0,
+    direct_count: Number(m.direct_count) || 0,
+    parent_id: m.parent_id,
+  }));
+}
+
 /**
  * Hook to fetch real team hierarchy from database.
- * Uses get_team_hierarchy RPC + realtime subscription on profiles table
- * to detect new members joining without requiring a manual refresh.
+ * Uses React Query for caching (5 min stale time) + debounced realtime subscription
+ * to avoid hammering the DB on every new signup during viral growth.
  */
 export function useTeamHierarchy(maxDepth: number = 5) {
   const { user } = useAuth();
-  const [members, setMembers] = useState<TeamMemberData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const membersRef = useRef<TeamMemberData[]>([]);
+
+  const queryKey = user?.id ? CACHE_KEY(user.id, maxDepth) : null;
+
+  const { data: members = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: queryKey ?? ['team_hierarchy_disabled'],
+    queryFn: () => fetchHierarchy(user!.id, maxDepth),
+    enabled: !!user?.id,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    retry: 2,
+  });
+
   membersRef.current = members;
+  const error = queryError ? 'Failed to load team' : null;
 
-  const fetchTeam = useCallback(async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
+  // Debounced invalidation — collapses bursts of realtime events into one refetch
+  const scheduleRefetch = useCallback(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      if (queryKey) queryClient.invalidateQueries({ queryKey });
+    }, REALTIME_DEBOUNCE_MS);
+  }, [queryClient, queryKey]);
 
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: rpcError } = await supabase.rpc('get_team_hierarchy', {
-        p_leader_id: user.id,
-        p_max_depth: maxDepth,
-      });
-
-      if (rpcError) {
-        console.error('Team hierarchy RPC error:', rpcError);
-        throw rpcError;
-      }
-
-      const mappedMembers: TeamMemberData[] = (data || []).map((m: any) => ({
-        member_id: m.member_id,
-        level: m.level,
-        name: m.name || 'Unknown',
-        username: m.username || 'unknown',
-        avatar_url: m.avatar_url,
-        rank: m.rank || 'subscriber',
-        weekly_active: m.weekly_active || false,
-        active_weeks: m.active_weeks || 0,
-        direct_count: Number(m.direct_count) || 0,
-        parent_id: m.parent_id,
-      }));
-
-      setMembers(mappedMembers);
-    } catch (err) {
-      console.error('Error fetching team hierarchy:', err);
-      setError('Failed to load team');
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id, maxDepth]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchTeam();
-  }, [fetchTeam]);
-
-  // Real-time: refresh when someone new is referred (referred_by changes)
+  // Realtime: refresh when someone new is referred or a member's profile changes
   useEffect(() => {
     if (!user?.id) return;
 
@@ -87,11 +91,10 @@ export function useTeamHierarchy(maxDepth: number = 5) {
           event: 'INSERT',
           schema: 'public',
           table: 'profiles',
+          // Only fire when new user is a direct referral of this user
+          filter: `referred_by=eq.${user.id}`,
         },
-        () => {
-          // New profile created — could be a new team member; re-fetch
-          fetchTeam();
-        }
+        scheduleRefetch
       )
       .on(
         'postgres_changes',
@@ -101,17 +104,17 @@ export function useTeamHierarchy(maxDepth: number = 5) {
           table: 'profiles',
           filter: `referred_by=eq.${user.id}`,
         },
-        () => {
-          // Direct member's profile updated (rank, activity) — re-fetch
-          fetchTeam();
-        }
+        scheduleRefetch
       )
       .subscribe((status, err) => {
         if (err) console.error('[TeamHierarchy] realtime error:', err);
       });
 
-    return () => { channel.unsubscribe(); };
-  }, [user?.id, fetchTeam]);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      channel.unsubscribe();
+    };
+  }, [user?.id, scheduleRefetch]);
 
   // Computed values
   const directMembers   = members.filter(m => m.level === 1);
@@ -143,6 +146,6 @@ export function useTeamHierarchy(maxDepth: number = 5) {
     isInMyTeam,
     loading,
     error,
-    refresh: fetchTeam,
+    refresh: refetch,
   };
 }

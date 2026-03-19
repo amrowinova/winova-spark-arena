@@ -39,6 +39,7 @@ import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import PayUser from "./pages/PayUser";
+import ReferralLanding from "./pages/ReferralLanding";
 
 // Support Pages
 import SupportDashboard from "./pages/support/SupportDashboard";
@@ -102,6 +103,7 @@ const App = () => (
                             <Route path="/help" element={<Help />} />
                             <Route path="/user/:userId" element={<PublicProfile />} />
                             <Route path="/pay/:username" element={<PayUser />} />
+                            <Route path="/ref/:code" element={<ReferralLanding />} />
 
                             {/* Policy pages - public, no login required */}
                             <Route path="/terms" element={<Terms />} />

@@ -201,7 +201,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [fetchUserData]);
 
-  // Subscribe to realtime wallet changes (for admin updates)
+  // Subscribe to realtime wallet changes — single authoritative subscription for balance sync.
+  // useWallet hook must NOT subscribe to wallets UPDATE to avoid duplicate channels.
   useEffect(() => {
     if (!authUser) return;
 
@@ -216,7 +217,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
           filter: `user_id=eq.${authUser.id}`,
         },
         (payload) => {
-          // Update wallet balances instantly from realtime payload
           const newWallet = payload.new as { nova_balance: number; locked_nova_balance: number; aura_balance: number };
           setUser((prev) => ({
             ...prev,
@@ -228,9 +228,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [authUser]);
 
   const updateUser = (updates: Partial<User>) => {

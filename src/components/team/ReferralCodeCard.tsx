@@ -18,13 +18,13 @@ export function ReferralCodeCard() {
 
   const handleCopy = async () => {
     if (!referralCode) return;
-    
+    const url = getReferralUrl();
     try {
-      await navigator.clipboard.writeText(referralCode);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       toast({
         title: language === 'ar' ? 'تم النسخ!' : 'Copied!',
-        description: language === 'ar' ? 'تم نسخ كود الإحالة' : 'Referral code copied to clipboard',
+        description: language === 'ar' ? 'تم نسخ رابط الإحالة' : 'Referral link copied to clipboard',
       });
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -36,10 +36,13 @@ export function ReferralCodeCard() {
     }
   };
 
+  const getReferralUrl = () =>
+    `${window.location.origin}/ref/${referralCode}`;
+
   const getShareText = () =>
     language === 'ar'
-      ? `انضم إلى WINOVA باستخدام كود الإحالة الخاص بي: ${referralCode}`
-      : `Join WINOVA using my referral code: ${referralCode}`;
+      ? `انضم إلى WINOVA من خلال رابط الإحالة الخاص بي 👇\n${getReferralUrl()}`
+      : `Join WINOVA using my personal referral link 👇\n${getReferralUrl()}`;
 
   const handleShareWhatsApp = () => {
     if (!referralCode) return;
@@ -73,7 +76,11 @@ export function ReferralCodeCard() {
     if (!referralCode) return;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'WINOVA Referral', text: getShareText() });
+        await navigator.share({
+          title: 'WINOVA',
+          text: getShareText(),
+          url: getReferralUrl(),
+        });
       } catch (err) {
         if ((err as Error).name !== 'AbortError') handleCopy();
       }

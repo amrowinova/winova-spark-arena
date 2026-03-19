@@ -86,29 +86,12 @@ export function useWallet() {
     fetchLedgerEntries();
   }, [user, fetchWallet, fetchTransactions, fetchLedgerEntries]);
 
-  // Subscribe to realtime wallet changes (for incoming transfers)
+  // Subscribe ONLY to ledger inserts for real-time transaction list updates.
+  // Wallet balance sync (UPDATE on wallets table) is owned by UserContext
+  // to prevent duplicate channels per user.
   useEffect(() => {
     if (!user) return;
 
-    const walletChannel = supabase
-      .channel(`wallet-realtime-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'wallets',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          // Update wallet state instantly from realtime payload
-          const newWallet = payload.new as Wallet;
-          setWallet(newWallet);
-        }
-      )
-      .subscribe();
-
-    // Also subscribe to ledger entries for real-time transaction updates
     const ledgerChannel = supabase
       .channel(`ledger-realtime-${user.id}`)
       .on(
@@ -120,20 +103,15 @@ export function useWallet() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          // Add new ledger entry to state
           const newEntry = payload.new as LedgerEntry;
           setLedgerEntries((prev) => [newEntry, ...prev]);
-          
-          // Also refetch wallet to ensure consistency
+          // Refetch wallet row to reflect updated balance in this hook's local state
           fetchWallet();
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(walletChannel);
-      supabase.removeChannel(ledgerChannel);
-    };
+    return () => { supabase.removeChannel(ledgerChannel); };
   }, [user, fetchWallet]);
 
   // Nova balance (available)
