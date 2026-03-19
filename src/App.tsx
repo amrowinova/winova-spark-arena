@@ -66,7 +66,18 @@ import AdminCommissions from "./pages/admin/AdminCommissions";
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
 
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,       // 30s before refetching in background
+      retry: 1,                // 1 retry on failure (not 3)
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 
 // Clear React Query cache on auth state changes
 supabase.auth.onAuthStateChange((event) => {

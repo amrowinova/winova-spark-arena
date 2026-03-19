@@ -105,14 +105,13 @@ export function useWallet() {
         (payload) => {
           const newEntry = payload.new as LedgerEntry;
           setLedgerEntries((prev) => [newEntry, ...prev]);
-          // Refetch wallet row to reflect updated balance in this hook's local state
-          fetchWallet();
+          // Balances are kept in sync by UserContext's authoritative wallet subscription — no refetch needed here
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(ledgerChannel); };
-  }, [user, fetchWallet]);
+  }, [user]);
 
   // Nova balance (available)
   const novaBalance = wallet?.nova_balance ? Number(wallet.nova_balance) : 0;

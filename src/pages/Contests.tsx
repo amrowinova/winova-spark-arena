@@ -94,7 +94,7 @@ export default function ContestsPage() {
   const [usedVotesStage1, setUsedVotesStage1] = useState(0);
   const [usedVotesFinal, setUsedVotesFinal] = useState(0);
   const [freeVoteUsed, setFreeVoteUsed] = useState(false);
-  const [freeVoteActive, setFreeVoteActive] = useState(true);
+  // freeVoteActive removed — freeVoteUsed is the authoritative guard (fetched from DB)
   
   // Dialog states
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
@@ -146,6 +146,11 @@ export default function ContestsPage() {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      if (contestError) {
+        showError(language === 'ar' ? 'فشل تحميل المسابقة' : 'Failed to load contest');
+        return;
+      }
 
       if (contestData) {
         setActiveContestId(contestData.id);
@@ -535,7 +540,7 @@ export default function ContestsPage() {
   };
 
   const handleUseFreeVote = async () => {
-    if (!selectedParticipant || freeVoteUsed || !freeVoteActive || isFinal) return;
+    if (!selectedParticipant || freeVoteUsed || isFinal) return;
     if (!timing.canVote) {
       showError(language === 'ar' ? 'التصويت مغلق حالياً' : 'Voting is currently closed');
       return;
@@ -1189,7 +1194,7 @@ export default function ContestsPage() {
           usedVotesStage1={usedVotesStage1}
           usedVotesFinal={usedVotesFinal}
           freeVoteUsed={freeVoteUsed}
-          freeVoteActive={freeVoteActive && isStage1}
+          freeVoteActive={isStage1}
           onVote={handleConfirmVote}
           onUseFreeVote={handleUseFreeVote}
         />

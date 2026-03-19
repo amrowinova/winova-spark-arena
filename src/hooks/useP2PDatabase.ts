@@ -495,8 +495,7 @@ export function useP2PDatabase() {
   const cancelOrder = useCallback(async (orderId: string, reason?: string): Promise<P2POpResult> => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    const order = ordersRef.current.find(o => o.id === orderId);
-    if (order?.status !== 'open' && cancellationsCount >= 3) {
+    if (cancellationsCount >= 3) {
       return { success: false, error: 'Cancellation limit exceeded (3/24h)' };
     }
 
@@ -702,7 +701,7 @@ export function useP2PDatabase() {
 
     // Subscribe to orders changes
     ordersChannel = supabase
-      .channel('p2p_orders_realtime')
+      .channel(`p2p_orders_realtime_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -732,7 +731,7 @@ export function useP2PDatabase() {
 
     // Subscribe to messages changes
     messagesChannel = supabase
-      .channel('p2p_messages_realtime')
+      .channel(`p2p_messages_realtime_${user.id}`)
       .on(
         'postgres_changes',
         {

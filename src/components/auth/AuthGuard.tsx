@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRequired } from '@/contexts/AuthRequiredContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
@@ -12,6 +13,7 @@ interface AuthGuardProps {
 export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
   const { user, isLoading, lastAuthEvent } = useAuth();
   const { showAuthRequired, isAuthTransitioning, authFlowOpen } = useAuthRequired();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const hasShownModalRef = useRef(false);
@@ -77,7 +79,7 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">جارٍ التحميل...</p>
+          <p className="text-sm text-muted-foreground">{language === 'ar' ? 'جارٍ التحميل...' : 'Loading...'}</p>
         </div>
       </div>
     );
@@ -99,7 +101,7 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">جارٍ التحقق...</p>
+          <p className="text-sm text-muted-foreground">{language === 'ar' ? 'جارٍ التحقق...' : 'Verifying...'}</p>
         </div>
       </div>
     );
