@@ -1,7 +1,11 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Users, Trophy, Flame, Shield, AlertTriangle, Rocket, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RankInfoSheet } from './RankInfoSheet';
+import { useUser } from '@/contexts/UserContext';
+import { useTeamStats } from '@/hooks/useTeamStats';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PresidentScreenProps {
   language: string;
@@ -9,29 +13,67 @@ interface PresidentScreenProps {
 }
 
 export function PresidentScreen({ language, country }: PresidentScreenProps) {
-  // Mock data - would come from backend
-  const activeManagers = 18;
+  const { user } = useUser();
+  const { levelBreakdown, totalActivityRate, userSpotlightPoints } = useTeamStats();
+  const [nextCompetitorPoints, setNextCompetitorPoints] = useState<number | null>(null);
+
+  // Count active managers from level breakdown (level 1 managers in direct team)
+  // A manager is a direct member with rank=manager counted via profiles query
+  const [activeManagerCount, setActiveManagerCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!user.id || !country) return;
+
+    const fetchPresidentData = async () => {
+      const [managersResult, competitorResult] = await Promise.all([
+        // Count active direct managers in user's team
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('referred_by', user.id)
+          .eq('rank', 'manager')
+          .eq('weekly_active', true),
+        // Get top 2 spotlight points in country to find next competitor
+        supabase
+          .from('profiles')
+          .select('spotlight_points')
+          .eq('country', country)
+          .neq('user_id', user.id)
+          .order('spotlight_points', { ascending: false })
+          .limit(1),
+      ]);
+
+      if (!managersResult.error) {
+        setActiveManagerCount(managersResult.count ?? 0);
+      }
+      if (!competitorResult.error && competitorResult.data?.length) {
+        setNextCompetitorPoints(competitorResult.data[0].spotlight_points ?? 0);
+      }
+    };
+
+    fetchPresidentData();
+  }, [user.id, country]);
+
+  const currentPoints = userSpotlightPoints || user.spotlightPoints;
+  const teamActivityPercent = Math.round(totalActivityRate * 100);
   const requiredManagers = 15;
-  const currentPoints = 12500;
-  const nextCompetitorPoints = 11200;
-  const teamActivityPercent = 87;
 
   const requirements = [
     {
       icon: Users,
       titleEn: '15+ Active Managers',
       titleAr: '15+ مدير نشط',
-      current: activeManagers,
+      current: activeManagerCount,
       required: requiredManagers,
-      met: activeManagers >= requiredManagers,
+      met: activeManagerCount >= requiredManagers,
     },
     {
       icon: Trophy,
       titleEn: 'Highest Points in Country',
       titleAr: 'أعلى نقاط في الدولة',
       current: currentPoints,
-      required: nextCompetitorPoints,
-      met: currentPoints > nextCompetitorPoints,
+      required: nextCompetitorPoints ?? 0,
+      met: nextCompetitorPoints !== null ? currentPoints > nextCompetitorPoints : true,
       isPoints: true,
     },
     {
@@ -61,7 +103,7 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
             </div>
             <div className="flex-1">
               <h2 className="text-white text-lg font-bold">
-                {language === 'ar' 
+                {language === 'ar'
                   ? `أنت رئيس WINOVA في ${country}`
                   : `You are WINOVA President in ${country}`}
               </h2>
@@ -76,8 +118,8 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
       </Card>
 
       {/* زر "من أنت؟" */}
-      <RankInfoSheet 
-        language={language} 
+      <RankInfoSheet
+        language={language}
         rankTitle={language === 'ar' ? '👑 الرئيس' : '👑 President'}
       >
         {/* من أنت؟ */}
@@ -90,14 +132,14 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              {language === 'ar' 
-                ? `أنت رئيس WINOVA في دولتك (${country}).` 
+              {language === 'ar'
+                ? `أنت رئيس WINOVA في دولتك (${country}).`
                 : `You are WINOVA President in your country (${country}).`}
             </p>
             <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800 mt-2">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                {language === 'ar' 
-                  ? 'الرئاسة ليست لقبًا دائمًا، بل مركز تنافسي يتم الحفاظ عليه بالقوة، النشاط، والاستمرارية.' 
+                {language === 'ar'
+                  ? 'الرئاسة ليست لقبًا دائمًا، بل مركز تنافسي يتم الحفاظ عليه بالقوة، النشاط، والاستمرارية.'
                   : 'Presidency is not a permanent title, but a competitive position maintained through strength, activity, and consistency.'}
               </p>
             </div>
@@ -144,7 +186,7 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {requirements.map((req, index) => (
-                <div 
+                <div
                   key={index}
                   className={`p-2 rounded-lg text-center ${
                     req.met ? 'bg-primary/5 border border-primary/20' : 'bg-destructive/5 border border-destructive/20'
@@ -152,7 +194,7 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
                 >
                   <req.icon className={`h-4 w-4 mx-auto mb-1 ${req.met ? 'text-primary' : 'text-destructive'}`} />
                   <p className={`text-xs font-medium ${req.met ? 'text-primary' : 'text-destructive'}`}>
-                    {req.isPoints 
+                    {req.isPoints
                       ? `${(req.current / 1000).toFixed(1)}K`
                       : req.isPercent
                       ? `${req.current}%`
@@ -175,8 +217,8 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
                   {language === 'ar' ? 'معلومة مهمة' : 'Important Information'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {language === 'ar' 
-                    ? 'الرئاسة تنافسية وليست دائمة. أي مدير قد يتجاوزك إذا بنى فريقًا أقوى وأكثر نشاطًا.' 
+                  {language === 'ar'
+                    ? 'الرئاسة تنافسية وليست دائمة. أي مدير قد يتجاوزك إذا بنى فريقًا أقوى وأكثر نشاطًا.'
                     : 'Presidency is competitive, not permanent. Any manager may surpass you if they build a stronger, more active team.'}
                 </p>
               </div>
@@ -228,8 +270,8 @@ export function PresidentScreen({ language, country }: PresidentScreenProps) {
               <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">И 0.03</span>
             </div>
             <p className="text-xs text-center text-muted-foreground">
-              {language === 'ar' 
-                ? 'من نشاط جميع الأشخاص في دولتك' 
+              {language === 'ar'
+                ? 'من نشاط جميع الأشخاص في دولتك'
                 : 'From activity of all people in your country'}
             </p>
           </div>

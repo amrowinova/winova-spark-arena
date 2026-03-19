@@ -49,15 +49,24 @@ export function ReferralCodeCard() {
 
   const handleShareInstagram = () => {
     if (!referralCode) return;
-    // Instagram doesn't support direct share links; copy to clipboard and open Instagram
-    navigator.clipboard.writeText(getShareText()).catch(() => {});
-    window.open('https://www.instagram.com/', '_blank');
-    toast({
-      title: language === 'ar' ? 'تم نسخ الكود' : 'Code copied',
-      description: language === 'ar'
-        ? 'الصق الكود في قصتك على Instagram'
-        : 'Paste the code in your Instagram story',
+    // Instagram doesn't support direct share links; copy to clipboard then open Instagram
+    navigator.clipboard.writeText(getShareText()).then(() => {
+      toast({
+        title: language === 'ar' ? 'تم نسخ الكود' : 'Code copied',
+        description: language === 'ar'
+          ? 'الصق الكود في قصتك على Instagram'
+          : 'Paste the code in your Instagram story',
+      });
+    }).catch(() => {
+      toast({
+        title: language === 'ar' ? 'فشل النسخ' : 'Copy failed',
+        description: language === 'ar'
+          ? 'انسخ الكود يدوياً ثم افتح Instagram'
+          : 'Copy the code manually then open Instagram',
+        variant: 'destructive',
+      });
     });
+    window.open('https://www.instagram.com/', '_blank');
   };
 
   const handleShare = async () => {

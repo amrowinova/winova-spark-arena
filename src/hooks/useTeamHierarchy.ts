@@ -34,25 +34,6 @@ export function useTeamHierarchy(maxDepth: number = 5) {
       return;
     }
 
-    // DEV MOCK — remove before production
-    if (true) {
-      const mock: TeamMemberData[] = [
-        { member_id: 'mock-1', level: 1, name: 'أحمد العمري', username: 'ahmed_omari', avatar_url: null, rank: 'marketer', weekly_active: true, active_weeks: 8, direct_count: 3, parent_id: user.id },
-        { member_id: 'mock-2', level: 1, name: 'سارة الزهراني', username: 'sara_z', avatar_url: null, rank: 'leader', weekly_active: true, active_weeks: 12, direct_count: 5, parent_id: user.id },
-        { member_id: 'mock-3', level: 1, name: 'محمد القحطاني', username: 'mq99', avatar_url: null, rank: 'subscriber', weekly_active: false, active_weeks: 1, direct_count: 0, parent_id: user.id },
-        { member_id: 'mock-4', level: 1, name: 'نورة الشمري', username: 'nora_s', avatar_url: null, rank: 'marketer', weekly_active: false, active_weeks: 3, direct_count: 1, parent_id: user.id },
-        { member_id: 'mock-5', level: 1, name: 'خالد المطيري', username: 'khaled_m', avatar_url: null, rank: 'subscriber', weekly_active: true, active_weeks: 6, direct_count: 2, parent_id: user.id },
-        { member_id: 'mock-6', level: 2, name: 'ليلى الدوسري', username: 'layla_d', avatar_url: null, rank: 'marketer', weekly_active: true, active_weeks: 4, direct_count: 0, parent_id: 'mock-1' },
-        { member_id: 'mock-7', level: 2, name: 'فيصل الغامدي', username: 'faisal_g', avatar_url: null, rank: 'subscriber', weekly_active: false, active_weeks: 2, direct_count: 0, parent_id: 'mock-1' },
-        { member_id: 'mock-8', level: 2, name: 'ريم العتيبي', username: 'reem_a', avatar_url: null, rank: 'leader', weekly_active: true, active_weeks: 9, direct_count: 2, parent_id: 'mock-2' },
-        { member_id: 'mock-9', level: 3, name: 'عبدالله السبيعي', username: 'abdallah_s', avatar_url: null, rank: 'subscriber', weekly_active: true, active_weeks: 3, direct_count: 0, parent_id: 'mock-8' },
-        { member_id: 'mock-10', level: 3, name: 'هند الحربي', username: 'hind_h', avatar_url: null, rank: 'marketer', weekly_active: false, active_weeks: 1, direct_count: 0, parent_id: 'mock-8' },
-      ];
-      setMembers(mock);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);

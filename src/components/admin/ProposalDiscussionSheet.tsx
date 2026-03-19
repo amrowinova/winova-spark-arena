@@ -19,10 +19,36 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { type AIProposal, useApproveProposal, useRejectProposal } from '@/hooks/useAIProposals';
-// Inline stubs for deleted AI control room utilities
-const AGENT_CONFIG: Record<string, { color: string; label: string }> = {};
-const getAgentEmoji = (role: string) => '🤖';
-const getCategoryStyle = (category: string) => ({ bg: 'bg-muted', text: 'text-muted-foreground', label: category || 'general', border: 'border-muted' });
+const AGENT_CONFIG: Record<string, { color: string; label: string }> = {
+  system_architect: { color: 'text-blue-600 dark:text-blue-400',   label: 'Architect'   },
+  challenger_ai:    { color: 'text-destructive',                     label: 'Challenger'  },
+  security_expert:  { color: 'text-amber-600 dark:text-amber-400',  label: 'Security'    },
+  ux_designer:      { color: 'text-pink-600 dark:text-pink-400',    label: 'UX'          },
+  product_manager:  { color: 'text-purple-600 dark:text-purple-400',label: 'Product'     },
+  performance_eng:  { color: 'text-green-600 dark:text-green-400',  label: 'Perf'        },
+};
+
+const AGENT_EMOJI: Record<string, string> = {
+  system_architect: '🏗️',
+  challenger_ai:    '⚔️',
+  security_expert:  '🔐',
+  ux_designer:      '🎨',
+  product_manager:  '📊',
+  performance_eng:  '⚡',
+};
+
+const getAgentEmoji = (role: string) => AGENT_EMOJI[role] ?? '🤖';
+
+const CATEGORY_STYLES: Record<string, { bg: string; text: string; label: string; border: string }> = {
+  discussion:  { bg: 'bg-muted',           text: 'text-muted-foreground',  label: 'Discussion',  border: 'border-muted'           },
+  security:    { bg: 'bg-amber-50 dark:bg-amber-950/30',  text: 'text-amber-700 dark:text-amber-300', label: 'Security', border: 'border-amber-200 dark:border-amber-800' },
+  performance: { bg: 'bg-green-50 dark:bg-green-950/30', text: 'text-green-700 dark:text-green-300', label: 'Perf',     border: 'border-green-200 dark:border-green-800'  },
+  ux:          { bg: 'bg-pink-50 dark:bg-pink-950/30',   text: 'text-pink-700 dark:text-pink-300',   label: 'UX',       border: 'border-pink-200 dark:border-pink-800'    },
+  challenge:   { bg: 'bg-destructive/5',   text: 'text-destructive',       label: 'Challenge',   border: 'border-destructive/20'  },
+};
+
+const getCategoryStyle = (category: string) =>
+  CATEGORY_STYLES[category] ?? { bg: 'bg-muted', text: 'text-muted-foreground', label: category || 'general', border: 'border-muted' };
 
 interface DiscussionMessage {
   id: string;
