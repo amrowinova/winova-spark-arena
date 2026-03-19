@@ -11,6 +11,7 @@ interface ContestUserStatusCardProps {
   userVotes: number;
   stage: ContestStage;
   prizePool: number;
+  totalParticipants?: number;
   // Stage 1 props
   votesNeededForTop50?: number;
   // Final stage props
@@ -34,6 +35,7 @@ export function ContestUserStatusCard({
   userVotes, 
   stage,
   prizePool,
+  totalParticipants = 0,
   votesNeededForTop50 = 0,
   votesNeededForTop5 = 0,
   votesNeededForRank1 = 0,
@@ -45,9 +47,10 @@ export function ContestUserStatusCard({
   if (!hasJoined) return null;
   
   // Determine qualification status based on stage
-  const isQualifiedStage1 = userRank <= 50;
-  const isQualifiedFinal = userRank <= 5;
-  const isInTop5 = userRank <= 5;
+  // If total participants ≤ threshold, everyone qualifies automatically
+  const isQualifiedStage1 = totalParticipants <= 50 ? true : userRank <= 50;
+  const isQualifiedFinal = totalParticipants <= 5 ? true : userRank <= 5;
+  const isInTop5 = totalParticipants <= 5 ? true : userRank <= 5;
   
   // Calculate remaining votes based on stage
   const votesRemainingForTop50 = Math.max(0, votesNeededForTop50 - userVotes);

@@ -7,9 +7,10 @@ interface FinalStageUserCardProps {
   userRank: number | null;
   userVotes: number;
   isQualified: boolean;
+  totalParticipants?: number;
 }
 
-export function FinalStageUserCard({ userRank, userVotes, isQualified }: FinalStageUserCardProps) {
+export function FinalStageUserCard({ userRank, userVotes, isQualified, totalParticipants = 0 }: FinalStageUserCardProps) {
   const { language } = useLanguage();
   
   // User did not qualify
@@ -31,7 +32,7 @@ export function FinalStageUserCard({ userRank, userVotes, isQualified }: FinalSt
     );
   }
   
-  const isTop5 = userRank !== null && userRank <= 5;
+  const isTop5 = totalParticipants <= 5 ? true : (userRank !== null && userRank <= 5);
   
   return (
     <motion.div
