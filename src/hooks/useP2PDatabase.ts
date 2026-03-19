@@ -366,7 +366,7 @@ export function useP2PDatabase() {
     const frozen = await checkWalletFrozen();
     if (frozen) {
       console.warn('createOrder blocked: wallet is frozen');
-      return { error: 'wallet_frozen' };
+      return null;
     }
 
     try {
