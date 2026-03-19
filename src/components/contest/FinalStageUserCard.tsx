@@ -10,7 +10,7 @@ interface FinalStageUserCardProps {
   totalParticipants?: number;
 }
 
-export function FinalStageUserCard({ userRank, userVotes, isQualified }: FinalStageUserCardProps) {
+export function FinalStageUserCard({ userRank, userVotes, isQualified, totalParticipants = 0 }: FinalStageUserCardProps) {
   const { language } = useLanguage();
   
   // User did not qualify
