@@ -149,14 +149,9 @@ export function P2PPaymentMethodsManager({
   const [phoneNumber, setPhoneNumber] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Load saved methods from Supabase
+  // Load saved methods via RPC (returns decrypted data for current user only)
   const loadMethods = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data, error } = await supabase
-      .from('payment_methods')
-      .select('*')
-      .eq('user_id', user.id);
+    const { data, error } = await supabase.rpc('get_my_payment_methods');
     if (error) {
       console.error('Failed to load payment methods:', error);
       return;
@@ -209,25 +204,21 @@ export function P2PPaymentMethodsManager({
     if (isBank && !accountNumber) return;
     if ((isWallet || isInstant) && !phoneNumber) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase.from('payment_methods').insert({
-      user_id: user.id,
-      country: country.code,
-      type: selectedProvider.type,
-      provider_name: selectedProvider.name,
-      provider_name_ar: selectedProvider.nameAr,
-      full_name: fullName,
-      account_number: isBank ? accountNumber : null,
-      iban: isBank && iban ? iban : null,
-      phone_number: (isWallet || isInstant) ? phoneNumber : null,
-      notes: notes || null,
-      is_default: countryMethods.length === 0,
+    const { data, error } = await supabase.rpc('upsert_payment_method', {
+      p_country:         country.code,
+      p_type:            selectedProvider.type,
+      p_provider_name:   selectedProvider.name,
+      p_provider_name_ar: selectedProvider.nameAr,
+      p_full_name:       fullName,
+      p_account_number:  isBank ? accountNumber : null,
+      p_iban:            isBank && iban ? iban : null,
+      p_phone_number:    (isWallet || isInstant) ? phoneNumber : null,
+      p_notes:           notes || null,
+      p_is_default:      countryMethods.length === 0,
     });
 
-    if (error) {
-      console.error('Failed to add payment method:', error);
+    if (error || !data?.success) {
+      console.error('Failed to add payment method:', error || data?.error);
       return;
     }
 
@@ -244,16 +235,17 @@ export function P2PPaymentMethodsManager({
     if (isEditBank && !accountNumber) return;
     if (isEditWallet && !phoneNumber) return;
 
-    const { error } = await supabase.from('payment_methods').update({
-      full_name: fullName,
-      account_number: isEditBank ? accountNumber : null,
-      iban: isEditBank && iban ? iban : null,
-      phone_number: isEditWallet ? phoneNumber : null,
-      notes: notes || null,
-    }).eq('id', editingMethod.id);
+    const { data, error } = await supabase.rpc('upsert_payment_method', {
+      p_id:             editingMethod.id,
+      p_full_name:      fullName,
+      p_account_number: isEditBank ? accountNumber : null,
+      p_iban:           isEditBank && iban ? iban : null,
+      p_phone_number:   isEditWallet ? phoneNumber : null,
+      p_notes:          notes || null,
+    });
 
-    if (error) {
-      console.error('Failed to update payment method:', error);
+    if (error || !data?.success) {
+      console.error('Failed to update payment method:', error || data?.error);
       return;
     }
 
@@ -265,10 +257,10 @@ export function P2PPaymentMethodsManager({
 
   const handleDelete = async (id: string) => {
     const deletedWasDefault = savedMethods.find(m => m.id === id)?.isDefault;
-    
-    const { error } = await supabase.from('payment_methods').delete().eq('id', id);
-    if (error) {
-      console.error('Failed to delete payment method:', error);
+
+    const { data, error } = await supabase.rpc('delete_payment_method', { p_id: id });
+    if (error || !data?.success) {
+      console.error('Failed to delete payment method:', error || data?.error);
       return;
     }
 
@@ -276,22 +268,25 @@ export function P2PPaymentMethodsManager({
     if (deletedWasDefault) {
       const remaining = savedMethods.filter(m => m.id !== id && m.countryCode === country.code);
       if (remaining.length > 0) {
-        await supabase.from('payment_methods').update({ is_default: true }).eq('id', remaining[0].id);
+        await supabase.rpc('set_default_payment_method', {
+          p_id: remaining[0].id,
+          p_country: country.code,
+        });
       }
     }
-    
+
     setDeleteConfirmId(null);
     await loadMethods();
   };
 
   const handleSetDefault = async (id: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    
-    // Unset all defaults for this country, then set the chosen one
-    const countryMethodIds = savedMethods.filter(m => m.countryCode === country.code).map(m => m.id);
-    for (const mid of countryMethodIds) {
-      await supabase.from('payment_methods').update({ is_default: mid === id }).eq('id', mid);
+    const { data, error } = await supabase.rpc('set_default_payment_method', {
+      p_id: id,
+      p_country: country.code,
+    });
+    if (error || !data?.success) {
+      console.error('Failed to set default:', error || data?.error);
+      return;
     }
     await loadMethods();
   };
@@ -830,27 +825,19 @@ export function P2PPaymentMethodsManager({
   );
 }
 
-// Hook to get saved payment methods from Supabase
+// Hook to get saved payment methods via decryption RPC
 export function useSavedPaymentMethods(countryCode?: string) {
   const [methods, setMethods] = useState<SavedPaymentMethod[]>([]);
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      let query = supabase.from('payment_methods').select('*').eq('user_id', user.id);
-      if (countryCode) {
-        query = query.eq('country', countryCode);
-      }
-      
-      const { data, error } = await query;
+      const { data, error } = await supabase.rpc('get_my_payment_methods');
       if (error) {
         console.error('Failed to load payment methods:', error);
         return;
       }
-      
-      setMethods((data || []).map((m: any) => ({
+
+      const mapped = (data || []).map((m: any) => ({
         id: m.id,
         countryCode: m.country,
         type: (m.type || 'bank') as PaymentMethodType,
@@ -863,7 +850,9 @@ export function useSavedPaymentMethods(countryCode?: string) {
         notes: m.notes || undefined,
         isDefault: m.is_default,
         createdAt: new Date(m.created_at),
-      })));
+      }));
+
+      setMethods(countryCode ? mapped.filter((m: SavedPaymentMethod) => m.countryCode === countryCode) : mapped);
     };
     load();
   }, [countryCode]);

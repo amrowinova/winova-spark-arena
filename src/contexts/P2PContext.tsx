@@ -293,20 +293,18 @@ export function P2PProvider({ children }: { children: ReactNode }) {
   // Mock mode is disabled - we're using real database
   const MOCK_MODE = false;
 
-  // Fetch payment methods for orders that have payment_method_id
+  // Fetch payment methods via decryption RPC (caller must be participant of linked order)
   useEffect(() => {
     if (!db.orders.length) return;
     const ids = [...new Set(db.orders.map(o => o.payment_method_id).filter(Boolean) as string[])];
     if (!ids.length) return;
 
     supabase
-      .from('payment_methods')
-      .select('id, provider_name, account_number, iban, phone_number, full_name')
-      .in('id', ids)
+      .rpc('get_payment_methods_by_ids', { p_ids: ids })
       .then(({ data }) => {
         if (!data) return;
         const cache: Record<string, P2PPaymentDetails> = {};
-        for (const pm of data) {
+        for (const pm of data as any[]) {
           cache[pm.id] = {
             bankName: pm.provider_name,
             accountNumber: pm.account_number || pm.iban || pm.phone_number || '—',
