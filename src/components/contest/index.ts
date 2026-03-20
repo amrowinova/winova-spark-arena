@@ -9,3 +9,5 @@ export { PrizeDistributionCard } from './PrizeDistributionCard';
 export { ContestHistoryCard, type ContestHistoryItem } from './ContestHistoryCard';
 export { ContestDetailsDialog } from './ContestDetailsDialog';
 export { VoteDialog } from './VoteDialog';
+export { ContestShareCard } from './ContestShareCard';
+export type { ContestShareCardData, WinnerCardData, ParticipantCardData, SpectatorCardData } from './ContestShareCard';

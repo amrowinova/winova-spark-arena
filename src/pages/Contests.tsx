@@ -31,6 +31,8 @@ import {
   type ContestPhase,
 } from '@/lib/contestTiming';
 import { useContestConfig } from '@/hooks/useContestConfig';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
+import { ContestShareCard, type ContestShareCardData } from '@/components/contest/ContestShareCard';
 
 // Contest Components
 import {
@@ -76,6 +78,8 @@ export default function ContestsPage() {
   const { createTransaction } = useTransactions();
   const { success: showSuccess, error: showError } = useBanner();
   const { config: contestConfig } = useContestConfig();
+  const { getCurrencyInfo } = useNovaPricing();
+  const pricing = getCurrencyInfo(user.country);
 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [winners, setWinners] = useState<Winner[]>([]);
@@ -111,6 +115,45 @@ export default function ContestsPage() {
   const isFinal = currentPhase === 'final';
   const isResults = currentPhase === 'results';
   const entryFee = 10;
+
+  // KSA date string for share cards
+  const ksaDateStr = (() => {
+    const ksa = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));
+    return ksa.toLocaleDateString('ar-SA', { day: 'numeric', month: 'long', year: 'numeric' });
+  })();
+
+  // Build share card data based on user's contest status (results phase only)
+  const shareCardData: ContestShareCardData | null = (() => {
+    if (!isResults) return null;
+    const myWin = winners.find((w) => w.id === authUser?.id);
+    if (myWin) {
+      return {
+        type: 'winner',
+        name: user.name || myWin.name,
+        city: user.city || '',
+        country: user.country || myWin.country,
+        rank: myWin.rank,
+        prizeNova: myWin.prize,
+        prizeLocal: myWin.prize * pricing.novaRate,
+        currencySymbolAr: pricing.symbolAr ?? pricing.symbol,
+        currencySymbolEn: pricing.symbol,
+        contestDate: ksaDateStr,
+      };
+    }
+    if (hasJoined && userRank > 0) {
+      return {
+        type: 'participant',
+        name: user.name,
+        city: user.city || '',
+        country: user.country,
+        rank: userRank,
+        totalParticipants: participants.length,
+        contestDate: ksaDateStr,
+      };
+    }
+    // Not joined — spectator card shown in ContestJoinCard, skip here
+    return null;
+  })();
 
   // Update timing every second — stop when results are live (no countdown needed)
   useEffect(() => {
@@ -739,6 +782,16 @@ export default function ContestsPage() {
               </Card>
             )}
           </div>
+
+          {/* Share Card — winner or participant */}
+          {shareCardData && (
+            <Card className="p-4 text-center">
+              <p className="text-sm font-semibold mb-3">
+                {language === 'ar' ? '🎉 شارك نتيجتك!' : '🎉 Share your result!'}
+              </p>
+              <ContestShareCard data={shareCardData} className="flex flex-col items-center" />
+            </Card>
+          )}
 
           {/* Next Contest Countdown */}
           <Card className="p-4 bg-muted/30">

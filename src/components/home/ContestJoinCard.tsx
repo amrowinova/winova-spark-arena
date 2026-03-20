@@ -9,6 +9,7 @@ import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { Link } from 'react-router-dom';
 import { getContestTiming, getSaudiDateStr, type ContestTimingInfo } from '@/lib/contestTiming';
 import { useContestConfig } from '@/hooks/useContestConfig';
+import { ContestShareCard } from '@/components/contest/ContestShareCard';
 
 interface ContestJoinCardProps {
   prizePool: number;
@@ -165,14 +166,43 @@ export function ContestJoinCard({
 
     // State E — After 10:00 PM KSA (results)
     if (phase === 'results') {
-      return (
-        <div className="p-3 bg-muted/50 border border-border rounded-lg text-center space-y-1">
-          <div className="flex items-center justify-center gap-2">
-            <Lock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold text-muted-foreground">
-              {isRTL ? 'انتهت المسابقة' : 'Contest Ended'}
-            </span>
+      // Joined user: simple "ended" pill (full share card is in /contests)
+      if (hasJoined) {
+        return (
+          <div className="p-3 bg-muted/50 border border-border rounded-lg text-center space-y-1">
+            <div className="flex items-center justify-center gap-2">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-muted-foreground">
+                {isRTL ? 'انتهت المسابقة' : 'Contest Ended'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isRTL ? `التسجيل يفتح بعد ${countdownToNextOpen.display}` : `Registration opens in ${countdownToNextOpen.display}`}
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-1">
+              <Link to="/contests">
+                {isRTL ? 'شاهد نتيجتك' : 'View your result'}
+                <ArrowRight className="h-3 w-3 ms-1" />
+              </Link>
+            </Button>
           </div>
+        );
+      }
+
+      // Non-participant: FOMO spectator card
+      const ksaDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));
+      const spectatorData = {
+        type: 'spectator' as const,
+        totalParticipants: participants,
+        prizeNova: prizePool,
+        prizeLocal: prizePool * pricing.novaRate,
+        currencySymbolAr: pricing.symbolAr ?? pricing.symbol,
+        currencySymbolEn: pricing.symbol,
+        contestDate: ksaDate.toLocaleDateString('ar-SA', { day: 'numeric', month: 'long', year: 'numeric' }),
+      };
+      return (
+        <div className="flex flex-col items-center gap-2 py-1">
+          <ContestShareCard data={spectatorData} className="flex flex-col items-center" />
           <p className="text-xs text-muted-foreground">
             {isRTL ? `التسجيل يفتح بعد ${countdownToNextOpen.display}` : `Registration opens in ${countdownToNextOpen.display}`}
           </p>
