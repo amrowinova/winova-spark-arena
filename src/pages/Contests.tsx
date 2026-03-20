@@ -41,6 +41,7 @@ import {
   FinalContestantCard,
   VoteDialog,
 } from '@/components/contest';
+import { ContestCountdownBadge } from '@/components/common/ContestCountdownBadge';
 
 interface Participant {
   id: string;

@@ -1,6 +1,7 @@
 import { Trophy, Users } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
+import { ContestCountdownBadge } from '@/components/common/ContestCountdownBadge';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 
 interface FinalStageHeaderProps {
@@ -18,6 +19,11 @@ export function FinalStageHeader({ participants, prizePool, endsAt, country }: F
   
   return (
     <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
+      {/* Countdown badge — updates every minute, KSA time */}
+      <div className="flex justify-center mb-3">
+        <ContestCountdownBadge />
+      </div>
+
       {/* Stage Badge */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
