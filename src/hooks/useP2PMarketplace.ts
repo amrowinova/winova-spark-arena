@@ -2,12 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { dbStatusToUI } from '@/lib/p2pStatusMapper';
 
-
-type P2POrderRow = Database['public']['Tables']['p2p_orders']['Row'];
-type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type P2POrderType = Database['public']['Enums']['p2p_order_type'];
 
 export interface MarketplaceOrder {
@@ -161,58 +157,13 @@ export function useP2PMarketplace(selectedCountry?: string) {
     fetchOpenOrders();
   }, [fetchOpenOrders]);
 
-  // Realtime subscription for open orders
+  // Poll every 30 seconds to refresh marketplace orders.
+  // Previously used postgres_changes Realtime subscriptions, but those required
+  // a table-level SELECT policy that exposed sensitive order fields to all users.
+  // The secure p2p_marketplace_orders view is used for all data access instead.
   useEffect(() => {
-    const channel: RealtimeChannel = supabase
-      .channel(`marketplace-orders_${user?.id ?? 'anon'}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'p2p_orders',
-          filter: 'status=eq.open',
-        },
-        (payload) => {
-
-          // Refetch on any change to open orders
-          fetchOpenOrders();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchOpenOrders]);
-
-  // Also listen for status changes (order becoming open or no longer open)
-  useEffect(() => {
-    const channel: RealtimeChannel = supabase
-      .channel(`marketplace-orders-status_${user?.id ?? 'anon'}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'p2p_orders',
-        },
-        (payload) => {
-          const newStatus = (payload.new as P2POrderRow).status;
-          const oldStatus = (payload.old as Partial<P2POrderRow>).status;
-          
-          // If status changed to/from open, refetch
-          if (newStatus === 'open' || oldStatus === 'open') {
-
-            fetchOpenOrders();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const interval = setInterval(fetchOpenOrders, 30_000);
+    return () => clearInterval(interval);
   }, [fetchOpenOrders]);
 
   return {
