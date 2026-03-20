@@ -527,7 +527,11 @@ export default function ContestsPage() {
 
       if (!result.success) {
         logActivity({ user_id: authUser.id, action_type: 'contest_vote', entity_type: 'contest', entity_id: activeContestId, success: false, error_code: result.error, duration_ms: Date.now() - t0 });
-        showError(result.error || (language === 'ar' ? 'فشل التصويت' : 'Vote failed'));
+        if (result.error === 'rate_limited') {
+          showError(language === 'ar' ? '⏱️ لقد تجاوزت الحد المسموح به. الحد الأقصى 10 أصوات في الدقيقة.' : '⏱️ Too many votes. Maximum 10 votes per minute allowed.');
+        } else {
+          showError(result.error || (language === 'ar' ? 'فشل التصويت' : 'Vote failed'));
+        }
         return;
       }
 
