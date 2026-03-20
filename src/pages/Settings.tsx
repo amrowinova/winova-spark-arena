@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, Lock, Shield, Eye, Bell, Wallet, ArrowLeftRight, Info,
@@ -55,6 +56,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { success: showSuccess, error: showError } = useBanner();
+  const { isGranted: pushGranted, isDenied: pushDenied, supported: pushSupported, requestPermission: requestPush } = usePushNotifications();
   const [openSections, setOpenSections] = useState<string[]>(['account']);
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
     '2fa': false,
@@ -188,12 +190,12 @@ export default function Settings() {
       titleEn: 'Notifications',
       titleAr: 'الإشعارات',
       items: [
-        { id: 'contestNotif', icon: Trophy, titleEn: 'Contest Notifications', titleAr: 'إشعارات المسابقات', type: 'toggle', value: true, comingSoon: true },
-        { id: 'earningsNotif', icon: DollarSign, titleEn: 'Earnings Notifications', titleAr: 'إشعارات الأرباح', type: 'toggle', value: true, comingSoon: true },
-        { id: 'p2pNotif', icon: ArrowLeftRight, titleEn: 'P2P Notifications', titleAr: 'إشعارات P2P', type: 'toggle', value: true, comingSoon: true },
-        { id: 'chatNotif', icon: MessageCircle, titleEn: 'Chat Notifications', titleAr: 'إشعارات الدردشة', type: 'toggle', value: true, comingSoon: true },
-        { id: 'teamNotif', icon: Users, titleEn: 'Team Notifications', titleAr: 'إشعارات الفريق', type: 'toggle', value: true, comingSoon: true },
-        { id: 'systemNotif', icon: Bell, titleEn: 'System Notifications', titleAr: 'إشعارات النظام', type: 'toggle', value: true, comingSoon: true },
+        { id: 'contestNotif', icon: Trophy, titleEn: 'Contest Notifications', titleAr: 'إشعارات المسابقات', type: 'toggle', value: true },
+        { id: 'earningsNotif', icon: DollarSign, titleEn: 'Earnings & Votes', titleAr: 'الأرباح والتصويت', type: 'toggle', value: true },
+        { id: 'p2pNotif', icon: ArrowLeftRight, titleEn: 'P2P Notifications', titleAr: 'إشعارات P2P', type: 'toggle', value: true },
+        { id: 'chatNotif', icon: MessageCircle, titleEn: 'Chat Notifications', titleAr: 'إشعارات الدردشة', type: 'toggle', value: true },
+        { id: 'teamNotif', icon: Users, titleEn: 'Team Notifications', titleAr: 'إشعارات الفريق', type: 'toggle', value: true },
+        { id: 'systemNotif', icon: Bell, titleEn: 'System Notifications', titleAr: 'إشعارات النظام', type: 'toggle', value: true },
       ]
     },
     {
@@ -344,6 +346,31 @@ export default function Settings() {
                   <CollapsibleContent>
                     <Separator />
                     <div className="p-3 space-y-1">
+                      {section.id === 'notifications' && pushSupported && !pushGranted && (
+                        <div className={`flex items-center gap-3 p-2 mb-2 rounded-lg ${pushDenied ? 'bg-red-50 border border-red-200' : 'bg-primary/5 border border-primary/20'}`}>
+                          <Bell className="w-4 h-4 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium">
+                              {pushDenied
+                                ? (isRTL ? 'الإشعارات محظورة من المتصفح' : 'Notifications blocked in browser')
+                                : (isRTL ? 'إشعارات المتصفح غير مفعّلة' : 'Browser notifications not enabled')}
+                            </p>
+                            {!pushDenied && (
+                              <p className="text-xs text-muted-foreground">
+                                {isRTL ? 'فعّلها لتلقّي إشعارات فورية' : 'Enable to receive instant alerts'}
+                              </p>
+                            )}
+                          </div>
+                          {!pushDenied && (
+                            <button
+                              onClick={requestPush}
+                              className="text-xs font-semibold text-primary shrink-0 hover:underline"
+                            >
+                              {isRTL ? 'تفعيل' : 'Enable'}
+                            </button>
+                          )}
+                        </div>
+                      )}
                       {section.items.map(renderSettingItem)}
                     </div>
                   </CollapsibleContent>

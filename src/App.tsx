@@ -15,6 +15,8 @@ import { InlineBanner } from "@/components/common/InlineBanner";
 import { GlobalAuthGuard } from "@/components/auth/GlobalAuthGuard";
 import { ProfileEnsureWrapper } from "@/components/auth/ProfileEnsureWrapper";
 import { ChatNotificationHandler } from "@/components/chat/ChatNotificationHandler";
+import { PushNotificationHandler } from "@/components/notifications/PushNotificationHandler";
+import { PushPermissionPrompt } from "@/components/notifications/PushPermissionPrompt";
 import { AuthGuard, SupportGuard, AdminGuard } from "@/components/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,6 +113,8 @@ const App = () => {
                           <GlobalAuthGuard />
                           <ProfileEnsureWrapper />
                           <ChatNotificationHandler />
+                          <PushNotificationHandler />
+                          <PushPermissionPrompt />
                           <OnboardingFlow />
                           <InlineBanner />
                           <Toaster position="top-center" richColors />
