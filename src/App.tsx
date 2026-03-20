@@ -63,6 +63,8 @@ import AdminContests from "./pages/admin/AdminContests";
 import AdminCycles from "./pages/admin/AdminCycles";
 import AdminBroadcast from "./pages/admin/AdminBroadcast";
 import AdminCommissions from "./pages/admin/AdminCommissions";
+import AdminKYC from "./pages/admin/AdminKYC";
+import KYCPage from "./pages/KYCPage";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
@@ -141,6 +143,7 @@ const App = () => {
                             <Route path="/lucky-leaders" element={<AuthGuard><LuckyLeaders /></AuthGuard>} />
                             <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
                             <Route path="/referral" element={<AuthGuard><Referral /></AuthGuard>} />
+                            <Route path="/kyc" element={<AuthGuard><KYCPage /></AuthGuard>} />
                             
                             {/* Support Panel routes - require support role */}
                             <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />
@@ -162,6 +165,7 @@ const App = () => {
                             <Route path="/admin/cycles" element={<AdminGuard><AdminCycles /></AdminGuard>} />
                             <Route path="/admin/broadcast" element={<AdminGuard><AdminBroadcast /></AdminGuard>} />
                             <Route path="/admin/commissions" element={<AdminGuard><AdminCommissions /></AdminGuard>} />
+                            <Route path="/admin/kyc" element={<AdminGuard><AdminKYC /></AdminGuard>} />
                             
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />

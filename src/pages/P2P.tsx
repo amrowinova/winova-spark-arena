@@ -19,6 +19,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { useBanner } from '@/contexts/BannerContext';
+import { KYCStatusBanner } from '@/components/kyc/KYCStatusBanner';
 import { useP2PMarketplace, MarketplaceOrder } from '@/hooks/useP2PMarketplace';
 import { useP2PDatabase } from '@/hooks/useP2PDatabase';
 
@@ -679,6 +680,9 @@ function P2PContent() {
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('p2p.title')} />
       <main className="flex-1 px-4 py-4 pb-20 space-y-4">
+        {/* KYC Verification Banner */}
+        <KYCStatusBanner />
+
         {/* Blocked Warning */}
         {isBlockedFromOrders() && (
           <Card className="p-4 bg-destructive/10 border-destructive/30">

@@ -309,11 +309,19 @@ export default function AdminDashboard() {
             </Button>
             <Button
               variant="outline"
-              className="h-auto py-3 flex-col gap-1 col-span-3"
+              className="h-auto py-3 flex-col gap-1"
               onClick={() => navigate('/admin/proposals')}
             >
               <Lightbulb className="w-5 h-5 text-yellow-400" />
-              <span className="text-xs">{isRTL ? 'مقترحات الذكاء الاصطناعي' : 'AI Proposals'}</span>
+              <span className="text-xs">{isRTL ? 'مقترحات AI' : 'AI Proposals'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/kyc')}
+            >
+              <Shield className="w-5 h-5 text-emerald-500" />
+              <span className="text-xs">{isRTL ? 'التحقق KYC' : 'KYC Review'}</span>
             </Button>
           </div>
         </Card>

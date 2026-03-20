@@ -22,6 +22,7 @@ import { getNextReleaseDate } from '@/components/wallet/LockedEarningsCard';
 import { PaymentQRDialog } from '@/components/wallet/PaymentQRDialog';
 import { useBanner } from '@/contexts/BannerContext';
 import { RANK_COMMISSION_RATES } from '@/contexts/TransactionContext';
+import { KYCStatusBanner } from '@/components/kyc/KYCStatusBanner';
 
 // Format number
 const formatBalance = (value: number): string => {
@@ -140,6 +141,9 @@ function WalletContent() {
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('wallet.title')} />
       <main className="flex-1 px-4 py-4 pb-20 space-y-5">
+        {/* KYC Verification Banner */}
+        <KYCStatusBanner />
+
         {/* Frozen Wallet Warning */}
         {isWalletFrozen && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
