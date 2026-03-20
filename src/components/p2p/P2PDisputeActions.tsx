@@ -47,10 +47,14 @@ export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2
   const chatId = order.id;
 
   const handleReleaseFunds = async () => {
+    const authId = authUser?.id;
+    if (!authId) {
+      showError(isRTL ? 'خطأ في المصادقة' : 'Authentication error');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      const userId = authUser?.id || currentUserId;
-      const result = await resolveDispute(order.id, userId, 'release_to_buyer');
+      const result = await resolveDispute(order.id, authId, 'release_to_buyer');
       if (result.success) {
         showSuccess(isRTL ? '✅ تم تحرير Nova للمشتري' : '✅ Nova released to buyer');
         onOrderCompleted?.();
@@ -63,10 +67,14 @@ export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2
   };
 
   const handleCancelArbitration = async () => {
+    const authId = authUser?.id;
+    if (!authId) {
+      showError(isRTL ? 'خطأ في المصادقة' : 'Authentication error');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      const userId = authUser?.id || currentUserId;
-      const result = await resolveDispute(order.id, userId, 'return_to_seller');
+      const result = await resolveDispute(order.id, authId, 'return_to_seller');
       if (result.success) {
         showSuccess(isRTL ? '✅ تم إلغاء التحكيم وإعادة الطلب' : '✅ Arbitration cancelled, order returned');
         setShowCancelArbitration(false);

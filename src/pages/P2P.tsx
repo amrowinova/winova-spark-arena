@@ -91,10 +91,9 @@ function P2PContent() {
   const { user: authUser } = useAuth();
   const { createTransaction } = useTransactions();
   
-  // CRITICAL: Use auth UUID for P2P role comparisons, NOT profile.id
-  // user.id = profile table PK, authUser.id = auth.users UUID
-  // P2P participants store auth UUID, so we must compare with that
-  const currentAuthUserId = authUser?.id || user.id;
+  // P2P participants store auth.users UUID — never fall back to profile.id.
+  // If authUser is absent the page should not render (ProtectedRoute enforces this).
+  const currentAuthUserId = authUser?.id ?? '';
   const { 
     chats, 
     sendMessage, 
