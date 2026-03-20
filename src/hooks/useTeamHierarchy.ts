@@ -12,6 +12,7 @@ export interface TeamMemberData {
   rank: string;
   weekly_active: boolean;
   active_weeks: number;
+  weekly_streak: number;
   direct_count: number;
   parent_id: string;
 }
@@ -41,6 +42,7 @@ async function fetchHierarchy(userId: string, maxDepth: number): Promise<TeamMem
     rank: m.rank || 'subscriber',
     weekly_active: m.weekly_active || false,
     active_weeks: m.active_weeks || 0,
+    weekly_streak: m.weekly_streak || 0,
     direct_count: Number(m.direct_count) || 0,
     parent_id: m.parent_id,
   }));

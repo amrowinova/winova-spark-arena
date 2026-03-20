@@ -90,6 +90,11 @@ function TeamMemberCard({
             {isRTL
               ? `الرتبة: ${member.rank} | أسابيع: ${member.active_weeks}/14`
               : `Rank: ${member.rank} | Weeks: ${member.active_weeks}/14`}
+            {member.weekly_streak > 0 && (
+              <span className="ms-1.5 text-orange-500 font-medium">
+                {`🔥 ${member.weekly_streak}`}
+              </span>
+            )}
           </p>
         </div>
 

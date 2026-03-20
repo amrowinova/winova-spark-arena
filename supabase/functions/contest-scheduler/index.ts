@@ -111,6 +111,45 @@ Deno.serve(async (req) => {
 
   try {
     // ─────────────────────────────────────────────────────────────────────
+    // 0. Weekly streak update — runs once per cycle week at first invocation
+    //    after a new week starts (detected by comparing current week_number
+    //    against the last week we already computed streaks for).
+    // ─────────────────────────────────────────────────────────────────────
+    const { data: cycleRows } = await supabase.rpc("get_active_cycle_info");
+    const cycleRow = (cycleRows as Array<{ cycle_id: string; week_number: number }> | null)?.[0];
+
+    if (cycleRow && cycleRow.week_number > 1) {
+      const weekToUpdate = cycleRow.week_number - 1;
+
+      const { data: streakSetting } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "last_streak_updated_week")
+        .maybeSingle();
+
+      const lastUpdated = streakSetting?.value as { cycle_id: string | null; week: number } | null;
+      const alreadyDone =
+        lastUpdated?.cycle_id === cycleRow.cycle_id &&
+        (lastUpdated?.week ?? 0) >= weekToUpdate;
+
+      if (!alreadyDone) {
+        const { error: streakErr } = await supabase.rpc("update_weekly_streaks", {
+          p_cycle_id: cycleRow.cycle_id,
+          p_week_just_completed: weekToUpdate,
+        });
+        if (streakErr) {
+          console.error("update_weekly_streaks error:", streakErr);
+        } else {
+          await supabase.from("app_settings").upsert(
+            { key: "last_streak_updated_week", value: { cycle_id: cycleRow.cycle_id, week: weekToUpdate } },
+            { onConflict: "key" }
+          );
+          console.log(`weekly streaks updated: cycle=${cycleRow.cycle_id} week=${weekToUpdate}`);
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     // 1. Ensure today's contest exists
     // ─────────────────────────────────────────────────────────────────────
     const { data: existing, error: fetchErr } = await supabase

@@ -35,6 +35,7 @@ export interface User {
   activeWeeks: number;
   totalWeeks: number;
   currentWeek: number;
+  weeklyStreak: number;
 }
 
 interface UserContextType {
@@ -78,6 +79,7 @@ const guestUser: User = {
   activeWeeks: 0,
   totalWeeks: 14,
   currentWeek: 1,
+  weeklyStreak: 0,
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -161,6 +163,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           activeWeeks: profile.active_weeks,
           totalWeeks: 14,
           currentWeek: profile.current_week,
+          weeklyStreak: (profile as Profile & { weekly_streak?: number }).weekly_streak ?? 0,
         });
       } else {
         // No profile/wallet found - user might be newly created, use defaults
