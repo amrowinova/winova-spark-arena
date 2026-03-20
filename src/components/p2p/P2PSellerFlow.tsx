@@ -59,17 +59,19 @@ export function P2PSellerFlow({ order, currentUserId, onOrderCompleted }: P2PSel
 
   const hasTriggeredMockRef = useRef<string | null>(null);
 
-  // Check last reminder time from localStorage
+  // Check last reminder time from localStorage.
+  // Key is scoped to the current user to avoid exposing order IDs to
+  // other users who might share the same device or inspect localStorage.
   const getLastReminderTime = useCallback(() => {
-    const key = `p2p_reminder_${order.id}`;
+    const key = `p2p_reminder_${currentUserId}_${order.id}`;
     const stored = localStorage.getItem(key);
     return stored ? parseInt(stored, 10) : 0;
-  }, [order.id]);
+  }, [currentUserId, order.id]);
 
   const setLastReminderTime = useCallback(() => {
-    const key = `p2p_reminder_${order.id}`;
+    const key = `p2p_reminder_${currentUserId}_${order.id}`;
     localStorage.setItem(key, Date.now().toString());
-  }, [order.id]);
+  }, [currentUserId, order.id]);
 
   // Update cooldown timer
   useEffect(() => {

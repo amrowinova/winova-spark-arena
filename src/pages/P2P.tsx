@@ -386,7 +386,7 @@ function P2PContent() {
   const handleOpenChat = async (orderId: string) => {
     // Auto welcome message helper
     const sendWelcomeIfNeeded = async (orderId: string) => {
-      const key = `p2p_welcome_sent_${orderId}`;
+      const key = `p2p_welcome_sent_${currentAuthUserId}_${orderId}`;
       if (localStorage.getItem(key)) return;
       localStorage.setItem(key, '1');
 
