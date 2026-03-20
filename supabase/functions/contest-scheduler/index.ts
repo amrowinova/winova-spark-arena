@@ -214,6 +214,19 @@ Deno.serve(async (req) => {
         } else {
           console.log("final vote earnings granted:", earningsData);
         }
+
+        // ── Run daily spotlight draw ──────────────────────────────────────
+        // Selects two winners from today's active users:
+        //   1st place (65%): highest cumulative cycle points
+        //   2nd place (35%): weighted random by cycle points
+        // Prize pool is read from app_settings.spotlight_draw_config.daily_pool
+        const { data: drawData, error: drawErr } = await supabase
+          .rpc("run_daily_spotlight_draw", { p_draw_date: todayStr });
+        if (drawErr) {
+          console.error("run_daily_spotlight_draw error:", drawErr);
+        } else {
+          console.log("spotlight draw result:", drawData);
+        }
       }
     }
 
