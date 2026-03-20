@@ -17,6 +17,28 @@ export interface P2PDisputeFile {
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 
+// File signature (magic bytes) for each allowed MIME type
+const MAGIC_BYTES: Record<string, number[]> = {
+  'image/jpeg':      [0xFF, 0xD8, 0xFF],
+  'image/png':       [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+  'application/pdf': [0x25, 0x50, 0x44, 0x46], // %PDF
+};
+
+// Safe extension derived from MIME type — never from user-supplied filename
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg':      'jpg',
+  'image/png':       'png',
+  'application/pdf': 'pdf',
+};
+
+async function validateMagicBytes(file: File, mimeType: string): Promise<boolean> {
+  const expected = MAGIC_BYTES[mimeType];
+  if (!expected) return false;
+  const buffer = await file.slice(0, expected.length).arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  return expected.every((b, i) => bytes[i] === b);
+}
+
 export function useP2PDisputeFiles(orderId: string) {
   const { user } = useAuth();
   const [files, setFiles] = useState<P2PDisputeFile[]>([]);
@@ -66,9 +88,15 @@ export function useP2PDisputeFiles(orderId: string) {
       return { success: false, error: 'Not authenticated or no order' };
     }
 
-    // Validate file type
+    // Validate declared MIME type
     if (!ALLOWED_TYPES.includes(file.type)) {
       return { success: false, error: 'File type not allowed. Use JPEG, PNG, or PDF only.' };
+    }
+
+    // Validate actual file content via magic bytes (prevents MIME spoofing)
+    const magicValid = await validateMagicBytes(file, file.type);
+    if (!magicValid) {
+      return { success: false, error: 'File content does not match its declared type.' };
     }
 
     // Validate file size
@@ -80,10 +108,13 @@ export function useP2PDisputeFiles(orderId: string) {
     setUploadProgress(0);
 
     try {
-      // Generate unique file path
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      // Derive extension from MIME type — never from user-supplied filename
+      const ext = MIME_TO_EXT[file.type];
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const filePath = `${orderId}/${user.id}/${fileName}`;
+
+      // Sanitize original filename for metadata storage only (strip dangerous chars)
+      const safeName = file.name.replace(/[^a-zA-Z0-9._\-\u0600-\u06FF\s]/g, '_').slice(0, 100);
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
@@ -104,7 +135,7 @@ export function useP2PDisputeFiles(orderId: string) {
           order_id: orderId,
           uploaded_by: user.id,
           file_path: filePath,
-          file_name: file.name,
+          file_name: safeName,
           file_type: file.type,
           file_size: file.size,
         });
