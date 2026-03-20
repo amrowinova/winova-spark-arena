@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -90,7 +91,7 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword, onL
       return;
     }
 
-    // Check lockout before attempting
+    // Check lockout before attempting (localStorage — fast, no network)
     if (loginMethod === 'password') {
       const attemptData = getAttemptData(email);
       if (attemptData.lockedUntil && attemptData.lockedUntil > Date.now()) {
@@ -109,11 +110,26 @@ export function LoginScreen({ onBack, onSignUp, onSendOTP, onForgotPassword, onL
         return;
       }
 
+      // Server-side brute force check (cannot be bypassed by clearing localStorage)
+      const { data: checkData } = await supabase.rpc('check_login_allowed', { p_email: email });
+      if (checkData && checkData.allowed === false) {
+        const secs = checkData.seconds_remaining ?? 0;
+        setLockoutRemaining(secs);
+        // Sync localStorage so the countdown shows correctly
+        saveAttemptData(email, { count: MAX_ATTEMPTS, lockedUntil: Date.now() + secs * 1000 });
+        setIsLoading(false);
+        return;
+      }
+
       const { error: authError } = await signIn(email, password);
+
+      // Record attempt server-side (fire-and-forget)
+      supabase.rpc('record_login_attempt', { p_email: email, p_success: !authError });
+
       setIsLoading(false);
 
       if (authError) {
-        // Increment failed attempt counter
+        // Increment failed attempt counter in localStorage
         const data = getAttemptData(email);
         const newCount = data.count + 1;
         if (newCount >= MAX_ATTEMPTS) {
