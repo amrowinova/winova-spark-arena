@@ -146,10 +146,46 @@ export const fr = {
       requirements: 'Conditions',
       directRequired: 'Membres directs requis',
       activeRequired: 'Membres actifs requis',
-      inviteCode: 'Code d\'Invitation',
+      inviteCode: "Code d'Invitation",
       copyCode: 'Copier',
       copied: 'Copié !',
       shareInvite: 'Partager',
+      // Tabs
+      tabOverview: 'Aperçu',
+      tabDirect: 'Direct',
+      tabStats: 'Statistiques',
+      tabReferral: 'Parrainage',
+      // Member card
+      memberRankWeeks: 'Rang: {{rank}} | Semaines: {{weeks}}/14',
+      viewProfile: 'Voir le profil de {{name}}',
+      viewTeamOf: 'Équipe de {{name}}',
+      subteamOf: 'Équipe de {{name}}',
+      // Search
+      searchPlaceholder: 'Rechercher par nom ou pseudo...',
+      searchMember: 'Rechercher un membre',
+      noMatchingMembers: 'Aucun membre correspondant',
+      // Overview labels
+      teamSize: 'Taille Équipe',
+      directLabel: 'Direct',
+      indirect: 'Indirect',
+      totalTeam: 'Équipe Totale',
+      requestSupervisorChange: 'Demander un Changement de Superviseur',
+      // Stats tab
+      spotlightRanking: 'Classement Spotlight',
+      spotlightRankingDesc: 'Voir votre position concurrentielle',
+      // Referral tab
+      howReferralWorks: 'Comment fonctionne le Parrainage?',
+      referralStep1Title: 'Partagez Votre Code',
+      referralStep1Desc: 'Envoyez votre code de parrainage à vos amis',
+      referralStep2Title: 'Ils Rejoignent WINOVA',
+      referralStep2Desc: "Ils utilisent votre code lors de l'inscription",
+      referralStep3Title: 'Gagnez Points et Récompenses',
+      referralStep3Desc: "Plus votre équipe est active, plus vous gagnez",
+      // Warnings (toast)
+      warningInactive: 'Vous êtes inactif cette semaine!',
+      warningInactiveMembers: '{{count}} membres inactifs',
+      warningCycleEnding: '{{weeks}} semaines restantes dans le cycle',
+      warningActivityLow: 'Votre activité est faible',
     },
     // Wallet
     wallet: {
@@ -250,6 +286,10 @@ export const fr = {
       hours: 'heures',
       minutes: 'minutes',
       seconds: 'secondes',
+      active: 'Actif',
+      inactive: 'Inactif',
+      all: 'Tous',
+      clearSearch: 'Effacer la recherche',
     },
     // Settings
     settings: {

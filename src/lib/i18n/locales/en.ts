@@ -150,6 +150,42 @@ export const en = {
       copyCode: 'Copy Code',
       copied: 'Copied!',
       shareInvite: 'Share Invite',
+      // Tabs
+      tabOverview: 'Overview',
+      tabDirect: 'Direct',
+      tabStats: 'Stats',
+      tabReferral: 'Referral',
+      // Member card
+      memberRankWeeks: 'Rank: {{rank}} | Weeks: {{weeks}}/14',
+      viewProfile: "View {{name}}'s profile",
+      viewTeamOf: "{{name}}'s team",
+      subteamOf: "{{name}}'s Team",
+      // Search
+      searchPlaceholder: 'Search by name or username...',
+      searchMember: 'Search member',
+      noMatchingMembers: 'No matching members',
+      // Overview labels
+      teamSize: 'Team Size',
+      directLabel: 'Direct',
+      indirect: 'Indirect',
+      totalTeam: 'Total Team',
+      requestSupervisorChange: 'Request Supervisor Change',
+      // Stats tab
+      spotlightRanking: 'Spotlight Ranking',
+      spotlightRankingDesc: 'See your competitive position',
+      // Referral tab
+      howReferralWorks: 'How Referral Works?',
+      referralStep1Title: 'Share Your Code',
+      referralStep1Desc: 'Send your referral code to friends',
+      referralStep2Title: 'They Join WINOVA',
+      referralStep2Desc: 'They use your code when signing up',
+      referralStep3Title: 'Earn Points & Rewards',
+      referralStep3Desc: 'The more active your team, the more you earn',
+      // Warnings (toast)
+      warningInactive: 'You are inactive this week!',
+      warningInactiveMembers: '{{count}} inactive members',
+      warningCycleEnding: '{{weeks}} weeks left in cycle',
+      warningActivityLow: 'Your activity is low',
     },
     // Wallet
     wallet: {
@@ -250,6 +286,10 @@ export const en = {
       hours: 'hours',
       minutes: 'minutes',
       seconds: 'seconds',
+      active: 'Active',
+      inactive: 'Inactive',
+      all: 'All',
+      clearSearch: 'Clear search',
     },
     // Settings
     settings: {

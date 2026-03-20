@@ -150,6 +150,42 @@ export const ur = {
       copyCode: 'کاپی',
       copied: 'کاپی ہو گیا!',
       shareInvite: 'شیئر',
+      // Tabs
+      tabOverview: 'جائزہ',
+      tabDirect: 'براہ راست',
+      tabStats: 'اعداد و شمار',
+      tabReferral: 'حوالہ',
+      // Member card
+      memberRankWeeks: 'درجہ: {{rank}} | ہفتے: {{weeks}}/14',
+      viewProfile: '{{name}} کا پروفائل دیکھیں',
+      viewTeamOf: '{{name}} کی ٹیم',
+      subteamOf: '{{name}} کی ٹیم',
+      // Search
+      searchPlaceholder: 'نام یا صارف نام سے تلاش کریں...',
+      searchMember: 'ممبر تلاش کریں',
+      noMatchingMembers: 'کوئی مطابق ممبر نہیں',
+      // Overview labels
+      teamSize: 'ٹیم کا سائز',
+      directLabel: 'براہ راست',
+      indirect: 'بالواسطہ',
+      totalTeam: 'کل ٹیم',
+      requestSupervisorChange: 'سپروائزر تبدیلی کی درخواست',
+      // Stats tab
+      spotlightRanking: 'Spotlight درجہ بندی',
+      spotlightRankingDesc: 'مقابلے میں اپنی پوزیشن دیکھیں',
+      // Referral tab
+      howReferralWorks: 'حوالہ کیسے کام کرتا ہے؟',
+      referralStep1Title: 'اپنا کوڈ شیئر کریں',
+      referralStep1Desc: 'اپنا حوالہ کوڈ دوستوں کو بھیجیں',
+      referralStep2Title: 'وہ WINOVA سے جڑتے ہیں',
+      referralStep2Desc: 'وہ رجسٹریشن کے وقت آپ کا کوڈ استعمال کریں',
+      referralStep3Title: 'پوائنٹس اور انعامات کمائیں',
+      referralStep3Desc: 'آپ کی ٹیم جتنی فعال، اتنا زیادہ کمائیں',
+      // Warnings (toast)
+      warningInactive: 'آپ اس ہفتے غیر فعال ہیں!',
+      warningInactiveMembers: '{{count}} غیر فعال ممبران',
+      warningCycleEnding: 'سائیکل میں {{weeks}} ہفتے باقی',
+      warningActivityLow: 'آپ کی سرگرمی کم ہے',
     },
     // Wallet
     wallet: {
@@ -250,6 +286,10 @@ export const ur = {
       hours: 'گھنٹے',
       minutes: 'منٹ',
       seconds: 'سیکنڈ',
+      active: 'فعال',
+      inactive: 'غیر فعال',
+      all: 'سب',
+      clearSearch: 'تلاش مٹائیں',
     },
     // Settings
     settings: {

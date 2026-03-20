@@ -150,6 +150,42 @@ export const nl = {
       copyCode: 'Kopiëren',
       copied: 'Gekopieerd!',
       shareInvite: 'Delen',
+      // Tabs
+      tabOverview: 'Overzicht',
+      tabDirect: 'Direct',
+      tabStats: 'Statistieken',
+      tabReferral: 'Verwijzing',
+      // Member card
+      memberRankWeeks: 'Rang: {{rank}} | Weken: {{weeks}}/14',
+      viewProfile: 'Profiel van {{name}} bekijken',
+      viewTeamOf: 'Team van {{name}}',
+      subteamOf: 'Team van {{name}}',
+      // Search
+      searchPlaceholder: 'Zoek op naam of gebruikersnaam...',
+      searchMember: 'Lid zoeken',
+      noMatchingMembers: 'Geen overeenkomende leden',
+      // Overview labels
+      teamSize: 'Teamgrootte',
+      directLabel: 'Direct',
+      indirect: 'Indirect',
+      totalTeam: 'Totaal Team',
+      requestSupervisorChange: 'Verzoek Supervisor Wijziging',
+      // Stats tab
+      spotlightRanking: 'Spotlight Ranglijst',
+      spotlightRankingDesc: 'Zie uw concurrentiepositie',
+      // Referral tab
+      howReferralWorks: 'Hoe werkt Verwijzing?',
+      referralStep1Title: 'Deel Uw Code',
+      referralStep1Desc: 'Stuur uw verwijzingscode naar vrienden',
+      referralStep2Title: 'Zij Sluiten Aan bij WINOVA',
+      referralStep2Desc: 'Ze gebruiken uw code bij registratie',
+      referralStep3Title: 'Verdien Punten en Beloningen',
+      referralStep3Desc: 'Hoe actiever uw team, hoe meer u verdient',
+      // Warnings (toast)
+      warningInactive: 'U bent inactief deze week!',
+      warningInactiveMembers: '{{count}} inactieve leden',
+      warningCycleEnding: '{{weeks}} weken over in cyclus',
+      warningActivityLow: 'Uw activiteit is laag',
     },
     // Wallet
     wallet: {
@@ -250,6 +286,10 @@ export const nl = {
       hours: 'uren',
       minutes: 'minuten',
       seconds: 'seconden',
+      active: 'Actief',
+      inactive: 'Inactief',
+      all: 'Alle',
+      clearSearch: 'Zoekopdracht wissen',
     },
     // Settings
     settings: {

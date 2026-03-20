@@ -150,6 +150,42 @@ export const de = {
       copyCode: 'Kopieren',
       copied: 'Kopiert!',
       shareInvite: 'Teilen',
+      // Tabs
+      tabOverview: 'Übersicht',
+      tabDirect: 'Direkt',
+      tabStats: 'Statistiken',
+      tabReferral: 'Empfehlung',
+      // Member card
+      memberRankWeeks: 'Rang: {{rank}} | Wochen: {{weeks}}/14',
+      viewProfile: 'Profil von {{name}} ansehen',
+      viewTeamOf: 'Team von {{name}}',
+      subteamOf: 'Team von {{name}}',
+      // Search
+      searchPlaceholder: 'Nach Name oder Benutzername suchen...',
+      searchMember: 'Mitglied suchen',
+      noMatchingMembers: 'Keine passenden Mitglieder',
+      // Overview labels
+      teamSize: 'Teamgröße',
+      directLabel: 'Direkt',
+      indirect: 'Indirekt',
+      totalTeam: 'Gesamtteam',
+      requestSupervisorChange: 'Vorgesetztenwechsel beantragen',
+      // Stats tab
+      spotlightRanking: 'Spotlight-Rangliste',
+      spotlightRankingDesc: 'Ihre Wettbewerbsposition sehen',
+      // Referral tab
+      howReferralWorks: 'Wie funktioniert die Empfehlung?',
+      referralStep1Title: 'Code Teilen',
+      referralStep1Desc: 'Senden Sie Ihren Empfehlungscode an Freunde',
+      referralStep2Title: 'Sie Treten WINOVA Bei',
+      referralStep2Desc: 'Sie verwenden Ihren Code bei der Registrierung',
+      referralStep3Title: 'Punkte und Prämien Verdienen',
+      referralStep3Desc: 'Je aktiver Ihr Team, desto mehr verdienen Sie',
+      // Warnings (toast)
+      warningInactive: 'Sie sind diese Woche inaktiv!',
+      warningInactiveMembers: '{{count}} inaktive Mitglieder',
+      warningCycleEnding: '{{weeks}} Wochen bis Zyklusende',
+      warningActivityLow: 'Ihre Aktivität ist niedrig',
     },
     // Wallet
     wallet: {
@@ -250,6 +286,10 @@ export const de = {
       hours: 'Stunden',
       minutes: 'Minuten',
       seconds: 'Sekunden',
+      active: 'Aktiv',
+      inactive: 'Inaktiv',
+      all: 'Alle',
+      clearSearch: 'Suche löschen',
     },
     // Settings
     settings: {

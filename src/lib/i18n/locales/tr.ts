@@ -150,6 +150,42 @@ export const tr = {
       copyCode: 'Kopyala',
       copied: 'Kopyalandı!',
       shareInvite: 'Paylaş',
+      // Tabs
+      tabOverview: 'Genel Bakış',
+      tabDirect: 'Doğrudan',
+      tabStats: 'İstatistikler',
+      tabReferral: 'Referans',
+      // Member card
+      memberRankWeeks: 'Sıralama: {{rank}} | Haftalar: {{weeks}}/14',
+      viewProfile: '{{name}} profilini gör',
+      viewTeamOf: '{{name}} takımı',
+      subteamOf: '{{name}} Takımı',
+      // Search
+      searchPlaceholder: 'Ad veya kullanıcı adıyla ara...',
+      searchMember: 'Üye ara',
+      noMatchingMembers: 'Eşleşen üye yok',
+      // Overview labels
+      teamSize: 'Takım Boyutu',
+      directLabel: 'Doğrudan',
+      indirect: 'Dolaylı',
+      totalTeam: 'Toplam Takım',
+      requestSupervisorChange: 'Süpervizör Değişikliği İste',
+      // Stats tab
+      spotlightRanking: 'Spotlight Sıralaması',
+      spotlightRankingDesc: 'Rekabetteki konumunuzu görün',
+      // Referral tab
+      howReferralWorks: 'Referans Nasıl Çalışır?',
+      referralStep1Title: 'Kodunuzu Paylaşın',
+      referralStep1Desc: 'Referans kodunuzu arkadaşlarınıza gönderin',
+      referralStep2Title: "WINOVA'ya Katılıyorlar",
+      referralStep2Desc: 'Kayıt olurken kodunuzu kullanıyorlar',
+      referralStep3Title: 'Puan ve Ödüller Kazanın',
+      referralStep3Desc: 'Takımınız ne kadar aktif olursa o kadar çok kazanırsınız',
+      // Warnings (toast)
+      warningInactive: 'Bu hafta aktif değilsiniz!',
+      warningInactiveMembers: '{{count}} pasif üye',
+      warningCycleEnding: 'Döngüde {{weeks}} hafta kaldı',
+      warningActivityLow: 'Aktiviteniz düşük',
     },
     // Wallet
     wallet: {
@@ -250,6 +286,10 @@ export const tr = {
       hours: 'saat',
       minutes: 'dakika',
       seconds: 'saniye',
+      active: 'Aktif',
+      inactive: 'Pasif',
+      all: 'Tümü',
+      clearSearch: 'Aramayı Temizle',
     },
     // Settings
     settings: {

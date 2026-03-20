@@ -150,6 +150,42 @@ export const ar = {
       copyCode: 'نسخ الكود',
       copied: 'تم النسخ!',
       shareInvite: 'شارك الدعوة',
+      // Tabs
+      tabOverview: 'نظرة عامة',
+      tabDirect: 'المباشر',
+      tabStats: 'الإحصائيات',
+      tabReferral: 'الإحالة',
+      // Member card
+      memberRankWeeks: 'الرتبة: {{rank}} | أسابيع: {{weeks}}/14',
+      viewProfile: 'عرض ملف {{name}}',
+      viewTeamOf: 'فريق {{name}}',
+      subteamOf: 'فريق {{name}}',
+      // Search
+      searchPlaceholder: 'ابحث بالاسم أو اسم المستخدم...',
+      searchMember: 'بحث عن عضو',
+      noMatchingMembers: 'لا يوجد أعضاء مطابقون',
+      // Overview labels
+      teamSize: 'حجم الفريق',
+      directLabel: 'مباشر',
+      indirect: 'غير مباشر',
+      totalTeam: 'إجمالي الفريق',
+      requestSupervisorChange: 'طلب تغيير المسؤول',
+      // Stats tab
+      spotlightRanking: 'ترتيب Spotlight',
+      spotlightRankingDesc: 'اعرف مكانك في المنافسة',
+      // Referral tab
+      howReferralWorks: 'كيف تعمل الإحالة؟',
+      referralStep1Title: 'شارك كودك',
+      referralStep1Desc: 'أرسل كود الإحالة لأصدقائك',
+      referralStep2Title: 'ينضمون إلى WINOVA',
+      referralStep2Desc: 'يستخدمون كودك عند التسجيل',
+      referralStep3Title: 'تكسب نقاط ومكافآت',
+      referralStep3Desc: 'كلما كان فريقك نشيطاً، زادت مكافآتك',
+      // Warnings (toast)
+      warningInactive: 'أنت غير نشط هذا الأسبوع!',
+      warningInactiveMembers: '{{count}} أعضاء غير نشطين',
+      warningCycleEnding: '{{weeks}} أسابيع على نهاية الدورة',
+      warningActivityLow: 'نشاطك منخفض',
     },
     // Wallet
     wallet: {
@@ -250,6 +286,10 @@ export const ar = {
       hours: 'ساعات',
       minutes: 'دقائق',
       seconds: 'ثوان',
+      active: 'نشط',
+      inactive: 'غير نشط',
+      all: 'الكل',
+      clearSearch: 'مسح البحث',
     },
     // Settings
     settings: {
