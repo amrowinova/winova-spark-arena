@@ -23,12 +23,45 @@ export function P2PChatInput({ orderId, onSendMessage }: P2PChatInputProps) {
   const [imagePreview, setImagePreview] = useState<{ file: File; url: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Returns a translated rejection reason, or null if message is clean
+  const checkMessageContent = (text: string): string | null => {
+    const lower = text.toLowerCase();
+    if (/https?:\/\/|t\.me\/|telegram\.me\/|wa\.me\/|whatsapp\.com|bit\.ly|tinyurl\.com|linktr\.ee/.test(lower)) {
+      return isRTL
+        ? '🚫 لا يمكن إرسال روابط خارجية في شات P2P'
+        : '🚫 External links are not allowed in P2P chat';
+    }
+    if (/[a-zA-Z]{2}\d{2}[a-zA-Z0-9]{10,30}/.test(text)) {
+      return isRTL
+        ? '🚫 لا يمكن إرسال أرقام IBAN في الشات'
+        : '🚫 IBAN numbers are not allowed in P2P chat';
+    }
+    if (/[0-9]{12,}/.test(text)) {
+      return isRTL
+        ? '🚫 لا يمكن إرسال أرقام حسابات بنكية في الشات'
+        : '🚫 Bank account numbers are not allowed in P2P chat';
+    }
+    if (/(\+|00)[0-9]{10,14}/.test(text)) {
+      return isRTL
+        ? '🚫 لا يمكن إرسال أرقام هواتف دولية في الشات'
+        : '🚫 International phone numbers are not allowed in P2P chat';
+    }
+    return null;
+  };
+
   const handleSend = async () => {
     if (imagePreview) {
       await handleSendImage();
       return;
     }
     if (!message.trim()) return;
+
+    const blocked = checkMessageContent(message);
+    if (blocked) {
+      showError(blocked);
+      return;
+    }
+
     onSendMessage(message);
     setMessage('');
   };
