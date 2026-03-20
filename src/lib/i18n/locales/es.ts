@@ -291,6 +291,31 @@ export const es = {
       all: 'Todos',
       clearSearch: 'Borrar búsqueda',
     },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'Congelar Cartera',
+        unfreezeWallet: 'Descongelar Cartera',
+        descFreeze: 'Congelar bloquea todas las operaciones financieras',
+        descUnfreeze: 'Descongelar para permitir operaciones financieras',
+        frozen: 'Congelada',
+        reasonLabel: 'Razón de Congelación *',
+        reasonPlaceholder: 'Ingresa la razón de congelación...',
+        customReasonLabel: 'Razón',
+        warningText: 'Congelar bloqueará: transferencias, trading P2P y retiros.',
+        selectReasonError: 'Por favor selecciona una razón de congelación',
+        frozenSuccess: 'Cartera congelada exitosamente',
+        unfrozenSuccess: 'Cartera descongelada exitosamente',
+        onlyAdminCanUnfreeze: 'Solo Admin puede descongelar. Contacta a tu administrador.',
+        reasons: {
+          fraud: 'Fraude',
+          scam: 'Estafa',
+          chargeback: 'Contracargo',
+          manual_review: 'Revisión Manual',
+          other: 'Otro',
+        },
+      },
+    },
     // Settings
     settings: {
       title: 'Configuración',

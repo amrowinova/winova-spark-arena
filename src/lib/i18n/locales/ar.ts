@@ -291,6 +291,31 @@ export const ar = {
       all: 'الكل',
       clearSearch: 'مسح البحث',
     },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'تجميد المحفظة',
+        unfreezeWallet: 'فك تجميد المحفظة',
+        descFreeze: 'تجميد محفظة المستخدم يمنع جميع العمليات المالية',
+        descUnfreeze: 'فك تجميد محفظة المستخدم للسماح بالعمليات المالية',
+        frozen: 'مجمّد',
+        reasonLabel: 'سبب التجميد *',
+        reasonPlaceholder: 'أدخل سبب التجميد...',
+        customReasonLabel: 'السبب',
+        warningText: 'تجميد المحفظة سيمنع المستخدم من: التحويل، التداول P2P، والسحب.',
+        selectReasonError: 'يرجى اختيار سبب التجميد',
+        frozenSuccess: 'تم تجميد المحفظة بنجاح',
+        unfrozenSuccess: 'تم فك تجميد المحفظة بنجاح',
+        onlyAdminCanUnfreeze: 'فقط المشرف يستطيع فك التجميد. تواصل مع المشرف.',
+        reasons: {
+          fraud: 'احتيال',
+          scam: 'نصب',
+          chargeback: 'استرداد مبالغ',
+          manual_review: 'مراجعة يدوية',
+          other: 'أخرى',
+        },
+      },
+    },
     // Settings
     settings: {
       title: 'الإعدادات',

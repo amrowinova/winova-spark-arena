@@ -291,6 +291,31 @@ export const de = {
       all: 'Alle',
       clearSearch: 'Suche löschen',
     },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'Geldbörse Einfrieren',
+        unfreezeWallet: 'Geldbörse Freigeben',
+        descFreeze: 'Einfrieren blockiert alle Finanztransaktionen',
+        descUnfreeze: 'Freigeben um Finanztransaktionen zu erlauben',
+        frozen: 'Eingefroren',
+        reasonLabel: 'Einfriergrund *',
+        reasonPlaceholder: 'Einfriergrund eingeben...',
+        customReasonLabel: 'Grund',
+        warningText: 'Einfrieren blockiert: Überweisungen, P2P-Handel und Auszahlungen.',
+        selectReasonError: 'Bitte wählen Sie einen Einfriergrund',
+        frozenSuccess: 'Geldbörse erfolgreich eingefroren',
+        unfrozenSuccess: 'Geldbörse erfolgreich freigegeben',
+        onlyAdminCanUnfreeze: 'Nur Admin kann freigeben. Kontaktieren Sie Ihren Administrator.',
+        reasons: {
+          fraud: 'Betrug',
+          scam: 'Schwindel',
+          chargeback: 'Rückbuchung',
+          manual_review: 'Manuelle Überprüfung',
+          other: 'Sonstiges',
+        },
+      },
+    },
     // Settings
     settings: {
       title: 'Einstellungen',

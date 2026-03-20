@@ -291,6 +291,31 @@ export const nl = {
       all: 'Alle',
       clearSearch: 'Zoekopdracht wissen',
     },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'Portemonnee Blokkeren',
+        unfreezeWallet: 'Portemonnee Deblokkeren',
+        descFreeze: 'Blokkeren verhindert alle financiële transacties',
+        descUnfreeze: 'Deblokkeer om financiële transacties toe te staan',
+        frozen: 'Geblokkeerd',
+        reasonLabel: 'Blokkeerreden *',
+        reasonPlaceholder: 'Voer blokkeerreden in...',
+        customReasonLabel: 'Reden',
+        warningText: 'Blokkeren verhindert: overboekingen, P2P-handel en opnames.',
+        selectReasonError: 'Selecteer een blokkeerreden',
+        frozenSuccess: 'Portemonnee succesvol geblokkeerd',
+        unfrozenSuccess: 'Portemonnee succesvol gedeblokkeerd',
+        onlyAdminCanUnfreeze: 'Alleen Admin kan deblokkeren. Neem contact op met uw beheerder.',
+        reasons: {
+          fraud: 'Fraude',
+          scam: 'Oplichting',
+          chargeback: 'Terugboeking',
+          manual_review: 'Handmatige Beoordeling',
+          other: 'Overig',
+        },
+      },
+    },
     // Settings
     settings: {
       title: 'Instellingen',

@@ -291,6 +291,31 @@ export const en = {
       all: 'All',
       clearSearch: 'Clear search',
     },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'Freeze Wallet',
+        unfreezeWallet: 'Unfreeze Wallet',
+        descFreeze: 'Freezing wallet blocks all financial operations',
+        descUnfreeze: 'Unfreeze wallet to allow financial operations',
+        frozen: 'Frozen',
+        reasonLabel: 'Freeze Reason *',
+        reasonPlaceholder: 'Enter freeze reason...',
+        customReasonLabel: 'Reason',
+        warningText: 'Freezing will block: transfers, P2P trading, and withdrawals.',
+        selectReasonError: 'Please select a freeze reason',
+        frozenSuccess: 'Wallet frozen successfully',
+        unfrozenSuccess: 'Wallet unfrozen successfully',
+        onlyAdminCanUnfreeze: 'Only Admin can unfreeze. Contact your administrator.',
+        reasons: {
+          fraud: 'Fraud',
+          scam: 'Scam',
+          chargeback: 'Chargeback',
+          manual_review: 'Manual Review',
+          other: 'Other',
+        },
+      },
+    },
     // Settings
     settings: {
       title: 'Settings',

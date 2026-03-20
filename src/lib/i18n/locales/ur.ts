@@ -291,6 +291,31 @@ export const ur = {
       all: 'سب',
       clearSearch: 'تلاش مٹائیں',
     },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'والیٹ منجمد کریں',
+        unfreezeWallet: 'والیٹ غیر منجمد کریں',
+        descFreeze: 'منجمد کرنے سے تمام مالی لین دین بند ہو جاتی ہے',
+        descUnfreeze: 'مالی لین دین کی اجازت دینے کے لیے غیر منجمد کریں',
+        frozen: 'منجمد',
+        reasonLabel: 'منجمد کرنے کی وجہ *',
+        reasonPlaceholder: 'منجمد کرنے کی وجہ درج کریں...',
+        customReasonLabel: 'وجہ',
+        warningText: 'منجمد کرنے سے یہ بند ہوں گے: ٹرانسفر، P2P ٹریڈنگ، اور نکاسی۔',
+        selectReasonError: 'براہ کرم منجمد کرنے کی وجہ منتخب کریں',
+        frozenSuccess: 'والیٹ کامیابی سے منجمد ہو گیا',
+        unfrozenSuccess: 'والیٹ کامیابی سے غیر منجمد ہو گیا',
+        onlyAdminCanUnfreeze: 'صرف ایڈمن غیر منجمد کر سکتا ہے۔ اپنے منتظم سے رابطہ کریں۔',
+        reasons: {
+          fraud: 'دھوکہ دہی',
+          scam: 'فراڈ',
+          chargeback: 'واپسی کا دعویٰ',
+          manual_review: 'دستی جائزہ',
+          other: 'دیگر',
+        },
+      },
+    },
     // Settings
     settings: {
       title: 'ترتیبات',

@@ -291,6 +291,31 @@ export const tr = {
       all: 'Tümü',
       clearSearch: 'Aramayı Temizle',
     },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'Cüzdanı Dondur',
+        unfreezeWallet: 'Cüzdanı Serbest Bırak',
+        descFreeze: 'Cüzdanı dondurmak tüm finansal işlemleri engeller',
+        descUnfreeze: 'Finansal işlemlere izin vermek için cüzdanı serbest bırakın',
+        frozen: 'Dondurulmuş',
+        reasonLabel: 'Dondurma Nedeni *',
+        reasonPlaceholder: 'Dondurma nedenini girin...',
+        customReasonLabel: 'Neden',
+        warningText: 'Dondurma şunları engelleyecek: transferler, P2P işlemleri ve çekimler.',
+        selectReasonError: 'Lütfen bir dondurma nedeni seçin',
+        frozenSuccess: 'Cüzdan başarıyla donduruldu',
+        unfrozenSuccess: 'Cüzdan başarıyla serbest bırakıldı',
+        onlyAdminCanUnfreeze: 'Yalnızca Admin dondurma kaldırabilir. Yöneticinizle iletişime geçin.',
+        reasons: {
+          fraud: 'Dolandırıcılık',
+          scam: 'Dolandırma',
+          chargeback: 'İade Talebi',
+          manual_review: 'Manuel İnceleme',
+          other: 'Diğer',
+        },
+      },
+    },
     // Settings
     settings: {
       title: 'Ayarlar',

@@ -291,6 +291,31 @@ export const fr = {
       all: 'Tous',
       clearSearch: 'Effacer la recherche',
     },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'Geler le Portefeuille',
+        unfreezeWallet: 'Dégeler le Portefeuille',
+        descFreeze: 'Geler bloque toutes les opérations financières',
+        descUnfreeze: 'Dégeler pour autoriser les opérations financières',
+        frozen: 'Gelé',
+        reasonLabel: 'Raison du Gel *',
+        reasonPlaceholder: 'Entrez la raison du gel...',
+        customReasonLabel: 'Raison',
+        warningText: 'Le gel bloquera: les transferts, le trading P2P et les retraits.',
+        selectReasonError: 'Veuillez sélectionner une raison de gel',
+        frozenSuccess: 'Portefeuille gelé avec succès',
+        unfrozenSuccess: 'Portefeuille dégelé avec succès',
+        onlyAdminCanUnfreeze: "Seul l'Admin peut dégeler. Contactez votre administrateur.",
+        reasons: {
+          fraud: 'Fraude',
+          scam: 'Arnaque',
+          chargeback: 'Rétrofacturation',
+          manual_review: 'Révision Manuelle',
+          other: 'Autre',
+        },
+      },
+    },
     // Settings
     settings: {
       title: 'Paramètres',
