@@ -11,7 +11,7 @@ export interface ContestHistoryItem {
   participants: number;
   userRank: number | null;
   participated: boolean;
-  winners: { id?: string; name: string; prize: number; rank: number; votes: number }[];
+  winners: { id?: string; name: string; prize: number; rank: number; votes: number; country?: string }[];
 }
 
 interface ContestHistoryCardProps {

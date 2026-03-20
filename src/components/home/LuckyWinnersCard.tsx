@@ -6,13 +6,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCountryFlag } from '@/lib/countryFlags';
-import { getPlatformUserById } from '@/lib/platformUsers';
 
 interface LuckyWinner {
   id: string;
   name: string;
   avatar: string;
   prize: number;
+  country?: string;
 }
 
 interface LuckyWinnersCardProps {
@@ -80,11 +80,9 @@ export function LuckyWinnersCard({ winners, country }: LuckyWinnersCardProps) {
                 >
                   {winner.name}
                 </p>
-                {(() => {
-                  const user = getPlatformUserById(winner.id);
-                  const flag = user ? getCountryFlag(user.country) : '';
-                  return flag ? <span className="text-xs shrink-0">{flag}</span> : null;
-                })()}
+                {winner.country && getCountryFlag(winner.country) && (
+                  <span className="text-xs shrink-0">{getCountryFlag(winner.country)}</span>
+                )}
               </div>
               
               <div className="text-center">

@@ -6,7 +6,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCountryFlag } from '@/lib/countryFlags';
-import { getPlatformUserById } from '@/lib/platformUsers';
 
 interface Winner {
   id: string;
@@ -15,6 +14,7 @@ interface Winner {
   rank: string;
   prize: number;
   position: number;
+  country?: string;
 }
 
 interface ContestWinnersCardProps {
@@ -85,11 +85,9 @@ export function ContestWinnersCard({ winners, prizePool, country, limit = 3 }: C
                   >
                     {winner.name}
                   </p>
-                  {(() => {
-                    const user = getPlatformUserById(winner.id);
-                    const flag = user ? getCountryFlag(user.country) : '';
-                    return flag ? <span className="text-sm shrink-0">{flag}</span> : null;
-                  })()}
+                  {winner.country && getCountryFlag(winner.country) && (
+                    <span className="text-sm shrink-0">{getCountryFlag(winner.country)}</span>
+                  )}
                 </div>
               </div>
 
