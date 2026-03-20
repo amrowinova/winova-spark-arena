@@ -118,6 +118,7 @@ export default function AdminContests() {
   const [configForm, setConfigForm] = useState({
     entryFee: String(DEFAULT_CONTEST_CONFIG.entryFee),
     prizePoolRate: String(DEFAULT_CONTEST_CONFIG.prizePoolRate),
+    voteEarningsPct: String(Math.round(DEFAULT_CONTEST_CONFIG.voteEarningsPct * 100)),
     distribution: DEFAULT_CONTEST_CONFIG.distribution.map((d) => ({
       place: d.place,
       pct: String(d.pct),
@@ -129,6 +130,7 @@ export default function AdminContests() {
     setConfigForm({
       entryFee: String(contestConfig.entryFee),
       prizePoolRate: String(contestConfig.prizePoolRate),
+      voteEarningsPct: String(Math.round(contestConfig.voteEarningsPct * 100)),
       distribution: contestConfig.distribution.map((d) => ({
         place: d.place,
         pct: String(d.pct),
@@ -162,8 +164,13 @@ export default function AdminContests() {
     }
     const entryFee = parseFloat(configForm.entryFee);
     const prizePoolRate = parseFloat(configForm.prizePoolRate);
+    const voteEarningsPct = parseFloat(configForm.voteEarningsPct) / 100;
     if (!entryFee || entryFee <= 0 || !prizePoolRate || prizePoolRate <= 0 || prizePoolRate > entryFee) {
       toast.error(isRTL ? 'تحقق من رسوم الدخول ومعدل صندوق الجوائز' : 'Check entry fee and prize pool rate');
+      return;
+    }
+    if (isNaN(voteEarningsPct) || voteEarningsPct < 0 || voteEarningsPct > 1) {
+      toast.error(isRTL ? 'نسبة مكافأة الأصوات يجب أن تكون بين 0% و 100%' : 'Vote earnings % must be between 0 and 100');
       return;
     }
     setIsSavingConfig(true);
@@ -171,6 +178,7 @@ export default function AdminContests() {
       await saveContestConfig({
         entryFee,
         prizePoolRate,
+        voteEarningsPct,
         distribution: enrichDistribution(
           configForm.distribution.map((d) => ({ place: d.place, pct: parseFloat(d.pct) || 0 }))
         ),
@@ -325,6 +333,7 @@ export default function AdminContests() {
             <span>🎟️ {isRTL ? 'رسوم الدخول:' : 'Entry Fee:'} <strong>{contestConfig.entryFee} Nova</strong></span>
             <span>🏆 {isRTL ? 'الفائزون:' : 'Winners:'} <strong>{contestConfig.distribution.length}</strong></span>
             <span>🥇 {isRTL ? 'المركز الأول:' : '1st Place:'} <strong>{contestConfig.distribution[0]?.pct ?? 0}%</strong></span>
+            <span>💰 {isRTL ? 'مكافأة الأصوات:' : 'Vote Rebate:'} <strong>{Math.round(contestConfig.voteEarningsPct * 100)}%</strong></span>
           </div>
         </Card>
 
@@ -641,6 +650,27 @@ export default function AdminContests() {
                 {isRTL
                   ? `مثال: رسوم ${configForm.entryFee} Nova → ${configForm.prizePoolRate} Nova تذهب لصندوق الجوائز`
                   : `Example: ${configForm.entryFee} Nova fee → ${configForm.prizePoolRate} Nova goes to prize pool`}
+              </p>
+            </div>
+
+            {/* Vote Earnings Rebate % — internal only */}
+            <div>
+              <Label className="text-xs">{isRTL ? 'نسبة مكافأة الأصوات المدفوعة (%)' : 'Vote Earnings Rebate (%)'} *</Label>
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={configForm.voteEarningsPct}
+                  onChange={(e) => setConfigForm((p) => ({ ...p, voteEarningsPct: e.target.value }))}
+                />
+                <Percent className="w-4 h-4 text-muted-foreground shrink-0" />
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {isRTL
+                  ? `بعد كل مرحلة: المشترك يسترد ${configForm.voteEarningsPct}% من الأصوات المدفوعة التي حصل عليها`
+                  : `After each stage: contestant gets back ${configForm.voteEarningsPct}% of paid votes they received`}
               </p>
             </div>
 

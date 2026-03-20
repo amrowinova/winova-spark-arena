@@ -20,6 +20,11 @@ function parseContestConfig(raw: unknown): ContestConfig {
       ? obj.prizePoolRate
       : DEFAULT_CONTEST_CONFIG.prizePoolRate;
 
+  const voteEarningsPct =
+    typeof obj.voteEarningsPct === 'number' && obj.voteEarningsPct >= 0 && obj.voteEarningsPct <= 1
+      ? obj.voteEarningsPct
+      : DEFAULT_CONTEST_CONFIG.voteEarningsPct;
+
   const rawDist = Array.isArray(obj.distribution) ? obj.distribution : null;
   const distribution =
     rawDist && rawDist.length > 0
@@ -39,7 +44,7 @@ function parseContestConfig(raw: unknown): ContestConfig {
         )
       : DEFAULT_CONTEST_CONFIG.distribution;
 
-  return { entryFee, prizePoolRate, distribution };
+  return { entryFee, prizePoolRate, voteEarningsPct, distribution };
 }
 
 async function fetchContestConfig(): Promise<ContestConfig> {
@@ -74,6 +79,7 @@ export async function saveContestConfig(
   const payload = {
     entryFee: config.entryFee,
     prizePoolRate: config.prizePoolRate,
+    voteEarningsPct: config.voteEarningsPct,
     distribution: config.distribution.map(({ place, pct }) => ({ place, pct })),
   };
 
