@@ -119,15 +119,12 @@ export function P2PBuyerFlow({ order, currentUserId, onOrderCompleted }: P2PBuye
           .upload(path, screenshot.file);
 
         if (uploadError) {
-          console.error('Screenshot upload failed:', uploadError);
           showError(isRTL ? 'فشل رفع الصورة، سيتم المتابعة بدونها' : 'Screenshot upload failed, proceeding without it');
         } else {
           const { data: urlData, error: urlError } = await supabase.storage
             .from('p2p-disputes')
             .createSignedUrl(path, 86400);
-          if (urlError) {
-            console.error('Failed to get screenshot URL:', urlError);
-          } else {
+          if (!urlError) {
             screenshotUrl = urlData?.signedUrl;
           }
         }

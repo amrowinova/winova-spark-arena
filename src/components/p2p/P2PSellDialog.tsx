@@ -109,10 +109,7 @@ export function P2PSellDialog({
       query = query.eq('country', offer.country.code);
     }
     const { data, error } = await query;
-    if (error) {
-      console.error('Failed to load payment methods:', error);
-      return;
-    }
+    if (error) return;
     setLocalMethods((data || []).map((m: any) => ({
       id: m.id,
       countryCode: m.country,

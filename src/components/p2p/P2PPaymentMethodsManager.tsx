@@ -152,10 +152,7 @@ export function P2PPaymentMethodsManager({
   // Load saved methods via RPC (returns decrypted data for current user only)
   const loadMethods = async () => {
     const { data, error } = await supabase.rpc('get_my_payment_methods');
-    if (error) {
-      console.error('Failed to load payment methods:', error);
-      return;
-    }
+    if (error) return;
     const mapped: SavedPaymentMethod[] = (data || []).map((m: any) => ({
       id: m.id,
       countryCode: m.country,
@@ -217,10 +214,7 @@ export function P2PPaymentMethodsManager({
       p_is_default:      countryMethods.length === 0,
     });
 
-    if (error || !data?.success) {
-      console.error('Failed to add payment method:', error || data?.error);
-      return;
-    }
+    if (error || !data?.success) return;
 
     resetForm();
     setIsAddDialogOpen(false);
@@ -244,10 +238,7 @@ export function P2PPaymentMethodsManager({
       p_notes:          notes || null,
     });
 
-    if (error || !data?.success) {
-      console.error('Failed to update payment method:', error || data?.error);
-      return;
-    }
+    if (error || !data?.success) return;
 
     resetForm();
     setEditingMethod(null);
@@ -259,10 +250,7 @@ export function P2PPaymentMethodsManager({
     const deletedWasDefault = savedMethods.find(m => m.id === id)?.isDefault;
 
     const { data, error } = await supabase.rpc('delete_payment_method', { p_id: id });
-    if (error || !data?.success) {
-      console.error('Failed to delete payment method:', error || data?.error);
-      return;
-    }
+    if (error || !data?.success) return;
 
     // If we deleted the default, make first remaining one default
     if (deletedWasDefault) {
@@ -284,10 +272,7 @@ export function P2PPaymentMethodsManager({
       p_id: id,
       p_country: country.code,
     });
-    if (error || !data?.success) {
-      console.error('Failed to set default:', error || data?.error);
-      return;
-    }
+    if (error || !data?.success) return;
     await loadMethods();
   };
 
@@ -832,10 +817,7 @@ export function useSavedPaymentMethods(countryCode?: string) {
   useEffect(() => {
     const load = async () => {
       const { data, error } = await supabase.rpc('get_my_payment_methods');
-      if (error) {
-        console.error('Failed to load payment methods:', error);
-        return;
-      }
+      if (error) return;
 
       const mapped = (data || []).map((m: any) => ({
         id: m.id,

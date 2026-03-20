@@ -119,8 +119,7 @@ export function P2PChatInput({ orderId, onSendMessage }: P2PChatInputProps) {
       }
 
       handleRemoveImage();
-    } catch (err) {
-      console.error('Error uploading image:', err);
+    } catch {
       showError(isRTL ? 'فشل إرسال الصورة' : 'Failed to send image');
     } finally {
       setIsUploading(false);

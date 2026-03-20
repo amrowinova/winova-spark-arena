@@ -133,7 +133,6 @@ export function useP2PDatabase() {
       setIsWalletFrozen(frozen);
       return frozen;
     } catch (err) {
-      console.error('Error checking wallet frozen status:', err);
       return false;
     }
   }, [user]);
@@ -218,7 +217,6 @@ export function useP2PDatabase() {
       setOrders(ordersWithProfiles);
     } catch (err) {
       setError(err as Error);
-      console.error('Error fetching P2P orders:', err);
     }
   }, [user]);
 
@@ -239,7 +237,6 @@ export function useP2PDatabase() {
       if (error) throw error;
       setCancellationsCount(count || 0);
     } catch (err) {
-      console.error('Error fetching cancellations count:', err);
     }
   }, [user]);
 
@@ -263,7 +260,6 @@ export function useP2PDatabase() {
       
       return data || [];
     } catch (err) {
-      console.error('Error fetching P2P messages:', err);
       return [];
     }
   }, [user]);
@@ -295,7 +291,6 @@ export function useP2PDatabase() {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error sending P2P message:', err);
       return null;
     }
   }, [user]);
@@ -326,7 +321,6 @@ export function useP2PDatabase() {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error('Error sending system message:', err);
       return null;
     }
   }, [user]);
@@ -397,7 +391,6 @@ export function useP2PDatabase() {
       }
 
       if (!result.success) {
-        console.error('Create order failed:', result.error);
         return null;
       }
 
@@ -406,7 +399,6 @@ export function useP2PDatabase() {
       
       return { id: result.order_id };
     } catch (err) {
-      console.error('Error creating P2P order:', err);
       return null;
     }
   }, [user, fetchOrders]);
@@ -419,14 +411,12 @@ export function useP2PDatabase() {
       const result = await P2PEscrow.executeOrder(orderId, user.id, paymentMethodId);
 
       if (!result.success) {
-        console.error('Execute order failed:', result.error);
         return { success: false, error: result.error };
       }
       
       await fetchOrders();
       return { success: true };
     } catch (err) {
-      console.error('Error executing P2P order:', err);
       return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
@@ -439,14 +429,12 @@ export function useP2PDatabase() {
       const result = await P2PEscrow.confirmPayment(orderId, user.id);
 
       if (!result.success) {
-        console.error('Confirm payment failed:', result.error);
         return { success: false, error: result.error };
       }
       
       fetchOrders();
       return { success: true };
     } catch (err) {
-      console.error('Error confirming payment:', err);
       return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
@@ -459,14 +447,12 @@ export function useP2PDatabase() {
       const result = await P2PEscrow.releaseEscrow(orderId, user.id);
 
       if (!result.success) {
-        console.error('Release escrow failed:', result.error);
         return { success: false, error: result.error };
       }
       
       fetchOrders();
       return { success: true };
     } catch (err) {
-      console.error('Error releasing funds:', err);
       return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
@@ -479,14 +465,12 @@ export function useP2PDatabase() {
       const result = await P2PEscrow.deleteOrder(orderId, user.id);
 
       if (!result.success) {
-        console.error('Delete order failed:', result.error);
         return { success: false, error: result.error };
       }
       
       fetchOrders();
       return { success: true };
     } catch (err) {
-      console.error('Error deleting order:', err);
       return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
@@ -503,7 +487,6 @@ export function useP2PDatabase() {
       const result = await P2PEscrow.cancelOrder(orderId, user.id, reason);
 
       if (!result.success) {
-        console.error('Cancel order failed:', result.error);
         return { success: false, error: result.error };
       }
       
@@ -511,7 +494,6 @@ export function useP2PDatabase() {
       fetchCancellationsCount();
       return { success: true };
     } catch (err) {
-      console.error('Error cancelling order:', err);
       return { success: false, error: 'Network error' };
     }
   }, [user, cancellationsCount, fetchOrders, fetchCancellationsCount]);
@@ -524,7 +506,6 @@ export function useP2PDatabase() {
       const result = await P2PEscrow.relistOrder(orderId, user.id, reason);
 
       if (!result.success) {
-        console.error('Relist order failed:', result.error);
         return { success: false, error: result.error };
       }
 
@@ -532,7 +513,6 @@ export function useP2PDatabase() {
       fetchOrders();
       return { success: true };
     } catch (err) {
-      console.error('Error relisting order:', err);
       return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders, fetchCancellationsCount]);
@@ -545,14 +525,12 @@ export function useP2PDatabase() {
       const result = await P2PEscrow.openDispute(orderId, user.id, reason);
 
       if (!result.success) {
-        console.error('Open dispute failed:', result.error);
         return { success: false, error: result.error };
       }
       
       fetchOrders();
       return { success: true };
     } catch (err) {
-      console.error('Error opening dispute:', err);
       return { success: false, error: 'Network error' };
     }
   }, [user, fetchOrders]);
@@ -565,20 +543,17 @@ export function useP2PDatabase() {
       const { data, error } = await supabase.rpc('p2p_expire_order', { p_order_id: orderId });
 
       if (error) {
-        console.error('RPC p2p_expire_order error:', error);
         return false;
       }
 
       const result = data as { success: boolean; error?: string; action?: string };
       if (!result?.success) {
-        console.error('p2p_expire_order failed:', result?.error);
         return false;
       }
 
       fetchOrders();
       return true;
     } catch (err) {
-      console.error('Error expiring order:', err);
       return false;
     }
   }, [user, fetchOrders]);
@@ -631,7 +606,6 @@ export function useP2PDatabase() {
 
       return ordersWithProfiles;
     } catch (err) {
-      console.error('Error fetching open P2P orders:', err);
       return [];
     }
   }, []);
@@ -650,7 +624,6 @@ export function useP2PDatabase() {
       if (error) throw error;
       return (count || 0) > 0;
     } catch (err) {
-      console.error('Error checking active orders:', err);
       return false;
     }
   }, [user]);
@@ -725,7 +698,7 @@ export function useP2PDatabase() {
         }
       )
       .subscribe((status, err) => {
-        if (err) console.error('[P2P] orders subscription error:', err);
+        if (err) console.warn('[P2P] orders subscription error:', err);
         if (status === 'CHANNEL_ERROR') fetchOrders();
       });
 
@@ -752,7 +725,7 @@ export function useP2PDatabase() {
         }
       )
       .subscribe((status, err) => {
-        if (err) console.error('[P2P] messages subscription error:', err);
+        if (err) console.warn('[P2P] messages subscription error:', err);
       });
 
     return () => {
