@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { PINVerifyDialog } from '@/components/security/PINVerifyDialog';
 import { Send, User, AlertCircle, MapPin, Check, Lock, Loader2, Search, X, Star, StarOff, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +71,7 @@ export function TransferNovaDialog({
   const [showReceipt, setShowReceipt] = useState(false);
   const [generatedReceipt, setGeneratedReceipt] = useState<Receipt | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [pinVerifyOpen, setPinVerifyOpen] = useState(false);
 
   // Dual currency input mode
   const [inputMode, setInputMode] = useState<'nova' | 'local'>('nova');
@@ -683,7 +685,7 @@ export function TransferNovaDialog({
                   <Button
                     className="flex-1 h-12 bg-nova hover:bg-nova/90 text-nova-foreground font-bold"
                     disabled={isLoading || !canTransfer}
-                    onClick={handleTransfer}
+                    onClick={() => setPinVerifyOpen(true)}
                   >
                     {isLoading ? (
                       <>
@@ -703,6 +705,14 @@ export function TransferNovaDialog({
           </div>
         </DialogContent>
       </Dialog>
+
+      <PINVerifyDialog
+        open={pinVerifyOpen}
+        onOpenChange={setPinVerifyOpen}
+        onVerified={handleTransfer}
+        actionLabel={`Transfer ${novaAmount} Nova`}
+        actionLabelAr={`تحويل ${novaAmount} Nova`}
+      />
 
       <ReceiptDialog
         receipt={generatedReceipt}

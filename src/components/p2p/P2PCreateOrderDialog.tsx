@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { PINVerifyDialog } from '@/components/security/PINVerifyDialog';
 import { Lock, Info, CreditCard, AlertCircle, Eye, Wallet, Plus, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -85,6 +86,7 @@ export function P2PCreateOrderDialog({
   const [viewingMethod, setViewingMethod] = useState<SavedPaymentMethod | null>(null);
   const [isViewSheetOpen, setIsViewSheetOpen] = useState(false);
   const [isManageSheetOpen, setIsManageSheetOpen] = useState(false);
+  const [pinVerifyOpen, setPinVerifyOpen] = useState(false);
 
   // Get saved payment methods for this country
   const savedMethods = useSavedPaymentMethods(activeCountry.code);
@@ -520,7 +522,7 @@ export function P2PCreateOrderDialog({
             {/* Create Button */}
             <Button
               className="w-full h-12 text-base font-semibold"
-              onClick={handleCreate}
+              onClick={() => setPinVerifyOpen(true)}
               disabled={!canCreate || !!insufficientBalance || noSavedMethods || isSubmitting}
             >
               {isSubmitting ? (isRTL ? 'جاري الإنشاء...' : 'Creating...') : (isRTL ? 'إنشاء الطلب' : 'Create Order')}
@@ -528,6 +530,14 @@ export function P2PCreateOrderDialog({
           </div>
         </DialogContent>
       </Dialog>
+
+      <PINVerifyDialog
+        open={pinVerifyOpen}
+        onOpenChange={setPinVerifyOpen}
+        onVerified={handleCreate}
+        actionLabel={`Create P2P ${orderType} order — ${amount ?? 0} Nova`}
+        actionLabelAr={`إنشاء طلب P2P ${orderType === 'buy' ? 'شراء' : 'بيع'} — ${amount ?? 0} Nova`}
+      />
 
       {/* View Payment Method Sheet (Readonly) */}
       <Sheet open={isViewSheetOpen} onOpenChange={setIsViewSheetOpen}>

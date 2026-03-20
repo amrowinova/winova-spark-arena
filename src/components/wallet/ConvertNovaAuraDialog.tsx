@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PINVerifyDialog } from '@/components/security/PINVerifyDialog';
 import { RefreshCw, ArrowRight, AlertCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,7 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [pinVerifyOpen, setPinVerifyOpen] = useState(false);
 
   const novaBalance = wallet?.nova_balance ?? contextUser.novaBalance ?? 0;
   const auraBalance = wallet?.aura_balance ?? contextUser.auraBalance ?? 0;
@@ -194,7 +196,7 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
             <Button
               className="w-full h-12 bg-aura hover:bg-aura/90 text-aura-foreground font-bold"
               disabled={!canConvert || novaAmount <= 0 || isLoading}
-              onClick={handleConvert}
+              onClick={() => setPinVerifyOpen(true)}
             >
               {isLoading 
                 ? (language === 'ar' ? 'جاري التحويل...' : 'Converting...') 
@@ -203,5 +205,13 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
           </div>
         </DialogContent>
       </Dialog>
+
+      <PINVerifyDialog
+        open={pinVerifyOpen}
+        onOpenChange={setPinVerifyOpen}
+        onVerified={handleConvert}
+        actionLabel={`Convert ${novaAmount} Nova → Aura`}
+        actionLabelAr={`تحويل ${novaAmount} Nova إلى Aura`}
+      />
   );
 }

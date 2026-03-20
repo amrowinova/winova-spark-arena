@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { PINSetupDialog } from '@/components/security/PINSetupDialog';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, Lock, Shield, Eye, Bell, Wallet, ArrowLeftRight, Info,
@@ -57,6 +58,7 @@ export default function Settings() {
   const { user } = useAuth();
   const { success: showSuccess, error: showError } = useBanner();
   const { isGranted: pushGranted, isDenied: pushDenied, supported: pushSupported, requestPermission: requestPush } = usePushNotifications();
+  const [pinSetupOpen, setPinSetupOpen] = useState(false);
   const [openSections, setOpenSections] = useState<string[]>(['account']);
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
     '2fa': false,
@@ -162,11 +164,12 @@ export default function Settings() {
       titleEn: 'Security',
       titleAr: 'الأمان',
       items: [
+        { id: 'transactionPin', icon: Lock, titleEn: 'Transaction PIN', titleAr: 'رمز PIN للعمليات', descriptionEn: '6-digit PIN for transfers & P2P', descriptionAr: 'رمز سري 6 أرقام للتحويلات وP2P', type: 'link' },
         { id: '2fa', icon: Lock, titleEn: 'Two-Factor Authentication', titleAr: 'التحقق بخطوتين', type: 'toggle', value: false, comingSoon: true },
         { id: 'connectedDevices', icon: Monitor, titleEn: 'Connected Devices', titleAr: 'الأجهزة المتصلة', type: 'link', comingSoon: true },
         { id: 'loginHistory', icon: History, titleEn: 'Login History', titleAr: 'سجل تسجيل الدخول', type: 'link', comingSoon: true },
         { id: 'securityAlerts', icon: AlertTriangle, titleEn: 'Security Alerts', titleAr: 'تنبيهات الأمان', type: 'toggle', value: true, comingSoon: true },
-        { id: 'appLock', icon: Fingerprint, titleEn: 'App Lock', titleAr: 'قفل التطبيق', descriptionEn: 'Face ID / Touch ID', descriptionAr: 'Face ID / Touch ID', type: 'toggle', value: false, comingSoon: true },
+        { id: 'appLock', icon: Fingerprint, titleEn: 'App Lock (Biometrics)', titleAr: 'قفل التطبيق (بصمة/وجه)', descriptionEn: 'Face ID / Touch ID', descriptionAr: 'Face ID / Touch ID', type: 'toggle', value: false, comingSoon: true },
       ]
     },
     {
@@ -247,6 +250,7 @@ export default function Settings() {
     const Icon = item.icon;
     
     const handleClick = () => {
+      if (item.id === 'transactionPin') { setPinSetupOpen(true); return; }
       if (!item.comingSoon && item.route) {
         navigate(item.route);
       }
@@ -382,6 +386,11 @@ export default function Settings() {
       </motion.main>
 
       <BottomNav />
+
+      <PINSetupDialog
+        open={pinSetupOpen}
+        onOpenChange={setPinSetupOpen}
+      />
     </div>
   );
 }
