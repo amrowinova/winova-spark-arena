@@ -163,6 +163,108 @@ supabase/
 
 ---
 
+## خريطة المشروع الكاملة
+
+### الصفحات (27 صفحة)
+
+| المجموعة | الصفحات |
+|---|---|
+| **المستخدم العادي** | Index (الرئيسية), Contests (المسابقة), Team (الفريق), Wallet (المحفظة), Chat (الدردشة), P2P, Spotlight (المحظوظين), Profile, PublicProfile, Notifications, HallOfFame, LuckyLeaders, Settings, Help, Winners, Referral, PayUser, KYCPage |
+| **الدعم** (دور support) | SupportDashboard, SupportTicketDetail, SupportDisputes, SupportDisputeDetail, SupportUsers, SupportStaffRatings |
+| **الأدمن** (دور admin) | AdminDashboard, AdminWallets, AdminRoles, AdminProposals, AdminP2P, AdminPricing, AdminChangeRequests, AdminContests, AdminCycles, AdminBroadcast, AdminCommissions, AdminKYC |
+| **عام** | Terms, Privacy, Refund, AML, Contact, ReferralLanding, NotFound |
+
+### الـ Hooks الرئيسية (~40 hook)
+
+| المجال | الـ Hooks |
+|---|---|
+| **محفظة** | useWallet, useWalletHistory, useNovaPricing |
+| **مسابقة** | useContestConfig, useContestEngagement |
+| **فريق** | useTeamHierarchy, useTeamStats, useTeamEarnings |
+| **دردشة** | useDirectMessages, useTeamChat, useUserSearch, useChatListPresence, useTypingIndicator |
+| **P2P** | useP2PDatabase, useP2PMarketplace, useP2PRatings, useDisputeArbitration, useP2PExtendTime |
+| **Spotlight** | useSpotlight, useCycleProgress, useWeeklyPointsChart |
+| **مستخدم** | useProfile, useAuth, useUser, useFollows, useNotifications |
+| **أمان** | usePIN, useFrozenWalletGuard, useKYC |
+
+### الـ RPCs الرئيسية (SQL Functions)
+
+| الفئة | الدوال |
+|---|---|
+| **مالية (atomic)** | execute_transfer, admin_adjust_balance, join_contest, cast_vote, cast_free_vote, p2p_create_sell_order |
+| **Spotlight** | record_spotlight_points, get_active_cycle_info, get_cycle_progress, get_weekly_points_chart, update_weekly_streaks, run_daily_spotlight_draw |
+| **فريق** | get_team_hierarchy, get_team_level_breakdown, grant_vote_earnings |
+| **محفظة** | get_wallet_history |
+| **مساعدة** | has_role, is_support_staff, update_last_seen, search_messages, generate_referral_code_v2 |
+
+### الـ Triggers الرئيسية
+
+| الحدث | النتيجة |
+|---|---|
+| `auth.users` INSERT | → ينشئ profile + wallet تلقائياً |
+| `profiles` INSERT | → يحدد الـ referred_by ويضيف في team_members |
+| `contest_entries` INSERT | → +5 نقاط Spotlight |
+| `votes` INSERT | → +1 نقطة للناخب و+1 للمرشح |
+| `wallet_ledger` INSERT (transfer) | → +2 نقطة للطرفين |
+| `p2p_orders` UPDATE → completed | → +3 نقاط للطرفين |
+| `follows` INSERT | → إشعار للمتبوع |
+
+### جداول DB الأساسية
+
+```
+profiles          → بيانات المستخدم + الرتبة + الإحالة + الـ streak
+wallets           → رصيد Nova/Aura + حالة التجميد
+wallet_ledger     → سجل لا يمكن تعديله لكل حركة مالية
+contests          → المسابقات اليومية (status: active→stage1→final→completed)
+contest_entries   → دخول المستخدمين + الأصوات + الجائزة
+votes             → كل صوت مع مقدار Aura المُنفَق
+p2p_orders        → طلبات البيع/الشراء (open→matched→payment_sent→completed)
+team_members      → هرم الفريق (leader_id, member_id, level 1-5)
+spotlight_cycles  → دورات 14 أسبوع
+spotlight_user_points → نقاط يومية لكل مستخدم لكل مصدر
+spotlight_daily_draws → نتائج السحب اليومي
+app_settings      → إعدادات عامة (أسعار، نسب، ...)
+```
+
+### اقتصاد Nova/Aura
+
+```
+Nova يُكتسب من:  فوز المسابقة | عمولة الفريق (5-20%) | شراء عبر P2P | Admin Credit
+Nova يُنفَق على:  دخول المسابقة (10) | البيع عبر P2P (escrow) | التحويل لأشخاص | تحويل لـ Aura
+Aura يُكتسب من: تحويل Nova (1 Nova = 2 Aura) | مكافآت النشاط
+Aura يُنفَق على: التصويت في المسابقات (1 Aura/صوت)
+الحماية: Atomic RPCs | wallet_ledger لا يُعدَّل | تجميد الأدمن | Locked Balance (30 يوم)
+```
+
+### تدفق المسابقة اليومية
+
+```
+10 ص  → Contest scheduler ينشئ المسابقة
+10 ص–7م → join_contest() RPC: -10 Nova، +حصة في prize_pool
+2م–6م  → Stage 1: cast_vote() + cast_free_vote()
+6م     → أعلى 50 يتأهلون للنهائي
+6م–10م → Final: نفس التصويت (بدون free vote)
+10م    → completed → grant_vote_earnings() → run_daily_spotlight_draw()
+```
+
+### تدفق P2P
+
+```
+open → matched → awaiting_payment → payment_sent → completed/cancelled/disputed
+```
+- Sell order: Nova يُقفَل في escrow عند الإنشاء
+- Dispute: Support يراجع الأدلة ويُقرر في favor seller/buyer
+
+### نظام الإحالة
+
+```
+User A يشارك code → User B يسجل بالكود → B يُضاف كـ direct في team_members
+كل ما B ينفق Nova → A يحصل commission حسب رتبته:
+subscriber: 0% | marketer: 5% | leader: 10% | manager: 15% | president: 20%
+```
+
+---
+
 ## أولويات العمل الحالية
 
 | الأولوية | المهمة | الحالة |
