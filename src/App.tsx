@@ -41,6 +41,7 @@ import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import PayUser from "./pages/PayUser";
 import ReferralLanding from "./pages/ReferralLanding";
+import Referral from "./pages/Referral";
 
 // Support Pages
 import SupportDashboard from "./pages/support/SupportDashboard";
@@ -139,6 +140,7 @@ const App = () => {
                             <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
                             <Route path="/lucky-leaders" element={<AuthGuard><LuckyLeaders /></AuthGuard>} />
                             <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
+                            <Route path="/referral" element={<AuthGuard><Referral /></AuthGuard>} />
                             
                             {/* Support Panel routes - require support role */}
                             <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />

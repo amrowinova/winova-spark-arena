@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut, ChevronDown, Shield, Crown } from 'lucide-react';
+import { Trophy, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut, ChevronDown, Shield, Crown, Gift } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage, SUPPORTED_LANGUAGES, Language } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +37,7 @@ const mainItems = [
 
 // Secondary menu items
 const secondaryItems = [
+  { icon: Gift, path: '/referral', labelEn: 'Invite Friends', labelAr: 'ادعُ أصدقاء', emoji: '🎁' },
   { icon: Settings, path: '/settings', labelEn: 'Settings', labelAr: 'الإعدادات', emoji: '⚙️' },
   { icon: HelpCircle, path: '/help', labelEn: 'Help', labelAr: 'المساعدة', emoji: '❓' },
   { icon: FileText, path: '/terms', labelEn: 'Policies', labelAr: 'السياسات', emoji: '📄' },
