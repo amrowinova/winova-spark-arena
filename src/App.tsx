@@ -19,6 +19,7 @@ import { AuthGuard, SupportGuard, AdminGuard } from "@/components/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppErrorBoundary } from "@/components/common/AppErrorBoundary";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import "@/lib/i18n/index";
 
 // Pages
@@ -107,6 +108,7 @@ const App = () => {
                           <GlobalAuthGuard />
                           <ProfileEnsureWrapper />
                           <ChatNotificationHandler />
+                          <OnboardingFlow />
                           <InlineBanner />
                           <Toaster position="top-center" richColors />
                           <Routes>
