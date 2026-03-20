@@ -22,14 +22,15 @@ import {
 } from '@/components/ui/dialog';
 import { useBanner } from '@/contexts/BannerContext';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  getContestTiming, 
-  formatTimeRemaining, 
+import {
+  getContestTiming,
+  formatTimeRemaining,
   formatContestTime,
   getPhaseLabel,
   getCountdownTarget,
-  type ContestPhase 
+  type ContestPhase,
 } from '@/lib/contestTiming';
+import { useContestConfig } from '@/hooks/useContestConfig';
 
 // Contest Components
 import {
@@ -67,9 +68,6 @@ const formatBalance = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
 };
 
-// Prize distribution percentages
-const PRIZE_DISTRIBUTION = [50, 20, 15, 10, 5]; // Top 5
-
 export default function ContestsPage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
@@ -77,6 +75,7 @@ export default function ContestsPage() {
   const { user, spendAura, spendNova } = useUser();
   const { createTransaction } = useTransactions();
   const { success: showSuccess, error: showError } = useBanner();
+  const { config: contestConfig } = useContestConfig();
 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [winners, setWinners] = useState<Winner[]>([]);
@@ -697,7 +696,8 @@ export default function ContestsPage() {
           <div className="space-y-3">
             {winners.length > 0 ? (
               winners.map((winner, index) => {
-                const prizePercent = PRIZE_DISTRIBUTION[index] || 0;
+                const slot = contestConfig.distribution[index];
+                const prizePercent = slot?.pct ?? 0;
                 const prizeAmount = (prizePool * prizePercent) / 100;
                 
                 return (

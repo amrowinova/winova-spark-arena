@@ -3,6 +3,9 @@ import { TrendingUp, Check, Trophy, Flame, Rocket, Target, Gift } from 'lucide-r
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useNovaPricing } from '@/hooks/useNovaPricing';
+import { useUser } from '@/contexts/UserContext';
+import { useContestConfig } from '@/hooks/useContestConfig';
 
 type ContestStage = 'qualifying' | 'final';
 
@@ -20,34 +23,31 @@ interface ContestUserStatusCardProps {
   hasJoined: boolean;
 }
 
-// Prize distribution percentages
-const PRIZE_PERCENTAGES: Record<number, number> = {
-  1: 50,
-  2: 20,
-  3: 15,
-  4: 10,
-  5: 5,
-};
-
-export function ContestUserStatusCard({ 
-  userRank, 
-  userVotes, 
+export function ContestUserStatusCard({
+  userRank,
+  userVotes,
   stage,
   prizePool,
   votesNeededForTop50 = 0,
   votesNeededForTop5 = 0,
   votesNeededForRank1 = 0,
-  hasJoined 
+  hasJoined,
 }: ContestUserStatusCardProps) {
   const { language } = useLanguage();
+  const { user } = useUser();
+  const { getCurrencyInfo } = useNovaPricing();
+  const { config } = useContestConfig();
+  const pricing = getCurrencyInfo(user.country);
   const isRTL = language === 'ar';
-  
+
   if (!hasJoined) return null;
-  
+
+  const winnersCount = config.distribution.length;
+
   // Determine qualification status based on stage
   const isQualifiedStage1 = userRank <= 50;
-  const isQualifiedFinal = userRank <= 5;
-  const isInTop5 = userRank <= 5;
+  const isQualifiedFinal = userRank <= winnersCount;
+  const isInTop5 = userRank <= winnersCount;
   
   // Calculate remaining votes based on stage
   const votesRemainingForTop50 = Math.max(0, votesNeededForTop50 - userVotes);
@@ -56,8 +56,8 @@ export function ContestUserStatusCard({
   
   // Calculate prize for current rank
   const getPrizeForRank = (rank: number): number => {
-    const percentage = PRIZE_PERCENTAGES[rank];
-    return percentage ? Math.round(prizePool * percentage / 100) : 0;
+    const slot = config.distribution.find((d) => d.place === rank);
+    return slot ? Math.round(prizePool * slot.pct / 100) : 0;
   };
 
   // Progress calculation
@@ -102,41 +102,25 @@ export function ContestUserStatusCard({
     }
   };
 
-  // Get prize message based on rank
+  // Get prize message based on rank — shows both Nova and local currency
   const getPrizeMessage = (rank: number): string => {
     const prize = getPrizeForRank(rank);
+    const prizeLocal = Math.round(prize * pricing.novaRate);
     const emoji = getPrizeEmoji(rank);
-    
+    const slot = config.distribution.find((d) => d.place === rank);
+    if (!slot) return '';
+
+    const novaStr = `И ${prize} Nova = ${pricing.symbol} ${prizeLocal.toLocaleString()}`;
+    const rankLabel = isRTL ? slot.arLabel : slot.label;
+
     if (isRTL) {
-      switch (rank) {
-        case 1:
-          return `${emoji} إذا حافظت على المركز الأول ستحصل على И ${prize} Nova`;
-        case 2:
-          return `${emoji} إذا حافظت على المركز الثاني ستحصل على И ${prize} Nova`;
-        case 3:
-          return `${emoji} جائزة المركز الثالث И ${prize} Nova`;
-        case 4:
-          return `${emoji} جائزة المركز الرابع И ${prize} Nova`;
-        case 5:
-          return `${emoji} جائزة المركز الخامس И ${prize} Nova`;
-        default:
-          return '';
-      }
+      return rank <= 2
+        ? `${emoji} إذا حافظت على المركز ${rankLabel} ستحصل على ${novaStr}`
+        : `${emoji} جائزة المركز ${rankLabel}: ${novaStr}`;
     } else {
-      switch (rank) {
-        case 1:
-          return `${emoji} Keep 1st place to win И ${prize} Nova`;
-        case 2:
-          return `${emoji} Keep 2nd place to win И ${prize} Nova`;
-        case 3:
-          return `${emoji} 3rd place prize: И ${prize} Nova`;
-        case 4:
-          return `${emoji} 4th place prize: И ${prize} Nova`;
-        case 5:
-          return `${emoji} 5th place prize: И ${prize} Nova`;
-        default:
-          return '';
-      }
+      return rank <= 2
+        ? `${emoji} Keep ${rankLabel} place to win ${novaStr}`
+        : `${emoji} ${rankLabel} place prize: ${novaStr}`;
     }
   };
 

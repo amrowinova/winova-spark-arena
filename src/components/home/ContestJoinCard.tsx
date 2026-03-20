@@ -8,6 +8,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useNovaPricing } from '@/hooks/useNovaPricing';
 import { Link } from 'react-router-dom';
 import { getContestTiming, getSaudiDateStr, type ContestTimingInfo } from '@/lib/contestTiming';
+import { useContestConfig } from '@/hooks/useContestConfig';
 
 interface ContestJoinCardProps {
   prizePool: number;
@@ -64,6 +65,7 @@ export function ContestJoinCard({
   const { language } = useLanguage();
   const { user } = useUser();
   const { getCurrencyInfo } = useNovaPricing();
+  const { config } = useContestConfig();
   const pricing = getCurrencyInfo(user.country);
   const isRTL = language === 'ar';
 
@@ -88,14 +90,12 @@ export function ContestJoinCard({
     phase === 'results' ? timing.resultsEnd.getTime() : timing.joinOpenAt.getTime()
   );
 
-  // Prize distribution
-  const prizes = [
-    { label: isRTL ? 'المركز الأول' : '1st Place', emoji: '🥇', pct: 50 },
-    { label: isRTL ? 'المركز الثاني' : '2nd Place', emoji: '🥈', pct: 20 },
-    { label: isRTL ? 'المركز الثالث' : '3rd Place', emoji: '🥉', pct: 15 },
-    { label: isRTL ? 'المركز الرابع' : '4th Place', emoji: '🏅', pct: 10 },
-    { label: isRTL ? 'المركز الخامس' : '5th Place', emoji: '🏅', pct: 5 },
-  ];
+  // Prize distribution — from admin-controlled config
+  const prizes = config.distribution.map((d) => ({
+    label: isRTL ? `المركز ${d.arLabel}` : `${d.label} Place`,
+    emoji: d.emoji,
+    pct: d.pct,
+  }));
 
   const noBalance = totalNovaEquivalent < entryFee;
 

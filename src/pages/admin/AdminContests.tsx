@@ -25,11 +25,17 @@ import {
   Clock,
   XCircle,
   Gift,
+  Settings,
+  Percent,
+  Trash2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, addDays } from 'date-fns';
 import { arSA } from 'date-fns/locale';
+import { useContestConfig, saveContestConfig } from '@/hooks/useContestConfig';
+import { DEFAULT_CONTEST_CONFIG, enrichDistribution } from '@/lib/contestModel';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Contest {
   id: string;
@@ -96,6 +102,8 @@ const getDayNameEn = (dateStr: string): string => {
 export default function AdminContests() {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
+  const queryClient = useQueryClient();
+  const { config: contestConfig } = useContestConfig();
 
   const [contests, setContests] = useState<Contest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,6 +111,79 @@ export default function AdminContests() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isCreatingToday, setIsCreatingToday] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Contest model config editing
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [configForm, setConfigForm] = useState({
+    entryFee: String(DEFAULT_CONTEST_CONFIG.entryFee),
+    prizePoolRate: String(DEFAULT_CONTEST_CONFIG.prizePoolRate),
+    distribution: DEFAULT_CONTEST_CONFIG.distribution.map((d) => ({
+      place: d.place,
+      pct: String(d.pct),
+    })),
+  });
+
+  // Sync config form when config loads
+  useEffect(() => {
+    setConfigForm({
+      entryFee: String(contestConfig.entryFee),
+      prizePoolRate: String(contestConfig.prizePoolRate),
+      distribution: contestConfig.distribution.map((d) => ({
+        place: d.place,
+        pct: String(d.pct),
+      })),
+    });
+  }, [contestConfig]);
+
+  const handleAddWinner = () => {
+    const nextPlace = configForm.distribution.length + 1;
+    setConfigForm((p) => ({
+      ...p,
+      distribution: [...p.distribution, { place: nextPlace, pct: '0' }],
+    }));
+  };
+
+  const handleRemoveWinner = (index: number) => {
+    setConfigForm((p) => ({
+      ...p,
+      distribution: p.distribution
+        .filter((_, i) => i !== index)
+        .map((d, i) => ({ ...d, place: i + 1 })),
+    }));
+  };
+
+  const totalPct = configForm.distribution.reduce((sum, d) => sum + (parseFloat(d.pct) || 0), 0);
+
+  const handleSaveConfig = async () => {
+    if (Math.round(totalPct) !== 100) {
+      toast.error(isRTL ? `مجموع النسب ${totalPct.toFixed(1)}% — يجب أن يكون 100%` : `Total is ${totalPct.toFixed(1)}% — must equal 100%`);
+      return;
+    }
+    const entryFee = parseFloat(configForm.entryFee);
+    const prizePoolRate = parseFloat(configForm.prizePoolRate);
+    if (!entryFee || entryFee <= 0 || !prizePoolRate || prizePoolRate <= 0 || prizePoolRate > entryFee) {
+      toast.error(isRTL ? 'تحقق من رسوم الدخول ومعدل صندوق الجوائز' : 'Check entry fee and prize pool rate');
+      return;
+    }
+    setIsSavingConfig(true);
+    try {
+      await saveContestConfig({
+        entryFee,
+        prizePoolRate,
+        distribution: enrichDistribution(
+          configForm.distribution.map((d) => ({ place: d.place, pct: parseFloat(d.pct) || 0 }))
+        ),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['contest_config'] });
+      toast.success(isRTL ? 'تم حفظ إعدادات النموذج المالي' : 'Contest model saved');
+      setIsConfigOpen(false);
+    } catch {
+      toast.error(isRTL ? 'فشل الحفظ' : 'Save failed');
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -227,6 +308,26 @@ export default function AdminContests() {
       <InnerPageHeader title={isRTL ? 'إدارة المسابقات' : 'Contest Management'} />
 
       <div className="flex-1 p-4 space-y-4 overflow-y-auto pb-20">
+
+        {/* ── Contest Model Config ── */}
+        <Card className="p-3 border-primary/20 bg-primary/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Settings className="w-4 h-4 text-primary" />
+              <p className="text-sm font-semibold">{isRTL ? 'النموذج المالي للمسابقة' : 'Contest Financial Model'}</p>
+            </div>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setIsConfigOpen(true)}>
+              <Edit className="w-3 h-3 me-1" />
+              {isRTL ? 'تعديل' : 'Edit'}
+            </Button>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+            <span>🎟️ {isRTL ? 'رسوم الدخول:' : 'Entry Fee:'} <strong>{contestConfig.entryFee} Nova</strong></span>
+            <span>🏆 {isRTL ? 'الفائزون:' : 'Winners:'} <strong>{contestConfig.distribution.length}</strong></span>
+            <span>🥇 {isRTL ? 'المركز الأول:' : '1st Place:'} <strong>{contestConfig.distribution[0]?.pct ?? 0}%</strong></span>
+          </div>
+        </Card>
+
         {/* Today & Tomorrow Status */}
         <div className="grid grid-cols-2 gap-3">
           <Card className={`p-3 ${todayContest ? 'border-green-500/30' : 'border-dashed border-amber-500/30'}`}>
@@ -500,6 +601,124 @@ export default function AdminContests() {
               {selectedContest
                 ? (isRTL ? 'حفظ التغييرات' : 'Save Changes')
                 : (isRTL ? 'إنشاء المسابقة' : 'Create Contest')}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Contest Model Config Sheet ── */}
+      <Sheet open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{isRTL ? 'إعدادات النموذج المالي' : 'Contest Financial Model'}</SheetTitle>
+          </SheetHeader>
+
+          <div className="space-y-5 mt-4 pb-10">
+            {/* Entry Fee */}
+            <div>
+              <Label className="text-xs">{isRTL ? 'رسوم الدخول (Nova)' : 'Entry Fee (Nova)'} *</Label>
+              <Input
+                type="number"
+                min="1"
+                value={configForm.entryFee}
+                onChange={(e) => setConfigForm((p) => ({ ...p, entryFee: e.target.value }))}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {isRTL ? 'المبلغ الذي يدفعه كل مشترك للدخول' : 'Amount each participant pays to enter'}
+              </p>
+            </div>
+
+            {/* Prize Pool Rate — internal only, not shown to users */}
+            <div>
+              <Label className="text-xs">{isRTL ? 'حصة صندوق الجوائز من كل مشترك (Nova)' : 'Prize Pool Contribution per Participant (Nova)'} *</Label>
+              <Input
+                type="number"
+                min="1"
+                value={configForm.prizePoolRate}
+                onChange={(e) => setConfigForm((p) => ({ ...p, prizePoolRate: e.target.value }))}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {isRTL
+                  ? `مثال: رسوم ${configForm.entryFee} Nova → ${configForm.prizePoolRate} Nova تذهب لصندوق الجوائز`
+                  : `Example: ${configForm.entryFee} Nova fee → ${configForm.prizePoolRate} Nova goes to prize pool`}
+              </p>
+            </div>
+
+            {/* Prize Distribution */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs">
+                  {isRTL ? 'توزيع الجوائز على الفائزين' : 'Prize Distribution'}
+                </Label>
+                <span className={`text-xs font-bold ${Math.round(totalPct) === 100 ? 'text-success' : 'text-destructive'}`}>
+                  {totalPct.toFixed(1)}% / 100%
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {configForm.distribution.map((d, i) => (
+                  <div key={d.place} className="flex items-center gap-2">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      i < 3 ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white' : 'bg-muted text-foreground'
+                    }`}>
+                      {d.place}
+                    </div>
+                    <div className="flex-1 flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={d.pct}
+                        onChange={(e) =>
+                          setConfigForm((p) => ({
+                            ...p,
+                            distribution: p.distribution.map((item, idx) =>
+                              idx === i ? { ...item, pct: e.target.value } : item
+                            ),
+                          }))
+                        }
+                        className="h-8 text-sm"
+                      />
+                      <Percent className="w-4 h-4 text-muted-foreground shrink-0" />
+                    </div>
+                    {configForm.distribution.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveWinner(i)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {configForm.distribution.length < 10 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2 h-8 text-xs"
+                  onClick={handleAddWinner}
+                >
+                  <Plus className="w-3 h-3 me-1" />
+                  {isRTL ? 'إضافة مركز' : 'Add Place'}
+                </Button>
+              )}
+            </div>
+
+            <Button
+              className="w-full"
+              onClick={handleSaveConfig}
+              disabled={isSavingConfig || Math.round(totalPct) !== 100}
+            >
+              {isSavingConfig ? (
+                <RefreshCcw className="w-4 h-4 me-2 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4 me-2" />
+              )}
+              {isRTL ? 'حفظ الإعدادات' : 'Save Settings'}
             </Button>
           </div>
         </SheetContent>
