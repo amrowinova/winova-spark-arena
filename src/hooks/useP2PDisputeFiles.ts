@@ -15,7 +15,7 @@ export interface P2PDisputeFile {
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 
 export function useP2PDisputeFiles(orderId: string) {
   const { user } = useAuth();
@@ -68,7 +68,7 @@ export function useP2PDisputeFiles(orderId: string) {
 
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return { success: false, error: 'File type not allowed. Use JPEG, PNG, WebP, or PDF.' };
+      return { success: false, error: 'File type not allowed. Use JPEG, PNG, or PDF only.' };
     }
 
     // Validate file size

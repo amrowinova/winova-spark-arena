@@ -83,6 +83,12 @@ export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.type !== 'image/jpeg' && file.type !== 'image/png') {
+      showError(isRTL ? 'يُقبل فقط صور JPG أو PNG' : 'Only JPG or PNG images are accepted');
+      e.target.value = '';
+      return;
+    }
+
     const url = URL.createObjectURL(file);
     sendMessage(chatId, isRTL ? '📸 إثبات التحويل' : '📸 Transfer proof', {
       type: 'image',
@@ -171,7 +177,7 @@ export function P2PDisputeActions({ order, currentUserId, onOrderCompleted }: P2
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png"
             className="hidden"
             onChange={handleProofUpload}
           />

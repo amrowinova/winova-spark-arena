@@ -93,8 +93,9 @@ export function P2PBuyerFlow({ order, currentUserId, onOrderCompleted }: P2PBuye
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      showError(isRTL ? 'يرجى اختيار صورة' : 'Please select an image');
+    if (file.type !== 'image/jpeg' && file.type !== 'image/png') {
+      showError(isRTL ? 'يُقبل فقط صور JPG أو PNG' : 'Only JPG or PNG images are accepted');
+      e.target.value = '';
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -283,7 +284,7 @@ export function P2PBuyerFlow({ order, currentUserId, onOrderCompleted }: P2PBuye
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png"
                   onChange={handleFileSelect}
                   className="hidden"
                 />

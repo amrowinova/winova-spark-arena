@@ -85,7 +85,7 @@ export function P2PDisputeFileUpload({ orderId, isDisputed }: P2PDisputeFileUplo
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,application/pdf"
+            accept="image/jpeg,image/png,application/pdf"
             onChange={handleFileSelect}
             className="hidden"
           />
