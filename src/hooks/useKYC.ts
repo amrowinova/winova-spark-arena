@@ -10,7 +10,6 @@ export interface KYCRequest {
   birth_date: string;
   id_image_url: string;
   status: KYCStatus;
-  admin_notes: string | null;
   submitted_at: string;
   reviewed_at: string | null;
 }
@@ -31,20 +30,14 @@ export function useKYC() {
         .select('kyc_status')
         .eq('user_id', user.id)
         .single(),
-      supabase
-        .from('kyc_requests')
-        .select('id, full_name, birth_date, id_image_url, status, admin_notes, submitted_at, reviewed_at')
-        .eq('user_id', user.id)
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      supabase.rpc('get_my_kyc_request'),
     ]);
 
     if (profileRes.data) {
       setKycStatus((profileRes.data.kyc_status as KYCStatus) ?? 'unverified');
     }
-    if (requestRes.data) {
-      setLatestRequest(requestRes.data as KYCRequest);
+    if (requestRes.data && Array.isArray(requestRes.data) && requestRes.data.length > 0) {
+      setLatestRequest(requestRes.data[0] as KYCRequest);
     }
 
     setIsLoading(false);
