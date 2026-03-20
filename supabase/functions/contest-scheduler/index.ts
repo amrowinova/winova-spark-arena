@@ -186,6 +186,35 @@ Deno.serve(async (req) => {
         .update({ status: newStatus })
         .eq("id", contestId);
       if (updateErr) throw updateErr;
+
+      // ── Grant vote earnings when a stage ends ──────────────────────────
+      // stage1 → final  : stage1 has ended, grant stage1 earnings
+      // final  → completed : final has ended, grant final earnings
+      if (currentStatus === "stage1" && newStatus === "final") {
+        const { data: earningsData, error: earningsErr } = await supabase
+          .rpc("grant_vote_earnings", {
+            p_contest_id: contestId,
+            p_stage: "stage1",
+          });
+        if (earningsErr) {
+          console.error("grant_vote_earnings stage1 error:", earningsErr);
+        } else {
+          console.log("stage1 vote earnings granted:", earningsData);
+        }
+      }
+
+      if (currentStatus === "final" && newStatus === "completed") {
+        const { data: earningsData, error: earningsErr } = await supabase
+          .rpc("grant_vote_earnings", {
+            p_contest_id: contestId,
+            p_stage: "final",
+          });
+        if (earningsErr) {
+          console.error("grant_vote_earnings final error:", earningsErr);
+        } else {
+          console.log("final vote earnings granted:", earningsData);
+        }
+      }
     }
 
     return new Response(
