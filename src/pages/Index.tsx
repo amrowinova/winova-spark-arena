@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Home Components
 import { ActiveUsersCard } from '@/components/home/ActiveUsersCard';
+import { PlatformStatsBar } from '@/components/home/PlatformStatsBar';
 import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
@@ -261,6 +262,11 @@ export default function HomePage() {
         {/* Active Users Badge - Compact inline bar */}
         <motion.div variants={itemVariants} className="flex justify-center">
           <ActiveUsersCard />
+        </motion.div>
+
+        {/* Platform Stats Bar */}
+        <motion.div variants={itemVariants}>
+          <PlatformStatsBar />
         </motion.div>
 
         {/* 1️⃣ Welcome Message */}

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { PublicLeaderboard } from '@/components/home/PublicLeaderboard';
+import { PlatformStatsBar } from '@/components/home/PlatformStatsBar';
 import { motion } from 'framer-motion';
 import { Trophy, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -193,7 +195,17 @@ export default function HallOfFame() {
           </Card>
         </motion.div>
 
-        {/* Winners List */}
+        {/* Live Platform Stats */}
+        <motion.div variants={itemVariants}>
+          <PlatformStatsBar />
+        </motion.div>
+
+        {/* Public Leaderboard — visible to all visitors */}
+        <motion.div variants={itemVariants}>
+          <PublicLeaderboard />
+        </motion.div>
+
+        {/* All-time Winners List (existing) */}
         <motion.div variants={itemVariants} className="space-y-2">
           {winners.map((entry, index) => {
             const position = index + 1;
