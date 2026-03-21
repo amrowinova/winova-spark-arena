@@ -51,7 +51,7 @@ CREATE POLICY "kyc_requests_admin_select"
     EXISTS (
       SELECT 1 FROM public.user_roles
       WHERE user_id = auth.uid()
-        AND role IN ('admin', 'super_admin')
+        AND role = 'admin'
     )
   );
 
@@ -62,7 +62,7 @@ CREATE POLICY "kyc_requests_admin_update"
     EXISTS (
       SELECT 1 FROM public.user_roles
       WHERE user_id = auth.uid()
-        AND role IN ('admin', 'super_admin')
+        AND role = 'admin'
     )
   );
 
@@ -148,7 +148,7 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM public.user_roles
     WHERE user_id = v_admin_id
-      AND role IN ('admin', 'super_admin')
+      AND role = 'admin'
   ) THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
@@ -217,6 +217,6 @@ CREATE POLICY "kyc_storage_admin_read"
     AND EXISTS (
       SELECT 1 FROM public.user_roles
       WHERE user_id = auth.uid()
-        AND role IN ('admin', 'super_admin')
+        AND role = 'admin'
     )
   );

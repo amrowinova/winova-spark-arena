@@ -4,28 +4,19 @@
  * Automatically creates and manages daily contests aligned to KSA (UTC+3) schedule.
  *
  * Invocation options:
- *   - Cron trigger (pg_cron job) using CRON_SECRET in Authorization header
- *   - Manual HTTP call by authenticated admin users
+ *   - Cron trigger (pg_cron job) at ~10:00 AM KSA daily
+ *   - Manual HTTP call for testing/emergency
  *
  * Actions:
  *   1. ensure_today_contest: Creates today's contest if not present
  *   2. transition_stages: Updates contest status based on current KSA time
- *   3. finalize: Marks contest as 'completed' after 10 PM KSA
- *
- * Required environment variables:
- *   - SUPABASE_URL
- *   - SUPABASE_SERVICE_ROLE_KEY
- *   - CRON_SECRET (random 32+ char secret, shared only with pg_cron job)
- *
- * pg_cron job must send:
- *   Authorization: Bearer <CRON_SECRET>
+ *   3. finalize: Marks contest as 'completed' after 10 PM KSA + distributes prizes
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-// CORS: restricted to the app domain only — never open to *
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://winova-spark-arena.lovable.app",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -49,57 +40,200 @@ function ksaTimestamp(hour: number, minute = 0): string {
   return `${y}-${m}-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+03:00`;
 }
 
+// Prize distribution percentages for top 5
+const PRIZE_PERCENTAGES = [50, 20, 15, 10, 5];
+
+/**
+ * Distribute prizes to top contestants.
+ * If ≤5 contestants, ALL win (split proportionally among available positions).
+ * If >5, only top 5 by votes win.
+ */
+async function distributePrizes(supabase: any, contestId: string) {
+  // Get contest prize pool
+  const { data: contest, error: contestErr } = await supabase
+    .from("contests")
+    .select("prize_pool")
+    .eq("id", contestId)
+    .single();
+
+  if (contestErr || !contest) {
+    console.error("Failed to fetch contest for prize distribution:", contestErr);
+    return { distributed: false, error: contestErr?.message || "Contest not found" };
+  }
+
+  const prizePool = contest.prize_pool || 0;
+  if (prizePool <= 0) {
+    return { distributed: false, error: "No prize pool" };
+  }
+
+  // Check if prizes already distributed
+  const { data: existingPrizes } = await supabase
+    .from("contest_entries")
+    .select("id")
+    .eq("contest_id", contestId)
+    .gt("prize_won", 0)
+    .limit(1);
+
+  if (existingPrizes && existingPrizes.length > 0) {
+    return { distributed: false, error: "Prizes already distributed" };
+  }
+
+  // Get all entries sorted by votes
+  const { data: entries, error: entriesErr } = await supabase
+    .from("contest_entries")
+    .select("id, user_id, votes_received")
+    .eq("contest_id", contestId)
+    .order("votes_received", { ascending: false });
+
+  if (entriesErr || !entries || entries.length === 0) {
+    console.error("Failed to fetch entries:", entriesErr);
+    return { distributed: false, error: "No entries found" };
+  }
+
+  const totalContestants = entries.length;
+  // Winners = all if ≤5, otherwise top 5
+  const winnerCount = Math.min(totalContestants, 5);
+  const winners = entries.slice(0, winnerCount);
+
+  // Calculate prize percentages for available positions
+  // If <5 contestants, redistribute unused percentages proportionally
+  let activePercentages = PRIZE_PERCENTAGES.slice(0, winnerCount);
+  const totalActivePercent = activePercentages.reduce((a, b) => a + b, 0);
+  // Normalize to 100%
+  const normalizedPercentages = activePercentages.map(p => (p / totalActivePercent) * 100);
+
+  const results = [];
+
+  for (let i = 0; i < winners.length; i++) {
+    const entry = winners[i];
+    const prizeAmount = Math.round((prizePool * normalizedPercentages[i]) / 100 * 100) / 100;
+    const rank = i + 1;
+
+    // Update contest_entry with prize and rank
+    const { error: updateErr } = await supabase
+      .from("contest_entries")
+      .update({ prize_won: prizeAmount, rank: rank })
+      .eq("id", entry.id);
+
+    if (updateErr) {
+      console.error(`Failed to update entry ${entry.id}:`, updateErr);
+      continue;
+    }
+
+    // Credit winner's wallet
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("id, nova_balance")
+      .eq("user_id", entry.user_id)
+      .single();
+
+    if (wallet) {
+      const newBalance = (wallet.nova_balance || 0) + prizeAmount;
+
+      await supabase
+        .from("wallets")
+        .update({ nova_balance: newBalance, updated_at: new Date().toISOString() })
+        .eq("id", wallet.id);
+
+      // Record in wallet_ledger
+      await supabase
+        .from("wallet_ledger")
+        .insert({
+          user_id: entry.user_id,
+          wallet_id: wallet.id,
+          entry_type: "contest_win",
+          currency: "nova",
+          amount: prizeAmount,
+          balance_before: wallet.nova_balance || 0,
+          balance_after: newBalance,
+          reference_type: "contest",
+          reference_id: contestId,
+          description: `Contest prize - Rank #${rank}`,
+        });
+
+      // Record transaction
+      await supabase
+        .from("transactions")
+        .insert({
+          user_id: entry.user_id,
+          type: "deposit",
+          currency: "nova",
+          amount: prizeAmount,
+          description: `Contest prize - Rank #${rank}`,
+        });
+    }
+
+    results.push({ user_id: entry.user_id, rank, prize: prizeAmount });
+  }
+
+  // Update remaining entries with rank but no prize
+  for (let i = winnerCount; i < entries.length; i++) {
+    await supabase
+      .from("contest_entries")
+      .update({ rank: i + 1, prize_won: 0 })
+      .eq("id", entries[i].id);
+  }
+
+  return { distributed: true, winners: results };
+}
+
 Deno.serve(async (req) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  // SECURITY: allow service-role, scheduled anon cron token, or authenticated admin users
+  const authHeader = req.headers.get('Authorization');
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const bearerToken = authHeader?.replace('Bearer ', '') || '';
+  const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] ?? null;
 
-  const authHeader = req.headers.get("Authorization");
-  const bearerToken = authHeader?.replace("Bearer ", "") ?? "";
+  const decodeJwtPayload = (token: string) => {
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) return null;
+      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+      return JSON.parse(atob(padded));
+    } catch {
+      return null;
+    }
+  };
 
-  // ── Authentication: accept service-role key OR CRON_SECRET OR admin JWT ──
+  const tokenPayload = decodeJwtPayload(bearerToken);
   const isServiceRole = bearerToken === serviceRoleKey;
-  const isCronSecret = cronSecret.length > 0 && bearerToken === cronSecret;
+  const isCronAnonToken = tokenPayload?.role === 'anon' && (!projectRef || tokenPayload?.ref === projectRef);
 
-  if (!isServiceRole && !isCronSecret) {
-    // Fallback: allow authenticated admin user (manual invocation)
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Authentication required" }), {
+  if (!isServiceRole && !isCronAnonToken) {
+    const tempClient = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const tempClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
     const { data: { user } } = await tempClient.auth.getUser(bearerToken);
     if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const { data: roles } = await tempClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
 
-    if (!roles?.some((r: { role: string }) => r.role === "admin")) {
-      return new Response(
-        JSON.stringify({ error: "Admin, service-role, or cron secret required" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (!roles?.some((r: { role: string }) => r.role === 'admin')) {
+      return new Response(JSON.stringify({ error: 'Admin or service role only' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
   }
 
@@ -157,6 +291,7 @@ Deno.serve(async (req) => {
     // ─────────────────────────────────────────────────────────────────────
     // Statuses: active (join open) → stage1 → final → completed
     let newStatus: string | null = null;
+    let prizeDistribution: any = null;
 
     if (hour >= 22) {
       // After 10 PM → completed (results display)
@@ -187,33 +322,12 @@ Deno.serve(async (req) => {
         .eq("id", contestId);
       if (updateErr) throw updateErr;
 
-      // ── Grant vote earnings when a stage ends ──────────────────────────
-      // stage1 → final  : stage1 has ended, grant stage1 earnings
-      // final  → completed : final has ended, grant final earnings
-      if (currentStatus === "stage1" && newStatus === "final") {
-        const { data: earningsData, error: earningsErr } = await supabase
-          .rpc("grant_vote_earnings", {
-            p_contest_id: contestId,
-            p_stage: "stage1",
-          });
-        if (earningsErr) {
-          console.error("grant_vote_earnings stage1 error:", earningsErr);
-        } else {
-          console.log("stage1 vote earnings granted:", earningsData);
-        }
-      }
-
-      if (currentStatus === "final" && newStatus === "completed") {
-        const { data: earningsData, error: earningsErr } = await supabase
-          .rpc("grant_vote_earnings", {
-            p_contest_id: contestId,
-            p_stage: "final",
-          });
-        if (earningsErr) {
-          console.error("grant_vote_earnings final error:", earningsErr);
-        } else {
-          console.log("final vote earnings granted:", earningsData);
-        }
+      // ─────────────────────────────────────────────────────────────────
+      // 3. Distribute prizes when transitioning to "completed"
+      // ─────────────────────────────────────────────────────────────────
+      if (newStatus === "completed") {
+        prizeDistribution = await distributePrizes(supabase, contestId);
+        console.log("Prize distribution result:", JSON.stringify(prizeDistribution));
       }
     }
 
@@ -224,6 +338,7 @@ Deno.serve(async (req) => {
         previousStatus: currentStatus,
         newStatus: newStatus || currentStatus,
         ksaTime: now.toISOString(),
+        prizeDistribution,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
