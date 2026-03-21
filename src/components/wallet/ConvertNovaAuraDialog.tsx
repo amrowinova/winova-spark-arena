@@ -95,6 +95,7 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -213,5 +214,6 @@ export function ConvertNovaAuraDialog({ open, onClose }: ConvertNovaAuraDialogPr
         actionLabel={`Convert ${novaAmount} Nova → Aura`}
         actionLabelAr={`تحويل ${novaAmount} Nova إلى Aura`}
       />
+    </>
   );
 }

@@ -265,13 +265,45 @@ subscriber: 0% | marketer: 5% | leader: 10% | manager: 15% | president: 20%
 
 ---
 
+## البنية التقنية للنشر (Deployment Stack)
+
+| الطبقة | الأداة | الغرض |
+|---|---|---|
+| **Hosting** | Vercel (مجاني) | نشر تلقائي على كل push لـ main |
+| **CI/CD** | GitHub Actions | بناء + فحص قبل النشر |
+| **Error Tracking** | Sentry (مجاني) | إشعار فوري على كل خطأ |
+| **Database** | Supabase | قاعدة بيانات + Auth + Edge Functions |
+| **Backups** | Supabase Dashboard | نسخ احتياطية يومية تلقائية |
+
+### متغيرات البيئة المطلوبة (Vercel + GitHub Secrets)
+
+```
+VITE_SUPABASE_URL        → رابط Supabase الخاص بالمشروع
+VITE_SUPABASE_ANON_KEY   → المفتاح العام لـ Supabase
+VITE_SENTRY_DSN          → رابط DSN من Sentry dashboard
+VITE_APP_VERSION         → (اختياري) رقم الإصدار مثل "2.1.0"
+SUPABASE_DB_PASSWORD     → (GitHub Secret فقط) لـ migrations
+```
+
+### ملفات النشر المضافة
+
+```
+vercel.json                          → إعداد Vercel (SPA + Security Headers + Cache)
+.github/workflows/ci.yml             → CI: TypeScript + Lint + Build
+.github/workflows/apply-migrations.yml → تطبيق DB migrations يدوياً
+src/lib/sentry.ts                    → تهيئة Sentry (Error + Replay)
+```
+
+---
+
 ## أولويات العمل الحالية
 
 | الأولوية | المهمة | الحالة |
 |---|---|---|
 | 🔴 1 | Spotlight Auto-Draw | ✅ مكتمل |
 | 🔴 2 | Weekly Streak + Draw Exclusion | ✅ مكتمل |
-| 🔴 3 | مسابقة الجمعة المجانية | ⏳ قيد التخطيط |
-| 🔴 4 | دعم 9 لغات كامل (إزالة hardcoded strings) | ⏳ قيد التخطيط |
-| 🟡 5 | Leaderboard المدن والدول | ⏳ لاحقاً |
-| 🟡 6 | مسابقات الفرق والعائلات | ⏳ لاحقاً |
+| 🔴 3 | إعداد النشر (Vercel + Sentry + CI) | ✅ مكتمل |
+| 🔴 4 | مسابقة الجمعة المجانية | ⏳ قيد التخطيط |
+| 🔴 5 | دعم 9 لغات كامل (إزالة hardcoded strings) | ⏳ قيد التخطيط |
+| 🟡 6 | Leaderboard المدن والدول | ⏳ لاحقاً |
+| 🟡 7 | مسابقات الفرق والعائلات | ⏳ لاحقاً |

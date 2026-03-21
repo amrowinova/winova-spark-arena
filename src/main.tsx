@@ -3,6 +3,10 @@ import App from "./App.tsx";
 import "./index.css";
 import { registerServiceWorker, setupInstallPrompt } from "./lib/pwaUtils";
 import { initializeFeatureFlags, isFeatureEnabled } from "./lib/featureFlags";
+import { initSentry } from "./lib/sentry";
+
+// Initialize Sentry error tracking
+initSentry();
 
 // Initialize feature flags (Level 3 Governance - UI Rollback Strategy)
 initializeFeatureFlags({});
