@@ -15,6 +15,7 @@ export interface ContestConfig {
   entryFee: number;          // Nova per participant (shown to users)
   prizePoolRate: number;     // Nova per participant that goes to prize pool (internal only)
   voteEarningsPct: number;   // Fraction returned to contestant after each stage (e.g. 0.20 = 20%)
+  fridayPrize: number;       // Fixed Nova prize for Friday free contest (set by admin)
   distribution: PrizeSlot[];
 }
 
@@ -26,6 +27,7 @@ export const DEFAULT_CONTEST_CONFIG: ContestConfig = {
   entryFee: 10,
   prizePoolRate: 6,
   voteEarningsPct: 0.20,
+  fridayPrize: 100,
   distribution: [
     { place: 1, pct: 50, emoji: '🥇', label: '1st', arLabel: 'الأول' },
     { place: 2, pct: 25, emoji: '🥈', label: '2nd', arLabel: 'الثاني' },

@@ -116,6 +116,30 @@ export default function ContestsPage() {
   const isResults = currentPhase === 'results';
   const entryFee = 10;
 
+  // Friday Free Contest state
+  const [isContestFree, setIsContestFree] = useState(false);
+  const [contestAdminPrize, setContestAdminPrize] = useState<number | null>(null);
+
+  // Device fingerprint — collects browser signals and hashes them into a short string.
+  // Used as a 3rd-layer fraud prevention for free contests (no external library needed).
+  const getDeviceFingerprint = (): string => {
+    const nav = navigator as Navigator & { hardwareConcurrency?: number; deviceMemory?: number };
+    const raw = [
+      nav.userAgent,
+      nav.language,
+      `${screen.width}x${screen.height}`,
+      screen.colorDepth,
+      new Date().getTimezoneOffset(),
+      nav.hardwareConcurrency ?? '',
+      nav.deviceMemory ?? '',
+    ].join('|');
+    let h = 0;
+    for (let i = 0; i < raw.length; i++) {
+      h = Math.imul(31, h) + raw.charCodeAt(i) | 0;
+    }
+    return Math.abs(h).toString(36);
+  };
+
   // KSA date string for share cards
   const ksaDateStr = (() => {
     const ksa = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));
@@ -197,7 +221,11 @@ export default function ContestsPage() {
 
       if (contestData) {
         setActiveContestId(contestData.id);
-        setPrizePool(contestData.prize_pool || 0);
+        const isFree = (contestData as Record<string, unknown>).is_free === true;
+        const adminPrize = (contestData as Record<string, unknown>).admin_prize as number | null ?? null;
+        setIsContestFree(isFree);
+        setContestAdminPrize(adminPrize);
+        setPrizePool(isFree && adminPrize ? adminPrize : (contestData.prize_pool || 0));
 
         // Fetch contest entries
         const { data: entriesData, error: entriesError } = await supabase
@@ -431,7 +459,8 @@ export default function ContestsPage() {
       return;
     }
 
-    if (user.novaBalance < entryFee) {
+    // Balance check only for paid contests
+    if (!isContestFree && user.novaBalance < entryFee) {
       showError(language === 'ar' ? 'رصيد غير كافي' : 'Insufficient balance');
       return;
     }
@@ -440,10 +469,13 @@ export default function ContestsPage() {
 
     try {
       const t0 = Date.now();
+      const fingerprint = isContestFree ? getDeviceFingerprint() : undefined;
+
       const { data, error } = await supabase.rpc('join_contest', {
         p_user_id: authUser.id,
         p_contest_id: activeContestId,
-        p_entry_fee: entryFee,
+        p_entry_fee: isContestFree ? 0 : entryFee,
+        ...(fingerprint ? { p_device_fingerprint: fingerprint } : {}),
       });
 
       if (error) {
@@ -454,13 +486,21 @@ export default function ContestsPage() {
         return;
       }
 
-      const result = data as { success: boolean; error?: string; new_participants?: number; new_prize_pool?: number };
+      const result = data as { success: boolean; error?: string; error_code?: string; new_participants?: number; new_prize_pool?: number };
 
       if (!result.success) {
-        logActivity({ user_id: authUser.id, action_type: 'contest_join', entity_type: 'contest', entity_id: activeContestId, success: false, error_code: result.error, duration_ms: Date.now() - t0 });
+        logActivity({ user_id: authUser.id, action_type: 'contest_join', entity_type: 'contest', entity_id: activeContestId, success: false, error_code: result.error_code ?? result.error, duration_ms: Date.now() - t0 });
         const normalizedError = (() => {
-          if (!result.error) return undefined;
-          if (language !== 'ar') return result.error;
+          const code = result.error_code;
+          if (language !== 'ar') {
+            if (code === 'KYC_REQUIRED') return 'KYC verification required — please verify your identity first';
+            if (code === 'ACCOUNT_TOO_NEW') return 'Your account must be at least 7 days old to join free contests';
+            if (code === 'DEVICE_ALREADY_USED') return 'This device was already used to join this contest';
+            return result.error;
+          }
+          if (code === 'KYC_REQUIRED') return 'يجب التحقق من هويتك أولاً — اذهب لصفحة التحقق (KYC)';
+          if (code === 'ACCOUNT_TOO_NEW') return 'يجب أن يكون عمر حسابك 7 أيام على الأقل';
+          if (code === 'DEVICE_ALREADY_USED') return 'تم الانضمام من هذا الجهاز مسبقاً';
           if (result.error === 'Joining is closed') return 'تم إغلاق باب الانضمام';
           if (result.error === 'No contest for today') return 'لا توجد مسابقة لليوم';
           if (result.error === 'Already joined this contest') return 'أنت منضم بالفعل لهذه المسابقة';
@@ -473,8 +513,10 @@ export default function ContestsPage() {
       }
 
       // Log successful join with balance impact
-      logActivity({ user_id: authUser.id, action_type: 'contest_join', entity_type: 'contest', entity_id: activeContestId, success: true, duration_ms: Date.now() - t0, after_state: { participants: result.new_participants, prize_pool: result.new_prize_pool } as any });
-      logMoneyFlow({ operation: 'contest_entry_fee', from_user: authUser.id, amount: entryFee, currency: 'nova', reference_type: 'contest', reference_id: activeContestId });
+      logActivity({ user_id: authUser.id, action_type: 'contest_join', entity_type: 'contest', entity_id: activeContestId, success: true, duration_ms: Date.now() - t0, after_state: { participants: result.new_participants, prize_pool: result.new_prize_pool, is_free: isContestFree } as any });
+      if (!isContestFree) {
+        logMoneyFlow({ operation: 'contest_entry_fee', from_user: authUser.id, amount: entryFee, currency: 'nova', reference_type: 'contest', reference_id: activeContestId });
+      }
 
       setHasJoined(true);
       setPrizePool(result.new_prize_pool || prizePool);
@@ -497,7 +539,7 @@ export default function ContestsPage() {
       const receipt = createTransaction({
         type: 'contest_entry',
         status: 'completed',
-        amount: entryFee,
+        amount: isContestFree ? 0 : entryFee,
         currency: 'nova',
         sender: {
           id: user.id,
@@ -505,9 +547,9 @@ export default function ContestsPage() {
           username: user.username,
           country: user.country,
         },
-        reason: language === 'ar' 
-          ? 'دخول المسابقة اليومية'
-          : 'Daily Contest Entry',
+        reason: language === 'ar'
+          ? (isContestFree ? 'دخول مسابقة الجمعة المجانية' : 'دخول المسابقة اليومية')
+          : (isContestFree ? 'Friday Free Contest Entry' : 'Daily Contest Entry'),
       });
 
       setJoinDialogOpen(false);
@@ -868,20 +910,33 @@ export default function ContestsPage() {
           {!hasJoined ? (
             <Card className="p-4">
               <div className="text-center mb-3">
-                <p className="text-sm text-muted-foreground mb-1">
-                  {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
-                </p>
-                <p className="text-xl font-bold text-primary">И {entryFee}</p>
+                {isContestFree ? (
+                  <>
+                    <span className="inline-block bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 text-xs font-bold px-3 py-1 rounded-full mb-1">
+                      {language === 'ar' ? '🎉 دخول مجاني' : '🎉 Free Entry'}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {language === 'ar' ? `الجائزة: ${contestAdminPrize ?? 100} Nova` : `Prize: ${contestAdminPrize ?? 100} Nova`}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                    </p>
+                    <p className="text-xl font-bold text-primary">И {entryFee}</p>
+                  </>
+                )}
               </div>
-              <Button 
+              <Button
                 className="w-full"
                 onClick={openJoinDialog}
-                disabled={user.novaBalance < entryFee}
+                disabled={!isContestFree && user.novaBalance < entryFee}
               >
                 {language === 'ar' ? 'انضم الآن' : 'Join Now'}
               </Button>
               <p className="text-xs text-muted-foreground text-center mt-2">
-                {language === 'ar' 
+                {language === 'ar'
                   ? `التسجيل يغلق الساعة ${formatContestTime(timing.joinCloseAt)}`
                   : `Registration closes at ${formatContestTime(timing.joinCloseAt)}`}
               </p>
@@ -956,22 +1011,38 @@ export default function ContestsPage() {
                 </div>
               </div>
 
-              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center">
-                <p className="text-xs text-muted-foreground mb-1">
-                  {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
-                </p>
-                <p className="text-xl font-bold text-primary">И {entryFee}</p>
-              </div>
-              
-              <Button 
+              {isContestFree ? (
+                <div className="p-3 bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                  </p>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                    {language === 'ar' ? '🎉 مجاني' : '🎉 Free'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {language === 'ar' ? `الجائزة: ${contestAdminPrize ?? 100} Nova` : `Prize: ${contestAdminPrize ?? 100} Nova`}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                  </p>
+                  <p className="text-xl font-bold text-primary">И {entryFee}</p>
+                </div>
+              )}
+
+              <Button
                 className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
                 onClick={handleJoinContest}
-                disabled={isJoining || user.novaBalance < entryFee}
+                disabled={isJoining || (!isContestFree && user.novaBalance < entryFee)}
               >
                 {isJoining ? (
                   <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
                 ) : (
-                  language === 'ar' ? 'ادفع الآن' : 'Pay Now'
+                  language === 'ar'
+                    ? (isContestFree ? 'انضم مجاناً' : 'ادفع الآن')
+                    : (isContestFree ? 'Join Free' : 'Pay Now')
                 )}
               </Button>
             </div>
@@ -1134,15 +1205,28 @@ export default function ContestsPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <Card className="p-4">
               <div className="text-center mb-3">
-                <p className="text-sm text-muted-foreground mb-1">
-                  {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
-                </p>
-                <p className="text-xl font-bold text-primary">И {entryFee}</p>
+                {isContestFree ? (
+                  <>
+                    <span className="inline-block bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 text-xs font-bold px-3 py-1 rounded-full mb-1">
+                      {language === 'ar' ? '🎉 دخول مجاني' : '🎉 Free Entry'}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {language === 'ar' ? `الجائزة: ${contestAdminPrize ?? 100} Nova` : `Prize: ${contestAdminPrize ?? 100} Nova`}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                    </p>
+                    <p className="text-xl font-bold text-primary">И {entryFee}</p>
+                  </>
+                )}
               </div>
-              <Button 
+              <Button
                 className="w-full"
                 onClick={openJoinDialog}
-                disabled={user.novaBalance < entryFee}
+                disabled={!isContestFree && user.novaBalance < entryFee}
               >
                 {language === 'ar' ? 'انضم الآن' : 'Join Now'}
               </Button>
@@ -1262,29 +1346,46 @@ export default function ContestsPage() {
               </div>
             </div>
 
-            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center">
-              <p className="text-xs text-muted-foreground mb-1">
-                {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
-              </p>
-              <p className="text-xl font-bold text-primary">И {entryFee}</p>
-            </div>
-            
-            <Button 
+            {isContestFree ? (
+              <div className="p-3 bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground mb-1">
+                  {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                </p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                  {language === 'ar' ? '🎉 مجاني' : '🎉 Free'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {language === 'ar' ? `الجائزة: ${contestAdminPrize ?? 100} Nova` : `Prize: ${contestAdminPrize ?? 100} Nova`}
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground mb-1">
+                  {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                </p>
+                <p className="text-xl font-bold text-primary">И {entryFee}</p>
+              </div>
+            )}
+
+            <Button
               className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
               onClick={handleJoinContest}
-              disabled={isJoining || user.novaBalance < entryFee}
+              disabled={isJoining || (!isContestFree && user.novaBalance < entryFee)}
             >
               {isJoining ? (
                 <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
               ) : (
-                language === 'ar' ? 'ادفع الآن' : 'Pay Now'
+                language === 'ar'
+                  ? (isContestFree ? 'انضم مجاناً' : 'ادفع الآن')
+                  : (isContestFree ? 'Join Free' : 'Pay Now')
               )}
             </Button>
 
             <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-              {language === 'ar' 
-                ? 'يتم الخصم تلقائياً من Aura أولاً ثم Nova'
-                : 'Auto-deducts from Aura first, then Nova'}
+              {isContestFree
+                ? (language === 'ar' ? 'يشترط التحقق من الهوية (KYC) وعمر الحساب 7 أيام' : 'KYC verification and 7-day account age required')
+                : (language === 'ar' ? 'يتم الخصم تلقائياً من Aura أولاً ثم Nova' : 'Auto-deducts from Aura first, then Nova')
+              }
             </p>
           </div>
         </DialogContent>

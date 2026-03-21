@@ -131,6 +131,14 @@ export const en = {
       third: '3rd',
       fourth: '4th',
       fifth: '5th',
+      freeContest: 'Free Contest',
+      freeEntry: 'Free Entry',
+      fridayContest: 'Friday Free Contest',
+      fridayReminder: 'Friday contest tomorrow — no entry fee!',
+      joinFree: 'Join Free',
+      kycRequired: 'Identity verification (KYC) is required to join free contests',
+      accountTooNew: 'Your account must be at least 7 days old to join free contests',
+      deviceAlreadyUsed: 'This device has already been used to join this contest',
     },
     // Team
     team: {

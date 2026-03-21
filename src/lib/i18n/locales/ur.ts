@@ -131,6 +131,14 @@ export const ur = {
       third: 'تیسرا',
       fourth: 'چوتھا',
       fifth: 'پانچواں',
+      freeContest: 'مفت مقابلہ',
+      freeEntry: 'مفت داخلہ',
+      fridayContest: 'جمعہ مفت مقابلہ',
+      fridayReminder: 'کل جمعہ کا مقابلہ — داخلہ مفت!',
+      joinFree: 'مفت شامل ہوں',
+      kycRequired: 'مفت مقابلوں میں شرکت کے لیے شناخت کی تصدیق (KYC) ضروری ہے',
+      accountTooNew: 'مفت مقابلوں میں شرکت کے لیے آپ کا اکاؤنٹ کم از کم 7 دن پرانا ہونا چاہیے',
+      deviceAlreadyUsed: 'یہ ڈیوائس اس مقابلے میں شرکت کے لیے پہلے ہی استعمال ہو چکی ہے',
     },
     // Team
     team: {

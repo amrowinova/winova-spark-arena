@@ -131,6 +131,14 @@ export const tr = {
       third: '3.',
       fourth: '4.',
       fifth: '5.',
+      freeContest: 'Ücretsiz Yarışma',
+      freeEntry: 'Ücretsiz Giriş',
+      fridayContest: 'Cuma Ücretsiz Yarışması',
+      fridayReminder: 'Yarın Cuma yarışması — ücretsiz giriş!',
+      joinFree: 'Ücretsiz Katıl',
+      kycRequired: 'Ücretsiz yarışmalara katılmak için kimlik doğrulama (KYC) gereklidir',
+      accountTooNew: 'Ücretsiz yarışmalara katılmak için hesabınızın en az 7 günlük olması gerekir',
+      deviceAlreadyUsed: 'Bu cihaz bu yarışmaya zaten katılmak için kullanıldı',
     },
     // Team
     team: {

@@ -131,6 +131,14 @@ export const es = {
       third: '3°',
       fourth: '4°',
       fifth: '5°',
+      freeContest: 'Concurso Gratuito',
+      freeEntry: 'Entrada Gratuita',
+      fridayContest: 'Concurso Gratuito del Viernes',
+      fridayReminder: 'Concurso del viernes mañana — ¡entrada gratuita!',
+      joinFree: 'Unirse Gratis',
+      kycRequired: 'La verificación de identidad (KYC) es necesaria para participar en concursos gratuitos',
+      accountTooNew: 'Tu cuenta debe tener al menos 7 días para participar en concursos gratuitos',
+      deviceAlreadyUsed: 'Este dispositivo ya se ha utilizado para participar en este concurso',
     },
     // Team
     team: {

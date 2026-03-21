@@ -119,6 +119,7 @@ export default function AdminContests() {
     entryFee: String(DEFAULT_CONTEST_CONFIG.entryFee),
     prizePoolRate: String(DEFAULT_CONTEST_CONFIG.prizePoolRate),
     voteEarningsPct: String(Math.round(DEFAULT_CONTEST_CONFIG.voteEarningsPct * 100)),
+    fridayPrize: String(DEFAULT_CONTEST_CONFIG.fridayPrize),
     distribution: DEFAULT_CONTEST_CONFIG.distribution.map((d) => ({
       place: d.place,
       pct: String(d.pct),
@@ -131,6 +132,7 @@ export default function AdminContests() {
       entryFee: String(contestConfig.entryFee),
       prizePoolRate: String(contestConfig.prizePoolRate),
       voteEarningsPct: String(Math.round(contestConfig.voteEarningsPct * 100)),
+      fridayPrize: String(contestConfig.fridayPrize),
       distribution: contestConfig.distribution.map((d) => ({
         place: d.place,
         pct: String(d.pct),
@@ -175,10 +177,17 @@ export default function AdminContests() {
     }
     setIsSavingConfig(true);
     try {
+      const fridayPrize = parseFloat(configForm.fridayPrize);
+      if (isNaN(fridayPrize) || fridayPrize <= 0) {
+        toast.error(isRTL ? 'جائزة الجمعة يجب أن تكون أكبر من 0' : 'Friday prize must be greater than 0');
+        setIsSavingConfig(false);
+        return;
+      }
       await saveContestConfig({
         entryFee,
         prizePoolRate,
         voteEarningsPct,
+        fridayPrize,
         distribution: enrichDistribution(
           configForm.distribution.map((d) => ({ place: d.place, pct: parseFloat(d.pct) || 0 }))
         ),
@@ -634,6 +643,22 @@ export default function AdminContests() {
               />
               <p className="text-[11px] text-muted-foreground mt-1">
                 {isRTL ? 'المبلغ الذي يدفعه كل مشترك للدخول' : 'Amount each participant pays to enter'}
+              </p>
+            </div>
+
+            {/* Friday Free Contest Prize */}
+            <div>
+              <Label className="text-xs">{isRTL ? 'جائزة مسابقة الجمعة المجانية (Nova)' : 'Friday Free Contest Prize (Nova)'} *</Label>
+              <Input
+                type="number"
+                min="1"
+                value={configForm.fridayPrize}
+                onChange={(e) => setConfigForm((p) => ({ ...p, fridayPrize: e.target.value }))}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {isRTL
+                  ? 'الجائزة الثابتة لمسابقة الجمعة المجانية — لا رسوم دخول على المشتركين'
+                  : 'Fixed prize for Friday Free Contest — no entry fee charged to participants'}
               </p>
             </div>
 

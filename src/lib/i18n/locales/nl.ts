@@ -131,6 +131,14 @@ export const nl = {
       third: '3e',
       fourth: '4e',
       fifth: '5e',
+      freeContest: 'Gratis Wedstrijd',
+      freeEntry: 'Gratis Deelname',
+      fridayContest: 'Vrijdag Gratis Wedstrijd',
+      fridayReminder: 'Vrijdagwedstrijd morgen — gratis deelname!',
+      joinFree: 'Gratis Deelnemen',
+      kycRequired: 'Identiteitsverificatie (KYC) is vereist om aan gratis wedstrijden deel te nemen',
+      accountTooNew: 'Je account moet minimaal 7 dagen oud zijn om aan gratis wedstrijden deel te nemen',
+      deviceAlreadyUsed: 'Dit apparaat is al gebruikt om aan deze wedstrijd deel te nemen',
     },
     // Team
     team: {

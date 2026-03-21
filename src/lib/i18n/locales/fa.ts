@@ -131,6 +131,14 @@ export const fa = {
       third: 'سوم',
       fourth: 'چهارم',
       fifth: 'پنجم',
+      freeContest: 'مسابقه رایگان',
+      freeEntry: 'ورود رایگان',
+      fridayContest: 'مسابقه رایگان جمعه',
+      fridayReminder: 'مسابقه جمعه فردا — ورود رایگان!',
+      joinFree: 'شرکت رایگان',
+      kycRequired: 'برای شرکت در مسابقات رایگان، احراز هویت (KYC) الزامی است',
+      accountTooNew: 'حساب شما باید حداقل ۷ روز قدیمی باشد تا در مسابقات رایگان شرکت کنید',
+      deviceAlreadyUsed: 'این دستگاه قبلاً برای شرکت در این مسابقه استفاده شده است',
     },
     // Team
     team: {
