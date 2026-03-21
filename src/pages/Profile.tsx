@@ -450,8 +450,9 @@ function ProfileContent() {
           </motion.div>
 
           {/* Achievements Section (My Achievements) - Real data */}
-          <ProfileStatsSection 
+          <ProfileStatsSection
             stats={stats}
+            weeklyStreak={user.weeklyStreak}
             isOwnProfile={true}
           />
 

@@ -44,7 +44,12 @@ function parseContestConfig(raw: unknown): ContestConfig {
         )
       : DEFAULT_CONTEST_CONFIG.distribution;
 
-  return { entryFee, prizePoolRate, voteEarningsPct, distribution };
+  const fridayPrize =
+    typeof obj.friday_prize === 'number' && obj.friday_prize > 0
+      ? obj.friday_prize
+      : DEFAULT_CONTEST_CONFIG.fridayPrize;
+
+  return { entryFee, prizePoolRate, voteEarningsPct, fridayPrize, distribution };
 }
 
 async function fetchContestConfig(): Promise<ContestConfig> {
@@ -80,6 +85,7 @@ export async function saveContestConfig(
     entryFee: config.entryFee,
     prizePoolRate: config.prizePoolRate,
     voteEarningsPct: config.voteEarningsPct,
+    friday_prize: config.fridayPrize,
     distribution: config.distribution.map(({ place, pct }) => ({ place, pct })),
   };
 

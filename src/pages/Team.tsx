@@ -53,6 +53,7 @@ function TeamMemberCard({
   onViewProfile: () => void;
   onViewTeam?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card
       className="p-3 cursor-pointer hover:bg-muted/40 active:scale-[0.99] transition-all"
@@ -60,7 +61,7 @@ function TeamMemberCard({
       role="button"
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && onViewProfile()}
-      aria-label={isRTL ? `عرض ملف ${member.name}` : `View ${member.name}'s profile`}
+      aria-label={t('team.viewProfile', { name: member.name })}
     >
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10 shrink-0">
@@ -76,20 +77,23 @@ function TeamMemberCard({
             {member.weekly_active ? (
               <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/30 shrink-0">
                 <UserCheck className="h-3 w-3 mr-0.5" />
-                {isRTL ? 'نشط' : 'Active'}
+                {t('common.active')}
               </Badge>
             ) : (
               <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground shrink-0">
                 <UserX className="h-3 w-3 mr-0.5" />
-                {isRTL ? 'غير نشط' : 'Inactive'}
+                {t('common.inactive')}
               </Badge>
             )}
           </div>
           <p className="text-xs text-muted-foreground truncate">@{member.username}</p>
           <p className="text-xs text-muted-foreground">
-            {isRTL
-              ? `الرتبة: ${member.rank} | أسابيع: ${member.active_weeks}/14`
-              : `Rank: ${member.rank} | Weeks: ${member.active_weeks}/14`}
+            {t('team.memberRankWeeks', { rank: member.rank, weeks: member.active_weeks })}
+            {member.weekly_streak > 0 && (
+              <span className="ms-1.5 text-orange-500 font-medium">
+                {`🔥 ${member.weekly_streak}`}
+              </span>
+            )}
           </p>
         </div>
 
@@ -99,7 +103,7 @@ function TeamMemberCard({
             size="sm"
             onClick={e => { e.stopPropagation(); onViewTeam(); }}
             className="gap-1 shrink-0"
-            aria-label={isRTL ? `فريق ${member.name}` : `${member.name}'s team`}
+            aria-label={t('team.viewTeamOf', { name: member.name })}
           >
             <Users className="h-4 w-4" />
             <span className="text-xs">{member.direct_count}</span>
@@ -121,6 +125,7 @@ function SearchFilterBar({
   total: number; filtered: number;
   onSearch: (v: string) => void; onFilter: (f: FilterType) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2 mb-3">
       <div className="relative">
@@ -128,16 +133,16 @@ function SearchFilterBar({
         <Input
           dir={isRTL ? 'rtl' : 'ltr'}
           className={isRTL ? 'pr-9 pl-9' : 'pl-9 pr-9'}
-          placeholder={isRTL ? 'ابحث بالاسم أو اسم المستخدم...' : 'Search by name or username...'}
+          placeholder={t('team.searchPlaceholder')}
           value={search}
           onChange={e => onSearch(e.target.value)}
-          aria-label={isRTL ? 'بحث عن عضو' : 'Search member'}
+          aria-label={t('team.searchMember')}
         />
         {search && (
           <button
             className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors ${isRTL ? 'left-3' : 'right-3'}`}
             onClick={() => onSearch('')}
-            aria-label={isRTL ? 'مسح البحث' : 'Clear search'}
+            aria-label={t('common.clearSearch')}
           >
             <X className="h-4 w-4" />
           </button>
@@ -147,7 +152,7 @@ function SearchFilterBar({
         <div className="flex gap-1.5">
           {(['all', 'active', 'inactive'] as FilterType[]).map(f => (
             <Button key={f} size="sm" variant={filter === f ? 'default' : 'outline'} className="text-xs h-7 px-3" onClick={() => onFilter(f)}>
-              {f === 'all' ? (isRTL ? 'الكل' : 'All') : f === 'active' ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'غير نشط' : 'Inactive')}
+              {f === 'all' ? t('common.all') : f === 'active' ? t('common.active') : t('common.inactive')}
             </Button>
           ))}
         </div>
@@ -165,11 +170,12 @@ function VirtualMemberList({
   onViewProfile: (id: string) => void;
   onViewTeam?: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   if (members.length === 0) {
     return (
       <div className="text-center py-16">
         <Users className="h-14 w-14 mx-auto mb-3 text-muted-foreground/30" />
-        <p className="text-sm text-muted-foreground">{isRTL ? 'لا يوجد أعضاء مطابقون' : 'No matching members'}</p>
+        <p className="text-sm text-muted-foreground">{t('team.noMatchingMembers')}</p>
       </div>
     );
   }
@@ -204,11 +210,12 @@ function HierarchyBreadcrumb({
 }: {
   trail: BreadcrumbEntry[]; isRTL: boolean; onNavigate: (index: number) => void;
 }) {
+  const { t } = useTranslation();
   if (trail.length === 0) return null;
   return (
     <div className={`flex items-center gap-1 px-4 py-2 text-xs text-muted-foreground overflow-x-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
       <button className="text-primary shrink-0 hover:underline" onClick={() => onNavigate(-1)}>
-        {isRTL ? 'فريقي' : 'My Team'}
+        {t('team.title')}
       </button>
       {trail.map((entry, i) => (
         <span key={entry.memberId} className="flex items-center gap-1 shrink-0">
@@ -304,12 +311,12 @@ function TeamContent() {
     if (toastShown.current || loading || !hasWarning) return;
     toastShown.current = true;
     const title = userInactive
-      ? (isRTL ? 'أنت غير نشط هذا الأسبوع!' : 'You are inactive this week!')
+      ? t('team.warningInactive')
       : teamActivityLow
-        ? (isRTL ? `${inactiveCount} أعضاء غير نشطين` : `${inactiveCount} inactive members`)
+        ? t('team.warningInactiveMembers', { count: inactiveCount })
         : cycleEnding
-          ? (isRTL ? `${14 - user.currentWeek} أسابيع على نهاية الدورة` : `${14 - user.currentWeek} weeks left in cycle`)
-          : (isRTL ? 'نشاطك منخفض' : 'Your activity is low');
+          ? t('team.warningCycleEnding', { weeks: 14 - user.currentWeek })
+          : t('team.warningActivityLow');
     toast({ title, variant: 'destructive' });
   }, [loading, hasWarning]);
 
@@ -363,8 +370,8 @@ function TeamContent() {
   // ── Full-screen Direct / Sub-team view ─────────────────────────────────────
   if (showFullDirect) {
     const viewTitle = breadcrumb.length > 0
-      ? (isRTL ? `فريق ${breadcrumb[breadcrumb.length - 1].name}` : `${breadcrumb[breadcrumb.length - 1].name}'s Team`)
-      : (isRTL ? 'الفريق المباشر' : 'Direct Team');
+      ? t('team.subteamOf', { name: breadcrumb[breadcrumb.length - 1].name })
+      : t('team.directTeam');
 
     return (
       <div className="flex min-h-screen flex-col bg-background">
@@ -412,14 +419,14 @@ function TeamContent() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full grid grid-cols-4 mb-4">
             <TabsTrigger value="overview" className="text-xs relative">
-              {isRTL ? 'نظرة عامة' : 'Overview'}
+              {t('team.tabOverview')}
               {hasWarning && (
                 <span className="absolute top-1 end-1 w-2 h-2 rounded-full bg-destructive" />
               )}
             </TabsTrigger>
-            <TabsTrigger value="direct"   className="text-xs">{isRTL ? 'المباشر'   : 'Direct'}</TabsTrigger>
-            <TabsTrigger value="stats"    className="text-xs">{isRTL ? 'الإحصائيات' : 'Stats'}</TabsTrigger>
-            <TabsTrigger value="referral" className="text-xs">{isRTL ? 'الإحالة'    : 'Referral'}</TabsTrigger>
+            <TabsTrigger value="direct"   className="text-xs">{t('team.tabDirect')}</TabsTrigger>
+            <TabsTrigger value="stats"    className="text-xs">{t('team.tabStats')}</TabsTrigger>
+            <TabsTrigger value="referral" className="text-xs">{t('team.tabReferral')}</TabsTrigger>
           </TabsList>
 
           {/* ── Overview ── */}
@@ -431,14 +438,14 @@ function TeamContent() {
               className="w-full text-xs h-8 text-muted-foreground"
               onClick={() => setSupervisorSheetOpen(true)}
             >
-              {isRTL ? 'طلب تغيير المسؤول' : 'Request Supervisor Change'}
+              {t('team.requestSupervisorChange')}
             </Button>
             <UserIdentityCard />
 
             <Card className="p-4">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
-                {isRTL ? 'حجم الفريق' : 'Team Size'}
+                {t('team.teamSize')}
               </h3>
               {loading ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -454,20 +461,20 @@ function TeamContent() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-2xl font-bold text-primary">{directCount}</p>
-                        <p className="text-xs text-muted-foreground">{isRTL ? 'مباشر' : 'Direct'}</p>
+                        <p className="text-xs text-muted-foreground">{t('team.directLabel')}</p>
                       </div>
                       <ChevronRight className={`h-5 w-5 text-muted-foreground ${isRTL ? 'rotate-180' : ''}`} />
                     </div>
                   </Card>
                   <Card className="p-3">
                     <p className="text-2xl font-bold text-muted-foreground">{indirectCount}</p>
-                    <p className="text-xs text-muted-foreground">{isRTL ? 'غير مباشر' : 'Indirect'}</p>
+                    <p className="text-xs text-muted-foreground">{t('team.indirect')}</p>
                   </Card>
                 </div>
               )}
               {!loading && (
                 <div className="mt-3 pt-3 border-t flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{isRTL ? 'إجمالي الفريق' : 'Total Team'}</span>
+                  <span className="text-muted-foreground">{t('team.totalTeam')}</span>
                   <span className="font-bold">{directCount + indirectCount}</span>
                 </div>
               )}
@@ -520,8 +527,8 @@ function TeamContent() {
                     <Star className="h-5 w-5 text-amber-500" />
                   </div>
                   <div className={isRTL ? 'text-right' : ''}>
-                    <p className="font-medium text-sm">{isRTL ? 'ترتيب Spotlight' : 'Spotlight Ranking'}</p>
-                    <p className="text-xs text-muted-foreground">{isRTL ? 'اعرف مكانك في المنافسة' : 'See your competitive position'}</p>
+                    <p className="font-medium text-sm">{t('team.spotlightRanking')}</p>
+                    <p className="text-xs text-muted-foreground">{t('team.spotlightRankingDesc')}</p>
                   </div>
                 </div>
                 <ArrowRight className={`h-5 w-5 text-muted-foreground shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
@@ -533,18 +540,18 @@ function TeamContent() {
           <TabsContent value="referral" className="space-y-4 mt-0">
             <ReferralCodeCard />
             <Card className="p-4">
-              <h3 className="font-semibold mb-3">{isRTL ? 'كيف تعمل الإحالة؟' : 'How Referral Works?'}</h3>
+              <h3 className="font-semibold mb-3">{t('team.howReferralWorks')}</h3>
               <div className="space-y-3">
-                {[
-                  { step: 1, en: { title: 'Share Your Code', desc: 'Send your referral code to friends' }, ar: { title: 'شارك كودك', desc: 'أرسل كود الإحالة لأصدقائك' } },
-                  { step: 2, en: { title: 'They Join WINOVA', desc: 'They use your code when signing up' }, ar: { title: 'ينضمون إلى WINOVA', desc: 'يستخدمون كودك عند التسجيل' } },
-                  { step: 3, en: { title: 'Earn Points & Rewards', desc: 'The more active your team, the more you earn' }, ar: { title: 'تكسب نقاط ومكافآت', desc: 'كلما كان فريقك نشيطاً، زادت مكافآتك' } },
-                ].map(({ step, en, ar }) => (
+                {([
+                  { step: 1, titleKey: 'team.referralStep1Title', descKey: 'team.referralStep1Desc' },
+                  { step: 2, titleKey: 'team.referralStep2Title', descKey: 'team.referralStep2Desc' },
+                  { step: 3, titleKey: 'team.referralStep3Title', descKey: 'team.referralStep3Desc' },
+                ] as const).map(({ step, titleKey, descKey }) => (
                   <div key={step} className="flex items-start gap-3">
                     <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">{step}</div>
                     <div>
-                      <p className="text-sm font-medium">{isRTL ? ar.title : en.title}</p>
-                      <p className="text-xs text-muted-foreground">{isRTL ? ar.desc : en.desc}</p>
+                      <p className="text-sm font-medium">{t(titleKey)}</p>
+                      <p className="text-xs text-muted-foreground">{t(descKey)}</p>
                     </div>
                   </div>
                 ))}

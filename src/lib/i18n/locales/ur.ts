@@ -92,6 +92,8 @@ export const ur = {
       spotlight: 'خوش قسمت فاتحین',
       todayWinners: 'آج کے فاتحین',
       viewAll: 'سب دیکھیں',
+      welcomeBackToast: 'خوش آمدید! 👋',
+      helloUser: 'ہیلو {{name}}',
     },
     // Ranks
     ranks: {
@@ -131,6 +133,14 @@ export const ur = {
       third: 'تیسرا',
       fourth: 'چوتھا',
       fifth: 'پانچواں',
+      freeContest: 'مفت مقابلہ',
+      freeEntry: 'مفت داخلہ',
+      fridayContest: 'جمعہ مفت مقابلہ',
+      fridayReminder: 'کل جمعہ کا مقابلہ — داخلہ مفت!',
+      joinFree: 'مفت شامل ہوں',
+      kycRequired: 'مفت مقابلوں میں شرکت کے لیے شناخت کی تصدیق (KYC) ضروری ہے',
+      accountTooNew: 'مفت مقابلوں میں شرکت کے لیے آپ کا اکاؤنٹ کم از کم 7 دن پرانا ہونا چاہیے',
+      deviceAlreadyUsed: 'یہ ڈیوائس اس مقابلے میں شرکت کے لیے پہلے ہی استعمال ہو چکی ہے',
     },
     // Team
     team: {
@@ -150,6 +160,42 @@ export const ur = {
       copyCode: 'کاپی',
       copied: 'کاپی ہو گیا!',
       shareInvite: 'شیئر',
+      // Tabs
+      tabOverview: 'جائزہ',
+      tabDirect: 'براہ راست',
+      tabStats: 'اعداد و شمار',
+      tabReferral: 'حوالہ',
+      // Member card
+      memberRankWeeks: 'درجہ: {{rank}} | ہفتے: {{weeks}}/14',
+      viewProfile: '{{name}} کا پروفائل دیکھیں',
+      viewTeamOf: '{{name}} کی ٹیم',
+      subteamOf: '{{name}} کی ٹیم',
+      // Search
+      searchPlaceholder: 'نام یا صارف نام سے تلاش کریں...',
+      searchMember: 'ممبر تلاش کریں',
+      noMatchingMembers: 'کوئی مطابق ممبر نہیں',
+      // Overview labels
+      teamSize: 'ٹیم کا سائز',
+      directLabel: 'براہ راست',
+      indirect: 'بالواسطہ',
+      totalTeam: 'کل ٹیم',
+      requestSupervisorChange: 'سپروائزر تبدیلی کی درخواست',
+      // Stats tab
+      spotlightRanking: 'Spotlight درجہ بندی',
+      spotlightRankingDesc: 'مقابلے میں اپنی پوزیشن دیکھیں',
+      // Referral tab
+      howReferralWorks: 'حوالہ کیسے کام کرتا ہے؟',
+      referralStep1Title: 'اپنا کوڈ شیئر کریں',
+      referralStep1Desc: 'اپنا حوالہ کوڈ دوستوں کو بھیجیں',
+      referralStep2Title: 'وہ WINOVA سے جڑتے ہیں',
+      referralStep2Desc: 'وہ رجسٹریشن کے وقت آپ کا کوڈ استعمال کریں',
+      referralStep3Title: 'پوائنٹس اور انعامات کمائیں',
+      referralStep3Desc: 'آپ کی ٹیم جتنی فعال، اتنا زیادہ کمائیں',
+      // Warnings (toast)
+      warningInactive: 'آپ اس ہفتے غیر فعال ہیں!',
+      warningInactiveMembers: '{{count}} غیر فعال ممبران',
+      warningCycleEnding: 'سائیکل میں {{weeks}} ہفتے باقی',
+      warningActivityLow: 'آپ کی سرگرمی کم ہے',
     },
     // Wallet
     wallet: {
@@ -188,6 +234,20 @@ export const ur = {
       unmute: 'آواز',
       noMessages: 'کوئی پیغام نہیں',
       startConversation: 'گفتگو شروع کریں',
+      support: {
+        ticketOpenedTitle: '🛎️ سپورٹ ٹکٹ کھل گیا',
+        categoryLabel: '📂 زمرہ: {{category}}',
+        waitingStatus: '⏳ حالت: سپورٹ ایجنٹ کا انتظار',
+        agentGreeting: '👋 ہیلو {{name}}',
+        agentSubtitle: 'میں {{agentName}} ہوں، WINOVA سپورٹ سے',
+        agentHelp: 'میں آپ کے {{category}} مسئلے میں مدد کروں گا 😊',
+        ticketResolvedTitle: '✅ ٹکٹ حل ہو گیا',
+        thankYou: 'ہم سے رابطہ کرنے کا شکریہ',
+        rateService: 'کیا آپ ہماری سروس کو ریٹ کرنا چاہیں گے؟ ⭐',
+        inQueueTitle: '⏳ آپ قطار میں ہیں',
+        queuePosition: 'نمبر: {{position}}',
+        contactSoon: 'ہم جلد آپ سے رابطہ کریں گے',
+      },
     },
     // P2P
     p2p: {
@@ -250,6 +310,35 @@ export const ur = {
       hours: 'گھنٹے',
       minutes: 'منٹ',
       seconds: 'سیکنڈ',
+      active: 'فعال',
+      inactive: 'غیر فعال',
+      all: 'سب',
+      clearSearch: 'تلاش مٹائیں',
+    },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'والیٹ منجمد کریں',
+        unfreezeWallet: 'والیٹ غیر منجمد کریں',
+        descFreeze: 'منجمد کرنے سے تمام مالی لین دین بند ہو جاتی ہے',
+        descUnfreeze: 'مالی لین دین کی اجازت دینے کے لیے غیر منجمد کریں',
+        frozen: 'منجمد',
+        reasonLabel: 'منجمد کرنے کی وجہ *',
+        reasonPlaceholder: 'منجمد کرنے کی وجہ درج کریں...',
+        customReasonLabel: 'وجہ',
+        warningText: 'منجمد کرنے سے یہ بند ہوں گے: ٹرانسفر، P2P ٹریڈنگ، اور نکاسی۔',
+        selectReasonError: 'براہ کرم منجمد کرنے کی وجہ منتخب کریں',
+        frozenSuccess: 'والیٹ کامیابی سے منجمد ہو گیا',
+        unfrozenSuccess: 'والیٹ کامیابی سے غیر منجمد ہو گیا',
+        onlyAdminCanUnfreeze: 'صرف ایڈمن غیر منجمد کر سکتا ہے۔ اپنے منتظم سے رابطہ کریں۔',
+        reasons: {
+          fraud: 'دھوکہ دہی',
+          scam: 'فراڈ',
+          chargeback: 'واپسی کا دعویٰ',
+          manual_review: 'دستی جائزہ',
+          other: 'دیگر',
+        },
+      },
     },
     // Settings
     settings: {

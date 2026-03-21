@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,13 +41,7 @@ interface WalletFreezeDialogProps {
   canUnfreeze?: boolean; // Only Admin can unfreeze
 }
 
-const FREEZE_REASONS = [
-  { value: 'fraud', label: 'Fraud', labelAr: 'احتيال' },
-  { value: 'scam', label: 'Scam', labelAr: 'نصب' },
-  { value: 'chargeback', label: 'Chargeback', labelAr: 'استرداد مبالغ' },
-  { value: 'manual_review', label: 'Manual Review', labelAr: 'مراجعة يدوية' },
-  { value: 'other', label: 'Other', labelAr: 'أخرى' },
-];
+const FREEZE_REASON_VALUES = ['fraud', 'scam', 'chargeback', 'manual_review', 'other'] as const;
 
 export function WalletFreezeDialog({ 
   open, 
@@ -55,6 +50,7 @@ export function WalletFreezeDialog({
   onSuccess,
   canUnfreeze = false 
 }: WalletFreezeDialogProps) {
+  const { t } = useTranslation();
   const { language } = useLanguage();
   const { user: adminUser } = useAuth();
   const isRTL = language === 'ar';
@@ -71,7 +67,7 @@ export function WalletFreezeDialog({
     
     const reason = selectedReason === 'other' ? customReason : selectedReason;
     if (!reason) {
-      toast.error(isRTL ? 'يرجى اختيار سبب التجميد' : 'Please select a freeze reason');
+      toast.error(t('admin.walletFreeze.selectReasonError'));
       return;
     }
 
@@ -119,15 +115,15 @@ export function WalletFreezeDialog({
       logActivity({ user_id: adminUser.id, role: 'admin', action_type: 'wallet_freeze', entity_type: 'wallet', entity_id: user.id, success: true, after_state: { target_user: user.username, reason } as any });
       logKnowledge({ source: 'admin', event_type: 'wallet_frozen', area: 'wallet', reference_id: user.id, payload: { target_user: user.user_id, reason } as any });
 
-      toast.success(isRTL ? 'تم تجميد المحفظة بنجاح' : 'Wallet frozen successfully');
-      
+      toast.success(t('admin.walletFreeze.frozenSuccess'));
+
       setSelectedReason('');
       setCustomReason('');
       onOpenChange(false);
       onSuccess();
     } catch (error) {
       console.error('Error freezing wallet:', error);
-      toast.error(isRTL ? 'حدث خطأ' : 'An error occurred');
+      toast.error(t('common.error'));
     } finally {
       setIsLoading(false);
     }
@@ -180,13 +176,13 @@ export function WalletFreezeDialog({
       logActivity({ user_id: adminUser.id, role: 'admin', action_type: 'wallet_unfreeze', entity_type: 'wallet', entity_id: user.id, success: true, after_state: { target_user: user.username } as any });
       logKnowledge({ source: 'admin', event_type: 'wallet_unfrozen', area: 'wallet', reference_id: user.id, payload: { target_user: user.user_id } as any });
 
-      toast.success(isRTL ? 'تم فك تجميد المحفظة بنجاح' : 'Wallet unfrozen successfully');
-      
+      toast.success(t('admin.walletFreeze.unfrozenSuccess'));
+
       onOpenChange(false);
       onSuccess();
     } catch (error) {
       console.error('Error unfreezing wallet:', error);
-      toast.error(isRTL ? 'حدث خطأ' : 'An error occurred');
+      toast.error(t('common.error'));
     } finally {
       setIsLoading(false);
     }
@@ -202,19 +198,19 @@ export function WalletFreezeDialog({
             {isFrozen ? (
               <>
                 <Unlock className="w-5 h-5 text-primary" />
-                {isRTL ? 'فك تجميد المحفظة' : 'Unfreeze Wallet'}
+                {t('admin.walletFreeze.unfreezeWallet')}
               </>
             ) : (
               <>
                 <Lock className="w-5 h-5 text-destructive" />
-                {isRTL ? 'تجميد المحفظة' : 'Freeze Wallet'}
+                {t('admin.walletFreeze.freezeWallet')}
               </>
             )}
           </DialogTitle>
           <DialogDescription>
-            {isFrozen 
-              ? (isRTL ? 'فك تجميد محفظة المستخدم للسماح بالعمليات المالية' : 'Unfreeze wallet to allow financial operations')
-              : (isRTL ? 'تجميد محفظة المستخدم يمنع جميع العمليات المالية' : 'Freezing wallet blocks all financial operations')
+            {isFrozen
+              ? t('admin.walletFreeze.descUnfreeze')
+              : t('admin.walletFreeze.descFreeze')
             }
           </DialogDescription>
         </DialogHeader>
@@ -232,7 +228,7 @@ export function WalletFreezeDialog({
             </div>
             {isFrozen && (
               <div className="px-2 py-1 bg-destructive/10 text-destructive text-xs font-medium rounded">
-                {isRTL ? 'مجمّد' : 'Frozen'}
+                {t('admin.walletFreeze.frozen')}
               </div>
             )}
           </div>
@@ -242,14 +238,14 @@ export function WalletFreezeDialog({
             <>
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
-                  {isRTL ? 'سبب التجميد *' : 'Freeze Reason *'}
+                  {t('admin.walletFreeze.reasonLabel')}
                 </Label>
                 <RadioGroup value={selectedReason} onValueChange={setSelectedReason}>
-                  {FREEZE_REASONS.map((reason) => (
-                    <div key={reason.value} className="flex items-center space-x-2 rtl:space-x-reverse">
-                      <RadioGroupItem value={reason.value} id={reason.value} />
-                      <Label htmlFor={reason.value} className="text-sm cursor-pointer">
-                        {isRTL ? reason.labelAr : reason.label}
+                  {FREEZE_REASON_VALUES.map((value) => (
+                    <div key={value} className="flex items-center space-x-2 rtl:space-x-reverse">
+                      <RadioGroupItem value={value} id={value} />
+                      <Label htmlFor={value} className="text-sm cursor-pointer">
+                        {t(`admin.walletFreeze.reasons.${value}`)}
                       </Label>
                     </div>
                   ))}
@@ -258,9 +254,9 @@ export function WalletFreezeDialog({
 
               {selectedReason === 'other' && (
                 <div className="space-y-2">
-                  <Label>{isRTL ? 'السبب' : 'Reason'}</Label>
+                  <Label>{t('admin.walletFreeze.customReasonLabel')}</Label>
                   <Textarea
-                    placeholder={isRTL ? 'أدخل سبب التجميد...' : 'Enter freeze reason...'}
+                    placeholder={t('admin.walletFreeze.reasonPlaceholder')}
                     value={customReason}
                     onChange={(e) => setCustomReason(e.target.value)}
                     rows={2}
@@ -272,9 +268,7 @@ export function WalletFreezeDialog({
               <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-destructive">
                 <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
                 <p className="text-sm">
-                  {isRTL 
-                    ? 'تجميد المحفظة سيمنع المستخدم من: التحويل، التداول P2P، والسحب.'
-                    : 'Freezing will block: transfers, P2P trading, and withdrawals.'}
+                  {t('admin.walletFreeze.warningText')}
                 </p>
               </div>
 
@@ -289,7 +283,7 @@ export function WalletFreezeDialog({
                 ) : (
                   <Lock className="w-4 h-4 me-2" />
                 )}
-                {isRTL ? 'تجميد المحفظة' : 'Freeze Wallet'}
+                {t('admin.walletFreeze.freezeWallet')}
               </Button>
             </>
           )}
@@ -309,14 +303,12 @@ export function WalletFreezeDialog({
                   ) : (
                     <Unlock className="w-4 h-4 me-2" />
                   )}
-                  {isRTL ? 'فك تجميد المحفظة' : 'Unfreeze Wallet'}
+                  {t('admin.walletFreeze.unfreezeWallet')}
                 </Button>
               ) : (
                 <div className="p-3 rounded-lg bg-muted text-center">
                   <p className="text-sm text-muted-foreground">
-                    {isRTL 
-                      ? 'فقط المشرف يستطيع فك التجميد. تواصل مع المشرف.'
-                      : 'Only Admin can unfreeze. Contact your administrator.'}
+                    {t('admin.walletFreeze.onlyAdminCanUnfreeze')}
                   </p>
                 </div>
               )}

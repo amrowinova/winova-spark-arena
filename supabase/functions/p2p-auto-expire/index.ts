@@ -20,7 +20,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // CORS: restricted to the app domain only — never open to *
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://winova-spark-arena.lovable.app',
+  'Access-Control-Allow-Origin': 'https://winova-spark-arena-claude.vercel.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 

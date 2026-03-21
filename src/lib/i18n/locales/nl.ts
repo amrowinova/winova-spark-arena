@@ -92,6 +92,8 @@ export const nl = {
       spotlight: 'Gelukkige Winnaars',
       todayWinners: 'Winnaars van Vandaag',
       viewAll: 'Alles bekijken',
+      welcomeBackToast: 'Welkom terug! 👋',
+      helloUser: 'Hallo {{name}}',
     },
     // Ranks
     ranks: {
@@ -131,6 +133,14 @@ export const nl = {
       third: '3e',
       fourth: '4e',
       fifth: '5e',
+      freeContest: 'Gratis Wedstrijd',
+      freeEntry: 'Gratis Deelname',
+      fridayContest: 'Vrijdag Gratis Wedstrijd',
+      fridayReminder: 'Vrijdagwedstrijd morgen — gratis deelname!',
+      joinFree: 'Gratis Deelnemen',
+      kycRequired: 'Identiteitsverificatie (KYC) is vereist om aan gratis wedstrijden deel te nemen',
+      accountTooNew: 'Je account moet minimaal 7 dagen oud zijn om aan gratis wedstrijden deel te nemen',
+      deviceAlreadyUsed: 'Dit apparaat is al gebruikt om aan deze wedstrijd deel te nemen',
     },
     // Team
     team: {
@@ -150,6 +160,42 @@ export const nl = {
       copyCode: 'Kopiëren',
       copied: 'Gekopieerd!',
       shareInvite: 'Delen',
+      // Tabs
+      tabOverview: 'Overzicht',
+      tabDirect: 'Direct',
+      tabStats: 'Statistieken',
+      tabReferral: 'Verwijzing',
+      // Member card
+      memberRankWeeks: 'Rang: {{rank}} | Weken: {{weeks}}/14',
+      viewProfile: 'Profiel van {{name}} bekijken',
+      viewTeamOf: 'Team van {{name}}',
+      subteamOf: 'Team van {{name}}',
+      // Search
+      searchPlaceholder: 'Zoek op naam of gebruikersnaam...',
+      searchMember: 'Lid zoeken',
+      noMatchingMembers: 'Geen overeenkomende leden',
+      // Overview labels
+      teamSize: 'Teamgrootte',
+      directLabel: 'Direct',
+      indirect: 'Indirect',
+      totalTeam: 'Totaal Team',
+      requestSupervisorChange: 'Verzoek Supervisor Wijziging',
+      // Stats tab
+      spotlightRanking: 'Spotlight Ranglijst',
+      spotlightRankingDesc: 'Zie uw concurrentiepositie',
+      // Referral tab
+      howReferralWorks: 'Hoe werkt Verwijzing?',
+      referralStep1Title: 'Deel Uw Code',
+      referralStep1Desc: 'Stuur uw verwijzingscode naar vrienden',
+      referralStep2Title: 'Zij Sluiten Aan bij WINOVA',
+      referralStep2Desc: 'Ze gebruiken uw code bij registratie',
+      referralStep3Title: 'Verdien Punten en Beloningen',
+      referralStep3Desc: 'Hoe actiever uw team, hoe meer u verdient',
+      // Warnings (toast)
+      warningInactive: 'U bent inactief deze week!',
+      warningInactiveMembers: '{{count}} inactieve leden',
+      warningCycleEnding: '{{weeks}} weken over in cyclus',
+      warningActivityLow: 'Uw activiteit is laag',
     },
     // Wallet
     wallet: {
@@ -188,6 +234,20 @@ export const nl = {
       unmute: 'Dempen opheffen',
       noMessages: 'Geen berichten',
       startConversation: 'Start een gesprek',
+      support: {
+        ticketOpenedTitle: '🛎️ Ondersteuningsticket geopend',
+        categoryLabel: '📂 Categorie: {{category}}',
+        waitingStatus: '⏳ Status: Wachten op supportmedewerker',
+        agentGreeting: '👋 Hallo {{name}}',
+        agentSubtitle: 'Ik ben {{agentName}} van WINOVA Support',
+        agentHelp: 'Ik help je met je {{category}} probleem 😊',
+        ticketResolvedTitle: '✅ Ticket opgelost',
+        thankYou: 'Bedankt voor uw contact',
+        rateService: 'Wilt u onze service beoordelen? ⭐',
+        inQueueTitle: '⏳ U staat in de wachtrij',
+        queuePosition: 'Positie: {{position}}',
+        contactSoon: 'We nemen binnenkort contact met u op',
+      },
     },
     // P2P
     p2p: {
@@ -250,6 +310,35 @@ export const nl = {
       hours: 'uren',
       minutes: 'minuten',
       seconds: 'seconden',
+      active: 'Actief',
+      inactive: 'Inactief',
+      all: 'Alle',
+      clearSearch: 'Zoekopdracht wissen',
+    },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'Portemonnee Blokkeren',
+        unfreezeWallet: 'Portemonnee Deblokkeren',
+        descFreeze: 'Blokkeren verhindert alle financiële transacties',
+        descUnfreeze: 'Deblokkeer om financiële transacties toe te staan',
+        frozen: 'Geblokkeerd',
+        reasonLabel: 'Blokkeerreden *',
+        reasonPlaceholder: 'Voer blokkeerreden in...',
+        customReasonLabel: 'Reden',
+        warningText: 'Blokkeren verhindert: overboekingen, P2P-handel en opnames.',
+        selectReasonError: 'Selecteer een blokkeerreden',
+        frozenSuccess: 'Portemonnee succesvol geblokkeerd',
+        unfrozenSuccess: 'Portemonnee succesvol gedeblokkeerd',
+        onlyAdminCanUnfreeze: 'Alleen Admin kan deblokkeren. Neem contact op met uw beheerder.',
+        reasons: {
+          fraud: 'Fraude',
+          scam: 'Oplichting',
+          chargeback: 'Terugboeking',
+          manual_review: 'Handmatige Beoordeling',
+          other: 'Overig',
+        },
+      },
     },
     // Settings
     settings: {

@@ -92,6 +92,8 @@ export const fr = {
       spotlight: 'Gagnants Chanceux',
       todayWinners: 'Vedettes du Jour',
       viewAll: 'Voir Tout',
+      welcomeBackToast: 'Bon retour ! 👋',
+      helloUser: 'Bonjour {{name}}',
     },
     // Ranks
     ranks: {
@@ -131,6 +133,14 @@ export const fr = {
       third: '3ème',
       fourth: '4ème',
       fifth: '5ème',
+      freeContest: 'Concours Gratuit',
+      freeEntry: 'Entrée Gratuite',
+      fridayContest: 'Concours Gratuit du Vendredi',
+      fridayReminder: 'Concours vendredi demain — entrée gratuite !',
+      joinFree: 'Rejoindre Gratuitement',
+      kycRequired: 'La vérification d\'identité (KYC) est requise pour participer aux concours gratuits',
+      accountTooNew: 'Votre compte doit avoir au moins 7 jours pour participer aux concours gratuits',
+      deviceAlreadyUsed: 'Cet appareil a déjà été utilisé pour participer à ce concours',
     },
     // Team
     team: {
@@ -146,10 +156,46 @@ export const fr = {
       requirements: 'Conditions',
       directRequired: 'Membres directs requis',
       activeRequired: 'Membres actifs requis',
-      inviteCode: 'Code d\'Invitation',
+      inviteCode: "Code d'Invitation",
       copyCode: 'Copier',
       copied: 'Copié !',
       shareInvite: 'Partager',
+      // Tabs
+      tabOverview: 'Aperçu',
+      tabDirect: 'Direct',
+      tabStats: 'Statistiques',
+      tabReferral: 'Parrainage',
+      // Member card
+      memberRankWeeks: 'Rang: {{rank}} | Semaines: {{weeks}}/14',
+      viewProfile: 'Voir le profil de {{name}}',
+      viewTeamOf: 'Équipe de {{name}}',
+      subteamOf: 'Équipe de {{name}}',
+      // Search
+      searchPlaceholder: 'Rechercher par nom ou pseudo...',
+      searchMember: 'Rechercher un membre',
+      noMatchingMembers: 'Aucun membre correspondant',
+      // Overview labels
+      teamSize: 'Taille Équipe',
+      directLabel: 'Direct',
+      indirect: 'Indirect',
+      totalTeam: 'Équipe Totale',
+      requestSupervisorChange: 'Demander un Changement de Superviseur',
+      // Stats tab
+      spotlightRanking: 'Classement Spotlight',
+      spotlightRankingDesc: 'Voir votre position concurrentielle',
+      // Referral tab
+      howReferralWorks: 'Comment fonctionne le Parrainage?',
+      referralStep1Title: 'Partagez Votre Code',
+      referralStep1Desc: 'Envoyez votre code de parrainage à vos amis',
+      referralStep2Title: 'Ils Rejoignent WINOVA',
+      referralStep2Desc: "Ils utilisent votre code lors de l'inscription",
+      referralStep3Title: 'Gagnez Points et Récompenses',
+      referralStep3Desc: "Plus votre équipe est active, plus vous gagnez",
+      // Warnings (toast)
+      warningInactive: 'Vous êtes inactif cette semaine!',
+      warningInactiveMembers: '{{count}} membres inactifs',
+      warningCycleEnding: '{{weeks}} semaines restantes dans le cycle',
+      warningActivityLow: 'Votre activité est faible',
     },
     // Wallet
     wallet: {
@@ -188,6 +234,20 @@ export const fr = {
       unmute: 'Activer Son',
       noMessages: 'Aucun message',
       startConversation: 'Démarrer une conversation',
+      support: {
+        ticketOpenedTitle: '🛎️ Ticket de support ouvert',
+        categoryLabel: '📂 Catégorie : {{category}}',
+        waitingStatus: '⏳ Statut : En attente d\'un agent de support',
+        agentGreeting: '👋 Bonjour {{name}}',
+        agentSubtitle: 'Je suis {{agentName}} du support WINOVA',
+        agentHelp: 'Je vais vous aider avec votre problème {{category}} 😊',
+        ticketResolvedTitle: '✅ Ticket résolu',
+        thankYou: 'Merci de nous avoir contactés',
+        rateService: 'Souhaitez-vous évaluer notre service ? ⭐',
+        inQueueTitle: '⏳ Vous êtes en file d\'attente',
+        queuePosition: 'Position : {{position}}',
+        contactSoon: 'Nous vous contacterons bientôt',
+      },
     },
     // P2P
     p2p: {
@@ -250,6 +310,35 @@ export const fr = {
       hours: 'heures',
       minutes: 'minutes',
       seconds: 'secondes',
+      active: 'Actif',
+      inactive: 'Inactif',
+      all: 'Tous',
+      clearSearch: 'Effacer la recherche',
+    },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'Geler le Portefeuille',
+        unfreezeWallet: 'Dégeler le Portefeuille',
+        descFreeze: 'Geler bloque toutes les opérations financières',
+        descUnfreeze: 'Dégeler pour autoriser les opérations financières',
+        frozen: 'Gelé',
+        reasonLabel: 'Raison du Gel *',
+        reasonPlaceholder: 'Entrez la raison du gel...',
+        customReasonLabel: 'Raison',
+        warningText: 'Le gel bloquera: les transferts, le trading P2P et les retraits.',
+        selectReasonError: 'Veuillez sélectionner une raison de gel',
+        frozenSuccess: 'Portefeuille gelé avec succès',
+        unfrozenSuccess: 'Portefeuille dégelé avec succès',
+        onlyAdminCanUnfreeze: "Seul l'Admin peut dégeler. Contactez votre administrateur.",
+        reasons: {
+          fraud: 'Fraude',
+          scam: 'Arnaque',
+          chargeback: 'Rétrofacturation',
+          manual_review: 'Révision Manuelle',
+          other: 'Autre',
+        },
+      },
     },
     // Settings
     settings: {

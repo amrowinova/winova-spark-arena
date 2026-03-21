@@ -92,6 +92,8 @@ export const ar = {
       spotlight: 'الفائزون المحظوظون',
       todayWinners: 'أضواء اليوم',
       viewAll: 'عرض الكل',
+      welcomeBackToast: 'مرحباً بعودتك! 👋',
+      helloUser: 'أهلاً {{name}}',
     },
     // Ranks
     ranks: {
@@ -131,6 +133,14 @@ export const ar = {
       third: 'الثالث',
       fourth: 'الرابع',
       fifth: 'الخامس',
+      freeContest: 'مسابقة مجانية',
+      freeEntry: 'دخول مجاني',
+      fridayContest: 'مسابقة الجمعة المجانية',
+      fridayReminder: 'مسابقة الجمعة غداً — بدون رسوم!',
+      joinFree: 'انضم مجاناً',
+      kycRequired: 'يجب التحقق من هويتك (KYC) للمشاركة في المسابقات المجانية',
+      accountTooNew: 'يجب أن يكون عمر حسابك 7 أيام على الأقل للمشاركة في المسابقات المجانية',
+      deviceAlreadyUsed: 'تم استخدام هذا الجهاز بالفعل للمشاركة في هذه المسابقة',
     },
     // Team
     team: {
@@ -150,6 +160,42 @@ export const ar = {
       copyCode: 'نسخ الكود',
       copied: 'تم النسخ!',
       shareInvite: 'شارك الدعوة',
+      // Tabs
+      tabOverview: 'نظرة عامة',
+      tabDirect: 'المباشر',
+      tabStats: 'الإحصائيات',
+      tabReferral: 'الإحالة',
+      // Member card
+      memberRankWeeks: 'الرتبة: {{rank}} | أسابيع: {{weeks}}/14',
+      viewProfile: 'عرض ملف {{name}}',
+      viewTeamOf: 'فريق {{name}}',
+      subteamOf: 'فريق {{name}}',
+      // Search
+      searchPlaceholder: 'ابحث بالاسم أو اسم المستخدم...',
+      searchMember: 'بحث عن عضو',
+      noMatchingMembers: 'لا يوجد أعضاء مطابقون',
+      // Overview labels
+      teamSize: 'حجم الفريق',
+      directLabel: 'مباشر',
+      indirect: 'غير مباشر',
+      totalTeam: 'إجمالي الفريق',
+      requestSupervisorChange: 'طلب تغيير المسؤول',
+      // Stats tab
+      spotlightRanking: 'ترتيب Spotlight',
+      spotlightRankingDesc: 'اعرف مكانك في المنافسة',
+      // Referral tab
+      howReferralWorks: 'كيف تعمل الإحالة؟',
+      referralStep1Title: 'شارك كودك',
+      referralStep1Desc: 'أرسل كود الإحالة لأصدقائك',
+      referralStep2Title: 'ينضمون إلى WINOVA',
+      referralStep2Desc: 'يستخدمون كودك عند التسجيل',
+      referralStep3Title: 'تكسب نقاط ومكافآت',
+      referralStep3Desc: 'كلما كان فريقك نشيطاً، زادت مكافآتك',
+      // Warnings (toast)
+      warningInactive: 'أنت غير نشط هذا الأسبوع!',
+      warningInactiveMembers: '{{count}} أعضاء غير نشطين',
+      warningCycleEnding: '{{weeks}} أسابيع على نهاية الدورة',
+      warningActivityLow: 'نشاطك منخفض',
     },
     // Wallet
     wallet: {
@@ -188,6 +234,20 @@ export const ar = {
       unmute: 'إلغاء الكتم',
       noMessages: 'لا توجد رسائل بعد',
       startConversation: 'ابدأ محادثة',
+      support: {
+        ticketOpenedTitle: '🛎️ تم فتح طلب دعم',
+        categoryLabel: '📂 القسم: {{category}}',
+        waitingStatus: '⏳ حالتك: بانتظار موظف الدعم',
+        agentGreeting: '👋 أهلاً {{name}}',
+        agentSubtitle: 'أنا {{agentName}} من فريق دعم WINOVA',
+        agentHelp: 'رح أساعدك بخصوص مشكلة {{category}} 😊',
+        ticketResolvedTitle: '✅ تم حل التذكرة',
+        thankYou: 'شكراً لتواصلك معنا',
+        rateService: 'هل ترغب بتقييم الخدمة؟ ⭐',
+        inQueueTitle: '⏳ أنت في قائمة الانتظار',
+        queuePosition: 'ترتيبك: {{position}}',
+        contactSoon: 'سيتم التواصل معك قريباً',
+      },
     },
     // P2P
     p2p: {
@@ -250,6 +310,35 @@ export const ar = {
       hours: 'ساعات',
       minutes: 'دقائق',
       seconds: 'ثوان',
+      active: 'نشط',
+      inactive: 'غير نشط',
+      all: 'الكل',
+      clearSearch: 'مسح البحث',
+    },
+    // Admin
+    admin: {
+      walletFreeze: {
+        freezeWallet: 'تجميد المحفظة',
+        unfreezeWallet: 'فك تجميد المحفظة',
+        descFreeze: 'تجميد محفظة المستخدم يمنع جميع العمليات المالية',
+        descUnfreeze: 'فك تجميد محفظة المستخدم للسماح بالعمليات المالية',
+        frozen: 'مجمّد',
+        reasonLabel: 'سبب التجميد *',
+        reasonPlaceholder: 'أدخل سبب التجميد...',
+        customReasonLabel: 'السبب',
+        warningText: 'تجميد المحفظة سيمنع المستخدم من: التحويل، التداول P2P، والسحب.',
+        selectReasonError: 'يرجى اختيار سبب التجميد',
+        frozenSuccess: 'تم تجميد المحفظة بنجاح',
+        unfrozenSuccess: 'تم فك تجميد المحفظة بنجاح',
+        onlyAdminCanUnfreeze: 'فقط المشرف يستطيع فك التجميد. تواصل مع المشرف.',
+        reasons: {
+          fraud: 'احتيال',
+          scam: 'نصب',
+          chargeback: 'استرداد مبالغ',
+          manual_review: 'مراجعة يدوية',
+          other: 'أخرى',
+        },
+      },
     },
     // Settings
     settings: {
