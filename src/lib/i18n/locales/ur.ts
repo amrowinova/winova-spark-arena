@@ -92,6 +92,8 @@ export const ur = {
       spotlight: 'خوش قسمت فاتحین',
       todayWinners: 'آج کے فاتحین',
       viewAll: 'سب دیکھیں',
+      welcomeBackToast: 'خوش آمدید! 👋',
+      helloUser: 'ہیلو {{name}}',
     },
     // Ranks
     ranks: {
@@ -232,6 +234,20 @@ export const ur = {
       unmute: 'آواز',
       noMessages: 'کوئی پیغام نہیں',
       startConversation: 'گفتگو شروع کریں',
+      support: {
+        ticketOpenedTitle: '🛎️ سپورٹ ٹکٹ کھل گیا',
+        categoryLabel: '📂 زمرہ: {{category}}',
+        waitingStatus: '⏳ حالت: سپورٹ ایجنٹ کا انتظار',
+        agentGreeting: '👋 ہیلو {{name}}',
+        agentSubtitle: 'میں {{agentName}} ہوں، WINOVA سپورٹ سے',
+        agentHelp: 'میں آپ کے {{category}} مسئلے میں مدد کروں گا 😊',
+        ticketResolvedTitle: '✅ ٹکٹ حل ہو گیا',
+        thankYou: 'ہم سے رابطہ کرنے کا شکریہ',
+        rateService: 'کیا آپ ہماری سروس کو ریٹ کرنا چاہیں گے؟ ⭐',
+        inQueueTitle: '⏳ آپ قطار میں ہیں',
+        queuePosition: 'نمبر: {{position}}',
+        contactSoon: 'ہم جلد آپ سے رابطہ کریں گے',
+      },
     },
     // P2P
     p2p: {

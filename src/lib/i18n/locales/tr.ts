@@ -92,6 +92,8 @@ export const tr = {
       spotlight: 'Şanslı Kazananlar',
       todayWinners: 'Bugünün Kazananları',
       viewAll: 'Tümünü Gör',
+      welcomeBackToast: 'Tekrar hoş geldin! 👋',
+      helloUser: 'Merhaba {{name}}',
     },
     // Ranks
     ranks: {
@@ -232,6 +234,20 @@ export const tr = {
       unmute: 'Sesi Aç',
       noMessages: 'Mesaj yok',
       startConversation: 'Konuşma başlat',
+      support: {
+        ticketOpenedTitle: '🛎️ Destek Talebi Açıldı',
+        categoryLabel: '📂 Kategori: {{category}}',
+        waitingStatus: '⏳ Durum: Destek görevlisi bekleniyor',
+        agentGreeting: '👋 Merhaba {{name}}',
+        agentSubtitle: 'Ben {{agentName}}, WINOVA Destek ekibindenim',
+        agentHelp: '{{category}} sorununuzda size yardımcı olacağım 😊',
+        ticketResolvedTitle: '✅ Talep Çözüldü',
+        thankYou: 'Bize ulaştığınız için teşekkürler',
+        rateService: 'Hizmetimizi değerlendirmek ister misiniz? ⭐',
+        inQueueTitle: '⏳ Sıradasınız',
+        queuePosition: 'Sıra numaranız: {{position}}',
+        contactSoon: 'En kısa sürede sizinle iletişime geçeceğiz',
+      },
     },
     // P2P
     p2p: {

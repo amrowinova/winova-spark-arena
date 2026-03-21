@@ -7,6 +7,7 @@ import { OTPVerificationScreen } from './OTPVerificationScreen';
 import { ProfileCompletionScreen } from './ProfileCompletionScreen';
 import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRequired } from '@/contexts/AuthRequiredContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +32,7 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen, ini
   const [currentScreen, setCurrentScreen] = useState<AuthScreen>(initialScreen || 'landing');
   const [email, setEmail] = useState('');
   const { language } = useLanguage();
+  const { t } = useTranslation();
   const { user, session, lastAuthEvent } = useAuth();
   const { markAuthComplete } = useAuthRequired();
   const isRTL = language === 'ar';
@@ -81,8 +83,8 @@ export function AuthFlow({ open, onOpenChange, onAuthSuccess, initialScreen, ini
           .single();
         const userName = profile?.name || sessionData.session.user.user_metadata?.name || 'User';
         toast({
-          title: isRTL ? 'مرحباً بعودتك! 👋' : 'Welcome back! 👋',
-          description: isRTL ? `أهلاً ${userName}` : `Hello ${userName}`,
+          title: t('home.welcomeBackToast'),
+          description: t('home.helloUser', { name: userName }),
         });
       }
     } catch (error) {

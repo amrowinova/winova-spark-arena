@@ -7,6 +7,7 @@ import {
   Headphones,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 export type SupportMessageType = 
   | 'ticket_opened'
@@ -45,6 +46,7 @@ const typeColors: Record<SupportMessageType, string> = {
 
 export function SupportSystemMessage({ message }: SupportSystemMessageProps) {
   const { language } = useLanguage();
+  const { t } = useTranslation();
   const isRTL = language === 'ar';
   const Icon = typeIcons[message.type];
   const colorClasses = typeColors[message.type];
@@ -53,53 +55,34 @@ export function SupportSystemMessage({ message }: SupportSystemMessageProps) {
     switch (message.type) {
       case 'ticket_opened':
         return {
-          title: isRTL ? '🛎️ تم فتح طلب دعم' : '🛎️ Support Ticket Opened',
-          subtitle: isRTL 
-            ? `📂 القسم: ${message.categoryTitle}`
-            : `📂 Category: ${message.categoryTitle}`,
-          extra: isRTL 
-            ? '⏳ حالتك: بانتظار موظف الدعم'
-            : '⏳ Status: Waiting for support agent',
+          title: t('chat.support.ticketOpenedTitle'),
+          subtitle: t('chat.support.categoryLabel', { category: message.categoryTitle }),
+          extra: t('chat.support.waitingStatus'),
         };
-      
-      case 'agent_assigned':
+
+      case 'agent_assigned': {
         const agentName = isRTL ? message.agentNameAr : message.agentName;
         return {
-          title: isRTL 
-            ? `👋 أهلاً ${message.userName || ''}`
-            : `👋 Hi ${message.userName || ''}`,
-          subtitle: isRTL
-            ? `أنا ${agentName} من فريق دعم WINOVA`
-            : `I'm ${agentName} from WINOVA Support`,
-          extra: isRTL
-            ? `رح أساعدك بخصوص مشكلة ${message.categoryTitle} 😊`
-            : `I'll help you with your ${message.categoryTitle} issue 😊`,
+          title: t('chat.support.agentGreeting', { name: message.userName || '' }),
+          subtitle: t('chat.support.agentSubtitle', { agentName }),
+          extra: t('chat.support.agentHelp', { category: message.categoryTitle }),
         };
-      
+      }
+
       case 'ticket_resolved':
         return {
-          title: isRTL ? '✅ تم حل التذكرة' : '✅ Ticket Resolved',
-          subtitle: isRTL 
-            ? 'شكراً لتواصلك معنا'
-            : 'Thank you for contacting us',
-          extra: isRTL
-            ? 'هل ترغب بتقييم الخدمة؟ ⭐'
-            : 'Would you like to rate our service? ⭐',
+          title: t('chat.support.ticketResolvedTitle'),
+          subtitle: t('chat.support.thankYou'),
+          extra: t('chat.support.rateService'),
         };
-      
+
       case 'waiting_queue':
         return {
-          title: isRTL 
-            ? '⏳ أنت في قائمة الانتظار'
-            : '⏳ You are in queue',
-          subtitle: isRTL
-            ? `ترتيبك: ${message.queuePosition}`
-            : `Position: ${message.queuePosition}`,
-          extra: isRTL
-            ? 'سيتم التواصل معك قريباً'
-            : 'We will contact you soon',
+          title: t('chat.support.inQueueTitle'),
+          subtitle: t('chat.support.queuePosition', { position: message.queuePosition }),
+          extra: t('chat.support.contactSoon'),
         };
-      
+
       default:
         return { title: '', subtitle: '', extra: '' };
     }

@@ -92,6 +92,8 @@ export const de = {
       spotlight: 'Glückliche Gewinner',
       todayWinners: 'Heutige Gewinner',
       viewAll: 'Alle anzeigen',
+      welcomeBackToast: 'Willkommen zurück! 👋',
+      helloUser: 'Hallo {{name}}',
     },
     // Ranks
     ranks: {
@@ -232,6 +234,20 @@ export const de = {
       unmute: 'Ton an',
       noMessages: 'Keine Nachrichten',
       startConversation: 'Gespräch starten',
+      support: {
+        ticketOpenedTitle: '🛎️ Support-Ticket geöffnet',
+        categoryLabel: '📂 Kategorie: {{category}}',
+        waitingStatus: '⏳ Status: Warte auf Support-Mitarbeiter',
+        agentGreeting: '👋 Hallo {{name}}',
+        agentSubtitle: 'Ich bin {{agentName}} vom WINOVA-Support',
+        agentHelp: 'Ich helfe Ihnen bei Ihrem {{category}}-Problem 😊',
+        ticketResolvedTitle: '✅ Ticket gelöst',
+        thankYou: 'Danke, dass Sie uns kontaktiert haben',
+        rateService: 'Möchten Sie unseren Service bewerten? ⭐',
+        inQueueTitle: '⏳ Sie sind in der Warteschlange',
+        queuePosition: 'Position: {{position}}',
+        contactSoon: 'Wir werden uns bald bei Ihnen melden',
+      },
     },
     // P2P
     p2p: {

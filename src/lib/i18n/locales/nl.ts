@@ -92,6 +92,8 @@ export const nl = {
       spotlight: 'Gelukkige Winnaars',
       todayWinners: 'Winnaars van Vandaag',
       viewAll: 'Alles bekijken',
+      welcomeBackToast: 'Welkom terug! 👋',
+      helloUser: 'Hallo {{name}}',
     },
     // Ranks
     ranks: {
@@ -232,6 +234,20 @@ export const nl = {
       unmute: 'Dempen opheffen',
       noMessages: 'Geen berichten',
       startConversation: 'Start een gesprek',
+      support: {
+        ticketOpenedTitle: '🛎️ Ondersteuningsticket geopend',
+        categoryLabel: '📂 Categorie: {{category}}',
+        waitingStatus: '⏳ Status: Wachten op supportmedewerker',
+        agentGreeting: '👋 Hallo {{name}}',
+        agentSubtitle: 'Ik ben {{agentName}} van WINOVA Support',
+        agentHelp: 'Ik help je met je {{category}} probleem 😊',
+        ticketResolvedTitle: '✅ Ticket opgelost',
+        thankYou: 'Bedankt voor uw contact',
+        rateService: 'Wilt u onze service beoordelen? ⭐',
+        inQueueTitle: '⏳ U staat in de wachtrij',
+        queuePosition: 'Positie: {{position}}',
+        contactSoon: 'We nemen binnenkort contact met u op',
+      },
     },
     // P2P
     p2p: {
