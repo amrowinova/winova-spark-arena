@@ -2,6 +2,7 @@
  * Contest Scheduler Edge Function
  * ──────────────────────────────────
  * Automatically creates and manages daily contests aligned to KSA (UTC+3) schedule.
+ * On Fridays, creates a FREE contest (is_free = true) with prize from app_settings.
  *
  * Invocation options:
  *   - Cron trigger (pg_cron job) using CRON_SECRET in Authorization header
@@ -47,6 +48,66 @@ function ksaTimestamp(hour: number, minute = 0): string {
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+03:00`;
+}
+
+// Returns true if today is Friday in KSA timezone
+// getDay(): 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+function isFridayKSA(): boolean {
+  return ksaNow().getDay() === 5;
+}
+
+// Send bulk notifications to all active users (batched to avoid payload limits)
+async function sendBulkNotification(
+  db: ReturnType<typeof createClient>,
+  opts: {
+    type: string;
+    title: string;
+    title_ar: string;
+    description: string;
+    description_ar: string;
+    action_path: string;
+  }
+): Promise<number> {
+  const { data: activeProfiles } = await db
+    .from("profiles")
+    .select("user_id")
+    .eq("weekly_active", true);
+
+  if (!activeProfiles?.length) return 0;
+
+  // Check for duplicates sent today
+  const today = ksaDateStr(ksaNow());
+  const { data: existingNotifs } = await db
+    .from("notifications")
+    .select("user_id")
+    .eq("type", opts.type)
+    .gte("created_at", `${today}T00:00:00+03:00`);
+
+  const alreadySentSet = new Set((existingNotifs ?? []).map((n) => n.user_id));
+  const toNotify = activeProfiles
+    .map((p) => p.user_id)
+    .filter((uid) => !alreadySentSet.has(uid));
+
+  if (!toNotify.length) return 0;
+
+  const rows = toNotify.map((uid) => ({
+    user_id: uid,
+    type: opts.type,
+    title: opts.title,
+    title_ar: opts.title_ar,
+    description: opts.description,
+    description_ar: opts.description_ar,
+    is_read: false,
+    action_path: opts.action_path,
+  }));
+
+  const BATCH = 500;
+  let total = 0;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const { error } = await db.from("notifications").insert(rows.slice(i, i + BATCH));
+    if (!error) total += Math.min(BATCH, rows.length - i);
+  }
+  return total;
 }
 
 Deno.serve(async (req) => {
@@ -108,12 +169,11 @@ Deno.serve(async (req) => {
   const now = ksaNow();
   const todayStr = ksaDateStr(now);
   const hour = now.getHours();
+  const todayIsFriday = isFridayKSA();
 
   try {
     // ─────────────────────────────────────────────────────────────────────
     // 0. Weekly streak update — runs once per cycle week at first invocation
-    //    after a new week starts (detected by comparing current week_number
-    //    against the last week we already computed streaks for).
     // ─────────────────────────────────────────────────────────────────────
     const { data: cycleRows } = await supabase.rpc("get_active_cycle_info");
     const cycleRow = (cycleRows as Array<{ cycle_id: string; week_number: number }> | null)?.[0];
@@ -154,7 +214,7 @@ Deno.serve(async (req) => {
     // ─────────────────────────────────────────────────────────────────────
     const { data: existing, error: fetchErr } = await supabase
       .from("contests")
-      .select("id, status")
+      .select("id, status, is_free")
       .eq("contest_date", todayStr)
       .maybeSingle();
 
@@ -164,28 +224,78 @@ Deno.serve(async (req) => {
     let currentStatus: string;
 
     if (!existing) {
-      // Create new contest for today
-      const { data: newContest, error: insertErr } = await supabase
-        .from("contests")
-        .insert({
-          title: `Daily Contest – ${todayStr}`,
-          title_ar: `المسابقة اليومية – ${todayStr}`,
-          description: "Daily Nova contest",
-          description_ar: "مسابقة Nova اليومية",
-          start_time: ksaTimestamp(10, 0), // 10 AM KSA
-          end_time: ksaTimestamp(22, 0), // 10 PM KSA
-          entry_fee: 10,
-          prize_pool: 0,
-          current_participants: 0,
-          status: "active",
-          contest_date: todayStr,
-        })
-        .select("id, status")
-        .single();
+      // ── Friday Free Contest ───────────────────────────────────────────
+      if (todayIsFriday) {
+        // Read friday_prize from app_settings.contest_config
+        const { data: configRow } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "contest_config")
+          .maybeSingle();
 
-      if (insertErr) throw insertErr;
-      contestId = newContest!.id;
-      currentStatus = newContest!.status;
+        const fridayPrize: number =
+          (configRow?.value as { friday_prize?: number } | null)?.friday_prize ?? 100;
+
+        const { data: newContest, error: insertErr } = await supabase
+          .from("contests")
+          .insert({
+            title:       `Friday Free Contest – ${todayStr}`,
+            title_ar:    `مسابقة الجمعة المجانية – ${todayStr}`,
+            description: "Free Friday contest — no entry fee required!",
+            description_ar: "مسابقة الجمعة المجانية — الدخول بدون رسوم!",
+            start_time:  ksaTimestamp(10, 0),
+            end_time:    ksaTimestamp(22, 0),
+            entry_fee:   0,
+            prize_pool:  fridayPrize,
+            admin_prize: fridayPrize,
+            is_free:     true,
+            current_participants: 0,
+            status:      "active",
+            contest_date: todayStr,
+          })
+          .select("id, status")
+          .single();
+
+        if (insertErr) throw insertErr;
+        contestId = newContest!.id;
+        currentStatus = newContest!.status;
+
+        // Send Friday morning notification to all active users
+        const sent = await sendBulkNotification(supabase, {
+          type:        "friday_contest",
+          title:       "🎉 Free Contest Today!",
+          title_ar:    "🎉 مسابقة الجمعة المجانية اليوم!",
+          description: `Today's contest is FREE — no Nova required! Prize pool: ${fridayPrize} Nova. Join now!`,
+          description_ar: `مسابقة اليوم مجانية — بدون رسوم Nova! الجائزة: ${fridayPrize} Nova. انضم الآن!`,
+          action_path: "/contests",
+        });
+        console.log(`Friday free contest created. Notifications sent: ${sent}`);
+
+      } else {
+        // ── Regular Daily Contest ─────────────────────────────────────────
+        const { data: newContest, error: insertErr } = await supabase
+          .from("contests")
+          .insert({
+            title:       `Daily Contest – ${todayStr}`,
+            title_ar:    `المسابقة اليومية – ${todayStr}`,
+            description: "Daily Nova contest",
+            description_ar: "مسابقة Nova اليومية",
+            start_time:  ksaTimestamp(10, 0),
+            end_time:    ksaTimestamp(22, 0),
+            entry_fee:   10,
+            prize_pool:  0,
+            is_free:     false,
+            current_participants: 0,
+            status:      "active",
+            contest_date: todayStr,
+          })
+          .select("id, status")
+          .single();
+
+        if (insertErr) throw insertErr;
+        contestId = newContest!.id;
+        currentStatus = newContest!.status;
+      }
     } else {
       contestId = existing.id;
       currentStatus = existing.status;
@@ -198,23 +308,15 @@ Deno.serve(async (req) => {
     let newStatus: string | null = null;
 
     if (hour >= 22) {
-      // After 10 PM → completed (results display)
-      if (currentStatus !== "completed") {
-        newStatus = "completed";
-      }
+      if (currentStatus !== "completed") newStatus = "completed";
     } else if (hour >= 20) {
-      // 8-10 PM → final
-      if (currentStatus !== "final" && currentStatus !== "completed") {
-        newStatus = "final";
-      }
+      if (currentStatus !== "final" && currentStatus !== "completed") newStatus = "final";
     } else if (hour >= 14) {
-      // 2-8 PM → stage1
       if (currentStatus !== "stage1" && currentStatus !== "final" && currentStatus !== "completed") {
         newStatus = "stage1";
       }
     } else if (hour >= 10) {
-      // 10 AM - 2 PM → active (join open)
-      if (currentStatus !== "active" && currentStatus !== "stage1" && currentStatus !== "final" && currentStatus !== "completed") {
+      if (!["active", "stage1", "final", "completed"].includes(currentStatus)) {
         newStatus = "active";
       }
     }
@@ -227,45 +329,24 @@ Deno.serve(async (req) => {
       if (updateErr) throw updateErr;
 
       // ── Grant vote earnings when a stage ends ──────────────────────────
-      // stage1 → final  : stage1 has ended, grant stage1 earnings
-      // final  → completed : final has ended, grant final earnings
       if (currentStatus === "stage1" && newStatus === "final") {
         const { data: earningsData, error: earningsErr } = await supabase
-          .rpc("grant_vote_earnings", {
-            p_contest_id: contestId,
-            p_stage: "stage1",
-          });
-        if (earningsErr) {
-          console.error("grant_vote_earnings stage1 error:", earningsErr);
-        } else {
-          console.log("stage1 vote earnings granted:", earningsData);
-        }
+          .rpc("grant_vote_earnings", { p_contest_id: contestId, p_stage: "stage1" });
+        if (earningsErr) console.error("grant_vote_earnings stage1 error:", earningsErr);
+        else console.log("stage1 vote earnings granted:", earningsData);
       }
 
       if (currentStatus === "final" && newStatus === "completed") {
         const { data: earningsData, error: earningsErr } = await supabase
-          .rpc("grant_vote_earnings", {
-            p_contest_id: contestId,
-            p_stage: "final",
-          });
-        if (earningsErr) {
-          console.error("grant_vote_earnings final error:", earningsErr);
-        } else {
-          console.log("final vote earnings granted:", earningsData);
-        }
+          .rpc("grant_vote_earnings", { p_contest_id: contestId, p_stage: "final" });
+        if (earningsErr) console.error("grant_vote_earnings final error:", earningsErr);
+        else console.log("final vote earnings granted:", earningsData);
 
         // ── Run daily spotlight draw ──────────────────────────────────────
-        // Selects two winners from today's active users:
-        //   1st place (65%): highest cumulative cycle points
-        //   2nd place (35%): weighted random by cycle points
-        // Prize pool is read from app_settings.spotlight_draw_config.daily_pool
         const { data: drawData, error: drawErr } = await supabase
           .rpc("run_daily_spotlight_draw", { p_draw_date: todayStr });
-        if (drawErr) {
-          console.error("run_daily_spotlight_draw error:", drawErr);
-        } else {
-          console.log("spotlight draw result:", drawData);
-        }
+        if (drawErr) console.error("run_daily_spotlight_draw error:", drawErr);
+        else console.log("spotlight draw result:", drawData);
       }
     }
 
@@ -273,6 +354,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         contestId,
+        isFriday: todayIsFriday,
         previousStatus: currentStatus,
         newStatus: newStatus || currentStatus,
         ksaTime: now.toISOString(),
