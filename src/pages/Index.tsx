@@ -376,9 +376,6 @@ export default function HomePage() {
           <ContestJoinCard
             prizePool={prizePool}
             participants={participantCount}
-            stage={timing.currentStage === 'final' ? 'final' : 'stage1'}
-            closesAt={timing.joinCloseAt}
-            endsAt={timing.finalEnd}
             entryFee={entryFee}
             hasJoined={hasJoined}
             onJoin={handleJoinContest}

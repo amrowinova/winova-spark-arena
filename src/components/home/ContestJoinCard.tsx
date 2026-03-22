@@ -22,9 +22,6 @@ interface LastWinner {
 interface ContestJoinCardProps {
   prizePool: number;
   participants: number;
-  stage: 'stage1' | 'final';
-  closesAt: Date;
-  endsAt: Date;
   entryFee: number;
   hasJoined: boolean;
   userRank?: number;

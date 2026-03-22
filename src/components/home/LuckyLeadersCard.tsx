@@ -8,11 +8,11 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface LeaderEntry {
-  id: string;
+  userId: string;
   name: string;
-  novaWon: number;
-  winDate: Date;
-  position: number;
+  prize: number;
+  drawDate: string;
+  place: 1 | 2;
   country: string;
 }
 
@@ -30,75 +30,72 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
   useEffect(() => {
     async function fetchLuckyLeaders() {
       try {
-        // Step 1: Fetch ledger entries for referral_bonus or contest_win (no join)
-        const { data: ledgerData, error: ledgerError } = await supabase
-          .from('wallet_ledger')
-          .select('user_id, amount, created_at')
-          .in('entry_type', ['referral_bonus', 'contest_win'])
-          .gt('amount', 0)
-          .order('amount', { ascending: false })
-          .limit(100);
+        // Fetch recent daily draws — each has 1st + 2nd place winners
+        const drawsNeeded = Math.ceil(limit / 2);
+        const { data: draws, error } = await supabase
+          .from('spotlight_daily_draws')
+          .select(
+            'draw_date, first_place_user_id, first_place_prize, second_place_user_id, second_place_prize'
+          )
+          .not('first_place_user_id', 'is', null)
+          .order('draw_date', { ascending: false })
+          .limit(drawsNeeded);
 
-        if (ledgerError) throw ledgerError;
-
-        if (!ledgerData || ledgerData.length === 0) {
+        if (error) throw error;
+        if (!draws?.length) {
           setLeaders([]);
           setIsLoading(false);
           return;
         }
 
-        // Step 2: Aggregate by user
-        const userWins: Record<string, { total: number; lastDate: string }> = {};
-        for (const entry of ledgerData) {
-          const userId = entry.user_id;
-          if (!userWins[userId]) {
-            userWins[userId] = { total: 0, lastDate: entry.created_at };
-          }
-          userWins[userId].total += Number(entry.amount) || 0;
-          if (entry.created_at > userWins[userId].lastDate) {
-            userWins[userId].lastDate = entry.created_at;
-          }
+        // Collect all user IDs
+        const userIdSet = new Set<string>();
+        for (const d of draws) {
+          if (d.first_place_user_id)  userIdSet.add(d.first_place_user_id);
+          if (d.second_place_user_id) userIdSet.add(d.second_place_user_id);
         }
+        const userIds = Array.from(userIdSet);
 
-        // Get unique user IDs
-        const userIds = Object.keys(userWins);
-        if (userIds.length === 0) {
-          setLeaders([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Step 3: Fetch profiles for these users
-        const { data: profilesData, error: profilesError } = await supabase
+        // Fetch profiles
+        const { data: profiles } = await supabase
           .from('profiles')
-          .select('user_id, name, country')
+          .select('user_id, full_name, country')
           .in('user_id', userIds);
 
-        if (profilesError) throw profilesError;
-
-        // Create profile map
         const profileMap: Record<string, { name: string; country: string }> = {};
-        for (const profile of profilesData || []) {
-          profileMap[profile.user_id] = {
-            name: profile.name,
-            country: profile.country,
+        for (const p of profiles ?? []) {
+          profileMap[p.user_id] = {
+            name: p.full_name ?? '—',
+            country: getCountryFlag(p.country ?? '') ?? '',
           };
         }
 
-        // Step 4: Build sorted list
-        const sorted = Object.entries(userWins)
-          .sort((a, b) => b[1].total - a[1].total)
-          .slice(0, limit)
-          .map(([userId, data], index) => ({
-            id: userId,
-            name: profileMap[userId]?.name || 'User',
-            novaWon: data.total,
-            winDate: new Date(data.lastDate),
-            position: index + 1,
-            country: getCountryFlag(profileMap[userId]?.country || '') || '',
-          }));
+        // Flatten into entries (1st then 2nd per draw), take `limit` total
+        const entries: LeaderEntry[] = [];
+        for (const d of draws) {
+          if (d.first_place_user_id && entries.length < limit) {
+            entries.push({
+              userId:   d.first_place_user_id,
+              name:     profileMap[d.first_place_user_id]?.name ?? '—',
+              prize:    d.first_place_prize ?? 0,
+              drawDate: d.draw_date,
+              place:    1,
+              country:  profileMap[d.first_place_user_id]?.country ?? '',
+            });
+          }
+          if (d.second_place_user_id && entries.length < limit) {
+            entries.push({
+              userId:   d.second_place_user_id,
+              name:     profileMap[d.second_place_user_id]?.name ?? '—',
+              prize:    d.second_place_prize ?? 0,
+              drawDate: d.draw_date,
+              place:    2,
+              country:  profileMap[d.second_place_user_id]?.country ?? '',
+            });
+          }
+        }
 
-        setLeaders(sorted);
+        setLeaders(entries);
       } catch (err) {
         console.error('Error fetching lucky leaders:', err);
         setLeaders([]);
@@ -110,41 +107,12 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
     fetchLuckyLeaders();
   }, [limit]);
 
-  const handleProfileClick = (userId: string) => {
-    navigate(`/user/${userId}`);
-  };
-
-  const formatDate = (date: Date) => {
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
     return date.toLocaleDateString(isRTL ? 'ar-EG-u-ca-gregory' : 'en-US', {
       day: 'numeric',
       month: 'short',
     });
-  };
-
-  const getPositionStyle = (position: number) => {
-    switch (position) {
-      case 1:
-        return 'bg-nova/20 text-nova border-nova/30';
-      case 2:
-        return 'bg-muted text-foreground border-border';
-      case 3:
-        return 'bg-muted text-foreground border-border';
-      default:
-        return 'bg-muted/50 text-muted-foreground border-border/50';
-    }
-  };
-
-  const getPositionIcon = (position: number) => {
-    switch (position) {
-      case 1:
-        return '🥇';
-      case 2:
-        return '🥈';
-      case 3:
-        return '🥉';
-      default:
-        return position.toString();
-    }
   };
 
   // Empty state
@@ -182,10 +150,10 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
               {isRTL ? 'متصدّري المحظوظين' : 'Lucky Leaders'}
             </span>
           </CardTitle>
-          <Button 
-            asChild 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
             className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
           >
             <Link to="/lucky-leaders">
@@ -195,45 +163,53 @@ export function LuckyLeadersCard({ limit = 5 }: LuckyLeadersCardProps) {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {isRTL ? 'أعلى الرابحين في سحوبات المحظوظين' : 'Top winners from lucky draws'}
+          {isRTL ? 'فائزو سحب Spotlight اليومي' : 'Daily Spotlight draw winners'}
         </p>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-2">
-        {leaders.map((entry) => (
+        {leaders.map((entry, i) => (
           <div
-            key={entry.id}
+            key={`${entry.userId}-${entry.drawDate}-${entry.place}`}
             className={`flex items-center gap-3 p-2.5 rounded-lg border ${
-              entry.position === 1 
-                ? 'bg-nova/5 border-nova/20' 
+              i === 0
+                ? 'bg-nova/5 border-nova/20'
                 : 'bg-muted/30 border-transparent'
             }`}
           >
-            {/* Position */}
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border ${getPositionStyle(entry.position)}`}>
-              {entry.position <= 3 ? getPositionIcon(entry.position) : entry.position}
+            {/* Place badge */}
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border shrink-0 ${
+                entry.place === 1
+                  ? 'bg-nova/20 text-nova border-nova/30'
+                  : 'bg-muted text-foreground border-border'
+              }`}
+            >
+              {entry.place === 1 ? '🥇' : '🥈'}
             </div>
 
-            {/* User Info */}
+            {/* User info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <p 
+                <p
                   className="font-medium text-sm truncate cursor-pointer hover:text-nova transition-colors"
-                  onClick={() => handleProfileClick(entry.id)}
+                  onClick={() => navigate(`/user/${entry.userId}`)}
                 >
                   {entry.name}
                 </p>
-                {entry.country && <span className="text-sm shrink-0">{entry.country}</span>}
+                {entry.country && (
+                  <span className="text-sm shrink-0">{entry.country}</span>
+                )}
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                <span>{formatDate(entry.winDate)}</span>
+                <span>{formatDate(entry.drawDate)}</span>
               </div>
             </div>
 
-            {/* Nova Amount */}
-            <div className="text-end">
-              <p className={`font-bold text-sm ${entry.position === 1 ? 'text-nova' : 'text-foreground'}`}>
-                И {entry.novaWon.toLocaleString()}
+            {/* Prize */}
+            <div className="text-end shrink-0">
+              <p className={`font-bold text-sm ${i === 0 ? 'text-nova' : 'text-foreground'}`}>
+                И {entry.prize.toLocaleString()}
               </p>
             </div>
           </div>
