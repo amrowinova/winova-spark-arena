@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Clock, Users, ArrowRight, Gift, Award, Lock, CheckCircle, Vote, AlertTriangle } from 'lucide-react';
+import { Trophy, Clock, Users, ArrowRight, Gift, Award, Lock, CheckCircle, Vote, AlertTriangle, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -10,6 +10,14 @@ import { Link } from 'react-router-dom';
 import { getContestTiming, getSaudiDateStr, type ContestTimingInfo } from '@/lib/contestTiming';
 import { useContestConfig } from '@/hooks/useContestConfig';
 import { ContestShareCard } from '@/components/contest/ContestShareCard';
+import { supabase } from '@/integrations/supabase/client';
+
+interface LastWinner {
+  rank: number;
+  name: string;
+  username: string;
+  prizeNova: number;
+}
 
 interface ContestJoinCardProps {
   prizePool: number;
@@ -72,6 +80,51 @@ export function ContestJoinCard({
 
   const totalNovaEquivalent = user.novaBalance + user.auraBalance / 2;
 
+  // Last contest winners — shown when no active contest
+  const [lastWinners, setLastWinners] = useState<LastWinner[]>([]);
+  const [lastPrizePool, setLastPrizePool] = useState(0);
+  const [lastDate, setLastDate] = useState('');
+
+  const fetchLastWinners = useCallback(async () => {
+    const { data: contest } = await supabase
+      .from('contests')
+      .select('id, prize_pool, contest_date')
+      .eq('status', 'completed')
+      .order('contest_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!contest) return;
+    setLastPrizePool(contest.prize_pool ?? 0);
+    setLastDate(contest.contest_date ?? '');
+
+    const { data: entries } = await supabase
+      .from('contest_entries')
+      .select('user_id, final_rank, prize_won')
+      .eq('contest_id', contest.id)
+      .not('final_rank', 'is', null)
+      .order('final_rank', { ascending: true })
+      .limit(3);
+    if (!entries?.length) return;
+
+    const ids = entries.map((e) => e.user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, username')
+      .in('id', ids);
+
+    const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]));
+    setLastWinners(entries.map((e) => ({
+      rank: e.final_rank ?? 0,
+      name: profileMap[e.user_id]?.full_name ?? '—',
+      username: profileMap[e.user_id]?.username ?? '',
+      prizeNova: e.prize_won ?? 0,
+    })));
+  }, []);
+
+  useEffect(() => {
+    if (!contestAvailable) fetchLastWinners();
+  }, [contestAvailable, fetchLastWinners]);
+
   // Live timing (Saudi-based)
   const [timing, setTiming] = useState<ContestTimingInfo>(getContestTiming());
   useEffect(() => {
@@ -112,19 +165,103 @@ export function ContestJoinCard({
     return `${day}/${month}/${year}`;
   })();
 
-  // ─── No contest available ───
+  // ─── No contest available — show last winners + countdown ───
   if (!contestAvailable) {
+    const MEDALS = ['🥇', '🥈', '🥉'];
+
     return (
       <Card className="overflow-hidden border border-border shadow-sm">
-        <div className="bg-card p-4 text-center">
-          <Trophy className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-foreground font-semibold">
-            {isRTL ? 'لا توجد مسابقة اليوم' : 'No contest today'}
+        {/* Header — gradient hero */}
+        <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-background p-4 border-b border-border text-center overflow-hidden">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary to-transparent pointer-events-none" />
+          <motion.div
+            animate={{ rotate: [0, -8, 8, -4, 0] }}
+            transition={{ repeat: Infinity, duration: 4, repeatDelay: 3 }}
+            className="inline-block mb-2"
+          >
+            <Trophy className="h-10 w-10 text-primary mx-auto" />
+          </motion.div>
+          <p className="font-bold text-foreground text-lg">
+            {isRTL ? '🏆 نتائج آخر مسابقة' : '🏆 Last Contest Results'}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {isRTL ? 'ترقب المسابقة القادمة' : 'Stay tuned for the next contest'}
-          </p>
+          {lastDate && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {lastDate}
+            </p>
+          )}
+          {lastPrizePool > 0 && (
+            <div className="mt-2 inline-block px-3 py-1 bg-nova/10 border border-nova/30 rounded-full">
+              <span className="text-nova font-bold text-sm">
+                И {lastPrizePool.toLocaleString()} Nova
+              </span>
+              <span className="text-muted-foreground text-xs ms-1">
+                ≈ {pricing.symbol} {(lastPrizePool * pricing.novaRate).toFixed(0)}
+              </span>
+            </div>
+          )}
         </div>
+
+        <CardContent className="p-4 space-y-3">
+          {/* Winners podium */}
+          {lastWinners.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {isRTL ? 'الفائزون' : 'Winners'}
+              </p>
+              {lastWinners.map((w, i) => (
+                <motion.div
+                  key={w.rank}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl border ${
+                    w.rank === 1
+                      ? 'bg-yellow-500/10 border-yellow-500/30'
+                      : w.rank === 2
+                      ? 'bg-slate-400/10 border-slate-400/30'
+                      : 'bg-amber-600/10 border-amber-600/30'
+                  }`}
+                >
+                  <span className="text-2xl leading-none">{MEDALS[i]}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground truncate">{w.name}</p>
+                    {w.username && (
+                      <p className="text-xs text-muted-foreground truncate">@{w.username}</p>
+                    )}
+                  </div>
+                  <div className="text-end shrink-0">
+                    <p className="font-bold text-sm text-nova">И {w.prizeNova.toLocaleString()}</p>
+                    <p className="text-[10px] text-muted-foreground">Nova</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-4 text-center text-muted-foreground text-sm">
+              <Sparkles className="h-6 w-6 mx-auto mb-2 opacity-40" />
+              {isRTL ? 'لا توجد نتائج سابقة' : 'No previous results yet'}
+            </div>
+          )}
+
+          {/* Countdown to next contest */}
+          <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl text-center">
+            <p className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1">
+              <Clock className="h-3 w-3" />
+              {isRTL ? 'المسابقة القادمة تبدأ بعد' : 'Next contest starts in'}
+            </p>
+            <p className="font-mono font-bold text-2xl text-primary tracking-widest">
+              {countdownToNextOpen.display}
+            </p>
+          </div>
+
+          {/* CTA */}
+          <Button asChild variant="outline" className="w-full">
+            <Link to="/contests">
+              {isRTL ? '📊 عرض كامل النتائج' : '📊 View Full Results'}
+              <ArrowRight className="h-4 w-4 ms-2" />
+            </Link>
+          </Button>
+        </CardContent>
       </Card>
     );
   }
