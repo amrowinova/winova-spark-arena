@@ -1,4 +1,6 @@
-CREATE OR REPLACE FUNCTION public.admin_adjust_balance(
+DROP FUNCTION IF EXISTS public.admin_adjust_balance(uuid, uuid, text, numeric, boolean, text);
+
+CREATE FUNCTION public.admin_adjust_balance(
   p_admin_id uuid,
   p_target_user_id uuid,
   p_currency text,
