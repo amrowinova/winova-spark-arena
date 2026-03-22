@@ -41,6 +41,14 @@ function ksaTimestamp(hour: number, minute = 0): string {
   return `${y}-${m}-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+03:00`;
 }
 
+// Build KSA timestamp for given hour on a specific KSA date object
+function ksaTimestampForDate(date: Date, hour: number, minute = 0): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+03:00`;
+}
+
 // Prize distribution percentages for top 5
 const PRIZE_PERCENTAGES = [50, 20, 15, 10, 5];
 
@@ -488,6 +496,62 @@ Deno.serve(async (req) => {
           .rpc("run_daily_spotlight_draw", { p_draw_date: todayStr });
         if (drawErr) console.error("run_daily_spotlight_draw error:", drawErr);
         else console.log("spotlight draw result:", drawData);
+
+        // ── Pre-create tomorrow's contest for midnight pre-registration ───
+        // This lets users join from midnight (pre_open phase) instead of waiting for 10AM.
+        const tomorrowKsa = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const tomorrowStr = ksaDateStr(tomorrowKsa);
+        const tomorrowIsFriday = tomorrowKsa.getDay() === 5;
+
+        const { data: tomorrowExisting } = await supabase
+          .from("contests")
+          .select("id")
+          .eq("contest_date", tomorrowStr)
+          .maybeSingle();
+
+        if (!tomorrowExisting) {
+          if (tomorrowIsFriday) {
+            const { data: configRow } = await supabase
+              .from("app_settings")
+              .select("value")
+              .eq("key", "contest_config")
+              .maybeSingle();
+            const fridayPrize: number =
+              (configRow?.value as { friday_prize?: number } | null)?.friday_prize ?? 100;
+
+            await supabase.from("contests").insert({
+              title:       `Friday Free Contest – ${tomorrowStr}`,
+              title_ar:    `مسابقة الجمعة المجانية – ${tomorrowStr}`,
+              description: "Free Friday contest — no entry fee required!",
+              description_ar: "مسابقة الجمعة المجانية — الدخول بدون رسوم!",
+              start_time:  ksaTimestampForDate(tomorrowKsa, 10, 0),
+              end_time:    ksaTimestampForDate(tomorrowKsa, 22, 0),
+              entry_fee:   0,
+              prize_pool:  fridayPrize,
+              admin_prize: fridayPrize,
+              is_free:     true,
+              current_participants: 0,
+              status:      "active",
+              contest_date: tomorrowStr,
+            });
+          } else {
+            await supabase.from("contests").insert({
+              title:       `Daily Contest – ${tomorrowStr}`,
+              title_ar:    `المسابقة اليومية – ${tomorrowStr}`,
+              description: "Daily Nova contest",
+              description_ar: "مسابقة Nova اليومية",
+              start_time:  ksaTimestampForDate(tomorrowKsa, 10, 0),
+              end_time:    ksaTimestampForDate(tomorrowKsa, 22, 0),
+              entry_fee:   10,
+              prize_pool:  0,
+              is_free:     false,
+              current_participants: 0,
+              status:      "active",
+              contest_date: tomorrowStr,
+            });
+          }
+          console.log(`Pre-created tomorrow's contest: ${tomorrowStr} (Friday: ${tomorrowIsFriday})`);
+        }
       }
     }
 

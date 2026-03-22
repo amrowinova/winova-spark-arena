@@ -47,16 +47,10 @@ export function ContestUserStatusCard({
   const winnersCount = config.distribution.length;
 
   // Determine qualification status based on stage
-<<<<<<< HEAD
-  const isQualifiedStage1 = userRank <= 50;
-  const isQualifiedFinal = userRank <= winnersCount;
-  const isInTop5 = userRank <= winnersCount;
-=======
   // If total participants ≤ threshold, everyone qualifies automatically
   const isQualifiedStage1 = totalParticipants <= 50 ? true : userRank <= 50;
   const isQualifiedFinal = totalParticipants <= 5 ? true : userRank <= 5;
   const isInTop5 = totalParticipants <= 5 ? true : userRank <= 5;
->>>>>>> 2c70405dd16e73b4a3064ce0b4ecb0469a1f0906
   
   // Calculate remaining votes based on stage
   const votesRemainingForTop50 = Math.max(0, votesNeededForTop50 - userVotes);

@@ -66,6 +66,13 @@ interface Winner {
   country: string;
 }
 
+interface LastContest {
+  date: string;
+  prizePool: number;
+  participants: number;
+  winners: Array<{ rank: number; name: string; username: string; prize: number }>;
+}
+
 const formatBalance = (value: number): string => {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
 };
@@ -119,6 +126,9 @@ export default function ContestsPage() {
   // Friday Free Contest state
   const [isContestFree, setIsContestFree] = useState(false);
   const [contestAdminPrize, setContestAdminPrize] = useState<number | null>(null);
+
+  // Last completed contest — shown in pre_open phase
+  const [lastContest, setLastContest] = useState<LastContest | null>(null);
 
   // Device fingerprint — collects browser signals and hashes them into a short string.
   // Used as a 3rd-layer fraud prevention for free contests (no external library needed).
@@ -410,6 +420,54 @@ export default function ContestsPage() {
       supabase.removeChannel(contestChannel);
     };
   }, [activeContestId, fetchContestData]);
+
+  // Fetch last completed contest for pre_open display
+  const fetchLastCompletedContest = useCallback(async () => {
+    try {
+      const { data: contest } = await supabase
+        .from('contests')
+        .select('id, prize_pool, contest_date, current_participants')
+        .eq('status', 'completed')
+        .order('contest_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!contest) return;
+
+      const { data: entries } = await supabase
+        .from('contest_entries')
+        .select('user_id, rank, prize_won')
+        .eq('contest_id', contest.id)
+        .order('rank', { ascending: true })
+        .lte('rank', 3);
+
+      if (!entries?.length) {
+        setLastContest({ date: contest.contest_date, prizePool: contest.prize_pool || 0, participants: contest.current_participants || 0, winners: [] });
+        return;
+      }
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, name, username')
+        .in('user_id', entries.map(e => e.user_id));
+
+      setLastContest({
+        date: contest.contest_date,
+        prizePool: contest.prize_pool || 0,
+        participants: contest.current_participants || 0,
+        winners: entries.map(e => {
+          const p = profiles?.find(pr => pr.user_id === e.user_id);
+          return { rank: e.rank, name: p?.name || '—', username: p?.username || '', prize: e.prize_won || 0 };
+        }),
+      });
+    } catch (err) {
+      console.error('fetchLastCompletedContest error:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isPreOpen) fetchLastCompletedContest();
+  }, [isPreOpen, fetchLastCompletedContest]);
 
   // In final stage, only top 50 are shown
   const displayParticipants = isFinal ? participants.slice(0, 50) : participants;
@@ -723,33 +781,199 @@ export default function ContestsPage() {
 
   // ==================== RENDER PHASES ====================
 
-  // PRE-OPEN: Before 10 AM
+  // PRE-OPEN: Before 10 AM — full pre-registration experience
   if (isPreOpen && !isResults) {
+    const medals = ['🥇', '🥈', '🥉'];
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
-        <main className="flex-1 px-4 py-4 pb-20 flex items-center justify-center">
-          <div className="text-center max-w-sm">
-            <CalendarClock className="h-16 w-16 mx-auto mb-4 text-primary/30" />
-            <h2 className="text-xl font-bold mb-2">
-              {language === 'ar' ? 'المسابقة قريباً' : 'Contest Coming Soon'}
-            </h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              {language === 'ar' 
-                ? `سيتم فتح مسابقة اليوم الساعة ${formatContestTime(timing.joinOpenAt)}`
-                : `Today's contest opens at ${formatContestTime(timing.joinOpenAt)}`}
-            </p>
-            <Card className="p-4 bg-primary/5 border-primary/20">
-              <p className="text-xs text-muted-foreground mb-2">
-                {language === 'ar' ? 'الوقت المتبقي للفتح' : 'Time until opening'}
+        <main className="flex-1 px-4 py-4 pb-20 space-y-4">
+
+          {/* ── Hero Section ── */}
+          <Card className="overflow-hidden border border-border">
+            <div className="bg-gradient-to-br from-primary/15 via-nova/10 to-aura/10 p-5 text-center">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Trophy className="h-14 w-14 mx-auto mb-3 text-nova" />
+              </motion.div>
+              <h2 className="text-xl font-bold mb-1">
+                {language === 'ar' ? 'مسابقة اليوم قادمة! 🏆' : "Today's Contest is Coming! 🏆"}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                {language === 'ar'
+                  ? `تبدأ الساعة ${formatContestTime(timing.joinOpenAt)} — باب الانضمام مفتوح الآن`
+                  : `Starts at ${formatContestTime(timing.joinOpenAt)} — Join now, open all day`}
               </p>
-              <p className="text-3xl font-bold font-mono text-primary">
-                {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
+
+              {/* Countdown */}
+              <div className="bg-background/60 backdrop-blur-sm rounded-xl p-3 mb-4">
+                <p className="text-xs text-muted-foreground mb-1">
+                  {language === 'ar' ? '⏳ المرحلة الأولى تبدأ بعد' : '⏳ Stage 1 starts in'}
+                </p>
+                <p className="text-4xl font-bold font-mono text-primary tracking-widest">
+                  {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
+                </p>
+              </div>
+
+              {/* Today's stats */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-background/60 rounded-lg p-2.5">
+                  <p className="text-xs text-muted-foreground mb-0.5">
+                    {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                  </p>
+                  <p className="font-bold text-foreground">
+                    {isContestFree
+                      ? (language === 'ar' ? '🎉 مجاني' : '🎉 Free')
+                      : `И ${entryFee} Nova`}
+                  </p>
+                </div>
+                <div className="bg-background/60 rounded-lg p-2.5">
+                  <p className="text-xs text-muted-foreground mb-0.5">
+                    {language === 'ar' ? 'مسجّلون الآن' : 'Pre-registered'}
+                  </p>
+                  <p className="font-bold text-foreground">{participants.length}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* ── Join / Already Joined ── */}
+          {activeContestId ? (
+            !hasJoined ? (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                <Button className="w-full h-12 text-base font-bold" onClick={openJoinDialog}>
+                  🏆 {language === 'ar' ? 'سجّل الآن — الباب مفتوح' : 'Pre-register Now — Join Open'}
+                </Button>
+              </motion.div>
+            ) : (
+              <Card className="p-4 bg-success/10 border-success/20">
+                <div className="flex items-center justify-center gap-2 text-success">
+                  <Trophy className="h-5 w-5" />
+                  <span className="font-bold">
+                    {language === 'ar' ? '✅ أنت مسجّل! المسابقة تبدأ قريباً' : '✅ Registered! Contest starts soon'}
+                  </span>
+                </div>
+                <p className="text-xs text-center text-muted-foreground mt-1">
+                  {language === 'ar'
+                    ? `المرحلة الأولى بعد ${String(timeRemaining.hours).padStart(2,'0')}:${String(timeRemaining.minutes).padStart(2,'0')}:${String(timeRemaining.seconds).padStart(2,'0')}`
+                    : `Stage 1 in ${String(timeRemaining.hours).padStart(2,'0')}:${String(timeRemaining.minutes).padStart(2,'0')}:${String(timeRemaining.seconds).padStart(2,'0')}`}
+                </p>
+              </Card>
+            )
+          ) : (
+            <Card className="p-3 bg-muted/40 text-center border-dashed">
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar' ? '⏳ جارٍ تجهيز مسابقة اليوم...' : "⏳ Preparing today's contest..."}
               </p>
             </Card>
-          </div>
+          )}
+
+          {/* ── Last Contest Results ── */}
+          {lastContest && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+              <Card className="overflow-hidden">
+                <div className="px-4 pt-4 pb-2 border-b border-border flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-nova" />
+                  <p className="text-sm font-semibold flex-1">
+                    {language === 'ar' ? 'فائزو آخر مسابقة' : 'Last Contest Winners'}
+                  </p>
+                  <span className="text-xs text-muted-foreground">{lastContest.date}</span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {lastContest.winners.length > 0 ? lastContest.winners.map((w, i) => (
+                    <motion.div
+                      key={w.rank}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.08 }}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg ${
+                        i === 0 ? 'bg-nova/10' : i === 1 ? 'bg-muted/40' : 'bg-muted/20'
+                      }`}
+                    >
+                      <span className="text-xl w-8 text-center">{medals[i] ?? `#${w.rank}`}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{w.name}</p>
+                        <p className="text-xs text-muted-foreground">@{w.username}</p>
+                      </div>
+                      <p className="font-bold text-nova text-sm">И {w.prize}</p>
+                    </motion.div>
+                  )) : (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      {language === 'ar' ? 'لا توجد بيانات' : 'No data available'}
+                    </p>
+                  )}
+                </div>
+                <div className="px-4 pb-3 flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    {language === 'ar' ? `${lastContest.participants} مشارك` : `${lastContest.participants} participants`}
+                  </span>
+                  <span>
+                    {language === 'ar' ? `الجائزة: И ${lastContest.prizePool}` : `Prize pool: И ${lastContest.prizePool}`}
+                  </span>
+                </div>
+              </Card>
+            </motion.div>
+          )}
         </main>
         <BottomNav />
+
+        {/* Join Dialog — reused from join_only phase */}
+        <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-center">
+                {language === 'ar' ? 'انضم للمسابقة' : 'Join Contest'}
+              </DialogTitle>
+              <DialogDescription className="text-center">
+                {language === 'ar'
+                  ? 'سيتم الخصم تلقائياً من رصيدك'
+                  : 'Will be automatically deducted from your balance'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-aura/10 to-nova/10 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground text-center mb-2">
+                  {language === 'ar' ? 'رصيدك الحالي' : 'Your Balance'}
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-aura font-bold text-lg">✦ {formatBalance(user.auraBalance)}</span>
+                  <span className="text-muted-foreground">/</span>
+                  <span className="text-nova font-bold text-lg">И {formatBalance(user.novaBalance)}</span>
+                </div>
+              </div>
+              {isContestFree ? (
+                <div className="p-3 bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 rounded-lg text-center">
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                    🎉 {language === 'ar' ? 'دخول مجاني' : 'Free Entry'}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
+                  </p>
+                  <p className="text-xl font-bold text-primary">И {entryFee}</p>
+                </div>
+              )}
+              <Button
+                className="w-full h-12 font-bold text-base"
+                onClick={handleJoinContest}
+                disabled={isJoining || (!isContestFree && user.novaBalance < entryFee)}
+              >
+                {isJoining ? (
+                  <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+                ) : (
+                  language === 'ar'
+                    ? (isContestFree ? 'انضم مجاناً' : 'ادفع الآن')
+                    : (isContestFree ? 'Join Free' : 'Pay Now')
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
