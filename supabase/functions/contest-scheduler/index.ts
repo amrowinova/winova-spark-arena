@@ -9,14 +9,17 @@
  *   - Manual HTTP call for testing/emergency
  *
  * Schedule (KSA):
- *   00:00  Contest opens (active) — registration + voting all day
- *   20:00  Contest closes → completed, prizes distributed, spotlight draw runs
- *   20:00  Pre-creates tomorrow's contest for immediate availability
+ *   00:00  Contest opens (active) — registration starts
+ *   14:00  active → stage1 — voting opens
+ *   19:00  Registration closes (handled by join_contest RPC)
+ *   20:00  stage1 → final — vote earnings granted for stage1
+ *   22:00  final → completed — prizes distributed, spotlight draw, tomorrow pre-created
  *
  * Actions:
  *   1. ensure_today_contest: Creates today's contest if not present (fallback)
- *   2. finalize: active → completed at 20:00 KSA + prizes + spotlight draw
- *   3. pre_create_tomorrow: creates next day's contest at finalization time
+ *   2. stage1 transition at 14:00 KSA
+ *   3. final transition at 20:00 KSA + grant stage1 vote earnings
+ *   4. completed at 22:00 KSA + prizes + spotlight draw + pre-create tomorrow
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
@@ -391,7 +394,7 @@ Deno.serve(async (req) => {
             description: "Free Friday contest — no entry fee required!",
             description_ar: "مسابقة الجمعة المجانية — الدخول بدون رسوم!",
             start_time:  ksaTimestamp(0, 0),
-            end_time:    ksaTimestamp(20, 0),
+            end_time:    ksaTimestamp(22, 0),
             entry_fee:   0,
             prize_pool:  fridayPrize,
             admin_prize: fridayPrize,
@@ -428,7 +431,7 @@ Deno.serve(async (req) => {
             description: "Daily Nova contest",
             description_ar: "مسابقة Nova اليومية",
             start_time:  ksaTimestamp(0, 0),
-            end_time:    ksaTimestamp(20, 0),
+            end_time:    ksaTimestamp(22, 0),
             entry_fee:   10,
             prize_pool:  0,
             is_free:     false,
@@ -449,14 +452,19 @@ Deno.serve(async (req) => {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 2. Finalize at 20:00 KSA: active → completed
+    // 2. Phase transitions
+    //    14:00  active   → stage1  (voting opens)
+    //    20:00  stage1   → final   + grant stage1 vote earnings
+    //    22:00  final    → completed + prizes + spotlight + pre-create tomorrow
     // ─────────────────────────────────────────────────────────────────────
-    // Single-phase schedule: contest is 'active' all day (00:00–20:00),
-    // then transitions directly to 'completed' at 20:00.
     let newStatus: string | null = null;
     let prizeDistribution: any = null;
 
-    if (hour >= 20 && currentStatus === "active") {
+    if (hour >= 14 && currentStatus === "active") {
+      newStatus = "stage1";
+    } else if (hour >= 20 && currentStatus === "stage1") {
+      newStatus = "final";
+    } else if (hour >= 22 && currentStatus === "final") {
       newStatus = "completed";
     }
 
@@ -467,15 +475,20 @@ Deno.serve(async (req) => {
         .eq("id", contestId);
       if (updateErr) throw updateErr;
 
-      // ─────────────────────────────────────────────────────────────────
-      // 3. Distribute prizes + spotlight draw on completion
-      // ─────────────────────────────────────────────────────────────────
-      if (currentStatus === "active" && newStatus === "completed") {
-        // Grant vote earnings for the single active phase
+      // ── stage1 → final: grant stage1 vote earnings ───────────────────
+      if (currentStatus === "stage1" && newStatus === "final") {
         const { data: earningsData, error: earningsErr } = await supabase
-          .rpc("grant_vote_earnings", { p_contest_id: contestId, p_stage: "active" });
-        if (earningsErr) console.error("grant_vote_earnings error:", earningsErr);
-        else console.log("vote earnings granted:", earningsData);
+          .rpc("grant_vote_earnings", { p_contest_id: contestId, p_stage: "stage1" });
+        if (earningsErr) console.error("grant_vote_earnings (stage1) error:", earningsErr);
+        else console.log("stage1 vote earnings granted:", earningsData);
+      }
+
+      // ── final → completed: grant final earnings + prizes + spotlight ──
+      if (currentStatus === "final" && newStatus === "completed") {
+        const { data: earningsData, error: earningsErr } = await supabase
+          .rpc("grant_vote_earnings", { p_contest_id: contestId, p_stage: "final" });
+        if (earningsErr) console.error("grant_vote_earnings (final) error:", earningsErr);
+        else console.log("final vote earnings granted:", earningsData);
 
         prizeDistribution = await distributePrizes(supabase, contestId);
         console.log("Prize distribution result:", JSON.stringify(prizeDistribution));
@@ -487,7 +500,6 @@ Deno.serve(async (req) => {
         else console.log("spotlight draw result:", drawData);
 
         // ── Pre-create tomorrow's contest immediately after finalization ──
-        // Contest is available from midnight (00:00 KSA) the next day.
         const tomorrowKsa = new Date(now.getTime() + 24 * 60 * 60 * 1000);
         const tomorrowStr = ksaDateStr(tomorrowKsa);
         const tomorrowIsFriday = tomorrowKsa.getDay() === 5;
@@ -514,7 +526,7 @@ Deno.serve(async (req) => {
               description: "Free Friday contest — no entry fee required!",
               description_ar: "مسابقة الجمعة المجانية — الدخول بدون رسوم!",
               start_time:  ksaTimestampForDate(tomorrowKsa, 0, 0),
-              end_time:    ksaTimestampForDate(tomorrowKsa, 20, 0),
+              end_time:    ksaTimestampForDate(tomorrowKsa, 22, 0),
               entry_fee:   0,
               prize_pool:  fridayPrize,
               admin_prize: fridayPrize,
@@ -530,7 +542,7 @@ Deno.serve(async (req) => {
               description: "Daily Nova contest",
               description_ar: "مسابقة Nova اليومية",
               start_time:  ksaTimestampForDate(tomorrowKsa, 0, 0),
-              end_time:    ksaTimestampForDate(tomorrowKsa, 20, 0),
+              end_time:    ksaTimestampForDate(tomorrowKsa, 22, 0),
               entry_fee:   10,
               prize_pool:  0,
               is_free:     false,

@@ -2,25 +2,22 @@
  * Contest Timing Utilities - Saudi Arabia Time (UTC+3) Based
  *
  * Daily Schedule (KSA Time):
- * - 00:00  Contest opens — registration + voting start
- * - 20:00  Contest closes — results announced + Spotlight draw
- * - 20:00 → 00:00  Results window (read-only)
+ * - 00:00  Contest opens — registration starts
+ * - 14:00  Stage 1 starts — voting opens
+ * - 19:00  Registration closes (join window ends)
+ * - 20:00  Stage 1 ends → Final stage begins
+ * - 22:00  Final ends → Results announced + Spotlight draw
  * - 00:00  New contest begins
  */
 
 // ─── Phase Type ───────────────────────────────────────────────────────────────
-// 'active'  → 00:00–20:00 KSA  (canJoin + canVote)
-// 'results' → 20:00–00:00 KSA  (read-only, show winners)
-//
-// Legacy values kept in the union so old component checks (phase === 'pre_open',
-// phase === 'stage1', etc.) compile without TypeScript errors — they never match.
 export type ContestPhase =
-  | 'active'
-  | 'results'
-  | 'pre_open'   // legacy — never returned
-  | 'join_only'  // legacy — never returned
-  | 'stage1'     // legacy — never returned
-  | 'final';     // legacy — never returned
+  | 'pre_open'   // 00:00–14:00  registration open, no voting yet
+  | 'stage1'     // 14:00–20:00  registration + voting
+  | 'final'      // 20:00–22:00  voting only (no new joins)
+  | 'results'    // 22:00–00:00  read-only, show winners
+  | 'active'     // legacy alias (never returned)
+  | 'join_only'; // legacy alias (never returned)
 
 // ─── Timing Info ──────────────────────────────────────────────────────────────
 export interface ContestTimingInfo {
@@ -28,26 +25,26 @@ export interface ContestTimingInfo {
   currentPhase: ContestPhase;
 
   // ── Primary timestamps ──────────────────────────────────────────────────────
-  /** 00:00 KSA today — contest opens */
+  /** 00:00 KSA today — contest opens, join window starts */
   contestOpenAt: Date;
-  /** 20:00 KSA today — contest closes */
-  contestCloseAt: Date;
+  /** 14:00 KSA today — Stage 1 / voting starts */
+  stage1Start: Date;
+  /** 19:00 KSA today — join window closes */
+  joinCloseAt: Date;
+  /** 20:00 KSA today — Stage 1 ends, Final begins */
+  stage1End: Date;
+  /** 20:00 KSA today — Final stage starts */
+  finalStart: Date;
+  /** 22:00 KSA today — Final ends, results begin */
+  finalEnd: Date;
   /** 00:00 KSA tomorrow — results end / next contest opens */
   resultsEnd: Date;
 
-  // ── Legacy timestamp aliases (backward compat) ──────────────────────────────
+  // ── Legacy aliases ──────────────────────────────────────────────────────────
   /** @alias contestOpenAt */
   joinOpenAt: Date;
-  /** @alias contestCloseAt */
-  joinCloseAt: Date;
-  /** @alias contestOpenAt */
-  stage1Start: Date;
-  /** @alias contestCloseAt */
-  stage1End: Date;
-  /** @alias contestCloseAt */
-  finalStart: Date;
-  /** @alias contestCloseAt */
-  finalEnd: Date;
+  /** @alias finalEnd */
+  contestCloseAt: Date;
 
   // ── Time remaining (ms until current phase ends) ───────────────────────────
   timeRemaining: number;
@@ -62,7 +59,7 @@ export interface ContestTimingInfo {
   nextPhaseTime: Date;
 
   // ── Legacy compat ───────────────────────────────────────────────────────────
-  /** @deprecated use currentPhase === 'active' */
+  /** @deprecated use currentPhase */
   currentStage: 'closed' | 'stage1' | 'final';
   nextContestStart: Date;
 
@@ -117,12 +114,19 @@ export function getContestTiming(): ContestTimingInfo {
   const ksaMinutes = ksa.getHours() * 60 + ksa.getMinutes();
 
   // Schedule boundaries (KSA minutes from midnight)
-  const CONTEST_CLOSE = 20 * 60; // 20:00
+  const STAGE1_START  = 14 * 60; // 14:00
+  const JOIN_CLOSE    = 19 * 60; // 19:00
+  const FINAL_START   = 20 * 60; // 20:00
+  const RESULTS_START = 22 * 60; // 22:00
 
   // ── Timestamps ──────────────────────────────────────────────────────────────
-  const contestOpenAt  = ksaTodayAt(0, 0, 0);
-  const contestCloseAt = ksaTodayAt(20, 0, 0);
-  const resultsEnd     = ksaTomorrowAt(0, 0, 0);
+  const contestOpenAt = ksaTodayAt(0,  0, 0);
+  const stage1StartAt = ksaTodayAt(14, 0, 0);
+  const joinCloseAt   = ksaTodayAt(19, 0, 0);
+  const stage1EndAt   = ksaTodayAt(20, 0, 0);
+  const finalStartAt  = ksaTodayAt(20, 0, 0);
+  const finalEndAt    = ksaTodayAt(22, 0, 0);
+  const resultsEnd    = ksaTomorrowAt(0, 0, 0);
 
   // ── Phase logic ─────────────────────────────────────────────────────────────
   let currentPhase: ContestPhase;
@@ -134,18 +138,38 @@ export function getContestTiming(): ContestTimingInfo {
   let nextPhaseTime: Date;
   let currentStage: 'closed' | 'stage1' | 'final';
 
-  if (ksaMinutes < CONTEST_CLOSE) {
-    // 00:00 – 20:00 — contest active
-    currentPhase    = 'active';
-    currentStage    = 'stage1'; // legacy alias
+  if (ksaMinutes < STAGE1_START) {
+    // 00:00 – 14:00 — pre_open: registration open, voting not yet
+    currentPhase    = 'pre_open';
+    currentStage    = 'stage1'; // legacy
     canJoin         = true;
+    canVote         = false;
+    isContestActive = true;
+    timeRemaining   = stage1StartAt.getTime() - nowMs;
+    nextPhaseLabel  = 'voting starts';
+    nextPhaseTime   = stage1StartAt;
+  } else if (ksaMinutes < FINAL_START) {
+    // 14:00 – 20:00 — stage1: voting + registration (until 19:00)
+    currentPhase    = 'stage1';
+    currentStage    = 'stage1';
+    canJoin         = ksaMinutes < JOIN_CLOSE;
     canVote         = true;
     isContestActive = true;
-    timeRemaining   = contestCloseAt.getTime() - nowMs;
-    nextPhaseLabel  = 'ends';
-    nextPhaseTime   = contestCloseAt;
+    timeRemaining   = stage1EndAt.getTime() - nowMs;
+    nextPhaseLabel  = 'final starts';
+    nextPhaseTime   = finalStartAt;
+  } else if (ksaMinutes < RESULTS_START) {
+    // 20:00 – 22:00 — final: voting only, no joins
+    currentPhase    = 'final';
+    currentStage    = 'final';
+    canJoin         = false;
+    canVote         = true;
+    isContestActive = true;
+    timeRemaining   = finalEndAt.getTime() - nowMs;
+    nextPhaseLabel  = 'results';
+    nextPhaseTime   = finalEndAt;
   } else {
-    // 20:00 – 00:00 — results
+    // 22:00 – 00:00 — results
     currentPhase    = 'results';
     currentStage    = 'closed';
     canJoin         = false;
@@ -161,15 +185,15 @@ export function getContestTiming(): ContestTimingInfo {
   return {
     currentPhase,
     contestOpenAt,
-    contestCloseAt,
+    stage1Start:  stage1StartAt,
+    joinCloseAt,
+    stage1End:    stage1EndAt,
+    finalStart:   finalStartAt,
+    finalEnd:     finalEndAt,
     resultsEnd,
-    // Legacy aliases — same values, different names
-    joinOpenAt:  contestOpenAt,
-    joinCloseAt: contestCloseAt,
-    stage1Start: contestOpenAt,
-    stage1End:   contestCloseAt,
-    finalStart:  contestCloseAt,
-    finalEnd:    contestCloseAt,
+    // Legacy aliases
+    joinOpenAt:     contestOpenAt,
+    contestCloseAt: finalEndAt,
     timeRemaining,
     canJoin,
     canVote,
@@ -219,12 +243,12 @@ export function getCurrentPhase(): ContestPhase {
 
 export function getPhaseLabel(phase: ContestPhase, language: 'ar' | 'en'): string {
   const labels: Record<ContestPhase, { ar: string; en: string }> = {
-    active:    { ar: 'المسابقة جارية',   en: 'Contest Live' },
-    results:   { ar: 'النتائج',           en: 'Results' },
-    pre_open:  { ar: 'قريباً',            en: 'Coming Soon' },
-    join_only: { ar: 'التسجيل مفتوح',    en: 'Registration Open' },
+    pre_open:  { ar: 'التسجيل مفتوح',    en: 'Registration Open' },
     stage1:    { ar: 'المرحلة الأولى',   en: 'Stage 1' },
     final:     { ar: 'المرحلة النهائية', en: 'Final Stage' },
+    results:   { ar: 'النتائج',           en: 'Results' },
+    active:    { ar: 'المسابقة جارية',   en: 'Contest Live' },
+    join_only: { ar: 'التسجيل مفتوح',   en: 'Registration Open' },
   };
   return labels[phase][language];
 }
@@ -232,14 +256,26 @@ export function getPhaseLabel(phase: ContestPhase, language: 'ar' | 'en'): strin
 export function getCountdownTarget(
   timing: ContestTimingInfo
 ): { date: Date; label: { ar: string; en: string } } {
-  if (timing.currentPhase === 'active') {
-    return {
-      date:  timing.contestCloseAt,
-      label: { ar: 'تنتهي المسابقة', en: 'Contest ends' },
-    };
+  switch (timing.currentPhase) {
+    case 'pre_open':
+      return {
+        date:  timing.stage1Start,
+        label: { ar: 'يبدأ التصويت', en: 'Voting starts' },
+      };
+    case 'stage1':
+      return {
+        date:  timing.stage1End,
+        label: { ar: 'تنتهي المرحلة الأولى', en: 'Stage 1 ends' },
+      };
+    case 'final':
+      return {
+        date:  timing.finalEnd,
+        label: { ar: 'تنتهي المرحلة النهائية', en: 'Final ends' },
+      };
+    default:
+      return {
+        date:  timing.resultsEnd,
+        label: { ar: 'المسابقة القادمة', en: 'Next contest' },
+      };
   }
-  return {
-    date:  timing.resultsEnd,
-    label: { ar: 'المسابقة القادمة', en: 'Next contest' },
-  };
 }
