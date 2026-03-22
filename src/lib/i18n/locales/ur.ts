@@ -392,6 +392,21 @@ export const ur = {
       appVersion: 'ایپ ورژن',
       comingSoon: 'جلد آ رہا ہے',
     },
+    // Hall of Fame
+    hallOfFame: {
+      title: 'ہال آف فیم',
+      tabAllTime: 'تمام وقت',
+      tabCities: 'شہر',
+      tabCountries: 'ممالک',
+      description: 'ایپ کے آغاز سے اب تک سب سے زیادہ Nova کمانے والے',
+      cityDescription: 'کل Nova کمائی کے لحاظ سے سرفہرست شہر',
+      countryDescription: 'کل Nova کمائی کے لحاظ سے سرفہرست ممالک',
+      totalNova: 'کل Nova',
+      winners: 'فاتح',
+      noDataCities: 'ابھی تک شہر کا ڈیٹا نہیں',
+      noDataCountries: 'ابھی تک ملک کا ڈیٹا نہیں',
+      rankingNote: 'درجہ بندی مقابلوں میں کمائی گئی کل Nova پر مبنی ہے',
+    },
     // Side Menu
     sideMenu: {
       luckyPoints: 'لکی پوائنٹس',

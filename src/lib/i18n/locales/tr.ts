@@ -392,6 +392,21 @@ export const tr = {
       appVersion: 'Uygulama Sürümü',
       comingSoon: 'Yakında',
     },
+    // Hall of Fame
+    hallOfFame: {
+      title: 'Şöhret Salonu',
+      tabAllTime: 'Tüm Zamanlar',
+      tabCities: 'Şehirler',
+      tabCountries: 'Ülkeler',
+      description: 'Uygulamanın başlangıcından bu yana en fazla Nova kazananlar',
+      cityDescription: 'Toplam Nova kazanımına göre en iyi şehirler',
+      countryDescription: 'Toplam Nova kazanımına göre en iyi ülkeler',
+      totalNova: 'Toplam Nova',
+      winners: 'kazanan',
+      noDataCities: 'Henüz şehir verisi yok',
+      noDataCountries: 'Henüz ülke verisi yok',
+      rankingNote: 'Sıralama, yarışmalarda kazanılan toplam Nova\'ya göre belirlenir',
+    },
     // Side Menu
     sideMenu: {
       luckyPoints: 'Şans Puanları',
