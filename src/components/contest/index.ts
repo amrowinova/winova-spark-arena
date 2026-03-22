@@ -11,3 +11,4 @@ export { ContestDetailsDialog } from './ContestDetailsDialog';
 export { VoteDialog } from './VoteDialog';
 export { ContestShareCard } from './ContestShareCard';
 export type { ContestShareCardData, WinnerCardData, ParticipantCardData, SpectatorCardData } from './ContestShareCard';
+export { WinCelebrationOverlay } from './WinCelebrationOverlay';

@@ -45,6 +45,7 @@ import {
   VoteDialog,
 } from '@/components/contest';
 import { ContestCountdownBadge } from '@/components/common/ContestCountdownBadge';
+import { WinCelebrationOverlay } from '@/components/contest/WinCelebrationOverlay';
 
 interface Participant {
   id: string;
@@ -130,6 +131,9 @@ export default function ContestsPage() {
   // Last completed contest — shown in pre_open phase
   const [lastContest, setLastContest] = useState<LastContest | null>(null);
 
+  // Win celebration overlay — shown once per session when user wins
+  const [celebrationOpen, setCelebrationOpen] = useState(false);
+
   // Device fingerprint — collects browser signals and hashes them into a short string.
   // Used as a 3rd-layer fraud prevention for free contests (no external library needed).
   const getDeviceFingerprint = (): string => {
@@ -188,6 +192,19 @@ export default function ContestsPage() {
     // Not joined — spectator card shown in ContestJoinCard, skip here
     return null;
   })();
+
+  // Trigger win celebration overlay — once per session per contest win
+  useEffect(() => {
+    if (!isResults || !authUser) return;
+    const myWin = winners.find((w) => w.id === authUser.id);
+    if (!myWin) return;
+
+    const sessionKey = `win_celebrated_${activeContestId}`;
+    if (sessionStorage.getItem(sessionKey)) return; // already shown this session
+
+    sessionStorage.setItem(sessionKey, '1');
+    setCelebrationOpen(true);
+  }, [isResults, winners, authUser, activeContestId]);
 
   // Update timing every second — stop when results are live (no countdown needed)
   useEffect(() => {
@@ -1072,6 +1089,22 @@ export default function ContestsPage() {
           </Card>
         </main>
         <BottomNav />
+
+        {/* Win Celebration Overlay */}
+        {(() => {
+          const myWin = winners.find((w) => w.id === authUser?.id);
+          if (!myWin) return null;
+          return (
+            <WinCelebrationOverlay
+              open={celebrationOpen}
+              name={user.name || myWin.name}
+              rank={myWin.rank}
+              prizeNova={myWin.prize}
+              onClose={() => setCelebrationOpen(false)}
+              onShare={shareCardData ? undefined : undefined}
+            />
+          );
+        })()}
       </div>
     );
   }
