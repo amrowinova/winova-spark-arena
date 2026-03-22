@@ -392,6 +392,21 @@ export const id = {
       appVersion: 'Versi Aplikasi',
       comingSoon: 'Segera Hadir',
     },
+    // Hall of Fame
+    hallOfFame: {
+      title: 'Hall of Fame',
+      tabAllTime: 'Sepanjang Masa',
+      tabCities: 'Kota',
+      tabCountries: 'Negara',
+      description: 'Peraih Nova terbanyak sepanjang masa sejak peluncuran aplikasi',
+      cityDescription: 'Kota teratas berdasarkan total Nova yang diperoleh',
+      countryDescription: 'Negara teratas berdasarkan total Nova yang diperoleh',
+      totalNova: 'Total Nova',
+      winners: 'pemenang',
+      noDataCities: 'Belum ada data kota',
+      noDataCountries: 'Belum ada data negara',
+      rankingNote: 'Peringkat berdasarkan total Nova yang diperoleh dalam kontes',
+    },
     // Side Menu
     sideMenu: {
       luckyPoints: 'Poin Beruntung',

@@ -392,6 +392,21 @@ export const nl = {
       appVersion: 'App Versie',
       comingSoon: 'Binnenkort',
     },
+    // Hall of Fame
+    hallOfFame: {
+      title: 'Hall of Fame',
+      tabAllTime: 'Altijd',
+      tabCities: 'Steden',
+      tabCountries: 'Landen',
+      description: 'Grootste Nova-verdieners aller tijden sinds de start van de app',
+      cityDescription: 'Topsteden op basis van totaal verdiende Nova',
+      countryDescription: 'Toplanden op basis van totaal verdiende Nova',
+      totalNova: 'Totaal Nova',
+      winners: 'winnaar(s)',
+      noDataCities: 'Nog geen stadsgegevens',
+      noDataCountries: 'Nog geen landsgegevens',
+      rankingNote: 'Rangschikking gebaseerd op totale Nova verdiend in wedstrijden',
+    },
     // Side Menu
     sideMenu: {
       luckyPoints: 'Gelukspunten',

@@ -392,6 +392,21 @@ export const ar = {
       appVersion: 'إصدار التطبيق',
       comingSoon: 'قريباً',
     },
+    // Hall of Fame
+    hallOfFame: {
+      title: 'قاعة المشاهير',
+      tabAllTime: 'الكل',
+      tabCities: 'المدن',
+      tabCountries: 'الدول',
+      description: 'أعلى الرابحين Nova منذ انطلاق التطبيق',
+      cityDescription: 'أعلى المدن من حيث مجموع Nova المكتسبة',
+      countryDescription: 'أعلى الدول من حيث مجموع Nova المكتسبة',
+      totalNova: 'إجمالي Nova',
+      winners: 'فائز',
+      noDataCities: 'لا توجد بيانات مدن بعد',
+      noDataCountries: 'لا توجد بيانات دول بعد',
+      rankingNote: 'الترتيب يعتمد على مجموع Nova المكتسبة في المسابقات',
+    },
     // Side Menu
     sideMenu: {
       luckyPoints: 'نقاط المحظوظين',
