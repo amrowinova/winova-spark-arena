@@ -135,7 +135,7 @@ export function ContestJoinCard({
   const phase = timing.currentPhase;
 
   // Countdown targets for each state
-  const countdownToOpen = useCountdown(timing.joinOpenAt.getTime());
+  const countdownToStage1 = useCountdown(timing.stage1Start.getTime());
   const countdownToRegClose = useCountdown(timing.joinCloseAt.getTime());
   const countdownToFinal = useCountdown(timing.finalStart.getTime());
   const countdownToPhase1End = useCountdown(timing.stage1End.getTime());
@@ -280,7 +280,7 @@ export function ContestJoinCard({
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              {isRTL ? `المسابقة تبدأ بعد ${countdownToOpen.display}` : `Contest starts in ${countdownToOpen.display}`}
+              {isRTL ? `التصويت يبدأ بعد ${countdownToStage1.display}` : `Voting starts in ${countdownToStage1.display}`}
             </p>
           </div>
         );
@@ -295,7 +295,7 @@ export function ContestJoinCard({
             disabled={!contestAvailable}
             onClick={contestAvailable ? onJoin : undefined}
           >
-            🏆 {isRTL ? `انضم للمسابقة — تبدأ بعد ${countdownToOpen.display}` : `Join Contest — Starts in ${countdownToOpen.display}`}
+            🏆 {isRTL ? `انضم للمسابقة — التصويت يبدأ بعد ${countdownToStage1.display}` : `Join Contest — Voting starts in ${countdownToStage1.display}`}
           </Button>
         </div>
       );
@@ -588,7 +588,7 @@ export function ContestJoinCard({
           phase1Active,
           phase1Finished,
           countdownToPhase1End.display,
-          isRTL ? 'تبدأ الساعة 10:00 صباحاً' : 'Starts at 10:00 AM'
+          isRTL ? 'تبدأ الساعة 2:00 ظهراً' : 'Starts at 2:00 PM'
         )}
 
         {/* ④ Phase 2 Card */}
