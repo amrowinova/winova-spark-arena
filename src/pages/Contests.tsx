@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { logActivity, logMoneyFlow, logFailure } from '@/lib/ai/logger';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Ban, Trophy, Clock, Users, Gift, Timer, CalendarClock } from 'lucide-react';
+import { Info, Ban, Trophy, Clock, Users, Gift, Timer } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -997,114 +997,180 @@ export default function ContestsPage() {
 
   // RESULTS: 10 PM - 10 AM (showing winners)
   if (isResults) {
+    const top3 = winners.slice(0, 3);
+    const rest = winners.slice(3);
+    const MEDALS = ['🥇', '🥈', '🥉'];
+    const PODIUM_HEIGHT = ['h-24', 'h-20', 'h-16'];
+    const PODIUM_BG = [
+      'bg-gradient-to-b from-yellow-400/20 to-yellow-600/10 border-yellow-400/40',
+      'bg-gradient-to-b from-slate-300/20 to-slate-400/10 border-slate-400/40',
+      'bg-gradient-to-b from-amber-600/20 to-amber-700/10 border-amber-600/40',
+    ];
+    const myWin = winners.find((w) => w.id === authUser?.id);
+
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <InnerPageHeader title={language === 'ar' ? 'نتائج المسابقة' : 'Contest Results'} />
         <main className="flex-1 px-4 py-4 pb-20 space-y-4">
-          {/* Results Header */}
-          <Card className="p-5 bg-gradient-to-br from-nova/10 via-aura/5 to-primary/10 border-nova/20">
-            <div className="text-center">
-              <Trophy className="h-12 w-12 mx-auto mb-3 text-nova" />
-              <h2 className="text-xl font-bold mb-1">
+
+          {/* ── Hero Banner ── */}
+          <Card className="overflow-hidden border-nova/20">
+            <div className="relative bg-gradient-to-br from-nova/20 via-aura/10 to-primary/10 p-5 text-center overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-nova/20 to-transparent opacity-40 pointer-events-none" />
+              <motion.div
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 280, damping: 18 }}
+              >
+                <Trophy className="h-14 w-14 mx-auto mb-3 text-nova" />
+              </motion.div>
+              <motion.h2
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="text-2xl font-bold mb-1"
+              >
                 {language === 'ar' ? '🏆 الفائزون' : '🏆 Winners'}
-              </h2>
-              <p className="text-sm text-muted-foreground mb-4">
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.22 }}
+                className="text-sm text-muted-foreground mb-3"
+              >
                 {language === 'ar' ? 'مسابقة اليوم انتهت' : "Today's contest has ended"}
-              </p>
-              <div className="flex items-center justify-center gap-2 text-lg font-bold text-nova">
-                <Gift className="h-5 w-5" />
-                <span>И {prizePool.toLocaleString()}</span>
-              </div>
+              </motion.p>
+              {/* Stats row */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex items-center justify-center gap-4"
+              >
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-nova">И {prizePool.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">{language === 'ar' ? 'مجموع الجوائز' : 'Prize Pool'}</p>
+                </div>
+                <div className="w-px h-8 bg-border" />
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-foreground">{participants.length}</p>
+                  <p className="text-xs text-muted-foreground">{language === 'ar' ? 'مشارك' : 'Participants'}</p>
+                </div>
+              </motion.div>
             </div>
           </Card>
 
-          {/* Winners List */}
-          <div className="space-y-3">
-            {winners.length > 0 ? (
-              winners.map((winner, index) => {
-                const slot = contestConfig.distribution[index];
-                const prizePercent = slot?.pct ?? 0;
-                const prizeAmount = (prizePool * prizePercent) / 100;
-                
+          {/* ── Podium (top 3) ── */}
+          {top3.length > 0 && (
+            <Card className="p-4 overflow-hidden">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4 text-center">
+                {language === 'ar' ? '🏅 المنصة' : '🏅 Podium'}
+              </p>
+              {/* Podium columns: 2nd | 1st | 3rd */}
+              <div className="flex items-end justify-center gap-3 mb-3">
+                {[top3[1], top3[0], top3[2]].map((w, colIdx) => {
+                  if (!w) return <div key={colIdx} className="flex-1" />;
+                  const origIdx = colIdx === 0 ? 1 : colIdx === 1 ? 0 : 2;
+                  const slot = contestConfig.distribution[origIdx];
+                  const prize = slot ? Math.round(prizePool * slot.pct / 100) : w.prize;
+                  return (
+                    <motion.div
+                      key={w.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 + origIdx * 0.1 }}
+                      className="flex-1 flex flex-col items-center"
+                    >
+                      <span className="text-3xl mb-1">{MEDALS[origIdx]}</span>
+                      <p className="text-xs font-bold text-foreground truncate max-w-full text-center px-1">{w.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-full text-center">@{w.username}</p>
+                      <p className="text-xs font-bold text-nova mt-1">И {prize.toLocaleString()}</p>
+                      <div className={`w-full mt-2 rounded-t-lg border ${PODIUM_BG[origIdx]} ${PODIUM_HEIGHT[origIdx]}`} />
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {/* ── 4th & 5th place ── */}
+          {rest.length > 0 && (
+            <div className="space-y-2">
+              {rest.map((winner, i) => {
+                const origIdx = i + 3;
+                const slot = contestConfig.distribution[origIdx];
+                const prize = slot ? Math.round(prizePool * slot.pct / 100) : winner.prize;
                 return (
                   <motion.div
                     key={winner.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + i * 0.08 }}
                   >
-                    <Card className={`p-4 ${index === 0 ? 'bg-nova/10 border-nova/30' : 'bg-card'}`}>
+                    <Card className="p-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold ${
-                          index === 0 ? 'bg-nova/20 text-nova' : 
-                          index === 1 ? 'bg-muted text-foreground' :
-                          index === 2 ? 'bg-amber-500/20 text-amber-500' :
-                          'bg-muted/50 text-muted-foreground'
-                        }`}>
-                          {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${winner.rank}`}
+                        <div className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center font-bold text-sm text-muted-foreground shrink-0">
+                          #{winner.rank}
                         </div>
-                        <div className="flex-1">
-                          <p className="font-bold">{winner.name}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{winner.name}</p>
                           <p className="text-xs text-muted-foreground">@{winner.username}</p>
                         </div>
-                        <div className="text-end">
-                          <p className="font-bold text-nova">И {prizeAmount.toFixed(0)}</p>
-                          <p className="text-xs text-muted-foreground">{prizePercent}%</p>
+                        <div className="text-end shrink-0">
+                          <p className="font-bold text-sm text-nova">И {prize.toLocaleString()}</p>
+                          <p className="text-[10px] text-muted-foreground">{slot?.pct ?? 0}%</p>
                         </div>
                       </div>
                     </Card>
                   </motion.div>
                 );
-              })
-            ) : (
-              <Card className="p-6 text-center">
-                <Trophy className="h-10 w-10 mx-auto mb-2 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">
-                  {language === 'ar' ? 'لا توجد نتائج بعد' : 'No results yet'}
-                </p>
-              </Card>
-            )}
-          </div>
+              })}
+            </div>
+          )}
 
-          {/* Share Card — winner or participant */}
+          {winners.length === 0 && (
+            <Card className="p-8 text-center">
+              <Trophy className="h-12 w-12 mx-auto mb-3 text-muted-foreground/20" />
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar' ? 'جارٍ تحميل النتائج...' : 'Loading results...'}
+              </p>
+            </Card>
+          )}
+
+          {/* ── Share Card ── */}
           {shareCardData && (
-            <Card className="p-4 text-center">
-              <p className="text-sm font-semibold mb-3">
-                {language === 'ar' ? '🎉 شارك نتيجتك!' : '🎉 Share your result!'}
+            <Card className="p-4 bg-gradient-to-br from-primary/5 to-nova/5 border-primary/20 text-center">
+              <p className="text-sm font-bold mb-3 flex items-center justify-center gap-1.5">
+                <Gift className="h-4 w-4 text-nova" />
+                {language === 'ar' ? 'شارك نتيجتك 🎉' : 'Share your result 🎉'}
               </p>
               <ContestShareCard data={shareCardData} className="flex flex-col items-center" />
             </Card>
           )}
 
-          {/* Next Contest Countdown */}
-          <Card className="p-4 bg-muted/30">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-2">
-                {language === 'ar' ? 'المسابقة القادمة' : 'Next Contest'}
-              </p>
-              <p className="text-2xl font-bold font-mono">
-                {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
-              </p>
-            </div>
+          {/* ── Next Contest Countdown ── */}
+          <Card className="p-4 bg-primary/5 border-primary/20 text-center">
+            <p className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1">
+              <Clock className="h-3 w-3" />
+              {language === 'ar' ? 'المسابقة القادمة تبدأ بعد' : 'Next contest starts in'}
+            </p>
+            <p className="text-3xl font-bold font-mono text-primary tracking-widest">
+              {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
+            </p>
           </Card>
         </main>
         <BottomNav />
 
         {/* Win Celebration Overlay */}
-        {(() => {
-          const myWin = winners.find((w) => w.id === authUser?.id);
-          if (!myWin) return null;
-          return (
-            <WinCelebrationOverlay
-              open={celebrationOpen}
-              name={user.name || myWin.name}
-              rank={myWin.rank}
-              prizeNova={myWin.prize}
-              onClose={() => setCelebrationOpen(false)}
-              onShare={shareCardData ? undefined : undefined}
-            />
-          );
-        })()}
+        {myWin && (
+          <WinCelebrationOverlay
+            open={celebrationOpen}
+            name={user.name || myWin.name}
+            rank={myWin.rank}
+            prizeNova={myWin.prize}
+            onClose={() => setCelebrationOpen(false)}
+          />
+        )}
       </div>
     );
   }
@@ -1115,46 +1181,64 @@ export default function ContestsPage() {
       <div className="flex min-h-screen flex-col bg-background">
         <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
         <main className="flex-1 px-4 py-4 pb-20 space-y-4">
-          {/* Join Phase Header */}
-          <Card className="p-5 bg-gradient-to-br from-primary/10 to-aura/5 border-primary/20">
-            <div className="text-center">
-              <Users className="h-10 w-10 mx-auto mb-3 text-primary" />
-              <h2 className="text-xl font-bold mb-1">
-                {language === 'ar' ? '📝 التسجيل مفتوح' : '📝 Registration Open'}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {language === 'ar' 
-                  ? 'سجّل الآن وانتظر بداية المرحلة الأولى'
-                  : 'Register now and wait for Stage 1 to start'}
-              </p>
+
+          {/* ── Hero Prize Banner ── */}
+          <Card className="overflow-hidden border-primary/20">
+            <div className="relative bg-gradient-to-br from-primary/20 via-nova/10 to-aura/10 p-5 text-center overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 to-transparent opacity-50 pointer-events-none" />
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+              >
+                <Gift className="h-12 w-12 mx-auto mb-2 text-nova" />
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+                <p className="text-xs text-muted-foreground mb-0.5">
+                  {language === 'ar' ? '💰 مجموع الجوائز' : '💰 Prize Pool'}
+                </p>
+                <p className="text-4xl font-bold text-nova tracking-tight">
+                  И {prizePool.toLocaleString()}
+                </p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  ≈ {pricing.symbol} {(prizePool * pricing.novaRate).toFixed(0)}
+                </p>
+              </motion.div>
+
+              {/* 3-stat row */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.22 }}
+                className="mt-4 grid grid-cols-3 gap-2"
+              >
+                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-2">
+                  <p className="text-lg font-bold text-foreground">{participants.length}</p>
+                  <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'مسجّل' : 'Joined'}</p>
+                </div>
+                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-2">
+                  <p className="text-lg font-bold text-foreground">
+                    {isContestFree ? (language === 'ar' ? 'مجاني' : 'Free') : `И ${entryFee}`}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}</p>
+                </div>
+                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-2">
+                  <p className="text-lg font-bold font-mono text-primary">
+                    {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'حتى المرحلة 1' : 'To Stage 1'}</p>
+                </div>
+              </motion.div>
             </div>
           </Card>
 
-          {/* Live Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="p-4 text-center">
-              <Users className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-2xl font-bold">{participants.length}</p>
-              <p className="text-xs text-muted-foreground">
-                {language === 'ar' ? 'مشترك' : 'Participants'}
-              </p>
-            </Card>
-            <Card className="p-4 text-center">
-              <Gift className="h-5 w-5 mx-auto mb-2 text-nova" />
-              <p className="text-2xl font-bold text-nova">И {prizePool}</p>
-              <p className="text-xs text-muted-foreground">
-                {language === 'ar' ? 'مجموع الجوائز' : 'Prize Pool'}
-              </p>
-            </Card>
-          </div>
-
-          {/* Countdown to Stage 1 */}
-          <Card className="p-4 bg-primary/5 border-primary/20">
+          {/* ── Stage 1 Countdown bar ── */}
+          <Card className="p-3 bg-primary/5 border-primary/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Timer className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">
-                  {language === 'ar' ? 'المرحلة الأولى تبدأ بعد' : 'Stage 1 starts in'}
+                  {language === 'ar' ? 'التصويت يبدأ بعد' : 'Voting starts in'}
                 </span>
               </div>
               <span className="font-mono font-bold text-lg text-primary">
@@ -1163,77 +1247,86 @@ export default function ContestsPage() {
             </div>
           </Card>
 
-          {/* Join Card */}
+          {/* ── Join / Registered Card ── */}
           {!hasJoined ? (
-            <Card className="p-4">
-              <div className="text-center mb-3">
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <Card className="p-4 space-y-3">
                 {isContestFree ? (
-                  <>
-                    <span className="inline-block bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 text-xs font-bold px-3 py-1 rounded-full mb-1">
-                      {language === 'ar' ? '🎉 دخول مجاني' : '🎉 Free Entry'}
-                    </span>
-                    <p className="text-xs text-muted-foreground mt-1">
+                  <div className="text-center p-3 bg-green-500/10 border border-green-500/30 rounded-xl">
+                    <p className="text-green-600 dark:text-green-400 font-bold text-lg">🎉 {language === 'ar' ? 'دخول مجاني' : 'Free Entry'}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {language === 'ar' ? `الجائزة: ${contestAdminPrize ?? 100} Nova` : `Prize: ${contestAdminPrize ?? 100} Nova`}
                     </p>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
-                    </p>
-                    <p className="text-xl font-bold text-primary">И {entryFee}</p>
-                  </>
+                  <div className="text-center p-3 bg-primary/5 border border-primary/20 rounded-xl">
+                    <p className="text-xs text-muted-foreground mb-0.5">{language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}</p>
+                    <p className="text-2xl font-bold text-primary">И {entryFee}</p>
+                  </div>
                 )}
-              </div>
-              <Button
-                className="w-full"
-                onClick={openJoinDialog}
-                disabled={!isContestFree && user.novaBalance < entryFee}
-              >
-                {language === 'ar' ? 'انضم الآن' : 'Join Now'}
-              </Button>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                {language === 'ar'
-                  ? `التسجيل يغلق الساعة ${formatContestTime(timing.joinCloseAt)}`
-                  : `Registration closes at ${formatContestTime(timing.joinCloseAt)}`}
-              </p>
-            </Card>
+                <Button
+                  className="w-full h-12 text-base font-bold"
+                  onClick={openJoinDialog}
+                  disabled={!isContestFree && user.novaBalance < entryFee}
+                >
+                  🏆 {language === 'ar' ? 'انضم الآن' : 'Join Now'}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  {language === 'ar'
+                    ? `التسجيل يغلق الساعة ${formatContestTime(timing.joinCloseAt)}`
+                    : `Registration closes at ${formatContestTime(timing.joinCloseAt)}`}
+                </p>
+              </Card>
+            </motion.div>
           ) : (
-            <Card className="p-4 bg-success/10 border-success/20">
-              <div className="flex items-center justify-center gap-2 text-success">
-                <Trophy className="h-5 w-5" />
-                <span className="font-bold">
-                  {language === 'ar' ? '✅ أنت مسجّل!' : '✅ You are registered!'}
-                </span>
-              </div>
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                {language === 'ar' 
-                  ? 'انتظر بداية المرحلة الأولى للتصويت'
-                  : 'Wait for Stage 1 to start voting'}
-              </p>
-            </Card>
+            <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
+              <Card className="p-4 bg-success/10 border-success/30">
+                <div className="flex items-center justify-center gap-2 text-success mb-1">
+                  <Trophy className="h-5 w-5" />
+                  <span className="font-bold text-base">
+                    {language === 'ar' ? '✅ أنت مسجّل!' : '✅ You are registered!'}
+                  </span>
+                </div>
+                <p className="text-xs text-center text-muted-foreground">
+                  {language === 'ar'
+                    ? `التصويت يبدأ بعد ${String(timeRemaining.hours).padStart(2,'0')}:${String(timeRemaining.minutes).padStart(2,'0')}:${String(timeRemaining.seconds).padStart(2,'0')}`
+                    : `Voting starts in ${String(timeRemaining.hours).padStart(2,'0')}:${String(timeRemaining.minutes).padStart(2,'0')}:${String(timeRemaining.seconds).padStart(2,'0')}`}
+                </p>
+              </Card>
+            </motion.div>
           )}
 
-          {/* Registered Participants Preview */}
+          {/* ── Registered Participants Preview ── */}
           {participants.length > 0 && (
-            <Card className="p-4">
-              <h3 className="font-bold mb-3 flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                {language === 'ar' ? 'المسجّلين' : 'Registered'}
-              </h3>
-              <div className="space-y-2">
-                {participants.slice(0, 5).map((p, i) => (
-                  <div key={p.id} className="flex items-center gap-2 text-sm">
-                    <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs">
+            <Card className="overflow-hidden">
+              <div className="px-4 pt-3 pb-2 border-b border-border flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm font-semibold flex-1">
+                  {language === 'ar' ? 'المسجّلون' : 'Registered Contestants'}
+                </p>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  {participants.length}
+                </span>
+              </div>
+              <div className="p-3 space-y-1.5">
+                {participants.slice(0, 6).map((p, i) => (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    className="flex items-center gap-2.5 py-1"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
                       {i + 1}
                     </span>
-                    <span className="flex-1 truncate">{p.name}</span>
-                    <span className="text-muted-foreground text-xs">{p.country}</span>
-                  </div>
+                    <span className="flex-1 text-sm font-medium truncate">{p.name}</span>
+                    <span className="text-xs text-muted-foreground">{p.country}</span>
+                  </motion.div>
                 ))}
-                {participants.length > 5 && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    +{participants.length - 5} {language === 'ar' ? 'آخرين' : 'more'}
+                {participants.length > 6 && (
+                  <p className="text-xs text-muted-foreground text-center pt-1">
+                    +{participants.length - 6} {language === 'ar' ? 'آخرين' : 'more'}
                   </p>
                 )}
               </div>
@@ -1241,7 +1334,7 @@ export default function ContestsPage() {
           )}
         </main>
         <BottomNav />
-        
+
         {/* Join Dialog */}
         <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
           <DialogContent className="max-w-xs">
@@ -1250,12 +1343,11 @@ export default function ContestsPage() {
                 {language === 'ar' ? 'انضم للمسابقة' : 'Join Contest'}
               </DialogTitle>
               <DialogDescription className="text-center">
-                {language === 'ar' 
+                {language === 'ar'
                   ? 'سيتم الخصم تلقائياً من رصيدك'
                   : 'Will be automatically deducted from your balance'}
               </DialogDescription>
             </DialogHeader>
-            
             <div className="space-y-4">
               <div className="p-4 bg-gradient-to-r from-aura/10 to-nova/10 rounded-xl border border-border/50">
                 <p className="text-xs text-muted-foreground text-center mb-2">
@@ -1267,14 +1359,10 @@ export default function ContestsPage() {
                   <span className="text-nova font-bold text-lg">И {formatBalance(user.novaBalance)}</span>
                 </div>
               </div>
-
               {isContestFree ? (
                 <div className="p-3 bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground mb-1">
-                    {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
-                  </p>
                   <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                    {language === 'ar' ? '🎉 مجاني' : '🎉 Free'}
+                    🎉 {language === 'ar' ? 'دخول مجاني' : 'Free Entry'}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {language === 'ar' ? `الجائزة: ${contestAdminPrize ?? 100} Nova` : `Prize: ${contestAdminPrize ?? 100} Nova`}
@@ -1288,9 +1376,8 @@ export default function ContestsPage() {
                   <p className="text-xl font-bold text-primary">И {entryFee}</p>
                 </div>
               )}
-
               <Button
-                className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
+                className="w-full h-12 font-bold text-base"
                 onClick={handleJoinContest}
                 disabled={isJoining || (!isContestFree && user.novaBalance < entryFee)}
               >
@@ -1343,25 +1430,68 @@ export default function ContestsPage() {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <InnerPageHeader title={language === 'ar' ? 'المسابقة اليومية' : 'Daily Contest'} />
-        <main className="flex-1 px-4 py-4 pb-20 flex items-center justify-center">
-          <div className="text-center">
-            <Trophy className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
-            <h2 className="text-lg font-bold mb-2">
-              {language === 'ar' ? 'لا يوجد مشاركين بعد' : 'No Participants Yet'}
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {language === 'ar' 
-                ? 'كن أول من ينضم للمسابقة!'
-                : 'Be the first to join the contest!'}
-            </p>
-            {timing.canJoin && activeContestId && (
-              <Button onClick={openJoinDialog}>
-                {language === 'ar' ? 'انضم الآن' : 'Join Now'}
-              </Button>
-            )}
-          </div>
+        <main className="flex-1 px-4 py-4 pb-20 space-y-4">
+          <Card className="overflow-hidden border-primary/20">
+            <div className="relative bg-gradient-to-br from-primary/15 via-nova/10 to-background p-8 text-center overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 to-transparent pointer-events-none" />
+              <motion.div
+                animate={{ scale: [1, 1.08, 1] }}
+                transition={{ repeat: Infinity, duration: 2.5 }}
+              >
+                <Trophy className="h-16 w-16 mx-auto mb-4 text-primary/50" />
+              </motion.div>
+              <h2 className="text-xl font-bold mb-2">
+                {language === 'ar' ? '🏆 ابدأ المسابقة!' : '🏆 Start the Contest!'}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-5">
+                {language === 'ar'
+                  ? 'كن أول من ينضم ويبدأ المنافسة!'
+                  : 'Be the first to join and start the competition!'}
+              </p>
+              {prizePool > 0 && (
+                <div className="inline-block px-4 py-2 bg-nova/10 border border-nova/30 rounded-full mb-5">
+                  <span className="text-nova font-bold">И {prizePool.toLocaleString()} Nova</span>
+                  <span className="text-muted-foreground text-xs ms-1">{language === 'ar' ? 'للفائزين' : 'for winners'}</span>
+                </div>
+              )}
+              {timing.canJoin && activeContestId && (
+                <Button className="w-full max-w-xs h-12 font-bold text-base" onClick={openJoinDialog}>
+                  🏆 {language === 'ar' ? 'انضم الآن' : 'Join Now'}
+                </Button>
+              )}
+            </div>
+          </Card>
         </main>
         <BottomNav />
+
+        {/* Join Dialog */}
+        <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-center">{language === 'ar' ? 'انضم للمسابقة' : 'Join Contest'}</DialogTitle>
+              <DialogDescription className="text-center">
+                {language === 'ar' ? 'سيتم الخصم تلقائياً من رصيدك' : 'Will be automatically deducted from your balance'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-aura/10 to-nova/10 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground text-center mb-2">{language === 'ar' ? 'رصيدك الحالي' : 'Your Balance'}</p>
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-aura font-bold text-lg">✦ {formatBalance(user.auraBalance)}</span>
+                  <span className="text-muted-foreground">/</span>
+                  <span className="text-nova font-bold text-lg">И {formatBalance(user.novaBalance)}</span>
+                </div>
+              </div>
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground mb-1">{language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}</p>
+                <p className="text-xl font-bold text-primary">{isContestFree ? (language === 'ar' ? '🎉 مجاني' : '🎉 Free') : `И ${entryFee}`}</p>
+              </div>
+              <Button className="w-full h-12 font-bold" onClick={handleJoinContest} disabled={isJoining || (!isContestFree && user.novaBalance < entryFee)}>
+                {isJoining ? <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" /> : (language === 'ar' ? (isContestFree ? 'انضم مجاناً' : 'ادفع الآن') : (isContestFree ? 'Join Free' : 'Pay Now'))}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -1407,17 +1537,22 @@ export default function ContestsPage() {
         )}
 
         {/* Live Timer */}
-        <Card className="p-3 bg-primary/5 border-primary/20">
+        <Card className={`p-3 border ${isFinal ? 'bg-destructive/5 border-destructive/30' : 'bg-primary/5 border-primary/20'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">
-                {language === 'ar' 
-                  ? (isStage1 ? 'المرحلة الأولى' : 'المرحلة النهائية')
-                  : (isStage1 ? 'Stage 1' : 'Final Stage')}
+              <motion.div
+                animate={{ opacity: [1, 0.4, 1] }}
+                transition={{ repeat: Infinity, duration: 1.2 }}
+              >
+                <Clock className={`h-4 w-4 ${isFinal ? 'text-destructive' : 'text-primary'}`} />
+              </motion.div>
+              <span className={`text-sm font-medium ${isFinal ? 'text-destructive' : ''}`}>
+                {language === 'ar'
+                  ? (isStage1 ? '🟢 المرحلة الأولى جارية' : '🔴 المرحلة النهائية جارية')
+                  : (isStage1 ? '🟢 Stage 1 Live' : '🔴 Final Stage Live')}
               </span>
             </div>
-            <span className="font-mono font-bold text-lg">
+            <span className={`font-mono font-bold text-lg tabular-nums ${isFinal ? 'text-destructive' : 'text-primary'}`}>
               {String(timeRemaining.hours).padStart(2, '0')}:{String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
             </span>
           </div>
