@@ -672,7 +672,7 @@ export default function ContestsPage() {
         p_voter_id: authUser.id,
         p_contestant_id: selectedParticipant.id,
         p_contest_id: activeContestId,
-        p_vote_count: voteCount,
+        p_aura_amount: voteCount,
       });
 
       if (error) {
