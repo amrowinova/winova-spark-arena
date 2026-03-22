@@ -1,6 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { ar, en, fr, de, nl, tr, fa, ur, it, es } from './locales';
+import { ar, en, fr, de, nl, tr, fa, ur, it, es, id } from './locales';
 
 const resources = {
   ar: ar,
@@ -13,6 +13,7 @@ const resources = {
   ur: ur,
   it: it,
   es: es,
+  id: id,
 };
 
 i18n.use(initReactI18next).init({

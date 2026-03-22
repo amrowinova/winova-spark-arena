@@ -8,3 +8,4 @@ export { fa } from './fa';
 export { ur } from './ur';
 export { it } from './it';
 export { es } from './es';
+export { id } from './id';
