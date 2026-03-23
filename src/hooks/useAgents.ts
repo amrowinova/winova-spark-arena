@@ -49,6 +49,9 @@ export interface MyAgentProfile {
   trust_score?: number;
   total_reviews?: number;
   total_completed?: number;
+  total_disputes?: number;
+  total_cancellations?: number;
+  avg_response_time_seconds?: number | null;
 }
 
 export function useAgents() {

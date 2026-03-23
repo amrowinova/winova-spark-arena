@@ -8,6 +8,7 @@ export const ar = {
       wallet: 'المحفظة',
       chat: 'الدردشة',
       p2p: 'P2P',
+      agents: 'وكلاء',
       profile: 'الملف',
     },
     // Profile

@@ -1,4 +1,4 @@
-import { Home, Trophy, MessageCircle, Users } from 'lucide-react';
+import { Home, Trophy, MessageCircle, Users, Handshake } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -14,6 +14,7 @@ const navItems = [
   { icon: Trophy, path: '/contests', labelKey: 'nav.contests', protected: true },
   { icon: MessageCircle, path: '/chat', labelKey: 'nav.chat', protected: true },
   { icon: Users, path: '/team', labelKey: 'nav.team', protected: true },
+  { icon: Handshake, path: '/agents', labelKey: 'nav.agents', protected: true },
 ];
 
 export function BottomNav() {

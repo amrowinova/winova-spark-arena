@@ -8,6 +8,7 @@ export const en = {
       wallet: 'Wallet',
       chat: 'Chat',
       p2p: 'P2P',
+      agents: 'Agents',
       profile: 'Profile',
     },
     // Profile

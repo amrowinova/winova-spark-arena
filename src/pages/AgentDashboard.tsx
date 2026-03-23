@@ -285,7 +285,7 @@ export default function AgentDashboard() {
               <AlertTriangle className="w-4 h-4 text-orange-500" />
               <p className="text-xs text-muted-foreground">{isRTL ? 'نزاعات' : 'Disputes'}</p>
             </div>
-            <p className="text-xl font-bold">{(p as { total_disputes?: number }).total_disputes ?? 0}</p>
+            <p className="text-xl font-bold">{p.total_disputes ?? 0}</p>
           </div>
         </div>
       </div>
