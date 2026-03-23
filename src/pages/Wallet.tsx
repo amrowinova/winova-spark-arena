@@ -47,6 +47,9 @@ const getTransactionDisplay = (tx: WalletTransaction, isRTL: boolean) => {
     admin_credit: { title: 'Admin Credit', titleAr: 'إضافة إدارية', icon: '➕', color: 'text-success' },
     admin_debit: { title: 'Admin Debit', titleAr: 'خصم إداري', icon: '➖', color: 'text-destructive' },
     conversion: { title: 'Conversion', titleAr: 'تحويل', icon: '🔄', color: 'text-aura' },
+    agent_escrow_lock: { title: 'Agent Escrow Lock', titleAr: 'تجميد وكيل', icon: '🔒', color: 'text-warning' },
+    agent_escrow_release: { title: 'Agent Escrow Release', titleAr: 'إفراج وكيل', icon: '🔓', color: 'text-success' },
+    streak_reward: { title: 'Streak Bonus', titleAr: 'مكافأة الاستمرارية', icon: '🔥', color: 'text-nova' },
   };
 
   return typeMap[tx.entry_type] || { 
