@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSpotlight } from '@/hooks/useSpotlight';
+import { OnboardingTip } from '@/components/ui/OnboardingTip';
 import {
   CycleProgressCard,
   UserPointsCard,
@@ -47,6 +48,9 @@ function SpotlightContent() {
       <InnerPageHeader title={isRTL ? 'نقاط المحظوظين' : 'Lucky Points'} />
       
       <main className="flex-1 px-4 py-4 pb-20 space-y-5">
+        {/* First-visit onboarding — shown once, explains the draw system */}
+        <OnboardingTip tipType="spotlight_first" condition={true} />
+
         {/* How to Earn Points Button */}
         <Button
           variant="outline"

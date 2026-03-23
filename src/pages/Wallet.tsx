@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Wallet as WalletIcon, Send, RefreshCw, History, TrendingUp, Lock, AlertTriangle, MessageCircle, Loader2, Link2, QrCode } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { OnboardingTip } from '@/components/ui/OnboardingTip';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -144,6 +145,10 @@ function WalletContent() {
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('wallet.title')} />
       <main className="flex-1 px-4 py-4 pb-20 space-y-5">
+        {/* Contextual onboarding tips */}
+        <OnboardingTip tipType="wallet_zero"     condition={user.novaBalance === 0} />
+        <OnboardingTip tipType="aura_explained"  condition={user.auraBalance > 0 && user.novaBalance === 0} />
+
         {/* KYC Verification Banner */}
         <KYCStatusBanner />
 

@@ -6,6 +6,7 @@ import { useP2PSafe } from '@/contexts/P2PContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
+import { OnboardingTip } from '@/components/ui/OnboardingTip';
 import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -430,6 +431,14 @@ export default function HomePage() {
               ? 'يمكنك تحويل Nova فورًا لأي شخص داخل التطبيق — التحويل يتم مباشرة وبأمان.'
               : 'Transfer Nova instantly to anyone in the app — safe and direct.'}
           </p>
+        </motion.div>
+
+        {/* Contextual onboarding tips — shown once per phase, never repeated */}
+        <motion.div variants={itemVariants} className="space-y-2">
+          <OnboardingTip tipType="contest_pre_open" condition={timing.currentPhase === 'pre_open'} />
+          <OnboardingTip tipType="contest_join"     condition={timing.currentPhase === 'stage1' && timing.canJoin} />
+          <OnboardingTip tipType="contest_voting"   condition={timing.currentPhase === 'stage1'} />
+          <OnboardingTip tipType="contest_final"    condition={timing.currentPhase === 'final'} />
         </motion.div>
 
         {/* Daily Contest Card - Most prominent */}
