@@ -6,46 +6,40 @@ on:
 jobs:
   apply:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install psql and apply via DB URL
+      - name: Diagnose and apply
         run: |
           sudo apt-get install -y postgresql-client -q
 
-          echo "Testing connection..."
-          # Try DB URL directly with psql
-          PGCONNECT_TIMEOUT=10 psql "$SUPABASE_DB_URL" -c "SELECT current_database(), version();" 2>&1 | tee /tmp/psql_test.txt
+          URL_PREFIX="${SUPABASE_DB_URL:0:35}"
+          echo "URL prefix: $URL_PREFIX" > /tmp/output.txt
 
-          echo "---"
-          if grep -q "PostgreSQL" /tmp/psql_test.txt; then
-            echo "CONNECTED! Applying functions..."
-            psql "$SUPABASE_DB_URL" \
-              -f supabase/migrations/20260323030000_agent_rpc_functions.sql 2>&1
-          else
-            echo "PSQL FAILED. Trying URL format variations..."
-            # Try adding sslmode
-            PGCONNECT_TIMEOUT=10 psql "${SUPABASE_DB_URL}?sslmode=require" -c "SELECT 1;" 2>&1 | tee /tmp/psql_ssl.txt
-            cat /tmp/psql_ssl.txt
+          PSQL_OUT=$(PGCONNECT_TIMEOUT=15 psql "$SUPABASE_DB_URL" -c "SELECT 1 as ok;" 2>&1)
+          echo "PSQL_TEST: $PSQL_OUT" >> /tmp/output.txt
+
+          if echo "$PSQL_OUT" | grep -q " ok "; then
+            echo "Connected! Applying migration..." >> /tmp/output.txt
+            APPLY=$(psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260323030000_agent_rpc_functions.sql 2>&1)
+            echo "APPLY: $APPLY" >> /tmp/output.txt
           fi
+
+          cat /tmp/output.txt
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
-      - name: Save results
+      - name: Push results via PAT
         if: always()
         run: |
-          cat /tmp/psql_test.txt /tmp/psql_ssl.txt 2>/dev/null > diag-result.txt
-          echo "SUPABASE_DB_URL_PREFIX=${SUPABASE_DB_URL:0:25}" >> diag-result.txt
+          cp /tmp/output.txt diag-result.txt 2>/dev/null || echo "no output" > diag-result.txt
           git config user.email "ci@winova.app"
-          git config user.name "CI Bot"
-          git pull --rebase origin main
+          git config user.name "CI"
+          git fetch origin main
+          git checkout main
           git add diag-result.txt
-          git diff --staged --quiet || git commit -m "tmp: psql diagnostic result"
-          git push || true
+          git diff --staged --quiet || git commit -m "tmp: diag result"
+          git push "https://$DEPLOY_PAT@github.com/amrowinova/winova-spark-arena.git" main || true
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_PAT: ${{ secrets.DEPLOY_PAT }}
