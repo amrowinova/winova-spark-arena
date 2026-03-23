@@ -7,28 +7,45 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check agent functions exist
+      - uses: actions/checkout@v4
+
+      - name: Query DB and write results to file
         run: |
-          RESULT=$(curl -s -X POST \
+          # Check functions
+          FUNCS=$(curl -s -X POST \
             -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"query":"SELECT routine_name FROM information_schema.routines WHERE routine_schema='"'"'public'"'"' AND routine_name IN ('"'"'apply_as_agent'"'"','"'"'get_my_agent_profile'"'"','"'"'get_nearby_agents'"'"','"'"'create_agent_reservation'"'"','"'"'admin_manage_agent'"'"') ORDER BY routine_name;"}' \
+            -d '{"query":"SELECT routine_name FROM information_schema.routines WHERE routine_schema='"'"'public'"'"' AND routine_name LIKE '"'"'%agent%'"'"' ORDER BY routine_name;"}' \
             "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query")
-          echo "=== RESULT ==="
-          echo "$RESULT"
-          echo "=== END ==="
+
+          # Check tables
+          TABLES=$(curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT table_name FROM information_schema.tables WHERE table_schema='"'"'public'"'"' AND table_name LIKE '"'"'agent%'"'"' ORDER BY table_name;"}' \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query")
+
+          # Check agents table columns
+          COLS=$(curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT column_name FROM information_schema.columns WHERE table_schema='"'"'public'"'"' AND table_name='"'"'agents'"'"' ORDER BY ordinal_position;"}' \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query")
+
+          echo "FUNCTIONS=$FUNCS" >> diagnostic-output.txt
+          echo "TABLES=$TABLES"   >> diagnostic-output.txt
+          echo "COLUMNS=$COLS"    >> diagnostic-output.txt
+
+          cat diagnostic-output.txt
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Check agents table exists
+      - name: Commit results
         run: |
-          RESULT=$(curl -s -X POST \
-            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"query":"SELECT table_name FROM information_schema.tables WHERE table_schema='"'"'public'"'"' AND table_name IN ('"'"'agents'"'"','"'"'agent_reservations'"'"') ORDER BY table_name;"}' \
-            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query")
-          echo "=== TABLES ==="
-          echo "$RESULT"
-          echo "=== END ==="
+          git config user.email "ci@winova.app"
+          git config user.name "CI"
+          git add diagnostic-output.txt
+          git commit -m "tmp: diagnostic output" || echo "no changes"
+          git push origin HEAD:main
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
