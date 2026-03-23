@@ -287,6 +287,27 @@ export function ContestJoinCard({
 
       return (
         <div className="space-y-2">
+          {/* FOMO pulse — show when real participants already joined */}
+          {participants > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center justify-center gap-2 p-2 bg-nova/10 border border-nova/30 rounded-lg"
+            >
+              <motion.span
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="text-base leading-none"
+              >
+                🔥
+              </motion.span>
+              <span className="text-xs font-semibold text-nova">
+                {isRTL
+                  ? `${participants} لاعب انضم بالفعل — المجموع ${prizePool} Nova`
+                  : `${participants} players joined — Prize pool: ${prizePool} Nova`}
+              </span>
+            </motion.div>
+          )}
           <Button
             className="w-full h-12 text-base font-bold"
             disabled={!contestAvailable}
@@ -445,11 +466,45 @@ export function ContestJoinCard({
       }
 
       if (hasJoined && !userQualified) {
+        const referralLink = `${window.location.origin}/?ref=${user.referralCode}`;
+        const shareText = isRTL
+          ? `🏆 انضم معي في WeNova وشارك في المسابقات اليومية واربح Nova!\n${referralLink}`
+          : `🏆 Join me in WeNova — daily contests with real prizes!\n${referralLink}`;
+        const handleLoserShare = () => {
+          if (navigator.share) {
+            navigator.share({ text: shareText }).catch(() => {});
+          } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+          }
+        };
         return (
-          <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center">
-            <span className="text-sm font-semibold text-destructive">
-              ❌ {isRTL ? 'لم تتأهل للمرحلة النهائية' : 'Did not qualify for Final Stage'}
-            </span>
+          <div className="space-y-2">
+            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center">
+              <span className="text-sm font-semibold text-destructive">
+                ❌ {isRTL ? 'لم تتأهل للمرحلة النهائية' : 'Did not qualify for Final Stage'}
+              </span>
+            </div>
+            {/* Loser Motivation — turn frustration into referral action */}
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center space-y-2">
+              <p className="text-xs font-semibold text-foreground">
+                {isRTL
+                  ? '🚀 شارك رابطك وأصدقاؤك يصوتون لك غداً!'
+                  : '🚀 Share your link so friends vote for you tomorrow!'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {isRTL
+                  ? 'كل صوت من صديق = نقطة إضافية في المحظوظين'
+                  : 'Every vote from a friend = extra Spotlight point'}
+              </p>
+              <Button
+                size="sm"
+                className="w-full gap-2 bg-gradient-to-r from-primary to-nova text-white font-bold"
+                onClick={handleLoserShare}
+              >
+                <span>📤</span>
+                {isRTL ? 'شارك الرابط عبر واتساب' : 'Share via WhatsApp'}
+              </Button>
+            </div>
           </div>
         );
       }

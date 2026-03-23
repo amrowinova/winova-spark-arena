@@ -1169,6 +1169,16 @@ export default function ContestsPage() {
             rank={myWin.rank}
             prizeNova={myWin.prize}
             onClose={() => setCelebrationOpen(false)}
+            onShare={() => {
+              const text = language === 'ar'
+                ? `🏆 فزت بـ ${myWin.prize} Nova في مسابقة WeNova اليوم! (المركز #${myWin.rank})\nانضم معي: ${window.location.origin}/?ref=${user.referralCode}`
+                : `🏆 I just won ${myWin.prize} Nova in WeNova's daily contest! (#${myWin.rank} Place)\nJoin me: ${window.location.origin}/?ref=${user.referralCode}`;
+              if (navigator.share) {
+                navigator.share({ text }).catch(() => {});
+              } else {
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+              }
+            }}
           />
         )}
       </div>

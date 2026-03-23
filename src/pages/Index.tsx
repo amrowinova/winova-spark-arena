@@ -163,6 +163,23 @@ export default function HomePage() {
     fetchContestData();
   }, [fetchContestData]);
 
+  // Realtime: update participant count + prize pool when new entries join
+  useEffect(() => {
+    if (!activeContestId) return;
+    const channel = supabase
+      .channel(`home_contest_entries_${activeContestId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'contest_entries', filter: `contest_id=eq.${activeContestId}` },
+        () => {
+          setParticipantCount((prev) => prev + 1);
+          setPrizePool((prev) => prev + 6); // each new participant adds 6 Nova to pool
+        }
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [activeContestId]);
+
   const handleJoinContest = () => {
     if (!authUser) {
       showError(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
@@ -269,14 +286,44 @@ export default function HomePage() {
           <PlatformStatsBar />
         </motion.div>
 
-        {/* 1️⃣ Welcome Message */}
+        {/* 1️⃣ Welcome Message + Streak Badge */}
         <motion.div variants={itemVariants} className="text-center px-2">
           <p className="text-xl font-bold text-foreground mb-1">{language === 'ar' ? `أهلاً ${user.name}` : `Hey ${user.name}`}</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            {language === 'ar' 
+            {language === 'ar'
               ? 'أهلاً بك في WINOVA 👋\n\nاليوم فرصتك تربح، تصوّت، وتزيد ترتيبك.'
               : 'Welcome to WINOVA 👋\n\nToday is your chance to win, vote, and boost your rank.'}
           </p>
+          {/* Streak Badge — shown when user has ≥1 active week */}
+          {user.weeklyStreak > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-gradient-to-r from-orange-500/15 to-nova/15 border border-orange-500/30 rounded-full"
+            >
+              <motion.span
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}
+                className="text-base leading-none"
+              >
+                🔥
+              </motion.span>
+              <span className="text-xs font-bold text-orange-500">
+                {user.weeklyStreak}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {language === 'ar'
+                  ? (user.weeklyStreak >= 4 ? '🎯 أسبوع متواصل' : 'أسبوع متواصل')
+                  : (user.weeklyStreak >= 4 ? '🎯 week streak' : 'week streak')}
+              </span>
+              {user.weeklyStreak >= 4 && (
+                <span className="text-[10px] font-semibold text-nova">
+                  {language === 'ar' ? '← مكافأة!' : '← Bonus!'}
+                </span>
+              )}
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Wallet Card - Matching Wallet page design */}
