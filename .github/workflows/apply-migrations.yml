@@ -12,38 +12,46 @@ jobs:
       - name: Install psql
         run: sudo apt-get install -y postgresql-client
 
-      - name: Check DB_URL is set
-        run: |
-          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
-            echo "ERROR: SUPABASE_DB_URL secret is not set"
-            exit 1
-          fi
-          echo "SUPABASE_DB_URL is set (length: ${#SUPABASE_DB_URL})"
-          echo "URL scheme: ${SUPABASE_DB_URL%%:*}"
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-
-      - name: Test DB connection
-        run: psql "$SUPABASE_DB_URL" -c "SELECT current_database(), current_user;" || echo "PSQL EXIT CODE: $?"
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-
       - name: Apply migration 1 - city_country_leaderboard
-        run: psql "$SUPABASE_DB_URL" -f supabase/migrations/20260322020000_city_country_leaderboard.sql
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(jq -Rs . < supabase/migrations/20260322020000_city_country_leaderboard.sql)}" \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query" \
+            | tee /tmp/m1.json && cat /tmp/m1.json | python3 -c "import json,sys; d=json.load(sys.stdin); exit(1) if d.get('error') else print('OK')"
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Apply migration 2 - contest_security_fixes
-        run: psql "$SUPABASE_DB_URL" -f supabase/migrations/20260322030000_contest_security_fixes.sql
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(jq -Rs . < supabase/migrations/20260322030000_contest_security_fixes.sql)}" \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query" \
+            | tee /tmp/m2.json && cat /tmp/m2.json | python3 -c "import json,sys; d=json.load(sys.stdin); exit(1) if d.get('error') else print('OK')"
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Apply migration 3 - agent_system_v1
-        run: psql "$SUPABASE_DB_URL" -f supabase/migrations/20260323010000_agent_system_v1.sql
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(jq -Rs . < supabase/migrations/20260323010000_agent_system_v1.sql)}" \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query" \
+            | tee /tmp/m3.json && cat /tmp/m3.json | python3 -c "import json,sys; d=json.load(sys.stdin); exit(1) if d.get('error') else print('OK')"
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Apply migration 4 - agent_system_v2_trust
-        run: psql "$SUPABASE_DB_URL" -f supabase/migrations/20260323020000_agent_system_v2_trust.sql
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(jq -Rs . < supabase/migrations/20260323020000_agent_system_v2_trust.sql)}" \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query" \
+            | tee /tmp/m4.json && cat /tmp/m4.json | python3 -c "import json,sys; d=json.load(sys.stdin); exit(1) if d.get('error') else print('OK')"
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
