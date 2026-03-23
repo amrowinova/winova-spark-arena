@@ -9,39 +9,136 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Apply each function individually
+      - name: Apply functions one by one via Python
         run: |
-          set -e
+          python3 << 'PYEOF'
+          import json, urllib.request, sys, os
 
-          apply_sql() {
-            local label="$1"
-            local sql="$2"
-            echo ">>> Applying: $label"
-            result=$(supabase db execute \
-              --db-url "$SUPABASE_DB_URL" \
-              --sql "$sql" 2>&1) || {
-              echo "FAILED: $label"
-              echo "$result"
-              exit 1
-            }
-            echo "OK: $label"
-            echo "$result"
-          }
+          token = os.environ["SUPABASE_ACCESS_TOKEN"]
+          base_url = "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query"
 
-          apply_sql "apply_as_agent" "$(cat supabase/migrations/20260323030000_agent_rpc_functions.sql)"
+          functions = [
+            ("apply_as_agent", """
+          CREATE OR REPLACE FUNCTION public.apply_as_agent(
+            p_shop_name TEXT, p_whatsapp TEXT, p_country TEXT, p_city TEXT,
+            p_latitude NUMERIC DEFAULT NULL, p_longitude NUMERIC DEFAULT NULL, p_bio TEXT DEFAULT NULL
+          ) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $func$
+          DECLARE v_user_id UUID := auth.uid(); v_existing_id UUID;
+          BEGIN
+            IF v_user_id IS NULL THEN RETURN jsonb_build_object('success',false,'error','Not authenticated'); END IF;
+            SELECT id INTO v_existing_id FROM public.agents WHERE user_id = v_user_id LIMIT 1;
+            IF v_existing_id IS NOT NULL THEN RETURN jsonb_build_object('success',false,'error','Already applied'); END IF;
+            INSERT INTO public.agents(user_id,shop_name,whatsapp,country,city,latitude,longitude,bio,status,commission_pct,avg_rating,trust_score,total_reviews,total_completed,total_cancellations,total_disputes)
+            VALUES(v_user_id,p_shop_name,p_whatsapp,p_country,p_city,p_latitude,p_longitude,p_bio,'pending',5,0,50,0,0,0,0);
+            RETURN jsonb_build_object('success',true);
+          EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success',false,'error',SQLERRM);
+          END; $func$;
+          GRANT EXECUTE ON FUNCTION public.apply_as_agent TO authenticated;
+          """),
+            ("get_my_agent_profile", """
+          CREATE OR REPLACE FUNCTION public.get_my_agent_profile()
+          RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $func$
+          DECLARE v_user_id UUID := auth.uid(); v_id UUID; v_shop TEXT; v_wa TEXT; v_country TEXT; v_city TEXT;
+                  v_comm NUMERIC; v_bio TEXT; v_status TEXT; v_rating NUMERIC; v_trust NUMERIC;
+                  v_reviews INT; v_completed INT; v_disputes INT; v_cancels INT;
+          BEGIN
+            SELECT id,shop_name,whatsapp,country,city,commission_pct,bio,status,avg_rating,trust_score,
+                   total_reviews,total_completed,total_disputes,total_cancellations
+            INTO v_id,v_shop,v_wa,v_country,v_city,v_comm,v_bio,v_status,v_rating,v_trust,
+                 v_reviews,v_completed,v_disputes,v_cancels
+            FROM public.agents WHERE user_id = v_user_id LIMIT 1;
+            IF NOT FOUND THEN RETURN jsonb_build_object('found',false); END IF;
+            RETURN jsonb_build_object('found',true,'id',v_id,'shop_name',v_shop,'whatsapp',v_wa,
+              'country',v_country,'city',v_city,'commission_pct',v_comm,'bio',v_bio,'status',v_status,
+              'avg_rating',v_rating,'trust_score',v_trust,'total_reviews',v_reviews,
+              'total_completed',v_completed,'total_disputes',v_disputes,'total_cancellations',v_cancels);
+          END; $func$;
+          GRANT EXECUTE ON FUNCTION public.get_my_agent_profile TO authenticated;
+          """),
+            ("get_nearby_agents", """
+          CREATE OR REPLACE FUNCTION public.get_nearby_agents(
+            p_country TEXT DEFAULT NULL, p_city TEXT DEFAULT NULL,
+            p_latitude NUMERIC DEFAULT NULL, p_longitude NUMERIC DEFAULT NULL, p_limit INT DEFAULT 30
+          ) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $func$
+          DECLARE v_result JSONB;
+          BEGIN
+            SELECT jsonb_agg(jsonb_build_object(
+              'id',a.id,'user_id',a.user_id,'shop_name',a.shop_name,'whatsapp',a.whatsapp,
+              'country',a.country,'city',a.city,'latitude',a.latitude,'longitude',a.longitude,
+              'commission_pct',a.commission_pct,'bio',a.bio,'avg_rating',a.avg_rating,
+              'trust_score',a.trust_score,'total_reviews',a.total_reviews,
+              'total_completed',a.total_completed,'status',a.status,
+              'distance_km', CASE WHEN p_latitude IS NOT NULL AND a.latitude IS NOT NULL
+                THEN round(CAST(6371*acos(cos(radians(p_latitude))*cos(radians(a.latitude))*cos(radians(a.longitude)-radians(p_longitude))+sin(radians(p_latitude))*sin(radians(a.latitude))) AS NUMERIC),1)
+                ELSE NULL END
+            ) ORDER BY a.trust_score DESC) INTO v_result
+            FROM public.agents a WHERE a.status='active'
+              AND (p_country IS NULL OR a.country=p_country)
+              AND (p_city IS NULL OR a.city=p_city)
+            LIMIT p_limit;
+            RETURN COALESCE(v_result,'[]'::JSONB);
+          END; $func$;
+          GRANT EXECUTE ON FUNCTION public.get_nearby_agents TO authenticated, anon;
+          """),
+            ("create_agent_reservation", """
+          CREATE OR REPLACE FUNCTION public.create_agent_reservation(
+            p_agent_id UUID, p_type TEXT, p_nova_amount NUMERIC,
+            p_fiat_amount NUMERIC DEFAULT NULL, p_fiat_currency TEXT DEFAULT NULL, p_notes TEXT DEFAULT NULL
+          ) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $func$
+          DECLARE v_user_id UUID := auth.uid(); v_agent_user_id UUID; v_commission_pct NUMERIC;
+                  v_commission NUMERIC; v_reservation_id UUID;
+          BEGIN
+            IF v_user_id IS NULL THEN RETURN jsonb_build_object('success',false,'error','Not authenticated'); END IF;
+            SELECT user_id, commission_pct INTO v_agent_user_id, v_commission_pct
+            FROM public.agents WHERE id=p_agent_id AND status='active' LIMIT 1;
+            IF NOT FOUND THEN RETURN jsonb_build_object('success',false,'error','Agent not found or inactive'); END IF;
+            IF v_agent_user_id = v_user_id THEN RETURN jsonb_build_object('success',false,'error','Cannot reserve own slot'); END IF;
+            v_commission := round(p_nova_amount * v_commission_pct / 100, 2);
+            INSERT INTO public.agent_reservations(agent_id,user_id,type,nova_amount,fiat_amount,fiat_currency,commission_pct,commission_nova,status,notes)
+            VALUES(p_agent_id,v_user_id,p_type,p_nova_amount,p_fiat_amount,p_fiat_currency,v_commission_pct,v_commission,'pending',p_notes)
+            RETURNING id INTO v_reservation_id;
+            RETURN jsonb_build_object('success',true,'reservation_id',v_reservation_id);
+          EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success',false,'error',SQLERRM);
+          END; $func$;
+          GRANT EXECUTE ON FUNCTION public.create_agent_reservation TO authenticated;
+          """),
+            ("admin_manage_agent", """
+          CREATE OR REPLACE FUNCTION public.admin_manage_agent(
+            p_agent_id UUID, p_action TEXT, p_reason TEXT DEFAULT NULL
+          ) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $func$
+          BEGIN
+            IF NOT public.has_role(auth.uid(),'admin') THEN RETURN jsonb_build_object('success',false,'error','Unauthorized'); END IF;
+            IF p_action NOT IN ('approve','reject','suspend','reactivate') THEN RETURN jsonb_build_object('success',false,'error','Invalid action'); END IF;
+            UPDATE public.agents SET status=CASE p_action WHEN 'approve' THEN 'active' WHEN 'reject' THEN 'rejected' WHEN 'suspend' THEN 'suspended' WHEN 'reactivate' THEN 'active' END WHERE id=p_agent_id;
+            IF NOT FOUND THEN RETURN jsonb_build_object('success',false,'error','Agent not found'); END IF;
+            RETURN jsonb_build_object('success',true);
+          EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success',false,'error',SQLERRM);
+          END; $func$;
+          GRANT EXECUTE ON FUNCTION public.admin_manage_agent TO authenticated;
+          """),
+          ]
 
+          failed = False
+          for name, sql in functions:
+              print(f"\n>>> Applying: {name}")
+              payload = json.dumps({"query": sql.strip()}).encode()
+              req = urllib.request.Request(base_url, data=payload, method="POST",
+                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      d = json.loads(resp.read())
+                      if isinstance(d, dict) and d.get("error"):
+                          print(f"  FAILED: {d['error']}")
+                          failed = True
+                      else:
+                          print(f"  OK: {d}")
+              except urllib.error.HTTPError as e:
+                  body = e.read().decode()
+                  print(f"  HTTP {e.code}: {body[:300]}")
+                  failed = True
+
+          if failed:
+              sys.exit(1)
+          PYEOF
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-
-      - name: Verify
-        run: |
-          supabase db execute \
-            --db-url "$SUPABASE_DB_URL" \
-            --sql "SELECT routine_name FROM information_schema.routines WHERE routine_schema='public' AND routine_name LIKE 'apply%' OR routine_name LIKE '%agent%' ORDER BY routine_name;" \
-            2>&1 || true
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
