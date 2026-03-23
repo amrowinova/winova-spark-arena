@@ -13,18 +13,35 @@ jobs:
         with:
           version: latest
 
-      - name: Apply agent RPC functions via CLI
+      - name: Apply each function individually
         run: |
-          supabase db execute \
-            --project-ref jzfgloctnkmcpvhlwzry \
-            --file supabase/migrations/20260323030000_agent_rpc_functions.sql
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          set -e
 
-      - name: Verify functions created
+          apply_sql() {
+            local label="$1"
+            local sql="$2"
+            echo ">>> Applying: $label"
+            result=$(supabase db execute \
+              --db-url "$SUPABASE_DB_URL" \
+              --sql "$sql" 2>&1) || {
+              echo "FAILED: $label"
+              echo "$result"
+              exit 1
+            }
+            echo "OK: $label"
+            echo "$result"
+          }
+
+          apply_sql "apply_as_agent" "$(cat supabase/migrations/20260323030000_agent_rpc_functions.sql)"
+
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Verify
         run: |
           supabase db execute \
-            --project-ref jzfgloctnkmcpvhlwzry \
-            --sql "SELECT routine_name FROM information_schema.routines WHERE routine_schema='public' AND routine_name IN ('apply_as_agent','get_my_agent_profile','get_nearby_agents','create_agent_reservation','admin_manage_agent') ORDER BY routine_name;"
+            --db-url "$SUPABASE_DB_URL" \
+            --sql "SELECT routine_name FROM information_schema.routines WHERE routine_schema='public' AND routine_name LIKE 'apply%' OR routine_name LIKE '%agent%' ORDER BY routine_name;" \
+            2>&1 || true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
