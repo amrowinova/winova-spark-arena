@@ -1,0 +1,34 @@
+name: DB Diagnostic
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check agent functions exist
+        run: |
+          RESULT=$(curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT routine_name FROM information_schema.routines WHERE routine_schema='"'"'public'"'"' AND routine_name IN ('"'"'apply_as_agent'"'"','"'"'get_my_agent_profile'"'"','"'"'get_nearby_agents'"'"','"'"'create_agent_reservation'"'"','"'"'admin_manage_agent'"'"') ORDER BY routine_name;"}' \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query")
+          echo "=== RESULT ==="
+          echo "$RESULT"
+          echo "=== END ==="
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Check agents table exists
+        run: |
+          RESULT=$(curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT table_name FROM information_schema.tables WHERE table_schema='"'"'public'"'"' AND table_name IN ('"'"'agents'"'"','"'"'agent_reservations'"'"') ORDER BY table_name;"}' \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query")
+          echo "=== TABLES ==="
+          echo "$RESULT"
+          echo "=== END ==="
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
