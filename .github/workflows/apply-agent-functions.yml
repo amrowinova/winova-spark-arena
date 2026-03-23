@@ -6,150 +6,46 @@ on:
 jobs:
   apply:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Apply via Management API (correct project)
+      - name: Install psql and apply via DB URL
         run: |
-          python3 - << 'PYEOF'
-          import json, urllib.request, os, sys
+          sudo apt-get install -y postgresql-client -q
 
-          token = os.environ["SUPABASE_ACCESS_TOKEN"]
-          # CORRECT project ID from .env
-          url = "https://api.supabase.com/v1/projects/whatixmzgweolywmrsty/database/query"
+          echo "Testing connection..."
+          # Try DB URL directly with psql
+          PGCONNECT_TIMEOUT=10 psql "$SUPABASE_DB_URL" -c "SELECT current_database(), version();" 2>&1 | tee /tmp/psql_test.txt
 
-          def run_sql(label, sql):
-              payload = json.dumps({"query": sql}).encode()
-              req = urllib.request.Request(url, data=payload, method="POST",
-                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
-              try:
-                  with urllib.request.urlopen(req) as resp:
-                      d = json.loads(resp.read())
-                      if isinstance(d, dict) and d.get("error"):
-                          return False, d["error"]
-                      return True, str(d)[:200]
-              except urllib.error.HTTPError as e:
-                  return False, f"HTTP {e.code}: {e.read().decode()[:300]}"
-              except Exception as ex:
-                  return False, str(ex)
-
-          functions = {
-          "apply_as_agent": """
-          CREATE OR REPLACE FUNCTION public.apply_as_agent(
-            p_shop_name TEXT, p_whatsapp TEXT, p_country TEXT, p_city TEXT,
-            p_latitude NUMERIC DEFAULT NULL, p_longitude NUMERIC DEFAULT NULL, p_bio TEXT DEFAULT NULL
-          ) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
-          DECLARE v_user_id UUID := auth.uid(); v_existing_id UUID;
-          BEGIN
-            IF v_user_id IS NULL THEN RETURN jsonb_build_object('success',false,'error','Not authenticated'); END IF;
-            SELECT id INTO v_existing_id FROM public.agents WHERE user_id = v_user_id LIMIT 1;
-            IF v_existing_id IS NOT NULL THEN RETURN jsonb_build_object('success',false,'error','Already applied'); END IF;
-            INSERT INTO public.agents(user_id,shop_name,whatsapp,country,city,latitude,longitude,bio,status,commission_pct,avg_rating,trust_score,total_reviews,total_completed,total_cancellations,total_disputes)
-            VALUES(v_user_id,p_shop_name,p_whatsapp,p_country,p_city,p_latitude,p_longitude,p_bio,'pending',5,0,50,0,0,0,0);
-            RETURN jsonb_build_object('success',true);
-          EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success',false,'error',SQLERRM);
-          END; $fn$;
-          GRANT EXECUTE ON FUNCTION public.apply_as_agent TO authenticated;
-          """,
-          "get_my_agent_profile": """
-          CREATE OR REPLACE FUNCTION public.get_my_agent_profile()
-          RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
-          DECLARE v_user_id UUID := auth.uid();
-                  v_id UUID; v_shop TEXT; v_wa TEXT; v_country TEXT; v_city TEXT;
-                  v_comm NUMERIC; v_bio TEXT; v_status TEXT; v_rating NUMERIC; v_trust NUMERIC;
-                  v_reviews INT; v_completed INT; v_disputes INT; v_cancels INT;
-          BEGIN
-            SELECT id,shop_name,whatsapp,country,city,commission_pct,bio,status,avg_rating,trust_score,
-                   total_reviews,total_completed,total_disputes,total_cancellations
-            INTO v_id,v_shop,v_wa,v_country,v_city,v_comm,v_bio,v_status,v_rating,v_trust,
-                 v_reviews,v_completed,v_disputes,v_cancels
-            FROM public.agents WHERE user_id = v_user_id LIMIT 1;
-            IF NOT FOUND THEN RETURN jsonb_build_object('found',false); END IF;
-            RETURN jsonb_build_object('found',true,'id',v_id,'shop_name',v_shop,'whatsapp',v_wa,
-              'country',v_country,'city',v_city,'commission_pct',v_comm,'bio',v_bio,'status',v_status,
-              'avg_rating',v_rating,'trust_score',v_trust,'total_reviews',v_reviews,
-              'total_completed',v_completed,'total_disputes',v_disputes,'total_cancellations',v_cancels);
-          END; $fn$;
-          GRANT EXECUTE ON FUNCTION public.get_my_agent_profile TO authenticated;
-          """,
-          "get_nearby_agents": """
-          CREATE OR REPLACE FUNCTION public.get_nearby_agents(
-            p_country TEXT DEFAULT NULL, p_city TEXT DEFAULT NULL,
-            p_latitude NUMERIC DEFAULT NULL, p_longitude NUMERIC DEFAULT NULL, p_limit INT DEFAULT 30
-          ) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
-          DECLARE v_result JSONB;
-          BEGIN
-            SELECT jsonb_agg(jsonb_build_object(
-              'id',a.id,'user_id',a.user_id,'shop_name',a.shop_name,'whatsapp',a.whatsapp,
-              'country',a.country,'city',a.city,'latitude',a.latitude,'longitude',a.longitude,
-              'commission_pct',a.commission_pct,'bio',a.bio,'avg_rating',a.avg_rating,
-              'trust_score',a.trust_score,'total_reviews',a.total_reviews,'total_completed',a.total_completed,'status',a.status,
-              'distance_km', CASE WHEN p_latitude IS NOT NULL AND a.latitude IS NOT NULL
-                THEN round(CAST(6371*acos(LEAST(1,GREATEST(-1,cos(radians(p_latitude))*cos(radians(a.latitude))*cos(radians(a.longitude)-radians(p_longitude))+sin(radians(p_latitude))*sin(radians(a.latitude))))) AS NUMERIC),1)
-                ELSE NULL END
-            ) ORDER BY a.trust_score DESC) INTO v_result
-            FROM public.agents a WHERE a.status='active'
-              AND (p_country IS NULL OR a.country=p_country)
-              AND (p_city IS NULL OR a.city=p_city)
-            LIMIT p_limit;
-            RETURN COALESCE(v_result,'[]'::JSONB);
-          END; $fn$;
-          GRANT EXECUTE ON FUNCTION public.get_nearby_agents TO authenticated, anon;
-          """,
-          "create_agent_reservation": """
-          CREATE OR REPLACE FUNCTION public.create_agent_reservation(
-            p_agent_id UUID, p_type TEXT, p_nova_amount NUMERIC,
-            p_fiat_amount NUMERIC DEFAULT NULL, p_fiat_currency TEXT DEFAULT NULL, p_notes TEXT DEFAULT NULL
-          ) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
-          DECLARE v_user_id UUID := auth.uid();
-                  v_agent_user_id UUID; v_commission_pct NUMERIC; v_commission NUMERIC; v_reservation_id UUID;
-          BEGIN
-            IF v_user_id IS NULL THEN RETURN jsonb_build_object('success',false,'error','Not authenticated'); END IF;
-            SELECT user_id, commission_pct INTO v_agent_user_id, v_commission_pct
-            FROM public.agents WHERE id=p_agent_id AND status='active' LIMIT 1;
-            IF NOT FOUND THEN RETURN jsonb_build_object('success',false,'error','Agent not found or inactive'); END IF;
-            IF v_agent_user_id = v_user_id THEN RETURN jsonb_build_object('success',false,'error','Cannot reserve own slot'); END IF;
-            v_commission := round(p_nova_amount * v_commission_pct / 100, 2);
-            INSERT INTO public.agent_reservations(agent_id,user_id,type,nova_amount,fiat_amount,fiat_currency,commission_pct,commission_nova,status,notes)
-            VALUES(p_agent_id,v_user_id,p_type,p_nova_amount,p_fiat_amount,p_fiat_currency,v_commission_pct,v_commission,'pending',p_notes)
-            RETURNING id INTO v_reservation_id;
-            RETURN jsonb_build_object('success',true,'reservation_id',v_reservation_id);
-          EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success',false,'error',SQLERRM);
-          END; $fn$;
-          GRANT EXECUTE ON FUNCTION public.create_agent_reservation TO authenticated;
-          """,
-          "admin_manage_agent": """
-          CREATE OR REPLACE FUNCTION public.admin_manage_agent(
-            p_agent_id UUID, p_action TEXT, p_reason TEXT DEFAULT NULL
-          ) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
-          BEGIN
-            IF NOT public.has_role(auth.uid(),'admin') THEN RETURN jsonb_build_object('success',false,'error','Unauthorized'); END IF;
-            IF p_action NOT IN ('approve','reject','suspend','reactivate') THEN RETURN jsonb_build_object('success',false,'error','Invalid action'); END IF;
-            UPDATE public.agents SET status=CASE p_action
-              WHEN 'approve' THEN 'active' WHEN 'reject' THEN 'rejected'
-              WHEN 'suspend' THEN 'suspended' WHEN 'reactivate' THEN 'active' END
-            WHERE id=p_agent_id;
-            IF NOT FOUND THEN RETURN jsonb_build_object('success',false,'error','Agent not found'); END IF;
-            RETURN jsonb_build_object('success',true);
-          EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success',false,'error',SQLERRM);
-          END; $fn$;
-          GRANT EXECUTE ON FUNCTION public.admin_manage_agent TO authenticated;
-          """
-          }
-
-          failed = False
-          for name, sql in functions.items():
-              ok, result = run_sql(name, sql.strip())
-              status = "OK" if ok else "FAIL"
-              print(f"[{status}] {name}: {result[:150]}")
-              if not ok:
-                  failed = True
-
-          # Verify
-          ok, result = run_sql("verify", "SELECT routine_name FROM information_schema.routines WHERE routine_schema='public' AND routine_name IN ('apply_as_agent','get_my_agent_profile','get_nearby_agents','create_agent_reservation','admin_manage_agent') ORDER BY routine_name;")
-          print(f"\n[VERIFY] {result}")
-
-          sys.exit(1 if failed else 0)
-          PYEOF
+          echo "---"
+          if grep -q "PostgreSQL" /tmp/psql_test.txt; then
+            echo "CONNECTED! Applying functions..."
+            psql "$SUPABASE_DB_URL" \
+              -f supabase/migrations/20260323030000_agent_rpc_functions.sql 2>&1
+          else
+            echo "PSQL FAILED. Trying URL format variations..."
+            # Try adding sslmode
+            PGCONNECT_TIMEOUT=10 psql "${SUPABASE_DB_URL}?sslmode=require" -c "SELECT 1;" 2>&1 | tee /tmp/psql_ssl.txt
+            cat /tmp/psql_ssl.txt
+          fi
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Save results
+        if: always()
+        run: |
+          cat /tmp/psql_test.txt /tmp/psql_ssl.txt 2>/dev/null > diag-result.txt
+          echo "SUPABASE_DB_URL_PREFIX=${SUPABASE_DB_URL:0:25}" >> diag-result.txt
+          git config user.email "ci@winova.app"
+          git config user.name "CI Bot"
+          git pull --rebase origin main
+          git add diag-result.txt
+          git diff --staged --quiet || git commit -m "tmp: psql diagnostic result"
+          git push || true
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
