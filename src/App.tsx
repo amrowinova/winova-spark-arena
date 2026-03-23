@@ -15,10 +15,13 @@ import { InlineBanner } from "@/components/common/InlineBanner";
 import { GlobalAuthGuard } from "@/components/auth/GlobalAuthGuard";
 import { ProfileEnsureWrapper } from "@/components/auth/ProfileEnsureWrapper";
 import { ChatNotificationHandler } from "@/components/chat/ChatNotificationHandler";
+import { PushNotificationHandler } from "@/components/notifications/PushNotificationHandler";
+import { PushPermissionPrompt } from "@/components/notifications/PushPermissionPrompt";
 import { AuthGuard, SupportGuard, AdminGuard } from "@/components/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppErrorBoundary } from "@/components/common/AppErrorBoundary";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import "@/lib/i18n/index";
 
 // Pages
@@ -40,6 +43,7 @@ import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import PayUser from "./pages/PayUser";
 import ReferralLanding from "./pages/ReferralLanding";
+import Referral from "./pages/Referral";
 
 // Support Pages
 import SupportDashboard from "./pages/support/SupportDashboard";
@@ -61,22 +65,42 @@ import AdminContests from "./pages/admin/AdminContests";
 import AdminCycles from "./pages/admin/AdminCycles";
 import AdminBroadcast from "./pages/admin/AdminBroadcast";
 import AdminCommissions from "./pages/admin/AdminCommissions";
+import AdminKYC from "./pages/admin/AdminKYC";
+import KYCPage from "./pages/KYCPage";
+import Agents from "./pages/Agents";
+import AgentReservationChat from "./pages/AgentReservationChat";
+import AgentDashboard from "./pages/AgentDashboard";
+import AdminAgents from "./pages/admin/AdminAgents";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
 
 
-const queryClient = new QueryClient();
-
-// Clear React Query cache on auth state changes
-supabase.auth.onAuthStateChange((event) => {
-  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-    // Clear all cached queries to force fresh data fetch
-    queryClient.clear();
-  }
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,       // 30s before refetching in background
+      retry: 1,                // 1 retry on failure (not 3)
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
 });
 
-const App = () => (
+const App = () => {
+  // Clear React Query cache on auth state changes; clean up listener on unmount
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        queryClient.clear();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return (
   <AppErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
@@ -93,6 +117,9 @@ const App = () => (
                           <GlobalAuthGuard />
                           <ProfileEnsureWrapper />
                           <ChatNotificationHandler />
+                          <PushNotificationHandler />
+                          <PushPermissionPrompt />
+                          <OnboardingFlow />
                           <InlineBanner />
                           <Toaster position="top-center" richColors />
                           <Routes>
@@ -123,7 +150,12 @@ const App = () => (
                             <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
                             <Route path="/lucky-leaders" element={<AuthGuard><LuckyLeaders /></AuthGuard>} />
                             <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
-                            
+                            <Route path="/referral" element={<AuthGuard><Referral /></AuthGuard>} />
+                            <Route path="/kyc" element={<AuthGuard><KYCPage /></AuthGuard>} />
+                            <Route path="/agents" element={<AuthGuard><Agents /></AuthGuard>} />
+                            <Route path="/agents/r/:reservationId" element={<AuthGuard><AgentReservationChat /></AuthGuard>} />
+                            <Route path="/agent-dashboard" element={<AuthGuard><AgentDashboard /></AuthGuard>} />
+
                             {/* Support Panel routes - require support role */}
                             <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />
                             <Route path="/support/ticket/:ticketId" element={<SupportGuard><SupportTicketDetail /></SupportGuard>} />
@@ -144,6 +176,8 @@ const App = () => (
                             <Route path="/admin/cycles" element={<AdminGuard><AdminCycles /></AdminGuard>} />
                             <Route path="/admin/broadcast" element={<AdminGuard><AdminBroadcast /></AdminGuard>} />
                             <Route path="/admin/commissions" element={<AdminGuard><AdminCommissions /></AdminGuard>} />
+                            <Route path="/admin/kyc" element={<AdminGuard><AdminKYC /></AdminGuard>} />
+                            <Route path="/admin/agents" element={<AdminGuard><AdminAgents /></AdminGuard>} />
                             
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />
@@ -161,6 +195,7 @@ const App = () => (
     </LanguageProvider>
   </QueryClientProvider>
   </AppErrorBoundary>
-);
+  );
+};
 
 export default App;
