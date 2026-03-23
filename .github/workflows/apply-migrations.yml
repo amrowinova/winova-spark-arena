@@ -9,12 +9,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
+      - name: Install psql
+        run: sudo apt-get install -y postgresql-client
 
-      - name: Apply migrations
+      - name: Check DB_URL is set
         run: |
-          supabase db push \
-            --db-url "postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.jzfgloctnkmcpvhlwzry.supabase.co:5432/postgres" \
-            --include-all
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "ERROR: SUPABASE_DB_URL secret is not set"
+            exit 1
+          fi
+          echo "SUPABASE_DB_URL is set (length: ${#SUPABASE_DB_URL})"
+          echo "URL scheme: ${SUPABASE_DB_URL%%:*}"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Test DB connection
+        run: psql "$SUPABASE_DB_URL" -c "SELECT current_database(), current_user;" || echo "PSQL EXIT CODE: $?"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Apply migration 1 - city_country_leaderboard
+        run: psql "$SUPABASE_DB_URL" -f supabase/migrations/20260322020000_city_country_leaderboard.sql
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Apply migration 2 - contest_security_fixes
+        run: psql "$SUPABASE_DB_URL" -f supabase/migrations/20260322030000_contest_security_fixes.sql
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Apply migration 3 - agent_system_v1
+        run: psql "$SUPABASE_DB_URL" -f supabase/migrations/20260323010000_agent_system_v1.sql
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Apply migration 4 - agent_system_v2_trust
+        run: psql "$SUPABASE_DB_URL" -f supabase/migrations/20260323020000_agent_system_v2_trust.sql
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
