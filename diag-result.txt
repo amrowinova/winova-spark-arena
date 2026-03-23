@@ -1,4 +1,6 @@
-simple_fn: FAIL | HTTP 403: error code: 1010
-check_diag: FAIL | HTTP 403: error code: 1010
-agents_table: FAIL | HTTP 403: error code: 1010
-existing_fns: FAIL | HTTP 403: error code: 1010
+URL_PREFIX=postgresql://postgres.jzfgloctnkmcpvhlwz
+TEST1(as-is): psql: error: connection to server at "aws-1-eu-west-1.pooler.supabase.com" (18.202.64.2), port 6543 failed: FATAL:  password authentication failed for user "postgres"
+connection to server at "aws-1-eu-west-1.pooler.supabase.com" (18.202.64.2), port 6543 failed: FATAL:  password authentication failed for user "postgres"
+TEST2(pw+correct): psql: error: invalid integer value "postgresql:" for connection option "port"
+TEST3(pw+old): psql: error: invalid integer value "postgresql:" for connection option "port"
+ALL_FAILED
