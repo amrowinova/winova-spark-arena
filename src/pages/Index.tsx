@@ -21,6 +21,7 @@ import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
 import { getContestTiming, getSaudiDateStr } from '@/lib/contestTiming';
+import { getDeviceFingerprint } from '@/lib/deviceFingerprint';
 
 import {
   Dialog,
@@ -92,6 +93,8 @@ export default function HomePage() {
   const [activeContestId, setActiveContestId] = useState<string | null>(null);
   const [prizePool, setPrizePool] = useState(0);
   const [participantCount, setParticipantCount] = useState(0);
+  const [isFreeContest, setIsFreeContest] = useState(false);
+  const [adminPrize, setAdminPrize] = useState<number | undefined>(undefined);
   const [hasJoined, setHasJoined] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const isJoinModalOpen = joinDialogOpen;
@@ -123,7 +126,7 @@ export default function HomePage() {
       const ksaToday = getSaudiDateStr();
       const { data: contestData } = await supabase
         .from('contests')
-        .select('id, prize_pool, current_participants, contest_date')
+        .select('id, prize_pool, current_participants, contest_date, is_free, admin_prize')
         .eq('contest_date', ksaToday)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -131,7 +134,12 @@ export default function HomePage() {
 
       if (contestData) {
         setActiveContestId(contestData.id);
-        setPrizePool(contestData.prize_pool || 0);
+        const free = !!(contestData as { is_free?: boolean }).is_free;
+        const ap = (contestData as { admin_prize?: number }).admin_prize ?? undefined;
+        setIsFreeContest(free);
+        setAdminPrize(ap);
+        // Free contests: prize is fixed admin_prize; paid: accumulated prize_pool
+        setPrizePool(free && ap != null ? ap : (contestData.prize_pool || 0));
         setParticipantCount(contestData.current_participants || 0);
 
         // Check if user has joined THIS contest
@@ -153,6 +161,8 @@ export default function HomePage() {
         setPrizePool(0);
         setParticipantCount(0);
         setHasJoined(false);
+        setIsFreeContest(false);
+        setAdminPrize(undefined);
       }
     } catch (err) {
       console.error('Error fetching contest:', err);
@@ -173,12 +183,15 @@ export default function HomePage() {
         { event: 'INSERT', schema: 'public', table: 'contest_entries', filter: `contest_id=eq.${activeContestId}` },
         () => {
           setParticipantCount((prev) => prev + 1);
-          setPrizePool((prev) => prev + 6); // each new participant adds 6 Nova to pool
+          // Free contests have a fixed prize pool — do not increment
+          if (!isFreeContest) {
+            setPrizePool((prev) => prev + 6);
+          }
         }
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [activeContestId]);
+  }, [activeContestId, isFreeContest]);
 
   const handleJoinContest = () => {
     if (!authUser) {
@@ -226,9 +239,10 @@ export default function HomePage() {
 
     try {
       const { data, error } = await supabase.rpc('join_contest', {
-        p_user_id: authUser.id,
-        p_contest_id: activeContestId,
-        p_entry_fee: entryFee,
+        p_user_id:            authUser.id,
+        p_contest_id:         activeContestId,
+        p_entry_fee:          isFreeContest ? 0 : entryFee,
+        p_device_fingerprint: isFreeContest ? getDeviceFingerprint() : null,
       });
 
       if (error) {
@@ -427,6 +441,8 @@ export default function HomePage() {
             hasJoined={hasJoined}
             onJoin={handleJoinContest}
             contestAvailable={!!activeContestId}
+            isFree={isFreeContest}
+            adminPrize={adminPrize}
           />
         </motion.div>
 
