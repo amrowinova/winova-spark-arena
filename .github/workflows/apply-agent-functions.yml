@@ -11,35 +11,50 @@ jobs:
 
       - name: Diagnose and apply
         run: |
+          set +e
           sudo apt-get install -y postgresql-client -q
 
-          URL_PREFIX="${SUPABASE_DB_URL:0:35}"
-          echo "URL prefix: $URL_PREFIX" > /tmp/output.txt
+          echo "URL_PREFIX=${SUPABASE_DB_URL:0:40}" > /tmp/out.txt
 
-          PSQL_OUT=$(PGCONNECT_TIMEOUT=15 psql "$SUPABASE_DB_URL" -c "SELECT 1 as ok;" 2>&1)
-          echo "PSQL_TEST: $PSQL_OUT" >> /tmp/output.txt
+          # Test 1: as-is
+          R1=$(PGCONNECT_TIMEOUT=10 psql "$SUPABASE_DB_URL" -c "SELECT 1;" 2>&1)
+          echo "TEST1: $R1" >> /tmp/out.txt
 
-          if echo "$PSQL_OUT" | grep -q " ok "; then
-            echo "Connected! Applying migration..." >> /tmp/output.txt
-            APPLY=$(psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260323030000_agent_rpc_functions.sql 2>&1)
-            echo "APPLY: $APPLY" >> /tmp/output.txt
+          # Test 2: as password with correct project host
+          CONN2="postgresql://postgres:${SUPABASE_DB_URL}@db.whatixmzgweolywmrsty.supabase.co:5432/postgres?sslmode=require"
+          R2=$(PGCONNECT_TIMEOUT=10 psql "$CONN2" -c "SELECT 1;" 2>&1)
+          echo "TEST2: $R2" >> /tmp/out.txt
+
+          # Test 3: old project host
+          CONN3="postgresql://postgres:${SUPABASE_DB_URL}@db.jzfgloctnkmcpvhlwzry.supabase.co:5432/postgres?sslmode=require"
+          R3=$(PGCONNECT_TIMEOUT=10 psql "$CONN3" -c "SELECT 1;" 2>&1)
+          echo "TEST3: $R3" >> /tmp/out.txt
+
+          # If any test succeeded, apply
+          if echo "$R1 $R2 $R3" | grep -q " 1 "; then
+            echo "CONNECTED - applying migration" >> /tmp/out.txt
+            WORKING=""
+            echo "$R1" | grep -q " 1 " && WORKING="$SUPABASE_DB_URL"
+            echo "$R2" | grep -q " 1 " && WORKING="$CONN2"
+            echo "$R3" | grep -q " 1 " && WORKING="$CONN3"
+            APPLY=$(psql "$WORKING" -v ON_ERROR_STOP=1 -f supabase/migrations/20260323030000_agent_rpc_functions.sql 2>&1)
+            echo "APPLY: $APPLY" >> /tmp/out.txt
           fi
 
-          cat /tmp/output.txt
+          cat /tmp/out.txt
+          cp /tmp/out.txt diag-result.txt
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
-      - name: Push results via PAT
+      - name: Push results
         if: always()
         run: |
-          cp /tmp/output.txt diag-result.txt 2>/dev/null || echo "no output" > diag-result.txt
           git config user.email "ci@winova.app"
           git config user.name "CI"
           git fetch origin main
           git checkout main
           git add diag-result.txt
           git diff --staged --quiet || git commit -m "tmp: diag result"
-          git push "https://$DEPLOY_PAT@github.com/amrowinova/winova-spark-arena.git" main || true
+          git push "https://$DEPLOY_PAT@github.com/amrowinova/winova-spark-arena.git" main 2>&1 | tail -3
         env:
           DEPLOY_PAT: ${{ secrets.DEPLOY_PAT }}
