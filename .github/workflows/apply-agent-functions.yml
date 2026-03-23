@@ -21,38 +21,48 @@ jobs:
 
           CONN2="postgresql://postgres:${SUPABASE_DB_URL}@db.whatixmzgweolywmrsty.supabase.co:5432/postgres?sslmode=require"
           R2=$(PGCONNECT_TIMEOUT=10 psql "$CONN2" -c "SELECT 1;" 2>&1)
-          echo "TEST2(pw+correct-host): $R2" >> /tmp/out.txt
+          echo "TEST2(pw+new): $R2" >> /tmp/out.txt
 
           CONN3="postgresql://postgres:${SUPABASE_DB_URL}@db.jzfgloctnkmcpvhlwzry.supabase.co:5432/postgres?sslmode=require"
           R3=$(PGCONNECT_TIMEOUT=10 psql "$CONN3" -c "SELECT 1;" 2>&1)
-          echo "TEST3(pw+old-host): $R3" >> /tmp/out.txt
+          echo "TEST3(pw+old): $R3" >> /tmp/out.txt
 
-          if echo "$R1$R2$R3" | grep -qE "\(1 row\)| 1 "; then
+          if echo "$R1$R2$R3" | grep -qE "\(1 row\)"; then
             WORKING=""
-            echo "$R1" | grep -qE "\(1 row\)| 1 " && WORKING="$SUPABASE_DB_URL"
-            echo "$R2" | grep -qE "\(1 row\)| 1 " && WORKING="$CONN2"
-            echo "$R3" | grep -qE "\(1 row\)| 1 " && WORKING="$CONN3"
-            echo "CONNECTED via: ${WORKING:0:50}" >> /tmp/out.txt
+            echo "$R1" | grep -qE "\(1 row\)" && WORKING="$SUPABASE_DB_URL"
+            echo "$R2" | grep -qE "\(1 row\)" && WORKING="$CONN2"
+            echo "$R3" | grep -qE "\(1 row\)" && WORKING="$CONN3"
+            echo "CONNECTED" >> /tmp/out.txt
             APPLY=$(psql "$WORKING" -v ON_ERROR_STOP=1 -f supabase/migrations/20260323030000_agent_rpc_functions.sql 2>&1)
-            echo "APPLY_RESULT: $APPLY" >> /tmp/out.txt
+            echo "APPLY: $APPLY" >> /tmp/out.txt
           else
-            echo "NO_CONNECTION: all psql attempts failed" >> /tmp/out.txt
+            echo "ALL_FAILED" >> /tmp/out.txt
           fi
 
           cat /tmp/out.txt
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
-      - name: Commit and push results
+      - name: Upload result via GitHub API
         if: always()
         run: |
-          # Pull first, THEN write file (so git pull doesn't overwrite /tmp/out.txt)
-          git config user.email "ci@winova.app"
-          git config user.name "CI"
-          git pull --rebase "https://$DEPLOY_PAT@github.com/amrowinova/winova-spark-arena.git" main
-          cp /tmp/out.txt diag-result.txt
-          git add diag-result.txt
-          git diff --staged --quiet || git commit -m "tmp: diag result $(date -u +%H:%M:%S)"
-          git push "https://$DEPLOY_PAT@github.com/amrowinova/winova-spark-arena.git" HEAD:main
+          CONTENT=$(base64 -w0 /tmp/out.txt)
+          SHA=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/amrowinova/winova-spark-arena/contents/diag-result.txt?ref=main" | \
+            python3 -c "import json,sys; print(json.load(sys.stdin).get('sha',''))")
+
+          PAYLOAD=$(python3 -c "
+          import json
+          d = {'message': 'tmp: diag result', 'content': '$CONTENT', 'branch': 'main'}
+          if '$SHA': d['sha'] = '$SHA'
+          print(json.dumps(d))
+          ")
+
+          curl -s -X PUT \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "https://api.github.com/repos/amrowinova/winova-spark-arena/contents/diag-result.txt" | \
+            python3 -c "import json,sys; d=json.load(sys.stdin); print('OK' if 'content' in d else d.get('message','?'))"
         env:
-          DEPLOY_PAT: ${{ secrets.DEPLOY_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
