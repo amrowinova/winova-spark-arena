@@ -19,6 +19,12 @@ jobs:
             exit 1
           fi
           echo "SUPABASE_DB_URL is set (length: ${#SUPABASE_DB_URL})"
+          echo "URL scheme: ${SUPABASE_DB_URL%%:*}"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Test DB connection
+        run: psql "$SUPABASE_DB_URL" -c "SELECT current_database(), current_user;" || echo "PSQL EXIT CODE: $?"
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
