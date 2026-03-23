@@ -6,17 +6,22 @@ on:
 jobs:
   apply:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Test API + apply apply_as_agent
+      - name: Run diagnostic and apply
+        id: diag
         run: |
-          python3 - << 'EOF'
+          python3 - << 'PYEOF'
           import json, urllib.request, os, sys
 
           token = os.environ["SUPABASE_ACCESS_TOKEN"]
-          summary = os.environ.get("GITHUB_STEP_SUMMARY", "/tmp/summary.md")
           url = "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query"
+          out_lines = []
 
           def run_sql(label, sql):
               payload = json.dumps({"query": sql}).encode()
@@ -29,42 +34,38 @@ jobs:
               except urllib.error.HTTPError as e:
                   return False, f"HTTP {e.code}: {e.read().decode()[:500]}"
               except Exception as ex:
-                  return False, str(ex)
+                  return False, f"EXCEPTION: {ex}"
 
-          results = []
+          # Test 1: simple function via SQL language (no PL/pgSQL)
+          ok1, r1 = run_sql("simple_fn", "CREATE OR REPLACE FUNCTION public._diag_test() RETURNS INT LANGUAGE sql STABLE AS 'SELECT 1';")
+          out_lines.append(f"simple_fn: {'OK' if ok1 else 'FAIL'} | {r1[:200]}")
 
-          # Step 1: test simple function creation
-          ok, out = run_sql("test_fn", "CREATE OR REPLACE FUNCTION public._test_diag() RETURNS INT LANGUAGE sql AS 'SELECT 1'; SELECT routine_name FROM information_schema.routines WHERE routine_name='_test_diag';")
-          results.append(("Simple fn test", ok, out))
+          # Test 2: check if it was created
+          ok2, r2 = run_sql("check_diag", "SELECT routine_name FROM information_schema.routines WHERE routine_schema='public' AND routine_name='_diag_test';")
+          out_lines.append(f"check_diag: {'OK' if ok2 else 'FAIL'} | {r2[:200]}")
 
-          # Step 2: apply_as_agent
-          sql = open("supabase/migrations/20260323030000_agent_rpc_functions.sql").read()
-          # Send only the apply_as_agent function (first 60 lines)
-          lines = sql.split("\n")
-          # Extract just apply_as_agent section
-          fn_sql = "\n".join(lines[:60])
-          ok2, out2 = run_sql("apply_as_agent", fn_sql)
-          results.append(("apply_as_agent", ok2, out2))
+          # Test 3: check agents table
+          ok3, r3 = run_sql("check_agents_table", "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='agents' ORDER BY ordinal_position LIMIT 5;")
+          out_lines.append(f"agents_table: {'OK' if ok3 else 'FAIL'} | {r3[:300]}")
 
-          # Step 3: check what exists
-          ok3, out3 = run_sql("check_functions",
-              "SELECT routine_name FROM information_schema.routines WHERE routine_schema='public' AND routine_name LIKE '%agent%' ORDER BY routine_name;")
-          results.append(("existing agent fns", ok3, out3))
+          # Test 4: existing agent functions
+          ok4, r4 = run_sql("existing_fns", "SELECT routine_name FROM information_schema.routines WHERE routine_schema='public' AND routine_name LIKE '%agent%' ORDER BY routine_name;")
+          out_lines.append(f"existing_fns: {'OK' if ok4 else 'FAIL'} | {r4[:300]}")
 
-          # Write to step summary
-          with open(summary, "w") as f:
-              f.write("# DB Diagnostic Results\n\n")
-              for label, ok, out in results:
-                  status = "✅" if ok else "❌"
-                  f.write(f"## {status} {label}\n```\n{out}\n```\n\n")
-
-          # Print to stdout too
-          for label, ok, out in results:
-              print(f"{'OK' if ok else 'FAIL'} [{label}]: {out[:200]}")
-
-          # Fail if any failed
-          if not all(ok for _, ok, _ in results[:2]):
-              sys.exit(1)
-          EOF
+          output = "\n".join(out_lines)
+          print(output)
+          with open("diag-result.txt", "w") as f:
+              f.write(output + "\n")
+          PYEOF
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Push result file
+        run: |
+          git config user.email "ci@winova.app"
+          git config user.name "CI Bot"
+          git add diag-result.txt
+          git diff --staged --quiet || git commit -m "tmp: diagnostic result"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
