@@ -6,6 +6,8 @@ on:
 jobs:
   apply:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +23,7 @@ jobs:
 
           CONN2="postgresql://postgres:${SUPABASE_DB_URL}@db.whatixmzgweolywmrsty.supabase.co:5432/postgres?sslmode=require"
           R2=$(PGCONNECT_TIMEOUT=10 psql "$CONN2" -c "SELECT 1;" 2>&1)
-          echo "TEST2(pw+new): $R2" >> /tmp/out.txt
+          echo "TEST2(pw+correct): $R2" >> /tmp/out.txt
 
           CONN3="postgresql://postgres:${SUPABASE_DB_URL}@db.jzfgloctnkmcpvhlwzry.supabase.co:5432/postgres?sslmode=require"
           R3=$(PGCONNECT_TIMEOUT=10 psql "$CONN3" -c "SELECT 1;" 2>&1)
@@ -33,8 +35,7 @@ jobs:
             echo "$R2" | grep -qE "\(1 row\)" && WORKING="$CONN2"
             echo "$R3" | grep -qE "\(1 row\)" && WORKING="$CONN3"
             echo "CONNECTED" >> /tmp/out.txt
-            APPLY=$(psql "$WORKING" -v ON_ERROR_STOP=1 -f supabase/migrations/20260323030000_agent_rpc_functions.sql 2>&1)
-            echo "APPLY: $APPLY" >> /tmp/out.txt
+            psql "$WORKING" -v ON_ERROR_STOP=1 -f supabase/migrations/20260323030000_agent_rpc_functions.sql >> /tmp/out.txt 2>&1
           else
             echo "ALL_FAILED" >> /tmp/out.txt
           fi
@@ -43,26 +44,41 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
-      - name: Upload result via GitHub API
+      - name: Write results via GitHub API
         if: always()
         run: |
-          CONTENT=$(base64 -w0 /tmp/out.txt)
-          SHA=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-            "https://api.github.com/repos/amrowinova/winova-spark-arena/contents/diag-result.txt?ref=main" | \
-            python3 -c "import json,sys; print(json.load(sys.stdin).get('sha',''))")
+          python3 << 'PYEOF'
+          import json, urllib.request, base64, os
 
-          PAYLOAD=$(python3 -c "
-          import json
-          d = {'message': 'tmp: diag result', 'content': '$CONTENT', 'branch': 'main'}
-          if '$SHA': d['sha'] = '$SHA'
-          print(json.dumps(d))
-          ")
+          token = os.environ["GITHUB_TOKEN"]
+          api = "https://api.github.com/repos/amrowinova/winova-spark-arena/contents/diag-result.txt"
 
-          curl -s -X PUT \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            "https://api.github.com/repos/amrowinova/winova-spark-arena/contents/diag-result.txt" | \
-            python3 -c "import json,sys; d=json.load(sys.stdin); print('OK' if 'content' in d else d.get('message','?'))"
+          with open("/tmp/out.txt", "rb") as f:
+              content = base64.b64encode(f.read()).decode()
+
+          # Get current SHA
+          req = urllib.request.Request(f"{api}?ref=main",
+              headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  current_sha = json.loads(resp.read()).get("sha", "")
+          except:
+              current_sha = ""
+
+          payload = {"message": "tmp: diag result", "content": content, "branch": "main"}
+          if current_sha:
+              payload["sha"] = current_sha
+
+          req2 = urllib.request.Request(api,
+              data=json.dumps(payload).encode(), method="PUT",
+              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
+                       "Accept": "application/vnd.github+json"})
+          try:
+              with urllib.request.urlopen(req2) as resp:
+                  r = json.loads(resp.read())
+                  print("WRITTEN:", r.get("content", {}).get("sha", "?")[:10])
+          except urllib.error.HTTPError as e:
+              print(f"FAILED {e.code}:", e.read().decode()[:200])
+          PYEOF
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
