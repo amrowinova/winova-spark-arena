@@ -16,5 +16,5 @@ jobs:
       - name: Apply migrations
         run: |
           supabase db push \
-            --db-url "postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.jzfgloctnkmcpvhlwzry.supabase.co:5432/postgres" \
+            --db-url "${{ secrets.SUPABASE_DB_URL }}" \
             --include-all
