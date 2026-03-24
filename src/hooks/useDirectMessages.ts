@@ -382,8 +382,8 @@ export function useDirectMessages() {
         .eq('user_id', user.id)
         .eq('emoji', emoji);
     } else {
-      await (supabase
-        .from('dm_message_reactions') as any)
+      await (supabase as any)
+        .from('dm_message_reactions')
         .insert({ message_id: messageId, user_id: user.id, emoji });
     }
   }, [user, messages]);
