@@ -148,7 +148,7 @@ export function useAgentReservations() {
   const confirmReservation = useCallback(async (
     reservationId: string
   ): Promise<{ success: boolean; status?: string; error?: string }> => {
-    const { data, error } = await supabase.rpc('confirm_agent_reservation', {
+    const { data, error } = await (supabase.rpc as any)('confirm_agent_reservation', {
       p_reservation_id: reservationId,
     });
     if (error) return { success: false, error: error.message };
