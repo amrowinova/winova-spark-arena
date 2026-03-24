@@ -160,7 +160,7 @@ export function useAgentReservations() {
     reservationId: string,
     reason?: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await supabase.rpc('cancel_agent_reservation', {
+    const { data, error } = await (supabase.rpc as any)('cancel_agent_reservation', {
       p_reservation_id: reservationId,
       p_reason:         reason ?? null,
     });
