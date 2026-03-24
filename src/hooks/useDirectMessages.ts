@@ -375,8 +375,8 @@ export function useDirectMessages() {
     }));
 
     if (alreadyReacted) {
-      await supabase
-        .from('dm_message_reactions')
+      await (supabase
+        .from('dm_message_reactions') as any)
         .delete()
         .eq('message_id', messageId)
         .eq('user_id', user.id)
