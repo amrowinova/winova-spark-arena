@@ -58,7 +58,7 @@ export default function AdminKYC() {
 
   const fetchRequests = useCallback(async () => {
     setIsLoading(true);
-    let query = supabase
+    let query = (supabase as any)
       .from('kyc_requests')
       .select(`
         id, user_id, full_name, birth_date, id_image_url,
