@@ -122,7 +122,7 @@ export default function AdminPricing() {
     const newPrices: AnchorPrices = { ...anchorPrices };
     ANCHOR_FIELDS.forEach(f => {
       const val = editValues[f.key];
-      if (val !== undefined && val !== '') {
+      if (val !== undefined && String(val) !== '') {
         newPrices[f.key] = Number(val);
       }
     });
