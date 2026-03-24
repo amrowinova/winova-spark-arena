@@ -62,8 +62,8 @@ export function useAgentReservations() {
     if (!authUser) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('agent_reservations')
+      const { data, error } = await (supabase
+        .from('agent_reservations') as any)
         .select('*, agents(shop_name, whatsapp, avg_rating, trust_score, commission_pct)')
         .eq('user_id', authUser.id)
         .order('created_at', { ascending: false });
