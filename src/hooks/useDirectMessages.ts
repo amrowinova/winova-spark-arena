@@ -394,8 +394,8 @@ export function useDirectMessages() {
     
     // Mark as read when opening conversation
     if (conversationId && user) {
-      supabase
-        .from('direct_messages')
+      (supabase
+        .from('direct_messages') as any)
         .update({ is_read: true })
         .eq('conversation_id', conversationId)
         .neq('sender_id', user.id)
@@ -405,7 +405,7 @@ export function useDirectMessages() {
             prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
           );
         })
-        .catch((err) => {
+        .catch((err: any) => {
           console.error('Failed to mark messages as read:', err);
         });
     }
