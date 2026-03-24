@@ -92,8 +92,6 @@ export const tr = {
       spotlight: 'Şanslı Kazananlar',
       todayWinners: 'Bugünün Kazananları',
       viewAll: 'Tümünü Gör',
-      welcomeBackToast: 'Tekrar hoş geldin! 👋',
-      helloUser: 'Merhaba {{name}}',
     },
     // Ranks
     ranks: {
@@ -135,11 +133,11 @@ export const tr = {
       fifth: '5.',
       freeContest: 'Ücretsiz Yarışma',
       freeEntry: 'Ücretsiz Giriş',
-      fridayContest: 'Cuma Ücretsiz Yarışması',
-      fridayReminder: 'Yarın Cuma yarışması — ücretsiz giriş!',
+      fridayContest: 'Ücretsiz Cuma Yarışması',
+      fridayReminder: 'Yarın Cuma yarışması — giriş ücreti yok!',
       joinFree: 'Ücretsiz Katıl',
-      kycRequired: 'Ücretsiz yarışmalara katılmak için kimlik doğrulama (KYC) gereklidir',
-      accountTooNew: 'Ücretsiz yarışmalara katılmak için hesabınızın en az 7 günlük olması gerekir',
+      kycRequired: 'Kimlik doğrulama (KYC) gereklidir',
+      accountTooNew: 'Hesabınızın en az 7 günlük olması gerekiyor',
       deviceAlreadyUsed: 'Bu cihaz bu yarışmaya zaten katılmak için kullanıldı',
     },
     // Team
@@ -160,42 +158,6 @@ export const tr = {
       copyCode: 'Kopyala',
       copied: 'Kopyalandı!',
       shareInvite: 'Paylaş',
-      // Tabs
-      tabOverview: 'Genel Bakış',
-      tabDirect: 'Doğrudan',
-      tabStats: 'İstatistikler',
-      tabReferral: 'Referans',
-      // Member card
-      memberRankWeeks: 'Sıralama: {{rank}} | Haftalar: {{weeks}}/14',
-      viewProfile: '{{name}} profilini gör',
-      viewTeamOf: '{{name}} takımı',
-      subteamOf: '{{name}} Takımı',
-      // Search
-      searchPlaceholder: 'Ad veya kullanıcı adıyla ara...',
-      searchMember: 'Üye ara',
-      noMatchingMembers: 'Eşleşen üye yok',
-      // Overview labels
-      teamSize: 'Takım Boyutu',
-      directLabel: 'Doğrudan',
-      indirect: 'Dolaylı',
-      totalTeam: 'Toplam Takım',
-      requestSupervisorChange: 'Süpervizör Değişikliği İste',
-      // Stats tab
-      spotlightRanking: 'Spotlight Sıralaması',
-      spotlightRankingDesc: 'Rekabetteki konumunuzu görün',
-      // Referral tab
-      howReferralWorks: 'Referans Nasıl Çalışır?',
-      referralStep1Title: 'Kodunuzu Paylaşın',
-      referralStep1Desc: 'Referans kodunuzu arkadaşlarınıza gönderin',
-      referralStep2Title: "WINOVA'ya Katılıyorlar",
-      referralStep2Desc: 'Kayıt olurken kodunuzu kullanıyorlar',
-      referralStep3Title: 'Puan ve Ödüller Kazanın',
-      referralStep3Desc: 'Takımınız ne kadar aktif olursa o kadar çok kazanırsınız',
-      // Warnings (toast)
-      warningInactive: 'Bu hafta aktif değilsiniz!',
-      warningInactiveMembers: '{{count}} pasif üye',
-      warningCycleEnding: 'Döngüde {{weeks}} hafta kaldı',
-      warningActivityLow: 'Aktiviteniz düşük',
     },
     // Wallet
     wallet: {
@@ -234,20 +196,6 @@ export const tr = {
       unmute: 'Sesi Aç',
       noMessages: 'Mesaj yok',
       startConversation: 'Konuşma başlat',
-      support: {
-        ticketOpenedTitle: '🛎️ Destek Talebi Açıldı',
-        categoryLabel: '📂 Kategori: {{category}}',
-        waitingStatus: '⏳ Durum: Destek görevlisi bekleniyor',
-        agentGreeting: '👋 Merhaba {{name}}',
-        agentSubtitle: 'Ben {{agentName}}, WINOVA Destek ekibindenim',
-        agentHelp: '{{category}} sorununuzda size yardımcı olacağım 😊',
-        ticketResolvedTitle: '✅ Talep Çözüldü',
-        thankYou: 'Bize ulaştığınız için teşekkürler',
-        rateService: 'Hizmetimizi değerlendirmek ister misiniz? ⭐',
-        inQueueTitle: '⏳ Sıradasınız',
-        queuePosition: 'Sıra numaranız: {{position}}',
-        contactSoon: 'En kısa sürede sizinle iletişime geçeceğiz',
-      },
     },
     // P2P
     p2p: {
@@ -310,35 +258,6 @@ export const tr = {
       hours: 'saat',
       minutes: 'dakika',
       seconds: 'saniye',
-      active: 'Aktif',
-      inactive: 'Pasif',
-      all: 'Tümü',
-      clearSearch: 'Aramayı Temizle',
-    },
-    // Admin
-    admin: {
-      walletFreeze: {
-        freezeWallet: 'Cüzdanı Dondur',
-        unfreezeWallet: 'Cüzdanı Serbest Bırak',
-        descFreeze: 'Cüzdanı dondurmak tüm finansal işlemleri engeller',
-        descUnfreeze: 'Finansal işlemlere izin vermek için cüzdanı serbest bırakın',
-        frozen: 'Dondurulmuş',
-        reasonLabel: 'Dondurma Nedeni *',
-        reasonPlaceholder: 'Dondurma nedenini girin...',
-        customReasonLabel: 'Neden',
-        warningText: 'Dondurma şunları engelleyecek: transferler, P2P işlemleri ve çekimler.',
-        selectReasonError: 'Lütfen bir dondurma nedeni seçin',
-        frozenSuccess: 'Cüzdan başarıyla donduruldu',
-        unfrozenSuccess: 'Cüzdan başarıyla serbest bırakıldı',
-        onlyAdminCanUnfreeze: 'Yalnızca Admin dondurma kaldırabilir. Yöneticinizle iletişime geçin.',
-        reasons: {
-          fraud: 'Dolandırıcılık',
-          scam: 'Dolandırma',
-          chargeback: 'İade Talebi',
-          manual_review: 'Manuel İnceleme',
-          other: 'Diğer',
-        },
-      },
     },
     // Settings
     settings: {
@@ -391,21 +310,6 @@ export const tr = {
       privacyPolicy: 'Gizlilik Politikası',
       appVersion: 'Uygulama Sürümü',
       comingSoon: 'Yakında',
-    },
-    // Hall of Fame
-    hallOfFame: {
-      title: 'Şöhret Salonu',
-      tabAllTime: 'Tüm Zamanlar',
-      tabCities: 'Şehirler',
-      tabCountries: 'Ülkeler',
-      description: 'Uygulamanın başlangıcından bu yana en fazla Nova kazananlar',
-      cityDescription: 'Toplam Nova kazanımına göre en iyi şehirler',
-      countryDescription: 'Toplam Nova kazanımına göre en iyi ülkeler',
-      totalNova: 'Toplam Nova',
-      winners: 'kazanan',
-      noDataCities: 'Henüz şehir verisi yok',
-      noDataCountries: 'Henüz ülke verisi yok',
-      rankingNote: 'Sıralama, yarışmalarda kazanılan toplam Nova\'ya göre belirlenir',
     },
     // Side Menu
     sideMenu: {

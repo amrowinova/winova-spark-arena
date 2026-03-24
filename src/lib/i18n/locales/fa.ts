@@ -92,8 +92,6 @@ export const fa = {
       spotlight: 'برندگان شانسی',
       todayWinners: 'برندگان امروز',
       viewAll: 'مشاهده همه',
-      welcomeBackToast: 'خوش برگشتی! 👋',
-      helloUser: 'سلام {{name}}',
     },
     // Ranks
     ranks: {
@@ -136,11 +134,11 @@ export const fa = {
       freeContest: 'مسابقه رایگان',
       freeEntry: 'ورود رایگان',
       fridayContest: 'مسابقه رایگان جمعه',
-      fridayReminder: 'مسابقه جمعه فردا — ورود رایگان!',
+      fridayReminder: 'مسابقه جمعه فردا — بدون هزینه!',
       joinFree: 'شرکت رایگان',
-      kycRequired: 'برای شرکت در مسابقات رایگان، احراز هویت (KYC) الزامی است',
-      accountTooNew: 'حساب شما باید حداقل ۷ روز قدیمی باشد تا در مسابقات رایگان شرکت کنید',
-      deviceAlreadyUsed: 'این دستگاه قبلاً برای شرکت در این مسابقه استفاده شده است',
+      kycRequired: 'احراز هویت (KYC) الزامی است',
+      accountTooNew: 'حساب شما باید حداقل ۷ روز قدیمی باشد',
+      deviceAlreadyUsed: 'این دستگاه قبلاً برای این مسابقه استفاده شده',
     },
     // Team
     team: {
@@ -198,20 +196,6 @@ export const fa = {
       unmute: 'صدا',
       noMessages: 'پیامی وجود ندارد',
       startConversation: 'شروع مکالمه',
-      support: {
-        ticketOpenedTitle: '🛎️ تیکت پشتیبانی باز شد',
-        categoryLabel: '📂 دسته‌بندی: {{category}}',
-        waitingStatus: '⏳ وضعیت: در انتظار کارشناس پشتیبانی',
-        agentGreeting: '👋 سلام {{name}}',
-        agentSubtitle: 'من {{agentName}} از تیم پشتیبانی WINOVA هستم',
-        agentHelp: 'به مشکل {{category}} شما رسیدگی می‌کنم 😊',
-        ticketResolvedTitle: '✅ تیکت حل شد',
-        thankYou: 'ممنون از تماس شما با ما',
-        rateService: 'آیا می‌خواهید خدمات ما را ارزیابی کنید؟ ⭐',
-        inQueueTitle: '⏳ شما در صف انتظار هستید',
-        queuePosition: 'موقعیت: {{position}}',
-        contactSoon: 'به زودی با شما تماس می‌گیریم',
-      },
     },
     // P2P
     p2p: {
