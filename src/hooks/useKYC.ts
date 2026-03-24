@@ -30,7 +30,7 @@ export function useKYC() {
         .select('kyc_status')
         .eq('user_id', user.id)
         .single(),
-      supabase.rpc('get_my_kyc_request'),
+      (supabase.rpc as any)('get_my_kyc_request'),
     ]);
 
     if (profileRes.data) {
