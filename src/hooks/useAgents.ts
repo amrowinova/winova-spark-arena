@@ -88,7 +88,7 @@ export function useAgents() {
   }, []);
 
   const getAgentDetail = useCallback(async (agentId: string): Promise<AgentDetail | null> => {
-    const { data, error: rpcErr } = await supabase.rpc('get_agent_detail', { p_agent_id: agentId });
+    const { data, error: rpcErr } = await (supabase.rpc as any)('get_agent_detail', { p_agent_id: agentId });
     if (rpcErr || !data) return null;
     const d = data as AgentDetail & { found: boolean };
     if (!d.found) return null;
