@@ -188,7 +188,7 @@ export function useAgentReservations() {
     comment: string,
     hasIssue: boolean
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await supabase.rpc('submit_agent_review', {
+    const { data, error } = await (supabase.rpc as any)('submit_agent_review', {
       p_reservation_id: reservationId,
       p_rating:         rating,
       p_comment:        comment,
