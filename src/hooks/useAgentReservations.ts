@@ -246,7 +246,7 @@ export function useAgentReservations() {
     reservationId: string,
     accept: boolean
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await supabase.rpc('respond_extension', {
+    const { data, error } = await (supabase.rpc as any)('respond_extension', {
       p_reservation_id: reservationId,
       p_accept:         accept,
     });
