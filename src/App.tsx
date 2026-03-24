@@ -71,6 +71,7 @@ import Agents from "./pages/Agents";
 import AgentReservationChat from "./pages/AgentReservationChat";
 import AgentDashboard from "./pages/AgentDashboard";
 import AdminAgents from "./pages/admin/AdminAgents";
+import Giving from "./pages/Giving";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
@@ -155,6 +156,7 @@ const App = () => {
                             <Route path="/agents" element={<AuthGuard><Agents /></AuthGuard>} />
                             <Route path="/agents/r/:reservationId" element={<AuthGuard><AgentReservationChat /></AuthGuard>} />
                             <Route path="/agent-dashboard" element={<AuthGuard><AgentDashboard /></AuthGuard>} />
+                            <Route path="/giving" element={<AuthGuard><Giving /></AuthGuard>} />
 
                             {/* Support Panel routes - require support role */}
                             <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />

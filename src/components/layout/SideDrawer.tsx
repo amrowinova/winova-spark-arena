@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut, ChevronDown, Shield, Crown, Gift } from 'lucide-react';
+import { Trophy, Sparkles, Wallet, MessageCircle, Users, ArrowLeftRight, Settings, Globe, HelpCircle, FileText, LogOut, ChevronDown, Shield, Crown, Gift, Heart } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage, SUPPORTED_LANGUAGES, Language } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +33,7 @@ const mainItems = [
   { icon: Users, path: '/team', labelEn: 'Team', labelAr: 'الفريق', emoji: '👥' },
   { icon: Trophy, path: '/winners', labelEn: 'Contest History', labelAr: 'سجل المسابقات والفائزين', emoji: '🏆' },
   { icon: ArrowLeftRight, path: '/p2p', labelEn: 'P2P', labelAr: 'P2P', emoji: '🔁' },
+  { icon: Heart, path: '/giving', labelEn: 'Giving', labelAr: 'العطاء', emoji: '❤️' },
 ];
 
 // Secondary menu items
