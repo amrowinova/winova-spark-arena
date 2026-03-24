@@ -394,8 +394,8 @@ export function useDirectMessages() {
     
     // Mark as read when opening conversation
     if (conversationId && user) {
-      (supabase
-        .from('direct_messages') as any)
+      (supabase as any)
+        .from('direct_messages')
         .update({ is_read: true })
         .eq('conversation_id', conversationId)
         .neq('sender_id', user.id)
