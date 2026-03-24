@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.contest-scheduler]
 verify_jwt = false
 
+[functions.contest-reminder]
+verify_jwt = false
+
 [functions.p2p-auto-expire]
 verify_jwt = false
 

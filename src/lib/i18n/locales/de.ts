@@ -92,8 +92,6 @@ export const de = {
       spotlight: 'Glückliche Gewinner',
       todayWinners: 'Heutige Gewinner',
       viewAll: 'Alle anzeigen',
-      welcomeBackToast: 'Willkommen zurück! 👋',
-      helloUser: 'Hallo {{name}}',
     },
     // Ranks
     ranks: {
@@ -133,14 +131,14 @@ export const de = {
       third: '3.',
       fourth: '4.',
       fifth: '5.',
-      freeContest: 'Kostenloser Wettbewerb',
-      freeEntry: 'Kostenlose Teilnahme',
-      fridayContest: 'Freitag Kostenloser Wettbewerb',
-      fridayReminder: 'Freitagswettbewerb morgen — kostenlose Teilnahme!',
-      joinFree: 'Kostenlos Teilnehmen',
-      kycRequired: 'Identitätsverifizierung (KYC) ist erforderlich, um an kostenlosen Wettbewerben teilzunehmen',
-      accountTooNew: 'Ihr Konto muss mindestens 7 Tage alt sein, um an kostenlosen Wettbewerben teilzunehmen',
-      deviceAlreadyUsed: 'Dieses Gerät wurde bereits verwendet, um an diesem Wettbewerb teilzunehmen',
+      freeContest: 'Kostenloses Turnier',
+      freeEntry: 'Kostenloser Eintritt',
+      fridayContest: 'Kostenloses Freitagsturnier',
+      fridayReminder: 'Freitagsturnier morgen — kein Eintrittspreis!',
+      joinFree: 'Kostenlos beitreten',
+      kycRequired: 'Identitätsverifizierung (KYC) erforderlich',
+      accountTooNew: 'Dein Konto muss mindestens 7 Tage alt sein',
+      deviceAlreadyUsed: 'Dieses Gerät wurde bereits für dieses Turnier verwendet',
     },
     // Team
     team: {
@@ -160,42 +158,6 @@ export const de = {
       copyCode: 'Kopieren',
       copied: 'Kopiert!',
       shareInvite: 'Teilen',
-      // Tabs
-      tabOverview: 'Übersicht',
-      tabDirect: 'Direkt',
-      tabStats: 'Statistiken',
-      tabReferral: 'Empfehlung',
-      // Member card
-      memberRankWeeks: 'Rang: {{rank}} | Wochen: {{weeks}}/14',
-      viewProfile: 'Profil von {{name}} ansehen',
-      viewTeamOf: 'Team von {{name}}',
-      subteamOf: 'Team von {{name}}',
-      // Search
-      searchPlaceholder: 'Nach Name oder Benutzername suchen...',
-      searchMember: 'Mitglied suchen',
-      noMatchingMembers: 'Keine passenden Mitglieder',
-      // Overview labels
-      teamSize: 'Teamgröße',
-      directLabel: 'Direkt',
-      indirect: 'Indirekt',
-      totalTeam: 'Gesamtteam',
-      requestSupervisorChange: 'Vorgesetztenwechsel beantragen',
-      // Stats tab
-      spotlightRanking: 'Spotlight-Rangliste',
-      spotlightRankingDesc: 'Ihre Wettbewerbsposition sehen',
-      // Referral tab
-      howReferralWorks: 'Wie funktioniert die Empfehlung?',
-      referralStep1Title: 'Code Teilen',
-      referralStep1Desc: 'Senden Sie Ihren Empfehlungscode an Freunde',
-      referralStep2Title: 'Sie Treten WINOVA Bei',
-      referralStep2Desc: 'Sie verwenden Ihren Code bei der Registrierung',
-      referralStep3Title: 'Punkte und Prämien Verdienen',
-      referralStep3Desc: 'Je aktiver Ihr Team, desto mehr verdienen Sie',
-      // Warnings (toast)
-      warningInactive: 'Sie sind diese Woche inaktiv!',
-      warningInactiveMembers: '{{count}} inaktive Mitglieder',
-      warningCycleEnding: '{{weeks}} Wochen bis Zyklusende',
-      warningActivityLow: 'Ihre Aktivität ist niedrig',
     },
     // Wallet
     wallet: {
@@ -234,20 +196,6 @@ export const de = {
       unmute: 'Ton an',
       noMessages: 'Keine Nachrichten',
       startConversation: 'Gespräch starten',
-      support: {
-        ticketOpenedTitle: '🛎️ Support-Ticket geöffnet',
-        categoryLabel: '📂 Kategorie: {{category}}',
-        waitingStatus: '⏳ Status: Warte auf Support-Mitarbeiter',
-        agentGreeting: '👋 Hallo {{name}}',
-        agentSubtitle: 'Ich bin {{agentName}} vom WINOVA-Support',
-        agentHelp: 'Ich helfe Ihnen bei Ihrem {{category}}-Problem 😊',
-        ticketResolvedTitle: '✅ Ticket gelöst',
-        thankYou: 'Danke, dass Sie uns kontaktiert haben',
-        rateService: 'Möchten Sie unseren Service bewerten? ⭐',
-        inQueueTitle: '⏳ Sie sind in der Warteschlange',
-        queuePosition: 'Position: {{position}}',
-        contactSoon: 'Wir werden uns bald bei Ihnen melden',
-      },
     },
     // P2P
     p2p: {
@@ -310,35 +258,6 @@ export const de = {
       hours: 'Stunden',
       minutes: 'Minuten',
       seconds: 'Sekunden',
-      active: 'Aktiv',
-      inactive: 'Inaktiv',
-      all: 'Alle',
-      clearSearch: 'Suche löschen',
-    },
-    // Admin
-    admin: {
-      walletFreeze: {
-        freezeWallet: 'Geldbörse Einfrieren',
-        unfreezeWallet: 'Geldbörse Freigeben',
-        descFreeze: 'Einfrieren blockiert alle Finanztransaktionen',
-        descUnfreeze: 'Freigeben um Finanztransaktionen zu erlauben',
-        frozen: 'Eingefroren',
-        reasonLabel: 'Einfriergrund *',
-        reasonPlaceholder: 'Einfriergrund eingeben...',
-        customReasonLabel: 'Grund',
-        warningText: 'Einfrieren blockiert: Überweisungen, P2P-Handel und Auszahlungen.',
-        selectReasonError: 'Bitte wählen Sie einen Einfriergrund',
-        frozenSuccess: 'Geldbörse erfolgreich eingefroren',
-        unfrozenSuccess: 'Geldbörse erfolgreich freigegeben',
-        onlyAdminCanUnfreeze: 'Nur Admin kann freigeben. Kontaktieren Sie Ihren Administrator.',
-        reasons: {
-          fraud: 'Betrug',
-          scam: 'Schwindel',
-          chargeback: 'Rückbuchung',
-          manual_review: 'Manuelle Überprüfung',
-          other: 'Sonstiges',
-        },
-      },
     },
     // Settings
     settings: {
@@ -555,5 +474,20 @@ export const de = {
         },
       },
     },
+  },
+  giving: {
+    title: 'Geben',
+    subtitle: 'Unterstütze bedürftige Familien mit deinem Nova-Guthaben',
+    families: 'Familien',
+    support: 'Familie unterstützen',
+    supportNow: 'Unterstützen',
+    members: 'Mitglieder',
+    totalReceived: 'Insgesamt erhalten',
+    needScore: 'Bedürftigkeitsgrad',
+    chooseAmount: 'Betrag wählen',
+    confirm: 'Spenden',
+    thankYou: 'Danke! Deine Unterstützung macht einen Unterschied.',
+    noFamilies: 'Keine Familien verfügbar',
+    alreadySupported: 'Du hast diese Familie bereits unterstützt',
   },
 };

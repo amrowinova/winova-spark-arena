@@ -92,8 +92,6 @@ export const it = {
       spotlight: 'Vincitori Fortunati',
       todayWinners: 'Vincitori di Oggi',
       viewAll: 'Vedi Tutto',
-      welcomeBackToast: 'Bentornato! 👋',
-      helloUser: 'Ciao {{name}}',
     },
     // Ranks
     ranks: {
@@ -136,11 +134,11 @@ export const it = {
       freeContest: 'Concorso Gratuito',
       freeEntry: 'Ingresso Gratuito',
       fridayContest: 'Concorso Gratuito del Venerdì',
-      fridayReminder: 'Concorso di venerdì domani — ingresso gratuito!',
-      joinFree: 'Partecipa Gratuitamente',
-      kycRequired: 'La verifica dell\'identità (KYC) è necessaria per partecipare ai concorsi gratuiti',
-      accountTooNew: 'Il tuo account deve avere almeno 7 giorni per partecipare ai concorsi gratuiti',
-      deviceAlreadyUsed: 'Questo dispositivo è già stato utilizzato per partecipare a questo concorso',
+      fridayReminder: 'Concorso di venerdì domani — nessuna quota!',
+      joinFree: 'Partecipa Gratis',
+      kycRequired: 'Verifica identità (KYC) richiesta',
+      accountTooNew: 'Il tuo account deve avere almeno 7 giorni',
+      deviceAlreadyUsed: 'Questo dispositivo è già stato usato per questo concorso',
     },
     // Team
     team: {
@@ -198,20 +196,6 @@ export const it = {
       unmute: 'Riattiva',
       noMessages: 'Nessun messaggio',
       startConversation: 'Inizia una conversazione',
-      support: {
-        ticketOpenedTitle: '🛎️ Ticket di supporto aperto',
-        categoryLabel: '📂 Categoria: {{category}}',
-        waitingStatus: '⏳ Stato: In attesa di un agente di supporto',
-        agentGreeting: '👋 Ciao {{name}}',
-        agentSubtitle: 'Sono {{agentName}} del supporto WINOVA',
-        agentHelp: "Ti aiuterò con il tuo problema di {{category}} 😊",
-        ticketResolvedTitle: '✅ Ticket risolto',
-        thankYou: 'Grazie per averci contattato',
-        rateService: 'Vorresti valutare il nostro servizio? ⭐',
-        inQueueTitle: '⏳ Sei in coda',
-        queuePosition: 'Posizione: {{position}}',
-        contactSoon: 'Ti contatteremo presto',
-      },
     },
     // P2P
     p2p: {
@@ -341,5 +325,20 @@ export const it = {
       policies: 'Politiche',
       logout: 'Esci',
     },
+  },
+  giving: {
+    title: 'Donazioni',
+    subtitle: 'Sostieni le famiglie bisognose con il tuo saldo Nova',
+    families: 'Famiglie',
+    support: 'Sostieni una famiglia',
+    supportNow: 'Sostieni',
+    members: 'membri',
+    totalReceived: 'Totale ricevuto',
+    needScore: 'Livello di bisogno',
+    chooseAmount: 'Scegli l\'importo',
+    confirm: 'Dona',
+    thankYou: 'Grazie! Il tuo sostegno fa la differenza.',
+    noFamilies: 'Nessuna famiglia disponibile',
+    alreadySupported: 'Hai già sostenuto questa famiglia',
   },
 };

@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Star, Shield, TrendingUp, MessageCircle, ChevronRight, Clock, Users } from 'lucide-react';
+import { Search, MapPin, Star, Shield, TrendingUp, MessageCircle, ChevronRight, Clock, LocateFixed, Loader2 } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useBanner } from '@/contexts/BannerContext';
@@ -58,7 +61,9 @@ export default function AgentsPage() {
 
   const {
     agents, loading: agentsLoading, myAgentProfile,
+    countries, cities,
     searchAgents, fetchMyAgentProfile, getAgentDetail, applyAsAgent,
+    fetchCountries, fetchCities,
   } = useAgents();
 
   const { myReservations, fetchMyReservations, createReservation } = useAgentReservations();
@@ -66,13 +71,23 @@ export default function AgentsPage() {
   // Search form
   const [country, setCountry] = useState(user.country || '');
   const [city, setCity] = useState('');
+  const [searchCities, setSearchCities] = useState<typeof cities>([]);
+
+  // GPS state
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsActive, setGpsActive]   = useState(false);
+  const [gpsCoords, setGpsCoords]   = useState<{ lat: number; lng: number } | null>(null);
 
   // Apply-as-agent form
-  const [applyShop, setApplyShop]   = useState('');
-  const [applyWA, setApplyWA]       = useState('');
-  const [applyCity, setApplyCity]   = useState('');
-  const [applyBio, setApplyBio]     = useState('');
-  const [applying, setApplying]     = useState(false);
+  const [applyShop, setApplyShop]       = useState('');
+  const [applyWA, setApplyWA]           = useState('');
+  const [applyCountry, setApplyCountry] = useState('');
+  const [applyCity, setApplyCity]       = useState('');
+  const [applyBio, setApplyBio]         = useState('');
+  const [applying, setApplying]         = useState(false);
+  const [applyLat, setApplyLat]         = useState<number | null>(null);
+  const [applyLng, setApplyLng]         = useState<number | null>(null);
+  const [applyCities, setApplyCities]   = useState<typeof cities>([]);
 
   // Create reservation dialog
   const [selectedAgent, setSelectedAgent] = useState<AgentDetail | null>(null);
@@ -86,17 +101,91 @@ export default function AgentsPage() {
   useEffect(() => {
     fetchMyAgentProfile();
     fetchMyReservations();
-    // Initial search with user country
-    if (user.country) searchAgents({ country: user.country });
+    fetchCountries();
+    if (user.country) {
+      searchAgents({ country: user.country });
+      // load cities for search bar
+      void (async () => {
+        const { data } = await import('@/integrations/supabase/client').then(m =>
+          m.supabase.rpc('get_cities_by_country', { p_country_code: user.country })
+        );
+        setSearchCities((data as typeof cities) ?? []);
+      })();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleCountryChange = async (code: string) => {
+    setCountry(code);
+    setCity('');
+    if (code) {
+      const { data } = await import('@/integrations/supabase/client').then(m =>
+        m.supabase.rpc('get_cities_by_country', { p_country_code: code })
+      );
+      setSearchCities((data as typeof cities) ?? []);
+    } else {
+      setSearchCities([]);
+    }
+  };
+
+  const handleApplyCountryChange = async (code: string) => {
+    const found = countries.find(c => c.code === code);
+    setApplyCountry(code);
+    setApplyCity('');
+    // set WhatsApp prefix
+    if (found) setApplyWA(found.phone_code);
+    if (code) {
+      const { data } = await import('@/integrations/supabase/client').then(m =>
+        m.supabase.rpc('get_cities_by_country', { p_country_code: code })
+      );
+      setApplyCities((data as typeof cities) ?? []);
+    } else {
+      setApplyCities([]);
+    }
+  };
+
   const handleSearch = () => {
-    if (!country.trim()) {
-      showError(isRTL ? 'أدخل البلد' : 'Enter a country');
+    if (!country) {
+      showError(isRTL ? 'اختر البلد' : 'Select a country');
       return;
     }
-    searchAgents({ country: country.trim(), city: city.trim() || undefined });
+    setGpsActive(false);
+    setGpsCoords(null);
+    searchAgents({ country, city: city || undefined });
+  };
+
+  const handleGpsSearch = () => {
+    if (!navigator.geolocation) {
+      showError(isRTL ? 'متصفحك لا يدعم تحديد الموقع' : 'Geolocation not supported');
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setGpsCoords({ lat, lng });
+        setGpsActive(true);
+        setGpsLoading(false);
+        searchAgents({ latitude: lat, longitude: lng });
+      },
+      () => {
+        setGpsLoading(false);
+        showError(isRTL ? 'تعذّر الحصول على موقعك' : 'Could not get your location');
+      },
+      { timeout: 8000, maximumAge: 60000 }
+    );
+  };
+
+  const handleCaptureApplyLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setApplyLat(pos.coords.latitude);
+        setApplyLng(pos.coords.longitude);
+      },
+      () => showError(isRTL ? 'تعذّر الحصول على موقعك' : 'Could not get your location'),
+      { timeout: 8000 }
+    );
   };
 
   const handleOpenBookDialog = async (agent: AgentProfile) => {
@@ -144,17 +233,21 @@ export default function AgentsPage() {
   };
 
   const handleApply = async () => {
-    if (!applyShop.trim() || !applyWA.trim() || !country.trim() || !applyCity.trim()) {
+    if (!applyShop.trim() || !applyWA.trim() || !applyCountry || !applyCity) {
       showError(isRTL ? 'أكمل جميع الحقول المطلوبة' : 'Fill all required fields');
       return;
     }
     setApplying(true);
+    const selectedCountry = countries.find(c => c.code === applyCountry);
+    const selectedCity    = applyCities.find(c => c.id === applyCity);
     const result = await applyAsAgent({
       shop_name: applyShop,
       whatsapp:  applyWA,
-      country:   country || user.country,
-      city:      applyCity,
+      country:   selectedCountry?.name_ar ?? applyCountry,
+      city:      selectedCity?.name_ar ?? applyCity,
       bio:       applyBio || undefined,
+      latitude:  applyLat ?? undefined,
+      longitude: applyLng ?? undefined,
     });
     setApplying(false);
     if (!result.success) {
@@ -191,24 +284,60 @@ export default function AgentsPage() {
           {/* ── Tab 1: Browse Agents ─────────────────────────────────────── */}
           <TabsContent value="browse" className="space-y-3 mt-3">
             {/* Search bar */}
-            <Card className="p-3">
+            <Card className="p-3 space-y-2">
               <div className="flex gap-2">
-                <Input
-                  placeholder={isRTL ? 'البلد' : 'Country'}
+                <Select
                   value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="flex-1 h-9 text-sm"
-                />
-                <Input
-                  placeholder={isRTL ? 'المدينة (اختياري)' : 'City (optional)'}
+                  onValueChange={handleCountryChange}
+                  disabled={gpsActive}
+                >
+                  <SelectTrigger className="flex-1 h-9 text-sm">
+                    <SelectValue placeholder={isRTL ? 'اختر البلد' : 'Country'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map(c => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {isRTL ? c.name_ar : c.name_en}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="flex-1 h-9 text-sm"
-                />
-                <Button size="sm" onClick={handleSearch} className="h-9 px-3">
+                  onValueChange={setCity}
+                  disabled={gpsActive || searchCities.length === 0}
+                >
+                  <SelectTrigger className="flex-1 h-9 text-sm">
+                    <SelectValue placeholder={isRTL ? 'المدينة' : 'City'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {searchCities.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {isRTL ? c.name_ar : c.name_en}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" onClick={handleSearch} className="h-9 px-3" disabled={gpsActive}>
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
+              {/* GPS button */}
+              <Button
+                variant={gpsActive ? 'default' : 'outline'}
+                size="sm"
+                className={`w-full h-8 text-xs gap-1.5 ${gpsActive ? 'bg-green-500 hover:bg-green-600 border-green-500 text-white' : ''}`}
+                onClick={gpsActive ? () => { setGpsActive(false); setGpsCoords(null); } : handleGpsSearch}
+                disabled={gpsLoading}
+              >
+                {gpsLoading
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <LocateFixed className="h-3.5 w-3.5" />
+                }
+                {gpsActive
+                  ? (isRTL ? '✓ يعرض الأقرب إليك — اضغط للإلغاء' : '✓ Showing nearby — tap to clear')
+                  : (isRTL ? 'بحث قريب مني 📍' : 'Search near me 📍')}
+              </Button>
             </Card>
 
             {agentsLoading && (
@@ -337,17 +466,17 @@ export default function AgentsPage() {
               <Card className="p-5 text-center space-y-3">
                 <p className="text-2xl">
                   {myAgentProfile.status === 'pending'    ? '⏳'
-                   : myAgentProfile.status === 'verified' ? '✅'
+                   : myAgentProfile.status === 'active'   ? '✅'
                    : '🚫'}
                 </p>
                 <p className="font-bold text-foreground">
                   {myAgentProfile.status === 'pending'
                     ? (isRTL ? 'طلبك قيد المراجعة' : 'Application under review')
-                    : myAgentProfile.status === 'verified'
+                    : myAgentProfile.status === 'active'
                     ? (isRTL ? 'أنت وكيل معتمد ✓' : 'You are a verified agent ✓')
                     : (isRTL ? 'حساب الوكيل موقوف' : 'Agent account suspended')}
                 </p>
-                {myAgentProfile.status === 'verified' && (
+                {myAgentProfile.status === 'active' && (
                   <>
                     <div className="flex justify-center gap-6 text-sm">
                       <div className="text-center">
@@ -395,6 +524,37 @@ export default function AgentsPage() {
                     onChange={(e) => setApplyShop(e.target.value)}
                     className="h-10"
                   />
+                  {/* Country dropdown */}
+                  <Select value={applyCountry} onValueChange={handleApplyCountryChange}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder={isRTL ? 'اختر البلد *' : 'Select country *'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map(c => (
+                        <SelectItem key={c.code} value={c.code}>
+                          {isRTL ? c.name_ar : c.name_en} ({c.phone_code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {/* City dropdown */}
+                  <Select
+                    value={applyCity}
+                    onValueChange={setApplyCity}
+                    disabled={applyCities.length === 0}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder={isRTL ? 'اختر المدينة *' : 'Select city *'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {applyCities.map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {isRTL ? c.name_ar : c.name_en}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {/* WhatsApp with auto prefix */}
                   <Input
                     placeholder={isRTL ? 'رقم واتساب *' : 'WhatsApp number *'}
                     value={applyWA}
@@ -402,26 +562,25 @@ export default function AgentsPage() {
                     className="h-10"
                     dir="ltr"
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      placeholder={isRTL ? 'البلد *' : 'Country *'}
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      className="h-10"
-                    />
-                    <Input
-                      placeholder={isRTL ? 'المدينة *' : 'City *'}
-                      value={applyCity}
-                      onChange={(e) => setApplyCity(e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
                   <Input
                     placeholder={isRTL ? 'نبذة عنك (اختياري)' : 'Bio (optional)'}
                     value={applyBio}
                     onChange={(e) => setApplyBio(e.target.value)}
                     className="h-10"
                   />
+                  {/* GPS location for shop */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={`w-full h-9 text-xs gap-1.5 ${applyLat ? 'border-green-500 text-green-600' : ''}`}
+                    onClick={handleCaptureApplyLocation}
+                  >
+                    <LocateFixed className="h-3.5 w-3.5" />
+                    {applyLat
+                      ? (isRTL ? `✓ تم تحديد موقع المحل (${applyLat.toFixed(3)}, ${applyLng?.toFixed(3)})` : `✓ Location set (${applyLat.toFixed(3)}, ${applyLng?.toFixed(3)})`)
+                      : (isRTL ? 'تحديد موقع المحل 📍 (اختياري)' : 'Pin shop location 📍 (optional)')}
+                  </Button>
                 </div>
 
                 <Button

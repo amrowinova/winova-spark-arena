@@ -62,7 +62,7 @@ export function useAgentReservations() {
     if (!authUser) return;
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('agent_reservations')
         .select('*, agents(shop_name, whatsapp, avg_rating, trust_score, commission_pct)')
         .eq('user_id', authUser.id)
@@ -71,12 +71,12 @@ export function useAgentReservations() {
       if (error) throw error;
 
       setMyReservations(
-        (data ?? []).map((r: any) => ({
+        (data ?? []).map((r) => ({
           ...r,
-          shop_name:    r.agents?.shop_name,
-          whatsapp:     r.agents?.whatsapp,
-          avg_rating:   r.agents?.avg_rating,
-          trust_score:  r.agents?.trust_score,
+          shop_name:    (r.agents as Record<string, unknown>)?.shop_name as string,
+          whatsapp:     (r.agents as Record<string, unknown>)?.whatsapp  as string,
+          avg_rating:   (r.agents as Record<string, unknown>)?.avg_rating as number,
+          trust_score:  (r.agents as Record<string, unknown>)?.trust_score as number,
         })) as AgentReservation[]
       );
     } finally {
@@ -88,7 +88,7 @@ export function useAgentReservations() {
   const fetchAgentReservations = useCallback(async (agentId: string) => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('agent_reservations')
         .select('*')
         .eq('agent_id', agentId)
@@ -103,7 +103,7 @@ export function useAgentReservations() {
 
   // ── Get single reservation with messages ──────────────────────────────────
   const getReservation = useCallback(async (reservationId: string): Promise<AgentReservation | null> => {
-    const { data, error } = await (supabase.rpc as any)('get_reservation_with_messages', {
+    const { data, error } = await supabase.rpc('get_reservation_with_messages', {
       p_reservation_id: reservationId,
     });
     if (error || !data) return null;
@@ -117,7 +117,7 @@ export function useAgentReservations() {
     params: CreateReservationParams
   ): Promise<{ success: boolean; reservation_id?: string; error?: string }> => {
     if (!authUser) return { success: false, error: 'Not authenticated' };
-    const { data, error } = await (supabase.rpc as any)('create_agent_reservation', {
+    const { data, error } = await supabase.rpc('create_agent_reservation', {
       p_agent_id:      params.agent_id,
       p_type:          params.type,
       p_nova_amount:   params.nova_amount,
@@ -135,7 +135,7 @@ export function useAgentReservations() {
     accept: boolean,
     rejectReason?: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('agent_respond_reservation', {
+    const { data, error } = await supabase.rpc('agent_respond_reservation', {
       p_reservation_id: reservationId,
       p_accept:         accept,
       p_reject_reason:  rejectReason ?? null,
@@ -148,7 +148,7 @@ export function useAgentReservations() {
   const confirmReservation = useCallback(async (
     reservationId: string
   ): Promise<{ success: boolean; status?: string; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('confirm_agent_reservation', {
+    const { data, error } = await supabase.rpc('confirm_agent_reservation', {
       p_reservation_id: reservationId,
     });
     if (error) return { success: false, error: error.message };
@@ -160,7 +160,7 @@ export function useAgentReservations() {
     reservationId: string,
     reason?: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('cancel_agent_reservation', {
+    const { data, error } = await supabase.rpc('cancel_agent_reservation', {
       p_reservation_id: reservationId,
       p_reason:         reason ?? null,
     });
@@ -173,7 +173,7 @@ export function useAgentReservations() {
     reservationId: string,
     reason: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('raise_agent_dispute', {
+    const { data, error } = await supabase.rpc('raise_agent_dispute', {
       p_reservation_id: reservationId,
       p_reason:         reason,
     });
@@ -188,7 +188,7 @@ export function useAgentReservations() {
     comment: string,
     hasIssue: boolean
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('submit_agent_review', {
+    const { data, error } = await supabase.rpc('submit_agent_review', {
       p_reservation_id: reservationId,
       p_rating:         rating,
       p_comment:        comment,
@@ -205,7 +205,7 @@ export function useAgentReservations() {
     comment: string,
     hasIssue: boolean
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('rate_user_by_agent', {
+    const { data, error } = await supabase.rpc('rate_user_by_agent', {
       p_reservation_id: reservationId,
       p_rating:         rating,
       p_comment:        comment,
@@ -220,7 +220,7 @@ export function useAgentReservations() {
     reservationId: string,
     content: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('send_agent_message', {
+    const { data, error } = await supabase.rpc('send_agent_message', {
       p_reservation_id: reservationId,
       p_content:        content,
     });
@@ -233,7 +233,7 @@ export function useAgentReservations() {
     reservationId: string,
     minutes: 10 | 20 | 30
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('request_extension', {
+    const { data, error } = await supabase.rpc('request_extension', {
       p_reservation_id: reservationId,
       p_minutes:        minutes,
     });
@@ -246,7 +246,7 @@ export function useAgentReservations() {
     reservationId: string,
     accept: boolean
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('respond_extension', {
+    const { data, error } = await supabase.rpc('respond_extension', {
       p_reservation_id: reservationId,
       p_accept:         accept,
     });
@@ -259,7 +259,7 @@ export function useAgentReservations() {
     reservationId: string,
     resolution: 'release_to_user' | 'release_to_agent'
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await (supabase.rpc as any)('admin_resolve_agent_dispute', {
+    const { data, error } = await supabase.rpc('admin_resolve_agent_dispute', {
       p_reservation_id: reservationId,
       p_resolution:     resolution,
     });

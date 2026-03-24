@@ -28,6 +28,10 @@ interface ContestJoinCardProps {
   onJoin: () => void;
   contestAvailable?: boolean;
   userQualified?: boolean;
+  /** True when today is Friday and contest is free */
+  isFree?: boolean;
+  /** Fixed prize set by admin for free contests */
+  adminPrize?: number;
 }
 
 function formatDate(date: Date): string {
@@ -67,6 +71,8 @@ export function ContestJoinCard({
   onJoin,
   contestAvailable = true,
   userQualified = false,
+  isFree = false,
+  adminPrize,
 }: ContestJoinCardProps) {
   const { language } = useLanguage();
   const { user } = useUser();
@@ -287,6 +293,27 @@ export function ContestJoinCard({
 
       return (
         <div className="space-y-2">
+          {/* FOMO pulse — show when real participants already joined */}
+          {participants > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center justify-center gap-2 p-2 bg-nova/10 border border-nova/30 rounded-lg"
+            >
+              <motion.span
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="text-base leading-none"
+              >
+                🔥
+              </motion.span>
+              <span className="text-xs font-semibold text-nova">
+                {isRTL
+                  ? `${participants} لاعب انضم بالفعل — المجموع ${prizePool} Nova`
+                  : `${participants} players joined — Prize pool: ${prizePool} Nova`}
+              </span>
+            </motion.div>
+          )}
           <Button
             className="w-full h-12 text-base font-bold"
             disabled={!contestAvailable}
@@ -445,11 +472,45 @@ export function ContestJoinCard({
       }
 
       if (hasJoined && !userQualified) {
+        const referralLink = `${window.location.origin}/?ref=${user.referralCode}`;
+        const shareText = isRTL
+          ? `🏆 انضم معي في WeNova وشارك في المسابقات اليومية واربح Nova!\n${referralLink}`
+          : `🏆 Join me in WeNova — daily contests with real prizes!\n${referralLink}`;
+        const handleLoserShare = () => {
+          if (navigator.share) {
+            navigator.share({ text: shareText }).catch(() => {});
+          } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+          }
+        };
         return (
-          <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center">
-            <span className="text-sm font-semibold text-destructive">
-              ❌ {isRTL ? 'لم تتأهل للمرحلة النهائية' : 'Did not qualify for Final Stage'}
-            </span>
+          <div className="space-y-2">
+            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center">
+              <span className="text-sm font-semibold text-destructive">
+                ❌ {isRTL ? 'لم تتأهل للمرحلة النهائية' : 'Did not qualify for Final Stage'}
+              </span>
+            </div>
+            {/* Loser Motivation — turn frustration into referral action */}
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center space-y-2">
+              <p className="text-xs font-semibold text-foreground">
+                {isRTL
+                  ? '🚀 شارك رابطك وأصدقاؤك يصوتون لك غداً!'
+                  : '🚀 Share your link so friends vote for you tomorrow!'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {isRTL
+                  ? 'كل صوت من صديق = نقطة إضافية في المحظوظين'
+                  : 'Every vote from a friend = extra Spotlight point'}
+              </p>
+              <Button
+                size="sm"
+                className="w-full gap-2 bg-gradient-to-r from-primary to-nova text-white font-bold"
+                onClick={handleLoserShare}
+              >
+                <span>📤</span>
+                {isRTL ? 'شارك الرابط عبر واتساب' : 'Share via WhatsApp'}
+              </Button>
+            </div>
           </div>
         );
       }
@@ -536,24 +597,42 @@ export function ContestJoinCard({
   return (
     <Card className="overflow-hidden border border-border shadow-sm">
       {/* ① Contest Title + Prize Pool */}
-      <div className="bg-card p-4 border-b border-border">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <Trophy className="h-5 w-5 text-primary" />
-          <span className="text-foreground font-bold text-lg">
-            {isRTL
-              ? `المسابقة اليومية – ${timing.saudiDayName} ${saudiDateForDisplay}`
-              : `Daily Contest – ${saudiDateForDisplay}`}
+      <div className={`bg-card p-4 border-b border-border ${isFree ? 'bg-gradient-to-br from-emerald-500/5 to-background' : ''}`}>
+        {/* Title row — Friday badge injected when free */}
+        <div className="flex items-center justify-center gap-2 mb-3 flex-wrap">
+          <Trophy className={`h-5 w-5 ${isFree ? 'text-emerald-500' : 'text-primary'}`} />
+          <span className="text-foreground font-bold text-lg text-center">
+            {isFree
+              ? (isRTL
+                  ? `مسابقة الجمعة المجانية – ${saudiDateForDisplay}`
+                  : `Friday Free Contest – ${saudiDateForDisplay}`)
+              : (isRTL
+                  ? `المسابقة اليومية – ${timing.saudiDayName} ${saudiDateForDisplay}`
+                  : `Daily Contest – ${saudiDateForDisplay}`)}
           </span>
+          {isFree && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 text-[11px] font-bold">
+              🎁 {isRTL ? 'مجاني' : 'Free'}
+            </span>
+          )}
         </div>
 
-        <div className="text-center p-3 bg-primary/5 border border-primary/20 rounded-lg">
+        {/* Prize Pool — fixed for free, dynamic for paid */}
+        <div className={`text-center p-3 rounded-lg border ${isFree ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-primary/5 border-primary/20'}`}>
           <p className="text-muted-foreground text-xs mb-1">
             {isRTL ? '💰 مجموع الجوائز' : '💰 Prize Pool'}
           </p>
-          <p className="text-3xl font-bold text-primary">И {prizePool} Nova</p>
-          <p className="text-muted-foreground text-xs mt-1">
-            ≈ {pricing.symbol} {(prizePool * pricing.novaRate).toFixed(0)}
+          <p className={`text-3xl font-bold ${isFree ? 'text-emerald-600' : 'text-primary'}`}>
+            И {isFree && adminPrize != null ? adminPrize : prizePool} Nova
           </p>
+          <p className="text-muted-foreground text-xs mt-1">
+            ≈ {pricing.symbol} {((isFree && adminPrize != null ? adminPrize : prizePool) * pricing.novaRate).toFixed(0)}
+          </p>
+          {isFree && (
+            <p className="text-emerald-600 text-[11px] font-medium mt-1">
+              {isRTL ? '🎁 جائزة ثابتة من الإدارة' : '🎁 Fixed prize from admin'}
+            </p>
+          )}
         </div>
 
         {/* Participants & Entry Fee */}
@@ -565,13 +644,39 @@ export function ContestJoinCard({
             </div>
             <p className="text-foreground font-bold">{participants}</p>
           </div>
-          <div className="text-center p-2 bg-muted/50 rounded-lg">
+          <div className={`text-center p-2 rounded-lg ${isFree ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-muted/50'}`}>
             <p className="text-muted-foreground text-xs mb-1">
               {isRTL ? 'رسوم الاشتراك' : 'Entry Fee'}
             </p>
-            <p className="text-foreground font-bold">И {entryFee} Nova</p>
+            {isFree
+              ? <p className="text-emerald-600 font-bold text-sm">🎁 {isRTL ? 'مجاني' : 'Free'}</p>
+              : <p className="text-foreground font-bold">И {entryFee} Nova</p>
+            }
           </div>
         </div>
+
+        {/* ④ Free contest requirements card */}
+        {isFree && (
+          <div className="mt-3 p-3 bg-amber-500/8 border border-amber-500/25 rounded-lg space-y-1.5">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+              ⚠️ {isRTL ? 'شروط مسابقة الجمعة' : 'Friday Contest Requirements'}
+            </p>
+            <div className="space-y-1 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className="text-amber-500">✓</span>
+                <span>{isRTL ? 'التحقق من الهوية (KYC) مكتمل' : 'Identity verification (KYC) completed'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-amber-500">✓</span>
+                <span>{isRTL ? 'عمر الحساب 7 أيام على الأقل' : 'Account at least 7 days old'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-amber-500">✓</span>
+                <span>{isRTL ? 'جهاز واحد لكل مستخدم' : 'One device per user'}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <CardContent className="p-4 space-y-3">

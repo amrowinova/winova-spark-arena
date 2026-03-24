@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+import { OnboardingTip } from '@/components/ui/OnboardingTip';
 import { 
   Plus, ShoppingCart, Send, ArrowLeft,
   Star, AlertCircle, Loader2, Info
@@ -679,6 +680,9 @@ function P2PContent() {
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('p2p.title')} />
       <main className="flex-1 px-4 py-4 pb-20 space-y-4">
+        {/* First-visit onboarding — explains escrow flow */}
+        <OnboardingTip tipType="p2p_first" condition={true} />
+
         {/* KYC Verification Banner */}
         <KYCStatusBanner />
 

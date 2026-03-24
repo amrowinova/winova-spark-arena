@@ -22,6 +22,7 @@ import {
   BarChart3,
   Radio,
   Lightbulb,
+  Handshake,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -322,6 +323,14 @@ export default function AdminDashboard() {
             >
               <Shield className="w-5 h-5 text-emerald-500" />
               <span className="text-xs">{isRTL ? 'التحقق KYC' : 'KYC Review'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/agents')}
+            >
+              <Handshake className="w-5 h-5 text-nova" />
+              <span className="text-xs">{isRTL ? 'الوكلاء' : 'Agents'}</span>
             </Button>
           </div>
         </Card>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { OnboardingTip } from '@/components/ui/OnboardingTip';
 import { UserIdentityCard } from '@/components/team/UserIdentityCard';
 import { ActivityCard } from '@/components/team/ActivityCard';
 import { PromotionCard } from '@/components/team/PromotionCard';
@@ -416,6 +417,10 @@ function TeamContent() {
     <div className="flex min-h-screen flex-col bg-background">
       <InnerPageHeader title={t('team.title')} />
       <main className="flex-1 px-4 py-4 pb-20">
+        {/* Onboarding: subscriber earns 0% commission */}
+        <div className="mb-3">
+          <OnboardingTip tipType="team_subscriber" condition={user.rank === 'subscriber'} />
+        </div>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full grid grid-cols-4 mb-4">
             <TabsTrigger value="overview" className="text-xs relative">

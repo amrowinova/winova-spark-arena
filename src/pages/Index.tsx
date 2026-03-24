@@ -6,6 +6,7 @@ import { useP2PSafe } from '@/contexts/P2PContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
+import { OnboardingTip } from '@/components/ui/OnboardingTip';
 import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -20,7 +21,9 @@ import { PlatformStatsBar } from '@/components/home/PlatformStatsBar';
 import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
+import { SocialProofTicker } from '@/components/home/SocialProofTicker';
 import { getContestTiming, getSaudiDateStr } from '@/lib/contestTiming';
+import { getDeviceFingerprint } from '@/lib/deviceFingerprint';
 
 import {
   Dialog,
@@ -92,6 +95,8 @@ export default function HomePage() {
   const [activeContestId, setActiveContestId] = useState<string | null>(null);
   const [prizePool, setPrizePool] = useState(0);
   const [participantCount, setParticipantCount] = useState(0);
+  const [isFreeContest, setIsFreeContest] = useState(false);
+  const [adminPrize, setAdminPrize] = useState<number | undefined>(undefined);
   const [hasJoined, setHasJoined] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const isJoinModalOpen = joinDialogOpen;
@@ -123,7 +128,7 @@ export default function HomePage() {
       const ksaToday = getSaudiDateStr();
       const { data: contestData } = await supabase
         .from('contests')
-        .select('id, prize_pool, current_participants, contest_date')
+        .select('id, prize_pool, current_participants, contest_date, is_free, admin_prize')
         .eq('contest_date', ksaToday)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -131,7 +136,12 @@ export default function HomePage() {
 
       if (contestData) {
         setActiveContestId(contestData.id);
-        setPrizePool(contestData.prize_pool || 0);
+        const free = !!(contestData as { is_free?: boolean }).is_free;
+        const ap = (contestData as { admin_prize?: number }).admin_prize ?? undefined;
+        setIsFreeContest(free);
+        setAdminPrize(ap);
+        // Free contests: prize is fixed admin_prize; paid: accumulated prize_pool
+        setPrizePool(free && ap != null ? ap : (contestData.prize_pool || 0));
         setParticipantCount(contestData.current_participants || 0);
 
         // Check if user has joined THIS contest
@@ -153,6 +163,8 @@ export default function HomePage() {
         setPrizePool(0);
         setParticipantCount(0);
         setHasJoined(false);
+        setIsFreeContest(false);
+        setAdminPrize(undefined);
       }
     } catch (err) {
       console.error('Error fetching contest:', err);
@@ -162,6 +174,26 @@ export default function HomePage() {
   useEffect(() => {
     fetchContestData();
   }, [fetchContestData]);
+
+  // Realtime: update participant count + prize pool when new entries join
+  useEffect(() => {
+    if (!activeContestId) return;
+    const channel = supabase
+      .channel(`home_contest_entries_${activeContestId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'contest_entries', filter: `contest_id=eq.${activeContestId}` },
+        () => {
+          setParticipantCount((prev) => prev + 1);
+          // Free contests have a fixed prize pool — do not increment
+          if (!isFreeContest) {
+            setPrizePool((prev) => prev + 6);
+          }
+        }
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [activeContestId, isFreeContest]);
 
   const handleJoinContest = () => {
     if (!authUser) {
@@ -209,9 +241,10 @@ export default function HomePage() {
 
     try {
       const { data, error } = await supabase.rpc('join_contest', {
-        p_user_id: authUser.id,
-        p_contest_id: activeContestId,
-        p_entry_fee: entryFee,
+        p_user_id:            authUser.id,
+        p_contest_id:         activeContestId,
+        p_entry_fee:          isFreeContest ? 0 : entryFee,
+        p_device_fingerprint: isFreeContest ? getDeviceFingerprint() : null,
       });
 
       if (error) {
@@ -269,14 +302,44 @@ export default function HomePage() {
           <PlatformStatsBar />
         </motion.div>
 
-        {/* 1️⃣ Welcome Message */}
+        {/* 1️⃣ Welcome Message + Streak Badge */}
         <motion.div variants={itemVariants} className="text-center px-2">
           <p className="text-xl font-bold text-foreground mb-1">{language === 'ar' ? `أهلاً ${user.name}` : `Hey ${user.name}`}</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            {language === 'ar' 
+            {language === 'ar'
               ? 'أهلاً بك في WINOVA 👋\n\nاليوم فرصتك تربح، تصوّت، وتزيد ترتيبك.'
               : 'Welcome to WINOVA 👋\n\nToday is your chance to win, vote, and boost your rank.'}
           </p>
+          {/* Streak Badge — shown when user has ≥1 active week */}
+          {user.weeklyStreak > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-gradient-to-r from-orange-500/15 to-nova/15 border border-orange-500/30 rounded-full"
+            >
+              <motion.span
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}
+                className="text-base leading-none"
+              >
+                🔥
+              </motion.span>
+              <span className="text-xs font-bold text-orange-500">
+                {user.weeklyStreak}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {language === 'ar'
+                  ? (user.weeklyStreak >= 4 ? '🎯 أسبوع متواصل' : 'أسبوع متواصل')
+                  : (user.weeklyStreak >= 4 ? '🎯 week streak' : 'week streak')}
+              </span>
+              {user.weeklyStreak >= 4 && (
+                <span className="text-[10px] font-semibold text-nova">
+                  {language === 'ar' ? '← مكافأة!' : '← Bonus!'}
+                </span>
+              )}
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Wallet Card - Matching Wallet page design */}
@@ -371,6 +434,19 @@ export default function HomePage() {
           </p>
         </motion.div>
 
+        {/* Contextual onboarding tips — shown once per phase, never repeated */}
+        <motion.div variants={itemVariants} className="space-y-2">
+          <OnboardingTip tipType="contest_pre_open" condition={timing.currentPhase === 'pre_open'} />
+          <OnboardingTip tipType="contest_join"     condition={timing.currentPhase === 'stage1' && timing.canJoin} />
+          <OnboardingTip tipType="contest_voting"   condition={timing.currentPhase === 'stage1'} />
+          <OnboardingTip tipType="contest_final"    condition={timing.currentPhase === 'final'} />
+        </motion.div>
+
+        {/* Social Proof Ticker */}
+        <motion.div variants={itemVariants}>
+          <SocialProofTicker />
+        </motion.div>
+
         {/* Daily Contest Card - Most prominent */}
         <motion.div variants={itemVariants}>
           <ContestJoinCard
@@ -380,6 +456,8 @@ export default function HomePage() {
             hasJoined={hasJoined}
             onJoin={handleJoinContest}
             contestAvailable={!!activeContestId}
+            isFree={isFreeContest}
+            adminPrize={adminPrize}
           />
         </motion.div>
 

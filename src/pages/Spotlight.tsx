@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSpotlight } from '@/hooks/useSpotlight';
+import { OnboardingTip } from '@/components/ui/OnboardingTip';
 import {
   CycleProgressCard,
   UserPointsCard,
@@ -14,6 +15,7 @@ import {
   HowItWorksCard,
   HowToEarnPointsSheet,
   WeeklyPerformanceCard,
+  WeeklyTopLeaderboard,
 } from '@/components/spotlight';
 
 function SpotlightContent() {
@@ -47,6 +49,9 @@ function SpotlightContent() {
       <InnerPageHeader title={isRTL ? 'نقاط المحظوظين' : 'Lucky Points'} />
       
       <main className="flex-1 px-4 py-4 pb-20 space-y-5">
+        {/* First-visit onboarding — shown once, explains the draw system */}
+        <OnboardingTip tipType="spotlight_first" condition={true} />
+
         {/* How to Earn Points Button */}
         <Button
           variant="outline"
@@ -114,11 +119,20 @@ function SpotlightContent() {
           />
         </motion.div>
 
-        {/* 5. How It Works (Single Card) */}
+        {/* 5. Weekly Top 10 Leaderboard */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+        >
+          <WeeklyTopLeaderboard />
+        </motion.div>
+
+        {/* 6. How It Works (Single Card) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
         >
           <HowItWorksCard />
         </motion.div>

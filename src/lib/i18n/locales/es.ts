@@ -92,8 +92,6 @@ export const es = {
       spotlight: 'Ganadores con Suerte',
       todayWinners: 'Ganadores de Hoy',
       viewAll: 'Ver Todo',
-      welcomeBackToast: '¡Bienvenido de nuevo! 👋',
-      helloUser: 'Hola {{name}}',
     },
     // Ranks
     ranks: {
@@ -136,11 +134,11 @@ export const es = {
       freeContest: 'Concurso Gratuito',
       freeEntry: 'Entrada Gratuita',
       fridayContest: 'Concurso Gratuito del Viernes',
-      fridayReminder: 'Concurso del viernes mañana — ¡entrada gratuita!',
+      fridayReminder: '¡Concurso del viernes mañana — sin cuota de entrada!',
       joinFree: 'Unirse Gratis',
-      kycRequired: 'La verificación de identidad (KYC) es necesaria para participar en concursos gratuitos',
-      accountTooNew: 'Tu cuenta debe tener al menos 7 días para participar en concursos gratuitos',
-      deviceAlreadyUsed: 'Este dispositivo ya se ha utilizado para participar en este concurso',
+      kycRequired: 'Se requiere verificación de identidad (KYC)',
+      accountTooNew: 'Tu cuenta debe tener al menos 7 días de antigüedad',
+      deviceAlreadyUsed: 'Este dispositivo ya se usó para unirse a este concurso',
     },
     // Team
     team: {
@@ -160,42 +158,6 @@ export const es = {
       copyCode: 'Copiar',
       copied: '¡Copiado!',
       shareInvite: 'Compartir',
-      // Tabs
-      tabOverview: 'Resumen',
-      tabDirect: 'Directo',
-      tabStats: 'Estadísticas',
-      tabReferral: 'Referido',
-      // Member card
-      memberRankWeeks: 'Rango: {{rank}} | Semanas: {{weeks}}/14',
-      viewProfile: 'Ver perfil de {{name}}',
-      viewTeamOf: 'Equipo de {{name}}',
-      subteamOf: 'Equipo de {{name}}',
-      // Search
-      searchPlaceholder: 'Buscar por nombre o usuario...',
-      searchMember: 'Buscar miembro',
-      noMatchingMembers: 'Sin miembros coincidentes',
-      // Overview labels
-      teamSize: 'Tamaño del Equipo',
-      directLabel: 'Directo',
-      indirect: 'Indirecto',
-      totalTeam: 'Equipo Total',
-      requestSupervisorChange: 'Solicitar Cambio de Supervisor',
-      // Stats tab
-      spotlightRanking: 'Clasificación Spotlight',
-      spotlightRankingDesc: 'Ve tu posición competitiva',
-      // Referral tab
-      howReferralWorks: '¿Cómo funciona el Referido?',
-      referralStep1Title: 'Comparte Tu Código',
-      referralStep1Desc: 'Envía tu código de referido a amigos',
-      referralStep2Title: 'Se Unen a WINOVA',
-      referralStep2Desc: 'Usan tu código al registrarse',
-      referralStep3Title: 'Gana Puntos y Recompensas',
-      referralStep3Desc: 'Cuanto más activo sea tu equipo, más ganas',
-      // Warnings (toast)
-      warningInactive: '¡Estás inactivo esta semana!',
-      warningInactiveMembers: '{{count}} miembros inactivos',
-      warningCycleEnding: '{{weeks}} semanas restantes en el ciclo',
-      warningActivityLow: 'Tu actividad es baja',
     },
     // Wallet
     wallet: {
@@ -234,20 +196,6 @@ export const es = {
       unmute: 'Activar Sonido',
       noMessages: 'Sin mensajes',
       startConversation: 'Iniciar conversación',
-      support: {
-        ticketOpenedTitle: '🛎️ Ticket de soporte abierto',
-        categoryLabel: '📂 Categoría: {{category}}',
-        waitingStatus: '⏳ Estado: Esperando agente de soporte',
-        agentGreeting: '👋 Hola {{name}}',
-        agentSubtitle: 'Soy {{agentName}} del soporte de WINOVA',
-        agentHelp: 'Te ayudaré con tu problema de {{category}} 😊',
-        ticketResolvedTitle: '✅ Ticket resuelto',
-        thankYou: 'Gracias por contactarnos',
-        rateService: '¿Te gustaría calificar nuestro servicio? ⭐',
-        inQueueTitle: '⏳ Estás en la cola',
-        queuePosition: 'Posición: {{position}}',
-        contactSoon: 'Nos pondremos en contacto contigo pronto',
-      },
     },
     // P2P
     p2p: {
@@ -310,35 +258,6 @@ export const es = {
       hours: 'horas',
       minutes: 'minutos',
       seconds: 'segundos',
-      active: 'Activo',
-      inactive: 'Inactivo',
-      all: 'Todos',
-      clearSearch: 'Borrar búsqueda',
-    },
-    // Admin
-    admin: {
-      walletFreeze: {
-        freezeWallet: 'Congelar Cartera',
-        unfreezeWallet: 'Descongelar Cartera',
-        descFreeze: 'Congelar bloquea todas las operaciones financieras',
-        descUnfreeze: 'Descongelar para permitir operaciones financieras',
-        frozen: 'Congelada',
-        reasonLabel: 'Razón de Congelación *',
-        reasonPlaceholder: 'Ingresa la razón de congelación...',
-        customReasonLabel: 'Razón',
-        warningText: 'Congelar bloqueará: transferencias, trading P2P y retiros.',
-        selectReasonError: 'Por favor selecciona una razón de congelación',
-        frozenSuccess: 'Cartera congelada exitosamente',
-        unfrozenSuccess: 'Cartera descongelada exitosamente',
-        onlyAdminCanUnfreeze: 'Solo Admin puede descongelar. Contacta a tu administrador.',
-        reasons: {
-          fraud: 'Fraude',
-          scam: 'Estafa',
-          chargeback: 'Contracargo',
-          manual_review: 'Revisión Manual',
-          other: 'Otro',
-        },
-      },
     },
     // Settings
     settings: {
@@ -555,5 +474,20 @@ export const es = {
         },
       },
     },
+  },
+  giving: {
+    title: 'Donaciones',
+    subtitle: 'Apoya a familias necesitadas con tu saldo Nova',
+    families: 'Familias',
+    support: 'Apoyar una familia',
+    supportNow: 'Apoyar',
+    members: 'miembros',
+    totalReceived: 'Total recibido',
+    needScore: 'Nivel de necesidad',
+    chooseAmount: 'Elige el monto',
+    confirm: 'Donar',
+    thankYou: '¡Gracias! Tu apoyo marca la diferencia.',
+    noFamilies: 'No hay familias disponibles',
+    alreadySupported: 'Ya apoyaste a esta familia',
   },
 };
