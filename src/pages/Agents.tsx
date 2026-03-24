@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Star, Shield, TrendingUp, MessageCircle, ChevronRight, Clock, Users } from 'lucide-react';
+import { Search, MapPin, Star, Shield, TrendingUp, MessageCircle, ChevronRight, Clock, Users, LocateFixed, Loader2 } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -67,12 +67,19 @@ export default function AgentsPage() {
   const [country, setCountry] = useState(user.country || '');
   const [city, setCity] = useState('');
 
+  // GPS state
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsActive, setGpsActive]   = useState(false);
+  const [gpsCoords, setGpsCoords]   = useState<{ lat: number; lng: number } | null>(null);
+
   // Apply-as-agent form
   const [applyShop, setApplyShop]   = useState('');
   const [applyWA, setApplyWA]       = useState('');
   const [applyCity, setApplyCity]   = useState('');
   const [applyBio, setApplyBio]     = useState('');
   const [applying, setApplying]     = useState(false);
+  const [applyLat, setApplyLat]     = useState<number | null>(null);
+  const [applyLng, setApplyLng]     = useState<number | null>(null);
 
   // Create reservation dialog
   const [selectedAgent, setSelectedAgent] = useState<AgentDetail | null>(null);
@@ -96,7 +103,43 @@ export default function AgentsPage() {
       showError(isRTL ? 'أدخل البلد' : 'Enter a country');
       return;
     }
+    setGpsActive(false);
+    setGpsCoords(null);
     searchAgents({ country: country.trim(), city: city.trim() || undefined });
+  };
+
+  const handleGpsSearch = () => {
+    if (!navigator.geolocation) {
+      showError(isRTL ? 'متصفحك لا يدعم تحديد الموقع' : 'Geolocation not supported');
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setGpsCoords({ lat, lng });
+        setGpsActive(true);
+        setGpsLoading(false);
+        searchAgents({ latitude: lat, longitude: lng });
+      },
+      () => {
+        setGpsLoading(false);
+        showError(isRTL ? 'تعذّر الحصول على موقعك' : 'Could not get your location');
+      },
+      { timeout: 8000, maximumAge: 60000 }
+    );
+  };
+
+  const handleCaptureApplyLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setApplyLat(pos.coords.latitude);
+        setApplyLng(pos.coords.longitude);
+      },
+      () => showError(isRTL ? 'تعذّر الحصول على موقعك' : 'Could not get your location'),
+      { timeout: 8000 }
+    );
   };
 
   const handleOpenBookDialog = async (agent: AgentProfile) => {
@@ -155,6 +198,8 @@ export default function AgentsPage() {
       country:   country || user.country,
       city:      applyCity,
       bio:       applyBio || undefined,
+      latitude:  applyLat ?? undefined,
+      longitude: applyLng ?? undefined,
     });
     setApplying(false);
     if (!result.success) {
@@ -191,24 +236,42 @@ export default function AgentsPage() {
           {/* ── Tab 1: Browse Agents ─────────────────────────────────────── */}
           <TabsContent value="browse" className="space-y-3 mt-3">
             {/* Search bar */}
-            <Card className="p-3">
+            <Card className="p-3 space-y-2">
               <div className="flex gap-2">
                 <Input
                   placeholder={isRTL ? 'البلد' : 'Country'}
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   className="flex-1 h-9 text-sm"
+                  disabled={gpsActive}
                 />
                 <Input
                   placeholder={isRTL ? 'المدينة (اختياري)' : 'City (optional)'}
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   className="flex-1 h-9 text-sm"
+                  disabled={gpsActive}
                 />
-                <Button size="sm" onClick={handleSearch} className="h-9 px-3">
+                <Button size="sm" onClick={handleSearch} className="h-9 px-3" disabled={gpsActive}>
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
+              {/* GPS button */}
+              <Button
+                variant={gpsActive ? 'default' : 'outline'}
+                size="sm"
+                className={`w-full h-8 text-xs gap-1.5 ${gpsActive ? 'bg-green-500 hover:bg-green-600 border-green-500 text-white' : ''}`}
+                onClick={gpsActive ? () => { setGpsActive(false); setGpsCoords(null); } : handleGpsSearch}
+                disabled={gpsLoading}
+              >
+                {gpsLoading
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <LocateFixed className="h-3.5 w-3.5" />
+                }
+                {gpsActive
+                  ? (isRTL ? '✓ يعرض الأقرب إليك — اضغط للإلغاء' : '✓ Showing nearby — tap to clear')
+                  : (isRTL ? 'بحث قريب مني 📍' : 'Search near me 📍')}
+              </Button>
             </Card>
 
             {agentsLoading && (
@@ -337,17 +400,17 @@ export default function AgentsPage() {
               <Card className="p-5 text-center space-y-3">
                 <p className="text-2xl">
                   {myAgentProfile.status === 'pending'    ? '⏳'
-                   : myAgentProfile.status === 'verified' ? '✅'
+                   : myAgentProfile.status === 'active'   ? '✅'
                    : '🚫'}
                 </p>
                 <p className="font-bold text-foreground">
                   {myAgentProfile.status === 'pending'
                     ? (isRTL ? 'طلبك قيد المراجعة' : 'Application under review')
-                    : myAgentProfile.status === 'verified'
+                    : myAgentProfile.status === 'active'
                     ? (isRTL ? 'أنت وكيل معتمد ✓' : 'You are a verified agent ✓')
                     : (isRTL ? 'حساب الوكيل موقوف' : 'Agent account suspended')}
                 </p>
-                {myAgentProfile.status === 'verified' && (
+                {myAgentProfile.status === 'active' && (
                   <>
                     <div className="flex justify-center gap-6 text-sm">
                       <div className="text-center">
@@ -422,6 +485,19 @@ export default function AgentsPage() {
                     onChange={(e) => setApplyBio(e.target.value)}
                     className="h-10"
                   />
+                  {/* GPS location for shop */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={`w-full h-9 text-xs gap-1.5 ${applyLat ? 'border-green-500 text-green-600' : ''}`}
+                    onClick={handleCaptureApplyLocation}
+                  >
+                    <LocateFixed className="h-3.5 w-3.5" />
+                    {applyLat
+                      ? (isRTL ? `✓ تم تحديد موقع المحل (${applyLat.toFixed(3)}, ${applyLng?.toFixed(3)})` : `✓ Location set (${applyLat.toFixed(3)}, ${applyLng?.toFixed(3)})`)
+                      : (isRTL ? 'تحديد موقع المحل 📍 (اختياري)' : 'Pin shop location 📍 (optional)')}
+                  </Button>
                 </div>
 
                 <Button

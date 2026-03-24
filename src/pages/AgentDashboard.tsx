@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, MessageSquare, Star, Shield, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, MessageSquare, Star, Shield, TrendingUp, Clock, AlertTriangle, Wallet, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -216,7 +216,7 @@ export default function AgentDashboard() {
   }
 
   // ── Status not approved ─────────────────────────────────────────────────────
-  if (myAgentProfile.status !== 'verified') {
+  if (myAgentProfile.status !== 'active') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
         <Clock className="w-12 h-12 text-yellow-500" />
@@ -293,25 +293,28 @@ export default function AgentDashboard() {
       {/* ── Tabs ── */}
       <div className="px-4 mt-4">
         <Tabs defaultValue="pending">
-          <TabsList className="w-full mb-4">
-            <TabsTrigger value="pending" className="flex-1 text-xs">
+          <TabsList className="w-full mb-4 grid grid-cols-4">
+            <TabsTrigger value="pending" className="text-xs">
               {isRTL ? 'جديد' : 'New'}
               {pending.length > 0 && (
-                <span className="ml-1 bg-nova text-white text-[10px] rounded-full px-1.5 py-0.5">
+                <span className="ml-1 bg-nova text-white text-[10px] rounded-full px-1 py-0.5">
                   {pending.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="active" className="flex-1 text-xs">
+            <TabsTrigger value="active" className="text-xs">
               {isRTL ? 'نشط' : 'Active'}
               {active.length > 0 && (
-                <span className="ml-1 bg-blue-500 text-white text-[10px] rounded-full px-1.5 py-0.5">
+                <span className="ml-1 bg-blue-500 text-white text-[10px] rounded-full px-1 py-0.5">
                   {active.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex-1 text-xs">
+            <TabsTrigger value="history" className="text-xs">
               {isRTL ? 'السجل' : 'History'}
+            </TabsTrigger>
+            <TabsTrigger value="earnings" className="text-xs">
+              {isRTL ? '💰' : '💰'}
             </TabsTrigger>
           </TabsList>
 
@@ -378,6 +381,107 @@ export default function AgentDashboard() {
                 />
               ))
             )}
+          </TabsContent>
+
+          {/* ── Earnings ── */}
+          <TabsContent value="earnings" className="space-y-3">
+            {(() => {
+              const completed = agentReservations.filter((r) => r.status === 'completed');
+              const totalEarned = completed.reduce((s, r) => s + (r.commission_nova ?? 0), 0);
+              const totalVolume = completed.reduce((s, r) => s + (r.nova_amount ?? 0), 0);
+              const thisMonth   = completed.filter((r) => {
+                const d = new Date(r.created_at);
+                const now = new Date();
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+              });
+              const thisMonthEarned = thisMonth.reduce((s, r) => s + (r.commission_nova ?? 0), 0);
+
+              return (
+                <>
+                  {/* Summary cards */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gradient-to-br from-nova/20 to-nova/5 border border-nova/20 rounded-xl p-3">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Wallet className="w-3.5 h-3.5 text-nova" />
+                        <p className="text-xs text-muted-foreground">
+                          {isRTL ? 'إجمالي الأرباح' : 'Total Earned'}
+                        </p>
+                      </div>
+                      <p className="text-2xl font-bold text-nova">
+                        И {totalEarned.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-card border border-border/60 rounded-xl p-3">
+                      <div className="flex items-center gap-1 mb-1">
+                        <TrendingUp className="w-3.5 h-3.5 text-green-500" />
+                        <p className="text-xs text-muted-foreground">
+                          {isRTL ? 'هذا الشهر' : 'This Month'}
+                        </p>
+                      </div>
+                      <p className="text-2xl font-bold text-green-500">
+                        И {thisMonthEarned.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-card border border-border/60 rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground mb-0.5">
+                      {isRTL ? 'إجمالي الحجم' : 'Total Volume'}
+                    </p>
+                    <p className="text-lg font-bold">И {totalVolume.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {isRTL
+                        ? `عبر ${completed.length} عملية مكتملة`
+                        : `across ${completed.length} completed ops`}
+                    </p>
+                  </div>
+
+                  {/* Per-operation list */}
+                  {completed.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 gap-2">
+                      <Wallet className="w-8 h-8 text-muted-foreground/30" />
+                      <p className="text-sm text-muted-foreground">
+                        {isRTL ? 'لا توجد أرباح بعد' : 'No earnings yet'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground px-1">
+                        {isRTL ? 'تفاصيل العمليات' : 'Operation Details'}
+                      </p>
+                      {completed.slice(0, 20).map((r) => (
+                        <div
+                          key={r.id}
+                          className="flex items-center justify-between bg-card border border-border/60 rounded-xl px-3 py-2.5 cursor-pointer hover:border-primary/30"
+                          onClick={() => navigate(`/agents/r/${r.id}`)}
+                        >
+                          <div className="flex items-center gap-2">
+                            {r.type === 'deposit'
+                              ? <ArrowDownLeft className="w-4 h-4 text-blue-500" />
+                              : <ArrowUpRight className="w-4 h-4 text-orange-500" />
+                            }
+                            <div>
+                              <p className="text-xs font-medium">
+                                {r.type === 'deposit'
+                                  ? (isRTL ? 'إيداع' : 'Deposit')
+                                  : (isRTL ? 'سحب' : 'Withdraw')}
+                                {' · '}И {r.nova_amount.toFixed(0)}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {new Date(r.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-bold text-nova">
+                            +И {(r.commission_nova ?? 0).toFixed(2)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </TabsContent>
         </Tabs>
       </div>
