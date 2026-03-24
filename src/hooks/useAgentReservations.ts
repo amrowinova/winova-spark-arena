@@ -71,12 +71,12 @@ export function useAgentReservations() {
       if (error) throw error;
 
       setMyReservations(
-        (data ?? []).map((r) => ({
+        (data ?? []).map((r: any) => ({
           ...r,
-          shop_name:    (r.agents as Record<string, unknown>)?.shop_name as string,
-          whatsapp:     (r.agents as Record<string, unknown>)?.whatsapp  as string,
-          avg_rating:   (r.agents as Record<string, unknown>)?.avg_rating as number,
-          trust_score:  (r.agents as Record<string, unknown>)?.trust_score as number,
+          shop_name:    r.agents?.shop_name,
+          whatsapp:     r.agents?.whatsapp,
+          avg_rating:   r.agents?.avg_rating,
+          trust_score:  r.agents?.trust_score,
         })) as AgentReservation[]
       );
     } finally {
