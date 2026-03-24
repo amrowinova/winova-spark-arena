@@ -103,7 +103,7 @@ export default function AdminPricing() {
     // Validate all values
     for (const field of ANCHOR_FIELDS) {
       const val = editValues[field.key];
-      if (val !== undefined && val !== '') {
+      if (val !== undefined && String(val) !== '') {
         const num = Number(val);
         if (isNaN(num) || num <= 0) {
           toast.error(
