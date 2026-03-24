@@ -119,8 +119,8 @@ export function useTeamChat() {
     const msgIds = (data || []).map(m => m.id);
     let reactionsMap: Record<string, Array<{ emoji: string; user_id: string }>> = {};
     if (msgIds.length > 0) {
-      const { data: rxData } = await (supabase
-        .from('team_message_reactions') as any)
+      const { data: rxData } = await (supabase as any)
+        .from('team_message_reactions')
         .select('message_id, emoji, user_id')
         .in('message_id', msgIds);
       for (const r of (rxData || []) as any[]) {
