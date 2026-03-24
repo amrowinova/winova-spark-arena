@@ -105,7 +105,7 @@ export function useAgents() {
     bio?: string;
   }): Promise<{ success: boolean; error?: string }> => {
     if (!authUser) return { success: false, error: 'Not authenticated' };
-    const { data, error: rpcErr } = await supabase.rpc('apply_as_agent', {
+    const { data, error: rpcErr } = await (supabase.rpc as any)('apply_as_agent', {
       p_shop_name:  params.shop_name,
       p_whatsapp:   params.whatsapp,
       p_country:    params.country,
