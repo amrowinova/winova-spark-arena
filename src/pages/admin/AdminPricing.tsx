@@ -94,7 +94,7 @@ export default function AdminPricing() {
 
   const hasChanges = ANCHOR_FIELDS.some(f => {
     const edited = editValues[f.key];
-    return edited !== undefined && edited !== '' && Number(edited) !== anchorPrices[f.key];
+    return edited !== undefined && String(edited) !== '' && Number(edited) !== anchorPrices[f.key];
   });
 
   const handleSave = async () => {
