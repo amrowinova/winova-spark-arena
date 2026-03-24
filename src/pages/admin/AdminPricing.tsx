@@ -127,10 +127,10 @@ export default function AdminPricing() {
       }
     });
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('app_settings')
       .update({
-        value: newPrices as unknown as Record<string, unknown>,
+        value: newPrices as any,
         updated_by: user?.id,
         updated_at: new Date().toISOString(),
       })
