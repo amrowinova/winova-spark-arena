@@ -25,7 +25,9 @@ export default function Referral() {
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const referralLink = `${window.location.origin}/ref/${user?.referralCode ?? ''}`;
+  // Prefer nova_id as the referral code (backwards-compatible: old codes still work)
+  const activeCode = user?.novaId || user?.referralCode || '';
+  const referralLink = `${window.location.origin}/ref/${activeCode}`;
 
   const fetchStats = useCallback(async () => {
     if (!user?.id) return;
@@ -80,8 +82,8 @@ export default function Referral() {
 
   const handleShare = async () => {
     const text = isRTL
-      ? `انضم إلى Winova واربح! استخدم كودي ${user?.referralCode} أو ادخل من الرابط:`
-      : `Join Winova and win! Use my code ${user?.referralCode} or click the link:`;
+      ? `انضم إلى Winova واربح! استخدم Nova ID الخاص بي: ${activeCode} أو ادخل من الرابط:`
+      : `Join Winova and win! Use my Nova ID: ${activeCode} or click the link:`;
 
     if (navigator.share) {
       try {
@@ -153,21 +155,33 @@ export default function Referral() {
             </Card>
           </div>
 
-          {/* Referral code */}
+          {/* Nova ID + Referral code */}
           <Card className="p-4 space-y-3">
-            <p className="text-sm font-medium text-muted-foreground">
-              {isRTL ? 'كودك الخاص' : 'Your Referral Code'}
-            </p>
-            <div className="flex items-center justify-between gap-2 p-3 bg-muted rounded-xl">
-              <span className="font-mono text-xl font-bold tracking-widest text-foreground">
-                {user?.referralCode ?? '—'}
-              </span>
-              <Badge variant="secondary" className="text-xs shrink-0">
-                {isRTL ? 'الكود' : 'CODE'}
-              </Badge>
-            </div>
+            {/* Nova ID — primary identifier */}
+            {user?.novaId && (
+              <>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {isRTL ? 'Nova ID الخاص بك' : 'Your Nova ID'}
+                </p>
+                <div className="flex items-center justify-between gap-2 p-3 bg-primary/10 rounded-xl border border-primary/20">
+                  <span className="font-mono text-2xl font-bold tracking-widest text-primary">
+                    {user.novaId}
+                  </span>
+                  <button
+                    onClick={handleCopy}
+                    className="p-1.5 hover:bg-primary/10 rounded-lg transition-colors shrink-0"
+                    title={isRTL ? 'نسخ' : 'Copy'}
+                  >
+                    {copied
+                      ? <Check className="h-4 w-4 text-green-500" />
+                      : <Copy className="h-4 w-4 text-primary/60" />
+                    }
+                  </button>
+                </div>
+              </>
+            )}
 
-            {/* Link */}
+            {/* Referral link */}
             <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-xl border border-border">
               <span className="text-xs text-muted-foreground flex-1 truncate font-mono">
                 {referralLink}

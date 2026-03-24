@@ -21,6 +21,7 @@ interface ReferrerProfile {
   active_weeks: number;
   team_size: number;
   referral_code: string;
+  nova_id?: string;
 }
 
 const RANK_LABEL: Record<string, { ar: string; en: string; color: string }> = {
@@ -46,13 +47,13 @@ export default function ReferralLanding() {
     if (!code) { setNotFound(true); setLoading(false); return; }
 
     const fetch = async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, username, avatar_url, country, rank, active_weeks, referral_code')
-        .eq('referral_code', code.toUpperCase())
-        .maybeSingle();
+      // Accepts both old referral_code and nova_id (EG-000001 format)
+      const { data: rows } = await supabase
+        .rpc('find_referrer_by_code', { p_code: code.toUpperCase() });
 
-      if (error || !data) { setNotFound(true); }
+      const data = rows?.[0] ?? null;
+
+      if (!data) { setNotFound(true); }
       else {
         // Fetch team size separately
         const { count } = await supabase
@@ -60,7 +61,18 @@ export default function ReferralLanding() {
           .select('id', { count: 'exact', head: true })
           .eq('leader_id', data.id);
 
-        setReferrer({ ...data, team_size: count ?? 0 });
+        setReferrer({
+          id: data.id,
+          name: data.name,
+          username: data.username,
+          avatar_url: data.avatar_url,
+          country: data.country,
+          rank: data.rank,
+          active_weeks: data.active_weeks,
+          referral_code: data.referral_code,
+          nova_id: data.nova_id,
+          team_size: count ?? 0,
+        });
       }
       setLoading(false);
     };
@@ -132,6 +144,11 @@ export default function ReferralLanding() {
             <div className="flex-1 min-w-0">
               <p className="font-bold text-lg truncate">{referrer.name}</p>
               <p className="text-sm text-muted-foreground">@{referrer.username}</p>
+              {referrer.nova_id && (
+                <p className="text-xs font-mono font-bold text-primary tracking-wider mt-0.5">
+                  {referrer.nova_id}
+                </p>
+              )}
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="text-sm">{flag} {referrer.country}</span>
                 <Badge className={`text-xs ${rank.color} border-0`}>
@@ -215,8 +232,8 @@ export default function ReferralLanding() {
 
         <p className="text-center text-xs text-muted-foreground">
           {isRTL
-            ? `سيتم تسجيلك تحت إحالة ${referrer.name} (${referrer.referral_code})`
-            : `You'll be registered under ${referrer.name}'s referral (${referrer.referral_code})`}
+            ? `سيتم تسجيلك تحت إحالة ${referrer.name} (${referrer.nova_id || referrer.referral_code})`
+            : `You'll be registered under ${referrer.name}'s referral (${referrer.nova_id || referrer.referral_code})`}
         </p>
       </motion.div>
     </div>

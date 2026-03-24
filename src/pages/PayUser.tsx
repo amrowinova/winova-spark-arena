@@ -10,6 +10,9 @@ import { Card } from '@/components/ui/card';
 import { getCountryFlag } from '@/lib/countryFlags';
 import { TransferNovaDialog } from '@/components/wallet/TransferNovaDialog';
 
+// Nova ID pattern: 2 letters + dash + 6+ digits  e.g. EG-000042
+const NOVA_ID_RE = /^[A-Za-z]{2}-\d{6,}$/;
+
 interface PayeeProfile {
   id: string;
   user_id: string;
@@ -17,6 +20,7 @@ interface PayeeProfile {
   username: string;
   avatar_url: string | null;
   country: string;
+  nova_id?: string;
 }
 
 export default function PayUser() {
@@ -35,16 +39,39 @@ export default function PayUser() {
     if (!username) return;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, user_id, name, username, avatar_url, country')
-        .eq('username', username.toLowerCase())
-        .maybeSingle();
 
-      if (error || !data) {
+      let data: PayeeProfile | null = null;
+
+      if (NOVA_ID_RE.test(username)) {
+        // Search by Nova ID
+        const { data: rows } = await supabase
+          .rpc('find_user_by_nova_id', { p_nova_id: username.toUpperCase() });
+        if (rows && rows.length > 0) {
+          const r = rows[0];
+          data = {
+            id: r.user_id,
+            user_id: r.user_id,
+            name: r.full_name,
+            username: r.username,
+            avatar_url: r.avatar_url,
+            country: r.country,
+            nova_id: r.nova_id,
+          };
+        }
+      } else {
+        // Search by username
+        const { data: row } = await supabase
+          .from('profiles')
+          .select('id, user_id, name, username, avatar_url, country, nova_id')
+          .eq('username', username.toLowerCase())
+          .maybeSingle();
+        if (row) data = row as PayeeProfile;
+      }
+
+      if (!data) {
         setNotFound(true);
       } else {
-        setPayee(data as PayeeProfile);
+        setPayee(data);
       }
       setLoading(false);
     })();
@@ -91,6 +118,11 @@ export default function PayUser() {
           <div>
             <h1 className="text-xl font-bold text-foreground">{payee.name}</h1>
             <p className="text-muted-foreground">@{payee.username}</p>
+            {payee.nova_id && (
+              <p className="text-xs font-mono font-bold text-primary/70 mt-0.5 tracking-wider">
+                {payee.nova_id}
+              </p>
+            )}
             <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1">
               <span>{getCountryFlag(payee.country)}</span>
               <span>{payee.country}</span>

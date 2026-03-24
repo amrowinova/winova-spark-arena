@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { 
+import {
   MapPin,
   Pencil,
   Share2,
   ArrowLeft,
-  Circle
+  Circle,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -67,6 +69,15 @@ function ProfileContent() {
   const isRTL = i18n.language === 'ar';
   const [editOpen, setEditOpen] = useState(false);
   const [ratingsOpen, setRatingsOpen] = useState(false);
+  const [novaIdCopied, setNovaIdCopied] = useState(false);
+
+  const copyNovaId = () => {
+    if (!user.novaId) return;
+    navigator.clipboard.writeText(user.novaId).then(() => {
+      setNovaIdCopied(true);
+      setTimeout(() => setNovaIdCopied(false), 2000);
+    });
+  };
   const [isLoading, setIsLoading] = useState(true);
   const [showFollowersSheet, setShowFollowersSheet] = useState(false);
   const [followersSheetTab, setFollowersSheetTab] = useState<'followers' | 'following'>('followers');
@@ -383,6 +394,22 @@ function ProfileContent() {
                 <Pencil className="h-4 w-4 text-muted-foreground" />
               </Button>
             </div>
+
+            {/* Nova ID Badge */}
+            {user.novaId && (
+              <button
+                onClick={copyNovaId}
+                className="mt-2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors group"
+              >
+                <span className="text-xs font-mono font-bold text-primary tracking-widest">
+                  {user.novaId}
+                </span>
+                {novaIdCopied
+                  ? <Check className="h-3 w-3 text-green-500" />
+                  : <Copy className="h-3 w-3 text-primary/60 group-hover:text-primary" />
+                }
+              </button>
+            )}
 
             {/* Followers / Following - Clickable */}
             <div className="mt-3 flex items-center gap-4">

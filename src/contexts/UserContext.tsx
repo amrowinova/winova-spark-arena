@@ -28,6 +28,7 @@ export interface User {
   teamActivityPercentage: number;
   spotlightPoints: number;
   referralCode: string;
+  novaId: string;
   country: string;
   city: string;
   walletCountry: string;
@@ -72,6 +73,7 @@ const guestUser: User = {
   teamActivityPercentage: 0,
   spotlightPoints: 0,
   referralCode: '',
+  novaId: '',
   country: 'Saudi Arabia',
   city: '',
   walletCountry: 'Saudi Arabia',
@@ -156,6 +158,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           teamActivityPercentage: profile.team_activity_percentage,
           spotlightPoints: profile.spotlight_points,
           referralCode: profile.referral_code || '',
+          novaId: (profile as Profile & { nova_id?: string }).nova_id || '',
           country: profile.country,
           city: profile.city || '',
           walletCountry: profile.wallet_country,
