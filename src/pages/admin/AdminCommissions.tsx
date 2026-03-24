@@ -161,7 +161,7 @@ export default function AdminCommissions() {
     Object.keys(editRates).forEach(key => {
       const k = key as keyof CommissionRates;
       const val = editRates[k];
-      if (val !== undefined && val !== '') {
+      if (val !== undefined && String(val) !== '') {
         newRates[k] = Number(val);
       }
     });
