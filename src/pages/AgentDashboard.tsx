@@ -1,15 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, MessageSquare, Star, Shield, TrendingUp, Clock, AlertTriangle, Wallet, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { CheckCircle2, XCircle, MessageSquare, Star, Shield, TrendingUp, Clock, AlertTriangle, Wallet, ArrowDownLeft, ArrowUpRight, PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { useAgents } from '@/hooks/useAgents';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAgents, type DepositRequest } from '@/hooks/useAgents';
 import { useAgentReservations, AgentReservation } from '@/hooks/useAgentReservations';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useBanner } from '@/contexts/BannerContext';
 import { cn } from '@/lib/utils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -149,12 +153,33 @@ function ReservationCard({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+const PAYMENT_METHODS = [
+  { value: 'bank_transfer',  ar: 'تحويل بنكي',       en: 'Bank Transfer' },
+  { value: 'vodafone_cash',  ar: 'فودافون كاش',      en: 'Vodafone Cash' },
+  { value: 'stc_pay',        ar: 'STC Pay',           en: 'STC Pay' },
+  { value: 'easypaisa',      ar: 'Easypaisa',         en: 'Easypaisa' },
+  { value: 'dana',           ar: 'Dana',              en: 'Dana' },
+  { value: 'instapay',       ar: 'InstaPay',          en: 'InstaPay' },
+  { value: 'other',          ar: 'أخرى',              en: 'Other' },
+];
+
+function depositStatusColor(status: string) {
+  switch (status) {
+    case 'pending':   return 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30';
+    case 'approved':  return 'bg-green-500/15 text-green-600 border-green-500/30';
+    case 'rejected':  return 'bg-red-500/15 text-red-600 border-red-500/30';
+    case 'completed': return 'bg-nova/15 text-nova border-nova/30';
+    default:          return 'bg-muted text-muted-foreground';
+  }
+}
+
 export default function AgentDashboard() {
   const navigate  = useNavigate();
   const { language } = useLanguage();
   const isRTL = language === 'ar';
+  const { success: showSuccess, error: showError } = useBanner();
 
-  const { myAgentProfile, fetchMyAgentProfile } = useAgents();
+  const { myAgentProfile, fetchMyAgentProfile, requestDeposit, fetchMyDepositRequests } = useAgents();
   const { agentReservations, fetchAgentReservations, respondToReservation } = useAgentReservations();
 
   const [rejectOpen, setRejectOpen]   = useState(false);
@@ -162,9 +187,23 @@ export default function AgentDashboard() {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Deposit state
+  const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
+  const [depositOpen, setDepositOpen]     = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositMethod, setDepositMethod] = useState('');
+  const [depositRef, setDepositRef]       = useState('');
+  const [depositLoading, setDepositLoading] = useState(false);
+
+  const loadDeposits = useCallback(async () => {
+    const data = await fetchMyDepositRequests();
+    setDepositRequests(data);
+  }, [fetchMyDepositRequests]);
+
   const load = useCallback(async () => {
     await fetchMyAgentProfile();
-  }, [fetchMyAgentProfile]);
+    await loadDeposits();
+  }, [fetchMyAgentProfile, loadDeposits]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -173,6 +212,35 @@ export default function AgentDashboard() {
       void fetchAgentReservations(myAgentProfile.id);
     }
   }, [myAgentProfile?.id, fetchAgentReservations]);
+
+  const handleRequestDeposit = async () => {
+    const amt = parseFloat(depositAmount);
+    if (!depositAmount || isNaN(amt) || amt <= 0) {
+      showError(isRTL ? 'أدخل مبلغاً صحيحاً' : 'Enter a valid amount');
+      return;
+    }
+    if (!depositMethod) {
+      showError(isRTL ? 'اختر طريقة الدفع' : 'Select a payment method');
+      return;
+    }
+    if (!depositRef.trim()) {
+      showError(isRTL ? 'أدخل رقم المرجع' : 'Enter reference number');
+      return;
+    }
+    setDepositLoading(true);
+    const result = await requestDeposit(amt, depositMethod, depositRef.trim());
+    setDepositLoading(false);
+    if (!result.success) {
+      showError(result.error ?? (isRTL ? 'فشل الطلب' : 'Request failed'));
+      return;
+    }
+    showSuccess(isRTL ? '✅ تم إرسال طلب الشحن — سيُراجع خلال 24 ساعة' : '✅ Deposit request sent — will be reviewed within 24 hours');
+    setDepositOpen(false);
+    setDepositAmount('');
+    setDepositMethod('');
+    setDepositRef('');
+    await loadDeposits();
+  };
 
   const handleAccept = async (id: string) => {
     setActionLoading(true);
@@ -293,28 +361,36 @@ export default function AgentDashboard() {
       {/* ── Tabs ── */}
       <div className="px-4 mt-4">
         <Tabs defaultValue="pending">
-          <TabsList className="w-full mb-4 grid grid-cols-4">
-            <TabsTrigger value="pending" className="text-xs">
+          <TabsList className="w-full mb-4 grid grid-cols-5">
+            <TabsTrigger value="pending" className="text-[10px] px-1">
               {isRTL ? 'جديد' : 'New'}
               {pending.length > 0 && (
-                <span className="ml-1 bg-nova text-white text-[10px] rounded-full px-1 py-0.5">
+                <span className="ml-1 bg-nova text-white text-[9px] rounded-full px-1">
                   {pending.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="active" className="text-xs">
+            <TabsTrigger value="active" className="text-[10px] px-1">
               {isRTL ? 'نشط' : 'Active'}
               {active.length > 0 && (
-                <span className="ml-1 bg-blue-500 text-white text-[10px] rounded-full px-1 py-0.5">
+                <span className="ml-1 bg-blue-500 text-white text-[9px] rounded-full px-1">
                   {active.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="history" className="text-xs">
+            <TabsTrigger value="history" className="text-[10px] px-1">
               {isRTL ? 'السجل' : 'History'}
             </TabsTrigger>
-            <TabsTrigger value="earnings" className="text-xs">
-              {isRTL ? '💰' : '💰'}
+            <TabsTrigger value="earnings" className="text-[10px] px-1">
+              💰
+            </TabsTrigger>
+            <TabsTrigger value="deposit" className="text-[10px] px-1">
+              {isRTL ? 'شحن' : 'Deposit'}
+              {depositRequests.filter(d => d.status === 'pending').length > 0 && (
+                <span className="ml-1 bg-yellow-500 text-white text-[9px] rounded-full px-1">
+                  {depositRequests.filter(d => d.status === 'pending').length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -379,6 +455,65 @@ export default function AgentDashboard() {
                   isRTL={isRTL}
                   onNavigate={(id) => navigate(`/agents/r/${id}`)}
                 />
+              ))
+            )}
+          </TabsContent>
+
+          {/* ── Deposit ── */}
+          <TabsContent value="deposit" className="space-y-3">
+            {/* Request deposit button */}
+            <Button
+              className="w-full h-11 font-bold bg-nova hover:bg-nova/90 text-white"
+              onClick={() => setDepositOpen(true)}
+            >
+              <PlusCircle className="w-4 h-4 mr-2" />
+              {isRTL ? 'طلب شحن رصيد جديد' : 'Request New Deposit'}
+            </Button>
+
+            {depositRequests.length === 0 ? (
+              <div className="flex flex-col items-center py-10 gap-2">
+                <Wallet className="w-8 h-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">
+                  {isRTL ? 'لا توجد طلبات شحن بعد' : 'No deposit requests yet'}
+                </p>
+              </div>
+            ) : (
+              depositRequests.map((dr) => (
+                <motion.div
+                  key={dr.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-card border border-border/60 rounded-xl p-3 space-y-1.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-nova">И {dr.amount_nova.toFixed(2)}</p>
+                      {dr.amount_local && (
+                        <p className="text-[11px] text-muted-foreground">
+                          ≈ {dr.amount_local.toFixed(0)} {isRTL ? 'عملة محلية' : 'local'}
+                        </p>
+                      )}
+                    </div>
+                    <Badge className={cn('text-[10px] px-1.5 py-0 border', depositStatusColor(dr.status))}>
+                      {dr.status === 'pending'   ? (isRTL ? 'قيد المراجعة' : 'Pending')
+                       : dr.status === 'approved'  ? (isRTL ? 'موافق عليه' : 'Approved')
+                       : dr.status === 'rejected'  ? (isRTL ? 'مرفوض' : 'Rejected')
+                       : (isRTL ? 'مكتمل' : 'Completed')}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {PAYMENT_METHODS.find(m => m.value === dr.payment_method)?.[isRTL ? 'ar' : 'en'] ?? dr.payment_method}
+                    {' · '}{dr.payment_reference}
+                  </p>
+                  {dr.admin_notes && (
+                    <p className="text-[11px] bg-muted/40 rounded px-2 py-1 text-muted-foreground">
+                      {isRTL ? 'ملاحظة: ' : 'Note: '}{dr.admin_notes}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(dr.created_at).toLocaleDateString()}
+                  </p>
+                </motion.div>
               ))
             )}
           </TabsContent>
@@ -485,6 +620,73 @@ export default function AgentDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ── Deposit Request Dialog ── */}
+      <Dialog open={depositOpen} onOpenChange={setDepositOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{isRTL ? 'طلب شحن رصيد' : 'Request Balance Deposit'}</DialogTitle>
+            <DialogDescription>
+              {isRTL
+                ? 'أرسل المبلغ للحساب المخصص وأدخل رقم التحويل هنا'
+                : 'Send the amount to the designated account and enter the reference number here'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs mb-1 block">{isRTL ? 'المبلغ (Nova) *' : 'Amount (Nova) *'}</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                className="h-10"
+                dir="ltr"
+                min="1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">{isRTL ? 'طريقة الدفع *' : 'Payment Method *'}</Label>
+              <Select value={depositMethod} onValueChange={setDepositMethod}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder={isRTL ? 'اختر الطريقة' : 'Select method'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {isRTL ? m.ar : m.en}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">{isRTL ? 'رقم التحويل / المرجع *' : 'Transfer Reference *'}</Label>
+              <Input
+                placeholder={isRTL ? 'أدخل رقم العملية' : 'Enter transaction ID'}
+                value={depositRef}
+                onChange={(e) => setDepositRef(e.target.value)}
+                className="h-10"
+                dir="ltr"
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setDepositOpen(false)}>
+                {isRTL ? 'إلغاء' : 'Cancel'}
+              </Button>
+              <Button
+                className="flex-1 bg-nova hover:bg-nova/90 text-white"
+                onClick={handleRequestDeposit}
+                disabled={depositLoading}
+              >
+                {depositLoading
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : (isRTL ? 'إرسال الطلب' : 'Send Request')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Reject dialog ── */}
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>

@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Star, Shield, TrendingUp, MessageCircle, ChevronRight, Clock, Users, LocateFixed, Loader2 } from 'lucide-react';
+import { Search, MapPin, Star, Shield, TrendingUp, MessageCircle, ChevronRight, Clock, LocateFixed, Loader2 } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useBanner } from '@/contexts/BannerContext';
@@ -58,7 +61,9 @@ export default function AgentsPage() {
 
   const {
     agents, loading: agentsLoading, myAgentProfile,
+    countries, cities,
     searchAgents, fetchMyAgentProfile, getAgentDetail, applyAsAgent,
+    fetchCountries, fetchCities,
   } = useAgents();
 
   const { myReservations, fetchMyReservations, createReservation } = useAgentReservations();
@@ -66,6 +71,7 @@ export default function AgentsPage() {
   // Search form
   const [country, setCountry] = useState(user.country || '');
   const [city, setCity] = useState('');
+  const [searchCities, setSearchCities] = useState<typeof cities>([]);
 
   // GPS state
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -73,13 +79,15 @@ export default function AgentsPage() {
   const [gpsCoords, setGpsCoords]   = useState<{ lat: number; lng: number } | null>(null);
 
   // Apply-as-agent form
-  const [applyShop, setApplyShop]   = useState('');
-  const [applyWA, setApplyWA]       = useState('');
-  const [applyCity, setApplyCity]   = useState('');
-  const [applyBio, setApplyBio]     = useState('');
-  const [applying, setApplying]     = useState(false);
-  const [applyLat, setApplyLat]     = useState<number | null>(null);
-  const [applyLng, setApplyLng]     = useState<number | null>(null);
+  const [applyShop, setApplyShop]       = useState('');
+  const [applyWA, setApplyWA]           = useState('');
+  const [applyCountry, setApplyCountry] = useState('');
+  const [applyCity, setApplyCity]       = useState('');
+  const [applyBio, setApplyBio]         = useState('');
+  const [applying, setApplying]         = useState(false);
+  const [applyLat, setApplyLat]         = useState<number | null>(null);
+  const [applyLng, setApplyLng]         = useState<number | null>(null);
+  const [applyCities, setApplyCities]   = useState<typeof cities>([]);
 
   // Create reservation dialog
   const [selectedAgent, setSelectedAgent] = useState<AgentDetail | null>(null);
@@ -93,19 +101,57 @@ export default function AgentsPage() {
   useEffect(() => {
     fetchMyAgentProfile();
     fetchMyReservations();
-    // Initial search with user country
-    if (user.country) searchAgents({ country: user.country });
+    fetchCountries();
+    if (user.country) {
+      searchAgents({ country: user.country });
+      // load cities for search bar
+      void (async () => {
+        const { data } = await import('@/integrations/supabase/client').then(m =>
+          m.supabase.rpc('get_cities_by_country', { p_country_code: user.country })
+        );
+        setSearchCities((data as typeof cities) ?? []);
+      })();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleCountryChange = async (code: string) => {
+    setCountry(code);
+    setCity('');
+    if (code) {
+      const { data } = await import('@/integrations/supabase/client').then(m =>
+        m.supabase.rpc('get_cities_by_country', { p_country_code: code })
+      );
+      setSearchCities((data as typeof cities) ?? []);
+    } else {
+      setSearchCities([]);
+    }
+  };
+
+  const handleApplyCountryChange = async (code: string) => {
+    const found = countries.find(c => c.code === code);
+    setApplyCountry(code);
+    setApplyCity('');
+    // set WhatsApp prefix
+    if (found) setApplyWA(found.phone_code);
+    if (code) {
+      const { data } = await import('@/integrations/supabase/client').then(m =>
+        m.supabase.rpc('get_cities_by_country', { p_country_code: code })
+      );
+      setApplyCities((data as typeof cities) ?? []);
+    } else {
+      setApplyCities([]);
+    }
+  };
+
   const handleSearch = () => {
-    if (!country.trim()) {
-      showError(isRTL ? 'أدخل البلد' : 'Enter a country');
+    if (!country) {
+      showError(isRTL ? 'اختر البلد' : 'Select a country');
       return;
     }
     setGpsActive(false);
     setGpsCoords(null);
-    searchAgents({ country: country.trim(), city: city.trim() || undefined });
+    searchAgents({ country, city: city || undefined });
   };
 
   const handleGpsSearch = () => {
@@ -187,16 +233,18 @@ export default function AgentsPage() {
   };
 
   const handleApply = async () => {
-    if (!applyShop.trim() || !applyWA.trim() || !country.trim() || !applyCity.trim()) {
+    if (!applyShop.trim() || !applyWA.trim() || !applyCountry || !applyCity) {
       showError(isRTL ? 'أكمل جميع الحقول المطلوبة' : 'Fill all required fields');
       return;
     }
     setApplying(true);
+    const selectedCountry = countries.find(c => c.code === applyCountry);
+    const selectedCity    = applyCities.find(c => c.id === applyCity);
     const result = await applyAsAgent({
       shop_name: applyShop,
       whatsapp:  applyWA,
-      country:   country || user.country,
-      city:      applyCity,
+      country:   selectedCountry?.name_ar ?? applyCountry,
+      city:      selectedCity?.name_ar ?? applyCity,
       bio:       applyBio || undefined,
       latitude:  applyLat ?? undefined,
       longitude: applyLng ?? undefined,
@@ -238,20 +286,38 @@ export default function AgentsPage() {
             {/* Search bar */}
             <Card className="p-3 space-y-2">
               <div className="flex gap-2">
-                <Input
-                  placeholder={isRTL ? 'البلد' : 'Country'}
+                <Select
                   value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="flex-1 h-9 text-sm"
+                  onValueChange={handleCountryChange}
                   disabled={gpsActive}
-                />
-                <Input
-                  placeholder={isRTL ? 'المدينة (اختياري)' : 'City (optional)'}
+                >
+                  <SelectTrigger className="flex-1 h-9 text-sm">
+                    <SelectValue placeholder={isRTL ? 'اختر البلد' : 'Country'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map(c => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {isRTL ? c.name_ar : c.name_en}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="flex-1 h-9 text-sm"
-                  disabled={gpsActive}
-                />
+                  onValueChange={setCity}
+                  disabled={gpsActive || searchCities.length === 0}
+                >
+                  <SelectTrigger className="flex-1 h-9 text-sm">
+                    <SelectValue placeholder={isRTL ? 'المدينة' : 'City'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {searchCities.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {isRTL ? c.name_ar : c.name_en}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button size="sm" onClick={handleSearch} className="h-9 px-3" disabled={gpsActive}>
                   <Search className="h-4 w-4" />
                 </Button>
@@ -458,6 +524,37 @@ export default function AgentsPage() {
                     onChange={(e) => setApplyShop(e.target.value)}
                     className="h-10"
                   />
+                  {/* Country dropdown */}
+                  <Select value={applyCountry} onValueChange={handleApplyCountryChange}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder={isRTL ? 'اختر البلد *' : 'Select country *'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map(c => (
+                        <SelectItem key={c.code} value={c.code}>
+                          {isRTL ? c.name_ar : c.name_en} ({c.phone_code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {/* City dropdown */}
+                  <Select
+                    value={applyCity}
+                    onValueChange={setApplyCity}
+                    disabled={applyCities.length === 0}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder={isRTL ? 'اختر المدينة *' : 'Select city *'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {applyCities.map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {isRTL ? c.name_ar : c.name_en}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {/* WhatsApp with auto prefix */}
                   <Input
                     placeholder={isRTL ? 'رقم واتساب *' : 'WhatsApp number *'}
                     value={applyWA}
@@ -465,20 +562,6 @@ export default function AgentsPage() {
                     className="h-10"
                     dir="ltr"
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      placeholder={isRTL ? 'البلد *' : 'Country *'}
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      className="h-10"
-                    />
-                    <Input
-                      placeholder={isRTL ? 'المدينة *' : 'City *'}
-                      value={applyCity}
-                      onChange={(e) => setApplyCity(e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
                   <Input
                     placeholder={isRTL ? 'نبذة عنك (اختياري)' : 'Bio (optional)'}
                     value={applyBio}

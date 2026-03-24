@@ -2,6 +2,39 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+export interface Country {
+  id: string;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  phone_code: string;
+  currency: string;
+}
+
+export interface City {
+  id: string;
+  name_ar: string;
+  name_en: string;
+}
+
+export interface DepositRequest {
+  id: string;
+  amount_nova: number;
+  amount_local: number | null;
+  payment_method: string;
+  payment_reference: string;
+  admin_notes: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  created_at: string;
+  completed_at: string | null;
+  // admin fields
+  agent_id?: string;
+  agent_shop_name?: string;
+  agent_country?: string;
+  agent_city?: string;
+  agent_balance?: number;
+}
+
 export interface AgentProfile {
   id: string;
   user_id: string;
@@ -61,6 +94,8 @@ export function useAgents() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [myAgentProfile, setMyAgentProfile] = useState<MyAgentProfile | null>(null);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
 
   const searchAgents = useCallback(async (params: {
     country?: string;
@@ -147,9 +182,76 @@ export function useAgents() {
     return (data ?? []) as AgentProfile[];
   }, []);
 
+  // ── Countries & Cities ────────────────────────────────────────────────────
+  const fetchCountries = useCallback(async () => {
+    const { data } = await supabase.rpc('get_countries');
+    setCountries((data as Country[]) ?? []);
+  }, []);
+
+  const fetchCities = useCallback(async (countryCode: string) => {
+    if (!countryCode) { setCities([]); return; }
+    const { data } = await supabase.rpc('get_cities_by_country', { p_country_code: countryCode });
+    setCities((data as City[]) ?? []);
+  }, []);
+
+  // ── Agent Deposit ─────────────────────────────────────────────────────────
+  const requestDeposit = useCallback(async (
+    amountNova: number,
+    paymentMethod: string,
+    paymentReference: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const { data, error: rpcErr } = await supabase.rpc('agent_request_deposit', {
+      p_amount_nova:       amountNova,
+      p_payment_method:    paymentMethod,
+      p_payment_reference: paymentReference,
+    });
+    if (rpcErr) return { success: false, error: rpcErr.message };
+    return data as { success: boolean; error?: string };
+  }, []);
+
+  const fetchMyDepositRequests = useCallback(async (): Promise<DepositRequest[]> => {
+    const { data } = await supabase.rpc('get_agent_deposit_requests');
+    return (data as DepositRequest[]) ?? [];
+  }, []);
+
+  const adminGetDepositRequests = useCallback(async (
+    status: string = 'pending'
+  ): Promise<DepositRequest[]> => {
+    const { data } = await supabase.rpc('admin_get_all_deposit_requests', { p_status: status });
+    return (data as DepositRequest[]) ?? [];
+  }, []);
+
+  const adminApproveDeposit = useCallback(async (
+    requestId: string,
+    adminNotes?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const { data, error: rpcErr } = await supabase.rpc('admin_approve_deposit', {
+      p_request_id: requestId,
+      p_admin_notes: adminNotes ?? null,
+    });
+    if (rpcErr) return { success: false, error: rpcErr.message };
+    return data as { success: boolean; error?: string };
+  }, []);
+
+  const adminRejectDeposit = useCallback(async (
+    requestId: string,
+    reason?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const { data, error: rpcErr } = await supabase.rpc('admin_reject_deposit', {
+      p_request_id: requestId,
+      p_reason: reason ?? null,
+    });
+    if (rpcErr) return { success: false, error: rpcErr.message };
+    return data as { success: boolean; error?: string };
+  }, []);
+
   return {
     agents, loading, error, myAgentProfile,
+    countries, cities,
     searchAgents, getAgentDetail, applyAsAgent,
     fetchMyAgentProfile, adminManageAgent, getAllAgentsForAdmin,
+    fetchCountries, fetchCities,
+    requestDeposit, fetchMyDepositRequests,
+    adminGetDepositRequests, adminApproveDeposit, adminRejectDeposit,
   };
 }
