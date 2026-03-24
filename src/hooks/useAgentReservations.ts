@@ -117,7 +117,7 @@ export function useAgentReservations() {
     params: CreateReservationParams
   ): Promise<{ success: boolean; reservation_id?: string; error?: string }> => {
     if (!authUser) return { success: false, error: 'Not authenticated' };
-    const { data, error } = await supabase.rpc('create_agent_reservation', {
+    const { data, error } = await (supabase.rpc as any)('create_agent_reservation', {
       p_agent_id:      params.agent_id,
       p_type:          params.type,
       p_nova_amount:   params.nova_amount,
