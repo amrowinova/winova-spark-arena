@@ -103,7 +103,7 @@ export function useAgentReservations() {
 
   // ── Get single reservation with messages ──────────────────────────────────
   const getReservation = useCallback(async (reservationId: string): Promise<AgentReservation | null> => {
-    const { data, error } = await supabase.rpc('get_reservation_with_messages', {
+    const { data, error } = await (supabase.rpc as any)('get_reservation_with_messages', {
       p_reservation_id: reservationId,
     });
     if (error || !data) return null;
