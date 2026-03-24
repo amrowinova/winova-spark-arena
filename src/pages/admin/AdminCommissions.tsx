@@ -121,7 +121,7 @@ export default function AdminCommissions() {
   const hasChanges = Object.keys(editRates).some(key => {
     const k = key as keyof CommissionRates;
     const edited = editRates[k];
-    return edited !== undefined && edited !== '' && Number(edited) !== rates[k];
+    return edited !== undefined && String(edited) !== '' && Number(edited) !== rates[k];
   });
 
   const getTotal = (): number => {
