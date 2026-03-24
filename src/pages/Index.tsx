@@ -21,6 +21,7 @@ import { PlatformStatsBar } from '@/components/home/PlatformStatsBar';
 import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
+import { SocialProofTicker } from '@/components/home/SocialProofTicker';
 import { getContestTiming, getSaudiDateStr } from '@/lib/contestTiming';
 import { getDeviceFingerprint } from '@/lib/deviceFingerprint';
 
@@ -439,6 +440,11 @@ export default function HomePage() {
           <OnboardingTip tipType="contest_join"     condition={timing.currentPhase === 'stage1' && timing.canJoin} />
           <OnboardingTip tipType="contest_voting"   condition={timing.currentPhase === 'stage1'} />
           <OnboardingTip tipType="contest_final"    condition={timing.currentPhase === 'final'} />
+        </motion.div>
+
+        {/* Social Proof Ticker */}
+        <motion.div variants={itemVariants}>
+          <SocialProofTicker />
         </motion.div>
 
         {/* Daily Contest Card - Most prominent */}

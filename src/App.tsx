@@ -44,6 +44,7 @@ import NotFound from "./pages/NotFound";
 import PayUser from "./pages/PayUser";
 import ReferralLanding from "./pages/ReferralLanding";
 import Referral from "./pages/Referral";
+import ReferralLeaders from "./pages/ReferralLeaders";
 
 // Support Pages
 import SupportDashboard from "./pages/support/SupportDashboard";
@@ -152,6 +153,7 @@ const App = () => {
                             <Route path="/lucky-leaders" element={<AuthGuard><LuckyLeaders /></AuthGuard>} />
                             <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
                             <Route path="/referral" element={<AuthGuard><Referral /></AuthGuard>} />
+                            <Route path="/referral-leaders" element={<AuthGuard><ReferralLeaders /></AuthGuard>} />
                             <Route path="/kyc" element={<AuthGuard><KYCPage /></AuthGuard>} />
                             <Route path="/agents" element={<AuthGuard><Agents /></AuthGuard>} />
                             <Route path="/agents/r/:reservationId" element={<AuthGuard><AgentReservationChat /></AuthGuard>} />

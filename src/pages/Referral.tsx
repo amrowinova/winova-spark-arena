@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Copy, Share2, Users, Gift, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Copy, Share2, Users, Gift, Check, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -206,6 +206,16 @@ export default function Referral() {
           >
             <Share2 className="h-5 w-5" />
             {isRTL ? 'شارك رابط الدعوة' : 'Share Invite Link'}
+          </Button>
+
+          {/* Leaders button */}
+          <Button
+            variant="outline"
+            onClick={() => navigate('/referral-leaders')}
+            className="w-full h-11 gap-2"
+          >
+            <Trophy className="h-4 w-4 text-yellow-500" />
+            {isRTL ? '🏆 لوحة المتصدرين' : '🏆 Referral Leaders'}
           </Button>
 
           {/* How it works */}
