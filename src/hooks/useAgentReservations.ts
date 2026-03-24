@@ -233,7 +233,7 @@ export function useAgentReservations() {
     reservationId: string,
     minutes: 10 | 20 | 30
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await supabase.rpc('request_extension', {
+    const { data, error } = await (supabase.rpc as any)('request_extension', {
       p_reservation_id: reservationId,
       p_minutes:        minutes,
     });
