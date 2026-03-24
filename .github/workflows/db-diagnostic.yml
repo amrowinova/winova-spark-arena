@@ -1,0 +1,37 @@
+name: DB Diagnostic
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query DB and output results
+        run: |
+          mkdir -p /tmp/results
+
+          curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT routine_name FROM information_schema.routines WHERE routine_schema='"'"'public'"'"' AND routine_name LIKE '"'"'%agent%'"'"' ORDER BY routine_name;"}' \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query" \
+            > /tmp/results/functions.json
+
+          curl -s -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT table_name FROM information_schema.tables WHERE table_schema='"'"'public'"'"' AND table_name LIKE '"'"'agent%'"'"' ORDER BY table_name;"}' \
+            "https://api.supabase.com/v1/projects/jzfgloctnkmcpvhlwzry/database/query" \
+            > /tmp/results/tables.json
+
+          echo "=== FUNCTIONS ===" && cat /tmp/results/functions.json
+          echo "=== TABLES ===" && cat /tmp/results/tables.json
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-results
+          path: /tmp/results/
+          retention-days: 1

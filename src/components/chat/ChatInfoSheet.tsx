@@ -162,7 +162,7 @@ export function ChatInfoSheet({
     if (!conversationId || mediaItems.length > 0) return;
     setMediaLoading(true);
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('direct_messages')
         .select('id, image_url, created_at')
         .eq('conversation_id', conversationId)

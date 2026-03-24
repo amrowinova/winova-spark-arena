@@ -111,11 +111,11 @@ export function useDirectMessages() {
       const messageIds = (data || []).map(m => m.id);
       let reactionsMap: Record<string, Array<{ emoji: string; user_id: string }>> = {};
       if (messageIds.length > 0) {
-        const { data: reactionsData } = await supabase
+        const { data: reactionsData } = await (supabase as any)
           .from('dm_message_reactions')
           .select('message_id, emoji, user_id')
           .in('message_id', messageIds);
-        for (const r of reactionsData || []) {
+        for (const r of (reactionsData || []) as any[]) {
           if (!reactionsMap[r.message_id]) reactionsMap[r.message_id] = [];
           reactionsMap[r.message_id].push({ emoji: r.emoji, user_id: r.user_id });
         }
@@ -375,16 +375,16 @@ export function useDirectMessages() {
     }));
 
     if (alreadyReacted) {
-      await supabase
+      await (supabase as any)
         .from('dm_message_reactions')
         .delete()
         .eq('message_id', messageId)
         .eq('user_id', user.id)
         .eq('emoji', emoji);
     } else {
-      await supabase
+      await (supabase as any)
         .from('dm_message_reactions')
-        .insert({ message_id: messageId, user_id: user.id, emoji } as any);
+        .insert({ message_id: messageId, user_id: user.id, emoji });
     }
   }, [user, messages]);
 
@@ -394,7 +394,7 @@ export function useDirectMessages() {
     
     // Mark as read when opening conversation
     if (conversationId && user) {
-      supabase
+      (supabase as any)
         .from('direct_messages')
         .update({ is_read: true })
         .eq('conversation_id', conversationId)
@@ -405,7 +405,7 @@ export function useDirectMessages() {
             prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
           );
         })
-        .catch((err) => {
+        .catch((err: any) => {
           console.error('Failed to mark messages as read:', err);
         });
     }
@@ -490,6 +490,12 @@ export function useDirectMessages() {
         isMine: false,
         transferAmount: null,
         transferRecipientId: null,
+        imageUrl: null,
+        replyToId: null,
+        replyToContent: null,
+        replyToSender: null,
+        deletedAt: null,
+        reactions: [],
       };
       
       setMessages(prev => {
@@ -504,11 +510,12 @@ export function useDirectMessages() {
       
       // Mark as read if viewing this conversation
       if (isActiveConv) {
-        supabase
+        (supabase as any)
           .from('direct_messages')
           .update({ is_read: true })
           .eq('id', msg.id)
-          .catch((err) => {
+          .then(() => {})
+          .catch((err: any) => {
             console.error('Failed to mark message as read:', err);
           });
       }

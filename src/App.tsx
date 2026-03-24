@@ -67,6 +67,10 @@ import AdminBroadcast from "./pages/admin/AdminBroadcast";
 import AdminCommissions from "./pages/admin/AdminCommissions";
 import AdminKYC from "./pages/admin/AdminKYC";
 import KYCPage from "./pages/KYCPage";
+import Agents from "./pages/Agents";
+import AgentReservationChat from "./pages/AgentReservationChat";
+import AgentDashboard from "./pages/AgentDashboard";
+import AdminAgents from "./pages/admin/AdminAgents";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
@@ -148,7 +152,11 @@ const App = () => {
                             <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
                             <Route path="/referral" element={<AuthGuard><Referral /></AuthGuard>} />
                             <Route path="/kyc" element={<AuthGuard><KYCPage /></AuthGuard>} />
-                            
+                            <Route path="/agents" element={<AuthGuard><Agents /></AuthGuard>} />
+                            <Route path="/agents/r/:reservationId" element={<AuthGuard><AgentReservationChat /></AuthGuard>} />
+                            <Route path="/agent-dashboard" element={<AuthGuard><AgentDashboard /></AuthGuard>} />
+
+
                             {/* Support Panel routes - require support role */}
                             <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />
                             <Route path="/support/ticket/:ticketId" element={<SupportGuard><SupportTicketDetail /></SupportGuard>} />
@@ -170,6 +178,7 @@ const App = () => {
                             <Route path="/admin/broadcast" element={<AdminGuard><AdminBroadcast /></AdminGuard>} />
                             <Route path="/admin/commissions" element={<AdminGuard><AdminCommissions /></AdminGuard>} />
                             <Route path="/admin/kyc" element={<AdminGuard><AdminKYC /></AdminGuard>} />
+                            <Route path="/admin/agents" element={<AdminGuard><AdminAgents /></AdminGuard>} />
                             
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />
