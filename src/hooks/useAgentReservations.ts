@@ -220,7 +220,7 @@ export function useAgentReservations() {
     reservationId: string,
     content: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await supabase.rpc('send_agent_message', {
+    const { data, error } = await (supabase.rpc as any)('send_agent_message', {
       p_reservation_id: reservationId,
       p_content:        content,
     });
