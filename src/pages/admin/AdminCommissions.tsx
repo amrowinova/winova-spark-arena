@@ -139,7 +139,7 @@ export default function AdminCommissions() {
     // Validate: all rates must be >= 0
     for (const rc of RANK_CONFIG) {
       const val = editRates[rc.key as keyof CommissionRates];
-      if (val !== undefined && val !== '') {
+      if (val !== undefined && String(val) !== '') {
         if (isNaN(Number(val)) || Number(val) < 0) {
           toast.error(isRTL ? `قيمة غير صالحة لـ ${rc.labelAr}` : `Invalid value for ${rc.labelEn}`);
           return;
