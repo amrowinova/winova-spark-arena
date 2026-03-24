@@ -185,7 +185,7 @@ export default function AdminCommissions() {
 
     // Log to audit_logs
     if (user?.id) {
-      await supabase.from('audit_logs').insert({
+      await (supabase as any).from('audit_logs').insert({
         action: 'commission_rate_update',
         entity_type: 'app_settings',
         performed_by: user.id,
