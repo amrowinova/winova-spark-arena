@@ -111,11 +111,11 @@ export function useDirectMessages() {
       const messageIds = (data || []).map(m => m.id);
       let reactionsMap: Record<string, Array<{ emoji: string; user_id: string }>> = {};
       if (messageIds.length > 0) {
-        const { data: reactionsData } = await supabase
-          .from('dm_message_reactions')
+        const { data: reactionsData } = await (supabase
+          .from('dm_message_reactions') as any)
           .select('message_id, emoji, user_id')
           .in('message_id', messageIds);
-        for (const r of reactionsData || []) {
+        for (const r of (reactionsData || []) as any[]) {
           if (!reactionsMap[r.message_id]) reactionsMap[r.message_id] = [];
           reactionsMap[r.message_id].push({ emoji: r.emoji, user_id: r.user_id });
         }
