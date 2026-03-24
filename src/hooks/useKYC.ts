@@ -34,7 +34,7 @@ export function useKYC() {
     ]);
 
     if (profileRes.data) {
-      setKycStatus((profileRes.data.kyc_status as KYCStatus) ?? 'unverified');
+      setKycStatus(((profileRes.data as any).kyc_status as KYCStatus) ?? 'unverified');
     }
     if (requestRes.data && Array.isArray(requestRes.data) && requestRes.data.length > 0) {
       setLatestRequest(requestRes.data[0] as KYCRequest);

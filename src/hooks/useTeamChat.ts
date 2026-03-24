@@ -188,7 +188,7 @@ export function useTeamChat() {
       await (supabase as any).from('team_message_reactions').delete()
         .eq('message_id', messageId).eq('user_id', user.id).eq('emoji', emoji);
     } else {
-      await (supabase.from('team_message_reactions') as any).insert({ message_id: messageId, user_id: user.id, emoji });
+      await (supabase as any).from('team_message_reactions').insert({ message_id: messageId, user_id: user.id, emoji });
     }
   }, [user?.id, messages]);
 

@@ -510,8 +510,8 @@ export function useDirectMessages() {
       
       // Mark as read if viewing this conversation
       if (isActiveConv) {
-        (supabase
-          .from('direct_messages') as any)
+        (supabase as any)
+          .from('direct_messages')
           .update({ is_read: true })
           .eq('id', msg.id)
           .then(() => {})

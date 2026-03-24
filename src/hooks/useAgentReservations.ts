@@ -88,8 +88,8 @@ export function useAgentReservations() {
   const fetchAgentReservations = useCallback(async (agentId: string) => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase
-        .from('agent_reservations') as any)
+      const { data, error } = await (supabase as any)
+        .from('agent_reservations')
         .select('*')
         .eq('agent_id', agentId)
         .order('created_at', { ascending: false });
