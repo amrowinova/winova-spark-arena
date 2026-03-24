@@ -167,7 +167,7 @@ export default function AdminCommissions() {
     });
 
     // Upsert commission_rates in app_settings
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('app_settings')
       .upsert({
         key: 'commission_rates',
