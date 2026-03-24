@@ -259,7 +259,7 @@ export function useAgentReservations() {
     reservationId: string,
     resolution: 'release_to_user' | 'release_to_agent'
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error } = await supabase.rpc('admin_resolve_agent_dispute', {
+    const { data, error } = await (supabase.rpc as any)('admin_resolve_agent_dispute', {
       p_reservation_id: reservationId,
       p_resolution:     resolution,
     });

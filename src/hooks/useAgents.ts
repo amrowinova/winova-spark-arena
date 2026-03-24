@@ -139,8 +139,8 @@ export function useAgents() {
   }, []);
 
   const getAllAgentsForAdmin = useCallback(async (): Promise<AgentProfile[]> => {
-    const { data, error: err } = await supabase
-      .from('agents')
+    const { data, error: err } = await (supabase
+      .from('agents') as any)
       .select('*')
       .order('created_at', { ascending: false });
     if (err) return [];
