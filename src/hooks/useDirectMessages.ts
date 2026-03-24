@@ -510,11 +510,12 @@ export function useDirectMessages() {
       
       // Mark as read if viewing this conversation
       if (isActiveConv) {
-        supabase
-          .from('direct_messages')
+        (supabase
+          .from('direct_messages') as any)
           .update({ is_read: true })
           .eq('id', msg.id)
-          .catch((err) => {
+          .then(() => {})
+          .catch((err: any) => {
             console.error('Failed to mark message as read:', err);
           });
       }

@@ -43,7 +43,7 @@ export function useSupervisorChangeRequest() {
     setSubmitting(true);
     setError(null);
     try {
-      const { data, error: rpcError } = await supabase.rpc('submit_supervisor_change_request', {
+      const { data, error: rpcError } = await (supabase.rpc as any)('submit_supervisor_change_request', {
         p_user_id: user.id,
         p_new_referral_code: newReferralCode,
         p_reason: reason || null,

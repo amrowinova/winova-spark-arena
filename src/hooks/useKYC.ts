@@ -73,7 +73,7 @@ export function useKYC() {
     const imageUrl = signedData?.signedUrl ?? filePath;
 
     // 3. Call the server-side function (handles 18+ check, deduplication)
-    const { error: rpcError } = await supabase.rpc('submit_kyc_request', {
+    const { error: rpcError } = await (supabase.rpc as any)('submit_kyc_request', {
       p_full_name:    params.fullName,
       p_birth_date:   params.birthDate,
       p_id_image_url: imageUrl,
