@@ -71,7 +71,7 @@ export function useAgents() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: rpcErr } = await supabase.rpc('get_nearby_agents', {
+      const { data, error: rpcErr } = await (supabase.rpc as any)('get_nearby_agents', {
         p_country:   params.country   ?? null,
         p_city:      params.city      ?? null,
         p_latitude:  params.latitude  ?? null,
