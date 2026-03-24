@@ -129,7 +129,7 @@ export function useAgents() {
     action: 'approve' | 'suspend',
     reason?: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error: rpcErr } = await supabase.rpc('admin_manage_agent', {
+    const { data, error: rpcErr } = await (supabase.rpc as any)('admin_manage_agent', {
       p_agent_id: agentId,
       p_action:   action,
       p_reason:   reason ?? null,
