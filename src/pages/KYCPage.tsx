@@ -192,9 +192,9 @@ export default function KYCPage() {
             <p className={`font-semibold text-sm ${config.color}`}>
               {isRTL ? config.labelAr : config.labelEn}
             </p>
-            {kycStatus === 'rejected' && latestRequest?.admin_notes && (
+             {kycStatus === 'rejected' && (latestRequest as any)?.admin_notes && (
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isRTL ? 'سبب الرفض: ' : 'Reason: '}{latestRequest.admin_notes}
+                {isRTL ? 'سبب الرفض: ' : 'Reason: '}{(latestRequest as any).admin_notes}
               </p>
             )}
           </div>

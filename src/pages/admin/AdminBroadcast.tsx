@@ -105,7 +105,7 @@ export default function AdminBroadcast() {
     if (targetAudience === 'country' && selectedCountry) {
       query = query.eq('country', selectedCountry);
     } else if (targetAudience === 'rank' && selectedRank) {
-      query = query.eq('rank', selectedRank);
+      query = query.eq('rank', selectedRank as any);
     }
 
     const { data: users, error: fetchError } = await query;

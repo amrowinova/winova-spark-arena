@@ -182,7 +182,7 @@ export default function AdminPricing() {
             const current = anchorPrices[field.key];
             const editVal = editValues[field.key];
             const displayVal = getValue(field.key);
-            const changed = editVal !== undefined && editVal !== '' && Number(editVal) !== current;
+            const changed = editVal !== undefined && String(editVal) !== '' && Number(editVal) !== current;
 
             return (
               <Card key={field.key} className={`p-4 transition-all ${changed ? 'border-amber-500/50 bg-amber-500/5' : ''}`}>

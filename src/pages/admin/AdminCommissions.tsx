@@ -263,7 +263,7 @@ export default function AdminCommissions() {
               const currentVal = rates[rc.key as keyof CommissionRates];
               const editedVal = editRates[rc.key as keyof CommissionRates];
               const displayVal = getDisplayValue(rc.key as keyof CommissionRates);
-              const changed = editedVal !== undefined && editedVal !== '' && Number(editedVal) !== currentVal;
+              const changed = editedVal !== undefined && String(editedVal) !== '' && Number(editedVal) !== currentVal;
 
               return (
                 <Card key={rc.key} className={`p-4 transition-all ${changed ? 'border-amber-500/50 bg-amber-500/5' : ''}`}>

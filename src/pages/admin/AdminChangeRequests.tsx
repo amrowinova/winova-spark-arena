@@ -101,7 +101,7 @@ export default function AdminChangeRequests() {
         .select('id, full_name, username, avatar_url')
         .in('id', performerIds);
 
-      const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+      const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p]));
 
       setAuditLogs(data.map(log => ({
         ...log,
