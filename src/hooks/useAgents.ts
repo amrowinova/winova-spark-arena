@@ -71,7 +71,7 @@ export function useAgents() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: rpcErr } = await supabase.rpc('get_nearby_agents', {
+      const { data, error: rpcErr } = await (supabase.rpc as any)('get_nearby_agents', {
         p_country:   params.country   ?? null,
         p_city:      params.city      ?? null,
         p_latitude:  params.latitude  ?? null,
@@ -88,7 +88,7 @@ export function useAgents() {
   }, []);
 
   const getAgentDetail = useCallback(async (agentId: string): Promise<AgentDetail | null> => {
-    const { data, error: rpcErr } = await supabase.rpc('get_agent_detail', { p_agent_id: agentId });
+    const { data, error: rpcErr } = await (supabase.rpc as any)('get_agent_detail', { p_agent_id: agentId });
     if (rpcErr || !data) return null;
     const d = data as AgentDetail & { found: boolean };
     if (!d.found) return null;
@@ -105,7 +105,7 @@ export function useAgents() {
     bio?: string;
   }): Promise<{ success: boolean; error?: string }> => {
     if (!authUser) return { success: false, error: 'Not authenticated' };
-    const { data, error: rpcErr } = await supabase.rpc('apply_as_agent', {
+    const { data, error: rpcErr } = await (supabase.rpc as any)('apply_as_agent', {
       p_shop_name:  params.shop_name,
       p_whatsapp:   params.whatsapp,
       p_country:    params.country,
@@ -120,7 +120,7 @@ export function useAgents() {
 
   const fetchMyAgentProfile = useCallback(async () => {
     if (!authUser) return;
-    const { data } = await supabase.rpc('get_my_agent_profile');
+    const { data } = await (supabase.rpc as any)('get_my_agent_profile');
     setMyAgentProfile((data as MyAgentProfile) ?? { found: false });
   }, [authUser]);
 
@@ -129,7 +129,7 @@ export function useAgents() {
     action: 'approve' | 'suspend',
     reason?: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const { data, error: rpcErr } = await supabase.rpc('admin_manage_agent', {
+    const { data, error: rpcErr } = await (supabase.rpc as any)('admin_manage_agent', {
       p_agent_id: agentId,
       p_action:   action,
       p_reason:   reason ?? null,
@@ -139,7 +139,7 @@ export function useAgents() {
   }, []);
 
   const getAllAgentsForAdmin = useCallback(async (): Promise<AgentProfile[]> => {
-    const { data, error: err } = await supabase
+    const { data, error: err } = await (supabase as any)
       .from('agents')
       .select('*')
       .order('created_at', { ascending: false });

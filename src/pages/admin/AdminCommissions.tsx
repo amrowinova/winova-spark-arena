@@ -121,7 +121,7 @@ export default function AdminCommissions() {
   const hasChanges = Object.keys(editRates).some(key => {
     const k = key as keyof CommissionRates;
     const edited = editRates[k];
-    return edited !== undefined && edited !== '' && Number(edited) !== rates[k];
+    return edited !== undefined && String(edited) !== '' && Number(edited) !== rates[k];
   });
 
   const getTotal = (): number => {
@@ -139,7 +139,7 @@ export default function AdminCommissions() {
     // Validate: all rates must be >= 0
     for (const rc of RANK_CONFIG) {
       const val = editRates[rc.key as keyof CommissionRates];
-      if (val !== undefined && val !== '') {
+      if (val !== undefined && String(val) !== '') {
         if (isNaN(Number(val)) || Number(val) < 0) {
           toast.error(isRTL ? `قيمة غير صالحة لـ ${rc.labelAr}` : `Invalid value for ${rc.labelEn}`);
           return;
@@ -161,13 +161,13 @@ export default function AdminCommissions() {
     Object.keys(editRates).forEach(key => {
       const k = key as keyof CommissionRates;
       const val = editRates[k];
-      if (val !== undefined && val !== '') {
+      if (val !== undefined && String(val) !== '') {
         newRates[k] = Number(val);
       }
     });
 
     // Upsert commission_rates in app_settings
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('app_settings')
       .upsert({
         key: 'commission_rates',
@@ -185,7 +185,7 @@ export default function AdminCommissions() {
 
     // Log to audit_logs
     if (user?.id) {
-      await supabase.from('audit_logs').insert({
+      await (supabase as any).from('audit_logs').insert({
         action: 'commission_rate_update',
         entity_type: 'app_settings',
         performed_by: user.id,
@@ -263,7 +263,7 @@ export default function AdminCommissions() {
               const currentVal = rates[rc.key as keyof CommissionRates];
               const editedVal = editRates[rc.key as keyof CommissionRates];
               const displayVal = getDisplayValue(rc.key as keyof CommissionRates);
-              const changed = editedVal !== undefined && editedVal !== '' && Number(editedVal) !== currentVal;
+              const changed = editedVal !== undefined && String(editedVal) !== '' && Number(editedVal) !== currentVal;
 
               return (
                 <Card key={rc.key} className={`p-4 transition-all ${changed ? 'border-amber-500/50 bg-amber-500/5' : ''}`}>

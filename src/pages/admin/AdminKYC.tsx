@@ -58,7 +58,7 @@ export default function AdminKYC() {
 
   const fetchRequests = useCallback(async () => {
     setIsLoading(true);
-    let query = supabase
+    let query = (supabase as any)
       .from('kyc_requests')
       .select(`
         id, user_id, full_name, birth_date, id_image_url,
@@ -93,7 +93,7 @@ export default function AdminKYC() {
     setIsReviewing(true);
     setReviewError(null);
 
-    const { error } = await supabase.rpc('admin_review_kyc', {
+    const { error } = await (supabase.rpc as any)('admin_review_kyc', {
       p_request_id: selected.id,
       p_decision:   decision,
       p_notes:      adminNotes.trim() || null,

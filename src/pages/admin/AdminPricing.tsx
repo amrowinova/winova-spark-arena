@@ -94,7 +94,7 @@ export default function AdminPricing() {
 
   const hasChanges = ANCHOR_FIELDS.some(f => {
     const edited = editValues[f.key];
-    return edited !== undefined && edited !== '' && Number(edited) !== anchorPrices[f.key];
+    return edited !== undefined && String(edited) !== '' && Number(edited) !== anchorPrices[f.key];
   });
 
   const handleSave = async () => {
@@ -103,7 +103,7 @@ export default function AdminPricing() {
     // Validate all values
     for (const field of ANCHOR_FIELDS) {
       const val = editValues[field.key];
-      if (val !== undefined && val !== '') {
+      if (val !== undefined && String(val) !== '') {
         const num = Number(val);
         if (isNaN(num) || num <= 0) {
           toast.error(
@@ -122,15 +122,15 @@ export default function AdminPricing() {
     const newPrices: AnchorPrices = { ...anchorPrices };
     ANCHOR_FIELDS.forEach(f => {
       const val = editValues[f.key];
-      if (val !== undefined && val !== '') {
+      if (val !== undefined && String(val) !== '') {
         newPrices[f.key] = Number(val);
       }
     });
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('app_settings')
       .update({
-        value: newPrices as unknown as Record<string, unknown>,
+        value: newPrices as any,
         updated_by: user?.id,
         updated_at: new Date().toISOString(),
       })
@@ -182,7 +182,7 @@ export default function AdminPricing() {
             const current = anchorPrices[field.key];
             const editVal = editValues[field.key];
             const displayVal = getValue(field.key);
-            const changed = editVal !== undefined && editVal !== '' && Number(editVal) !== current;
+            const changed = editVal !== undefined && String(editVal) !== '' && Number(editVal) !== current;
 
             return (
               <Card key={field.key} className={`p-4 transition-all ${changed ? 'border-amber-500/50 bg-amber-500/5' : ''}`}>

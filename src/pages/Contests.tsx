@@ -120,7 +120,7 @@ export default function ContestsPage() {
       setTiming(newTiming);
       setTimeRemaining(formatTimeRemaining(newTiming.timeRemaining));
       // Clear once we enter results phase so interval stops naturally
-      if (newTiming.phase === 'results') clearInterval(interval);
+      if (newTiming.currentPhase === 'results') clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
   }, [isResults]);

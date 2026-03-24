@@ -116,7 +116,7 @@ export default function AdminCycles() {
 
     if (profiles) {
       const enriched: PresidentInfo[] = topUserIds.map(uid => {
-        const profile = profiles.find(p => p.id === uid);
+        const profile = (profiles as any[]).find((p: any) => p.id === uid);
         return {
           user_id: uid,
           full_name: profile?.full_name || null,

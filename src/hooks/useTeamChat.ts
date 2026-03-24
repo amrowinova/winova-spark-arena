@@ -119,11 +119,11 @@ export function useTeamChat() {
     const msgIds = (data || []).map(m => m.id);
     let reactionsMap: Record<string, Array<{ emoji: string; user_id: string }>> = {};
     if (msgIds.length > 0) {
-      const { data: rxData } = await supabase
+      const { data: rxData } = await (supabase as any)
         .from('team_message_reactions')
         .select('message_id, emoji, user_id')
         .in('message_id', msgIds);
-      for (const r of rxData || []) {
+      for (const r of (rxData || []) as any[]) {
         if (!reactionsMap[r.message_id]) reactionsMap[r.message_id] = [];
         reactionsMap[r.message_id].push({ emoji: r.emoji, user_id: r.user_id });
       }
@@ -185,10 +185,10 @@ export function useTeamChat() {
     }));
 
     if (alreadyReacted) {
-      await supabase.from('team_message_reactions').delete()
+      await (supabase as any).from('team_message_reactions').delete()
         .eq('message_id', messageId).eq('user_id', user.id).eq('emoji', emoji);
     } else {
-      await supabase.from('team_message_reactions').insert({ message_id: messageId, user_id: user.id, emoji } as any);
+      await (supabase as any).from('team_message_reactions').insert({ message_id: messageId, user_id: user.id, emoji });
     }
   }, [user?.id, messages]);
 

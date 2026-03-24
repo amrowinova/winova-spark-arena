@@ -30,11 +30,11 @@ export function useKYC() {
         .select('kyc_status')
         .eq('user_id', user.id)
         .single(),
-      supabase.rpc('get_my_kyc_request'),
+      (supabase.rpc as any)('get_my_kyc_request'),
     ]);
 
     if (profileRes.data) {
-      setKycStatus((profileRes.data.kyc_status as KYCStatus) ?? 'unverified');
+      setKycStatus(((profileRes.data as any).kyc_status as KYCStatus) ?? 'unverified');
     }
     if (requestRes.data && Array.isArray(requestRes.data) && requestRes.data.length > 0) {
       setLatestRequest(requestRes.data[0] as KYCRequest);
@@ -73,7 +73,7 @@ export function useKYC() {
     const imageUrl = signedData?.signedUrl ?? filePath;
 
     // 3. Call the server-side function (handles 18+ check, deduplication)
-    const { error: rpcError } = await supabase.rpc('submit_kyc_request', {
+    const { error: rpcError } = await (supabase.rpc as any)('submit_kyc_request', {
       p_full_name:    params.fullName,
       p_birth_date:   params.birthDate,
       p_id_image_url: imageUrl,
