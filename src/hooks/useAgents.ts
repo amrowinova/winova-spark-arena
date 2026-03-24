@@ -120,7 +120,7 @@ export function useAgents() {
 
   const fetchMyAgentProfile = useCallback(async () => {
     if (!authUser) return;
-    const { data } = await supabase.rpc('get_my_agent_profile');
+    const { data } = await (supabase.rpc as any)('get_my_agent_profile');
     setMyAgentProfile((data as MyAgentProfile) ?? { found: false });
   }, [authUser]);
 
