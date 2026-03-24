@@ -25,7 +25,7 @@ export function useSupervisorChangeRequest() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const { data, error: rpcError } = await supabase.rpc('get_my_supervisor_requests', {
+      const { data, error: rpcError } = await (supabase.rpc as any)('get_my_supervisor_requests', {
         p_user_id: user.id,
       });
       if (!rpcError) setRequests((data as SupervisorRequest[]) || []);
