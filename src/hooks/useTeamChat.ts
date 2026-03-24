@@ -185,7 +185,7 @@ export function useTeamChat() {
     }));
 
     if (alreadyReacted) {
-      await supabase.from('team_message_reactions').delete()
+      await (supabase.from('team_message_reactions') as any).delete()
         .eq('message_id', messageId).eq('user_id', user.id).eq('emoji', emoji);
     } else {
       await supabase.from('team_message_reactions').insert({ message_id: messageId, user_id: user.id, emoji } as any);
