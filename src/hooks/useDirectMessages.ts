@@ -490,6 +490,12 @@ export function useDirectMessages() {
         isMine: false,
         transferAmount: null,
         transferRecipientId: null,
+        imageUrl: null,
+        replyToId: null,
+        replyToContent: null,
+        replyToSender: null,
+        deletedAt: null,
+        reactions: [],
       };
       
       setMessages(prev => {
