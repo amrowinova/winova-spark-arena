@@ -6612,7 +6612,6 @@ export type Database = {
           description_ar: string | null
           entry_type: Database["public"]["Enums"]["ledger_entry_type"]
           id: string
-          is_free_aura: boolean
           metadata: Json | null
           reference_id: string | null
           reference_type: string | null
@@ -6630,7 +6629,6 @@ export type Database = {
           description_ar?: string | null
           entry_type: Database["public"]["Enums"]["ledger_entry_type"]
           id?: string
-          is_free_aura?: boolean
           metadata?: Json | null
           reference_id?: string | null
           reference_type?: string | null
@@ -6648,7 +6646,6 @@ export type Database = {
           description_ar?: string | null
           entry_type?: Database["public"]["Enums"]["ledger_entry_type"]
           id?: string
-          is_free_aura?: boolean
           metadata?: Json | null
           reference_id?: string | null
           reference_type?: string | null
@@ -6669,7 +6666,6 @@ export type Database = {
         Row: {
           aura_balance: number
           created_at: string
-          free_aura_balance: number
           frozen_at: string | null
           frozen_by: string | null
           frozen_reason: string | null
@@ -6683,7 +6679,6 @@ export type Database = {
         Insert: {
           aura_balance?: number
           created_at?: string
-          free_aura_balance?: number
           frozen_at?: string | null
           frozen_by?: string | null
           frozen_reason?: string | null
@@ -6697,7 +6692,6 @@ export type Database = {
         Update: {
           aura_balance?: number
           created_at?: string
-          free_aura_balance?: number
           frozen_at?: string | null
           frozen_by?: string | null
           frozen_reason?: string | null
