@@ -77,6 +77,7 @@ const guestUser: User = {
   novaId: '',
   country: 'Saudi Arabia',
   city: '',
+  district: '',
   walletCountry: 'Saudi Arabia',
   hasJoinedWithNova: false,
   activeWeeks: 0,
