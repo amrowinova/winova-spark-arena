@@ -31,6 +31,7 @@ export interface User {
   novaId: string;
   country: string;
   city: string;
+  district: string;
   walletCountry: string;
   hasJoinedWithNova: boolean;
   activeWeeks: number;
