@@ -163,6 +163,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           novaId: (profile as Profile & { nova_id?: string }).nova_id || '',
           country: profile.country,
           city: profile.city || '',
+          district: (profile as Profile & { district?: string }).district || '',
           walletCountry: profile.wallet_country,
           hasJoinedWithNova: profile.has_joined_with_nova,
           activeWeeks: profile.active_weeks,
