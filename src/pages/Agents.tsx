@@ -79,18 +79,7 @@ export default function AgentsPage() {
   const [gpsActive, setGpsActive]   = useState(false);
   const [gpsCoords, setGpsCoords]   = useState<{ lat: number; lng: number } | null>(null);
 
-  // Apply-as-agent form
-  const [applyShop, setApplyShop]       = useState('');
-  const [applyWA, setApplyWA]           = useState('');
-  const [applyCountry, setApplyCountry] = useState('');
-  const [applyCity, setApplyCity]       = useState('');
-  const [applyBio, setApplyBio]         = useState('');
-  const [applying, setApplying]         = useState(false);
-  const [applyLat, setApplyLat]         = useState<number | null>(null);
-  const [applyLng, setApplyLng]         = useState<number | null>(null);
-  const [applyCities, setApplyCities]   = useState<typeof cities>([]);
-
-  // Create reservation dialog
+  // Apply-as-agent — no longer inline, use ApplyAgentForm component
   const [selectedAgent, setSelectedAgent] = useState<AgentDetail | null>(null);
   const [bookDialogOpen, setBookDialogOpen] = useState(false);
   const [bookType, setBookType]     = useState<'deposit' | 'withdraw'>('deposit');
