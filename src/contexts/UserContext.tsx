@@ -31,6 +31,7 @@ export interface User {
   novaId: string;
   country: string;
   city: string;
+  district: string;
   walletCountry: string;
   hasJoinedWithNova: boolean;
   activeWeeks: number;
@@ -76,6 +77,7 @@ const guestUser: User = {
   novaId: '',
   country: 'Saudi Arabia',
   city: '',
+  district: '',
   walletCountry: 'Saudi Arabia',
   hasJoinedWithNova: false,
   activeWeeks: 0,
@@ -161,6 +163,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           novaId: (profile as Profile & { nova_id?: string }).nova_id || '',
           country: profile.country,
           city: profile.city || '',
+          district: (profile as Profile & { district?: string }).district || '',
           walletCountry: profile.wallet_country,
           hasJoinedWithNova: profile.has_joined_with_nova,
           activeWeeks: profile.active_weeks,
