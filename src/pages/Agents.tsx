@@ -118,22 +118,6 @@ export default function AgentsPage() {
     }
   };
 
-  const handleApplyCountryChange = async (code: string) => {
-    const found = countries.find(c => c.code === code);
-    setApplyCountry(code);
-    setApplyCity('');
-    // set WhatsApp prefix
-    if (found) setApplyWA(found.phone_code);
-    if (code) {
-      const { data } = await import('@/integrations/supabase/client').then(m =>
-        m.supabase.rpc('get_cities_by_country', { p_country_code: code })
-      );
-      setApplyCities((data as typeof cities) ?? []);
-    } else {
-      setApplyCities([]);
-    }
-  };
-
   const handleSearch = () => {
     if (!country) {
       showError(isRTL ? 'اختر البلد' : 'Select a country');
@@ -163,18 +147,6 @@ export default function AgentsPage() {
         showError(isRTL ? 'تعذّر الحصول على موقعك' : 'Could not get your location');
       },
       { timeout: 8000, maximumAge: 60000 }
-    );
-  };
-
-  const handleCaptureApplyLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setApplyLat(pos.coords.latitude);
-        setApplyLng(pos.coords.longitude);
-      },
-      () => showError(isRTL ? 'تعذّر الحصول على موقعك' : 'Could not get your location'),
-      { timeout: 8000 }
     );
   };
 
@@ -220,32 +192,6 @@ export default function AgentsPage() {
     setBookDialogOpen(false);
     fetchMyReservations();
     if (result.reservation_id) navigate(`/agents/r/${result.reservation_id}`);
-  };
-
-  const handleApply = async () => {
-    if (!applyShop.trim() || !applyWA.trim() || !applyCountry || !applyCity) {
-      showError(isRTL ? 'أكمل جميع الحقول المطلوبة' : 'Fill all required fields');
-      return;
-    }
-    setApplying(true);
-    const selectedCountry = countries.find(c => c.code === applyCountry);
-    const selectedCity    = applyCities.find(c => c.id === applyCity);
-    const result = await applyAsAgent({
-      shop_name: applyShop,
-      whatsapp:  applyWA,
-      country:   selectedCountry?.name_ar ?? applyCountry,
-      city:      selectedCity?.name_ar ?? applyCity,
-      bio:       applyBio || undefined,
-      latitude:  applyLat ?? undefined,
-      longitude: applyLng ?? undefined,
-    });
-    setApplying(false);
-    if (!result.success) {
-      showError(result.error ?? (isRTL ? 'فشل التقديم' : 'Application failed'));
-      return;
-    }
-    showSuccess(isRTL ? '✅ تم إرسال طلبك — سيراجعه الفريق' : '✅ Application submitted for review');
-    fetchMyAgentProfile();
   };
 
   const commission = selectedAgent
