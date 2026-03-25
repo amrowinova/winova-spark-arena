@@ -10,6 +10,7 @@ import { useAgents, AgentProfile, type DepositRequest } from '@/hooks/useAgents'
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 // ─── Agent row ────────────────────────────────────────────────────────────────
 
@@ -26,18 +27,21 @@ function AgentRow({
 }) {
   const statusColors: Record<string, string> = {
     pending:   'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
+    active:    'bg-green-500/15 text-green-600 border-green-500/30',
     verified:  'bg-green-500/15 text-green-600 border-green-500/30',
     suspended: 'bg-red-500/15 text-red-600 border-red-500/30',
   };
 
   const statusLabels: Record<string, [string, string]> = {
     pending:   ['في الانتظار', 'Pending'],
+    active:    ['موثق', 'Verified'],
     verified:  ['موثق', 'Verified'],
     suspended: ['موقوف', 'Suspended'],
   };
 
-  const color = statusColors[agent.status ?? 'pending'] ?? statusColors.pending;
-  const label = (statusLabels[agent.status ?? 'pending'] ?? statusLabels.pending)[isRTL ? 0 : 1];
+  const status = agent.status ?? 'pending';
+  const color = statusColors[status] ?? statusColors.pending;
+  const label = (statusLabels[status] ?? statusLabels.pending)[isRTL ? 0 : 1];
 
   return (
     <motion.div
@@ -92,7 +96,7 @@ function AgentRow({
 
       {/* Actions */}
       <div className="flex gap-2">
-        {agent.status !== 'verified' && (
+        {(status === 'pending') && (
           <Button
             size="sm"
             className="h-8 text-xs flex-1 bg-green-600 hover:bg-green-700 text-white"
@@ -102,7 +106,7 @@ function AgentRow({
             {isRTL ? 'قبول' : 'Approve'}
           </Button>
         )}
-        {agent.status !== 'suspended' && (
+        {(status === 'active' || status === 'verified') && (
           <Button
             size="sm"
             variant="outline"
@@ -111,6 +115,16 @@ function AgentRow({
           >
             <XCircle className="w-3.5 h-3.5 mr-1" />
             {isRTL ? 'إيقاف' : 'Suspend'}
+          </Button>
+        )}
+        {(status === 'suspended') && (
+          <Button
+            size="sm"
+            className="h-8 text-xs flex-1 bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => onApprove(agent.id)}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+            {isRTL ? 'إعادة تفعيل' : 'Reactivate'}
           </Button>
         )}
       </div>
@@ -206,7 +220,16 @@ export default function AdminAgents() {
 
   const handleApprove = async (id: string) => {
     setActionLoading(true);
-    await adminManageAgent(id, 'approve');
+    const { error } = await supabase
+      .from('agents')
+      .update({ status: 'active' })
+      .eq('id', id);
+    
+    if (error) {
+      showError(isRTL ? 'فشل قبول الوكيل' : 'Failed to approve agent');
+    } else {
+      showSuccess(isRTL ? '✅ تم قبول الوكيل بنجاح' : '✅ Agent approved');
+    }
     await load();
     setActionLoading(false);
   };
