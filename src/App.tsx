@@ -183,6 +183,7 @@ const App = () => {
                             <Route path="/admin/commissions" element={<AdminGuard><AdminCommissions /></AdminGuard>} />
                             <Route path="/admin/kyc" element={<AdminGuard><AdminKYC /></AdminGuard>} />
                             <Route path="/admin/agents" element={<AdminGuard><AdminAgents /></AdminGuard>} />
+                            <Route path="/admin/country-codes" element={<AdminGuard><AdminCountryCodes /></AdminGuard>} />
                             
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />
