@@ -142,6 +142,7 @@ export function ApplyAgentForm({ onSuccess }: ApplyAgentFormProps) {
       whatsapp: fullWhatsapp,
       country: user.country || userCountryData?.name || '',
       city: cityData?.name || selectedCity,
+      district: districtData?.name || selectedDistrict,
       bio: bio || undefined,
       latitude: applyLat ?? undefined,
       longitude: applyLng ?? undefined,
