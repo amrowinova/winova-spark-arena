@@ -22,6 +22,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { useAgents, type AgentProfile, type AgentDetail } from '@/hooks/useAgents';
 import { useAgentReservations } from '@/hooks/useAgentReservations';
+import { ApplyAgentForm } from '@/components/agents/ApplyAgentForm';
 
 const STATUS_COLORS: Record<string, string> = {
   pending:   'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
