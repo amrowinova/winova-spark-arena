@@ -69,8 +69,8 @@ export default function AgentsPage() {
 
   const { myReservations, fetchMyReservations, createReservation } = useAgentReservations();
 
-  // Search form
-  const [country, setCountry] = useState(user.country || '');
+  // Search form — '' means "all"
+  const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
   const [searchCities, setSearchCities] = useState<typeof cities>([]);
 
@@ -92,25 +92,19 @@ export default function AgentsPage() {
     fetchMyAgentProfile();
     fetchMyReservations();
     fetchCountries();
-    if (user.country) {
-      searchAgents({ country: user.country });
-      // load cities for search bar
-      void (async () => {
-        const { data } = await import('@/integrations/supabase/client').then(m =>
-          m.supabase.rpc('get_cities_by_country', { p_country_code: user.country })
-        );
-        setSearchCities((data as typeof cities) ?? []);
-      })();
-    }
+    // Load all agents on mount — no country filter
+    searchAgents({});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCountryChange = async (code: string) => {
-    setCountry(code);
+    // '__all__' means "جميع الدول"
+    const val = code === '__all__' ? '' : code;
+    setCountry(val);
     setCity('');
-    if (code) {
+    if (val) {
       const { data } = await import('@/integrations/supabase/client').then(m =>
-        m.supabase.rpc('get_cities_by_country', { p_country_code: code })
+        m.supabase.rpc('get_cities_by_country', { p_country_code: val })
       );
       setSearchCities((data as typeof cities) ?? []);
     } else {
@@ -119,13 +113,12 @@ export default function AgentsPage() {
   };
 
   const handleSearch = () => {
-    if (!country) {
-      showError(isRTL ? 'اختر البلد' : 'Select a country');
-      return;
-    }
     setGpsActive(false);
     setGpsCoords(null);
-    searchAgents({ country, city: city || undefined });
+    searchAgents({
+      country: country || undefined,
+      city: city || undefined,
+    });
   };
 
   const handleGpsSearch = () => {
@@ -223,14 +216,17 @@ export default function AgentsPage() {
             <Card className="p-3 space-y-2">
               <div className="flex gap-2">
                 <Select
-                  value={country}
+                  value={country || '__all__'}
                   onValueChange={handleCountryChange}
                   disabled={gpsActive}
                 >
                   <SelectTrigger className="flex-1 h-9 text-sm">
-                    <SelectValue placeholder={isRTL ? 'اختر البلد' : 'Country'} />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__all__">
+                      {isRTL ? '🌍 جميع الدول' : '🌍 All Countries'}
+                    </SelectItem>
                     {countries.map(c => (
                       <SelectItem key={c.code} value={c.code}>
                         {isRTL ? c.name_ar : c.name_en}
@@ -239,14 +235,17 @@ export default function AgentsPage() {
                   </SelectContent>
                 </Select>
                 <Select
-                  value={city}
-                  onValueChange={setCity}
-                  disabled={gpsActive || searchCities.length === 0}
+                  value={city || '__all_cities__'}
+                  onValueChange={(v) => setCity(v === '__all_cities__' ? '' : v)}
+                  disabled={gpsActive}
                 >
                   <SelectTrigger className="flex-1 h-9 text-sm">
-                    <SelectValue placeholder={isRTL ? 'المدينة' : 'City'} />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__all_cities__">
+                      {isRTL ? '🏙️ جميع المدن' : '🏙️ All Cities'}
+                    </SelectItem>
                     {searchCities.map(c => (
                       <SelectItem key={c.id} value={c.id}>
                         {isRTL ? c.name_ar : c.name_en}
