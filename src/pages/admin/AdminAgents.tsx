@@ -220,13 +220,9 @@ export default function AdminAgents() {
 
   const handleApprove = async (id: string) => {
     setActionLoading(true);
-    const { error } = await supabase
-      .from('agents')
-      .update({ status: 'active' })
-      .eq('id', id);
-    
-    if (error) {
-      showError(isRTL ? 'فشل قبول الوكيل' : 'Failed to approve agent');
+    const result = await adminManageAgent(id, 'approve');
+    if (!result.success) {
+      showError(result.error ?? (isRTL ? 'فشل قبول الوكيل' : 'Failed to approve agent'));
     } else {
       showSuccess(isRTL ? '✅ تم قبول الوكيل بنجاح' : '✅ Agent approved');
     }
