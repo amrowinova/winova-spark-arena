@@ -7244,6 +7244,55 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_approve_deposit: {
+        Args: { p_admin_notes?: string; p_request_id: string }
+        Returns: Json
+      }
+      admin_get_all_deposit_requests: {
+        Args: { p_status?: string }
+        Returns: Json
+      }
+      admin_manage_agent: {
+        Args: { p_action: string; p_agent_id: string; p_reason?: string }
+        Returns: Json
+      }
+      admin_reject_deposit: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: Json
+      }
+      admin_resolve_agent_dispute: {
+        Args: { p_reservation_id: string; p_resolution: string }
+        Returns: Json
+      }
+      agent_request_deposit: {
+        Args: {
+          p_amount_nova: number
+          p_payment_method: string
+          p_payment_reference: string
+        }
+        Returns: Json
+      }
+      agent_respond_reservation: {
+        Args: {
+          p_accept: boolean
+          p_reject_reason?: string
+          p_reservation_id: string
+        }
+        Returns: Json
+      }
+      apply_as_agent: {
+        Args: {
+          p_bio?: string
+          p_city: string
+          p_country: string
+          p_district?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_shop_name: string
+          p_whatsapp: string
+        }
+        Returns: Json
+      }
       assign_referral_auto: {
         Args: { p_city?: string; p_country: string; p_new_user_id: string }
         Returns: Json
@@ -7262,6 +7311,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      cancel_agent_reservation: {
+        Args: { p_reason?: string; p_reservation_id: string }
+        Returns: Json
+      }
       cast_free_vote: {
         Args: {
           p_contest_id: string
@@ -7279,7 +7332,22 @@ export type Database = {
         }
         Returns: Json
       }
+      confirm_agent_reservation: {
+        Args: { p_reservation_id: string }
+        Returns: Json
+      }
       convert_nova_aura: { Args: { p_amount: number }; Returns: Json }
+      create_agent_reservation: {
+        Args: {
+          p_agent_id: string
+          p_fiat_amount?: number
+          p_fiat_currency?: string
+          p_notes?: string
+          p_nova_amount: number
+          p_type: string
+        }
+        Returns: Json
+      }
       emit_team_event: {
         Args: {
           p_event_type: string
@@ -7321,6 +7389,10 @@ export type Database = {
           week_number: number
         }[]
       }
+      get_agent_deposit_requests: { Args: never; Returns: Json }
+      get_agent_detail: { Args: { p_agent_id: string }; Returns: Json }
+      get_cities_by_country: { Args: { p_country_code: string }; Returns: Json }
+      get_countries: { Args: never; Returns: Json }
       get_cycle_progress: {
         Args: { p_cycle_id?: string }
         Returns: {
@@ -7372,12 +7444,27 @@ export type Database = {
           table_name: string
         }[]
       }
+      get_my_agent_profile: { Args: never; Returns: Json }
       get_my_direct_leader: { Args: { p_user_id: string }; Returns: Json }
+      get_nearby_agents: {
+        Args: {
+          p_city?: string
+          p_country?: string
+          p_latitude?: number
+          p_limit?: number
+          p_longitude?: number
+        }
+        Returns: Json
+      }
       get_or_create_ai_conversation: {
         Args: { target_user_id: string }
         Returns: string
       }
       get_referral_stats: { Args: { p_user_id: string }; Returns: Json }
+      get_reservation_with_messages: {
+        Args: { p_reservation_id: string }
+        Returns: Json
+      }
       get_slow_query_stats: {
         Args: never
         Returns: {
@@ -7587,9 +7674,30 @@ export type Database = {
         Args: { p_new_user_id: string; p_referral_code: string }
         Returns: Json
       }
+      raise_agent_dispute: {
+        Args: { p_reason: string; p_reservation_id: string }
+        Returns: Json
+      }
+      rate_user_by_agent: {
+        Args: {
+          p_comment?: string
+          p_has_issue?: boolean
+          p_rating: number
+          p_reservation_id: string
+        }
+        Returns: Json
+      }
       record_spotlight_points: {
         Args: { p_points: number; p_source: string; p_user_id: string }
         Returns: undefined
+      }
+      request_extension: {
+        Args: { p_minutes: number; p_reservation_id: string }
+        Returns: Json
+      }
+      respond_extension: {
+        Args: { p_accept: boolean; p_reservation_id: string }
+        Returns: Json
       }
       run_load_simulation: {
         Args: { p_intensity?: string; p_transfer_count?: number }
@@ -7612,6 +7720,10 @@ export type Database = {
           sender_name: string
         }[]
       }
+      send_agent_message: {
+        Args: { p_content: string; p_reservation_id: string }
+        Returns: Json
+      }
       send_ai_alert_to_admins:
         | {
             Args: {
@@ -7633,6 +7745,15 @@ export type Database = {
             }
             Returns: undefined
           }
+      submit_agent_review: {
+        Args: {
+          p_comment?: string
+          p_has_issue?: boolean
+          p_rating: number
+          p_reservation_id: string
+        }
+        Returns: Json
+      }
       submit_support_agent_rating: {
         Args: { p_note?: string; p_order_id: string; p_rating: string }
         Returns: Json
