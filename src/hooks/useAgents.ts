@@ -135,6 +135,7 @@ export function useAgents() {
     whatsapp: string;
     country: string;
     city: string;
+    district?: string;
     latitude?: number;
     longitude?: number;
     bio?: string;
@@ -145,6 +146,7 @@ export function useAgents() {
       p_whatsapp:   params.whatsapp,
       p_country:    params.country,
       p_city:       params.city,
+      p_district:   params.district  ?? '',
       p_latitude:   params.latitude  ?? null,
       p_longitude:  params.longitude ?? null,
       p_bio:        params.bio       ?? null,
