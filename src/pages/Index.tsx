@@ -197,23 +197,19 @@ export default function HomePage() {
 
   const handleJoinContest = () => {
     if (!authUser) {
-      showError(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
+      showError(t('home.errors.loginFirst'));
       return;
     }
 
     // Must have a real contest for today
     if (!activeContestId) {
-      showError(language === 'ar' ? 'لا توجد مسابقة لليوم' : 'No contest for today');
+      showError(t('home.errors.noContest'));
       return;
     }
 
     // Join eligibility: canJoin is true from midnight to 7 PM KSA
     if (!timing.canJoin) {
-      showError(
-        language === 'ar'
-          ? 'تم إغلاق باب الانضمام'
-          : 'Registration is closed'
-      );
+      showError(t('home.errors.joiningClosed'));
       return;
     }
 
@@ -222,12 +218,12 @@ export default function HomePage() {
 
   const confirmJoin = async () => {
     if (!authUser || !activeContestId) {
-      showError(language === 'ar' ? 'لا توجد مسابقة لليوم' : 'No contest for today');
+      showError(t('home.errors.noContest'));
       return;
     }
 
     if (!timing.canJoin) {
-      showError(language === 'ar' ? 'تم إغلاق باب الانضمام' : 'Registration is closed');
+      showError(t('home.errors.joiningClosed'));
       setJoinDialogOpen(false);
       return;
     }
@@ -256,29 +252,28 @@ export default function HomePage() {
       const result = data as { success: boolean; error?: string };
 
       if (!result.success) {
-        const normalizedError = (() => {
-          if (!result.error) return undefined;
-          if (language !== 'ar') return result.error;
-          if (result.error === 'Joining is closed') return 'تم إغلاق باب الانضمام';
-          if (result.error === 'No contest for today') return 'لا توجد مسابقة لليوم';
-          if (result.error === 'Already joined this contest') return 'أنت منضم بالفعل لهذه المسابقة';
-          if (result.error === 'Insufficient Nova balance') return 'رصيد Nova غير كافي';
-          return result.error;
+        const errorKey = (() => {
+          if (!result.error) return 'home.errors.joinFailed';
+          if (result.error === 'Joining is closed') return 'home.errors.joiningClosed';
+          if (result.error === 'No contest for today') return 'home.errors.noContest';
+          if (result.error === 'Already joined this contest') return 'home.errors.alreadyJoined';
+          if (result.error === 'Insufficient Nova balance') return 'home.errors.insufficientNova';
+          return null;
         })();
 
-        showError(normalizedError || (language === 'ar' ? 'فشل الانضمام' : 'Failed to join'));
+        showError(errorKey ? t(errorKey) : (result.error ?? t('home.errors.joinFailed')));
         return;
       }
 
       setHasJoined(true);
       setJoinDialogOpen(false);
-      showSuccess(language === 'ar' ? '🎉 تم الانضمام للمسابقة بنجاح!' : '🎉 Successfully joined the contest!');
-      
+      showSuccess(t('home.success.joinedContest'));
+
       // Navigate to contests page
       navigate('/contests');
     } catch (err) {
       console.error('Join error:', err);
-      showError(language === 'ar' ? 'حدث خطأ' : 'An error occurred');
+      showError(t('home.errors.generic'));
     } finally {
       setIsJoining(false);
     }
@@ -304,12 +299,8 @@ export default function HomePage() {
 
         {/* 1️⃣ Welcome Message + Streak Badge */}
         <motion.div variants={itemVariants} className="text-center px-2">
-          <p className="text-xl font-bold text-foreground mb-1">{language === 'ar' ? `أهلاً ${user.name}` : `Hey ${user.name}`}</p>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {language === 'ar'
-              ? 'أهلاً بك في WINOVA 👋\n\nاليوم فرصتك تربح، تصوّت، وتزيد ترتيبك.'
-              : 'Welcome to WINOVA 👋\n\nToday is your chance to win, vote, and boost your rank.'}
-          </p>
+          <p className="text-xl font-bold text-foreground mb-1">{t('home.heyUser', { name: user.name })}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{t('home.tagline')}</p>
           {/* Streak Badge — shown when user has ≥1 active week */}
           {user.weeklyStreak > 0 && (
             <motion.div
@@ -329,13 +320,11 @@ export default function HomePage() {
                 {user.weeklyStreak}
               </span>
               <span className="text-xs text-muted-foreground">
-                {language === 'ar'
-                  ? (user.weeklyStreak >= 4 ? '🎯 أسبوع متواصل' : 'أسبوع متواصل')
-                  : (user.weeklyStreak >= 4 ? '🎯 week streak' : 'week streak')}
+                {user.weeklyStreak >= 4 ? t('home.weekStreakBonus') : t('home.weekStreak')}
               </span>
               {user.weeklyStreak >= 4 && (
                 <span className="text-[10px] font-semibold text-nova">
-                  {language === 'ar' ? '← مكافأة!' : '← Bonus!'}
+                  {t('home.streakBonus')}
                 </span>
               )}
             </motion.div>
@@ -364,9 +353,7 @@ export default function HomePage() {
                   {/* 3️⃣ Nova Explanation */}
                   <p className="text-[10px] text-muted-foreground leading-snug px-1">
                     <span>💰</span>{' '}
-                    {language === 'ar' 
-                      ? 'Nova = أرباحك. حوّلها لأي مستخدم من محفظتي.'
-                      : 'Nova = your earnings. Transfer to anyone from My Wallet.'}
+                    {t('home.novaExplanation')}
                   </p>
                 </div>
 
@@ -381,15 +368,13 @@ export default function HomePage() {
                       {formatBalance(user.auraBalance)}
                     </p>
                     <p className="text-muted-foreground text-xs mt-1">
-                      {language === 'ar' ? 'نقاط تصويت' : 'Voting Points'}
+                      {t('home.auraVotingPoints')}
                     </p>
                   </div>
                   {/* 2️⃣ Aura Explanation */}
                   <p className="text-[10px] text-muted-foreground leading-snug px-1">
                     <span>✨</span>{' '}
-                    {language === 'ar' 
-                      ? 'Aura = نقاط التصويت. استخدمها لرفع ترتيبك.'
-                      : 'Aura = voting points. Use them to boost your rank.'}
+                    {t('home.auraExplanation')}
                   </p>
                 </div>
               </div>
@@ -403,14 +388,14 @@ export default function HomePage() {
             <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
               <Link to="/wallet">
                 <Wallet className="h-4 w-4 text-nova" />
-                <span className="text-sm font-medium">{language === 'ar' ? 'محفظتي' : 'My Wallet'}</span>
+                <span className="text-sm font-medium">{t('home.myWallet')}</span>
               </Link>
             </Button>
             <div className="flex flex-col gap-1.5">
               <Button asChild variant="outline" className="h-11 flex items-center justify-center gap-2 bg-card hover:bg-muted/50 border-border/50">
                 <Link to="/p2p">
                   <span className="text-base">🤝</span>
-                  <span className="text-sm font-medium">{language === 'ar' ? 'تحويل فوري P2P' : 'P2P Transfer'}</span>
+                  <span className="text-sm font-medium">{t('home.p2pTransfer')}</span>
                 </Link>
               </Button>
               {/* P2P Active Order Status - Informational, teal color */}
@@ -418,7 +403,7 @@ export default function HomePage() {
                 <Link to="/p2p" className="block">
                   <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-primary/10 border border-primary/30 rounded-lg text-primary">
                     <span className="text-[11px] font-medium">
-                      {language === 'ar' ? '⏳ صفقة P2P قيد التنفيذ' : '⏳ P2P order in progress'}
+                      {t('home.p2pInProgress')}
                     </span>
                   </div>
                 </Link>
@@ -428,9 +413,7 @@ export default function HomePage() {
           {/* 4️⃣ Transfer Clarification */}
           <p className="text-[10px] text-muted-foreground text-center leading-snug">
             <span>🔁</span>{' '}
-            {language === 'ar' 
-              ? 'يمكنك تحويل Nova فورًا لأي شخص داخل التطبيق — التحويل يتم مباشرة وبأمان.'
-              : 'Transfer Nova instantly to anyone in the app — safe and direct.'}
+            {t('home.transferExplanation')}
           </p>
         </motion.div>
 
@@ -477,21 +460,15 @@ export default function HomePage() {
       <Dialog open={isJoinModalOpen && !!activeContestId} onOpenChange={setJoinDialogOpen}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
-            <DialogTitle className="text-center">
-              {language === 'ar' ? 'انضم للمسابقة' : 'Join Contest'}
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              {language === 'ar' 
-                ? 'سيتم الخصم تلقائياً من رصيدك'
-                : 'Will be automatically deducted from your balance'}
-            </DialogDescription>
+            <DialogTitle className="text-center">{t('home.joinContestTitle')}</DialogTitle>
+            <DialogDescription className="text-center">{t('home.autoDeduct')}</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* Combined Balance Box */}
             <div className="p-4 bg-gradient-to-r from-aura/10 to-nova/10 rounded-xl border border-border/50">
               <p className="text-xs text-muted-foreground text-center mb-2">
-                {language === 'ar' ? 'رصيدك الحالي' : 'Your Balance'}
+                {t('home.yourCurrentBalance')}
               </p>
               <div className="flex items-center justify-center gap-3">
                 <span className="text-aura font-bold text-lg">✦ {formatBalance(user.auraBalance)}</span>
@@ -502,36 +479,32 @@ export default function HomePage() {
 
             {/* Entry Fee */}
             <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-center">
-              <p className="text-xs text-muted-foreground mb-1">
-                {language === 'ar' ? 'رسوم الدخول' : 'Entry Fee'}
-              </p>
+              <p className="text-xs text-muted-foreground mb-1">{t('home.entryFeeLabel')}</p>
               <p className="text-xl font-bold text-primary">И 10</p>
             </div>
-            
+
             {user.novaBalance < entryFee ? (
               <div className="space-y-3">
                 <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center space-y-1">
                   <p className="text-sm font-semibold text-destructive">
-                    ⚠️ {language === 'ar' ? 'رصيدك غير كافٍ' : 'Insufficient balance'}
+                    ⚠️ {t('home.insufficientBalance')}
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    {language === 'ar' 
-                      ? 'تحتاج إلى شحن Nova للمشاركة في المسابقة.'
-                      : 'You need to top up Nova to join the contest.'}
+                    {t('home.topUpNeed')}
                   </p>
                 </div>
-                <Button 
+                <Button
                   asChild
                   className="w-full h-12 bg-gradient-to-r from-nova to-amber-500 text-primary-foreground font-bold text-base"
                 >
                   <Link to="/p2p">
-                    {language === 'ar' ? 'اشحن Nova الآن 💰' : 'Top Up Nova Now 💰'}
+                    {t('home.topUpNow')}
                   </Link>
                 </Button>
               </div>
             ) : (
               <>
-                <Button 
+                <Button
                   className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base"
                   onClick={confirmJoin}
                   disabled={isJoining}
@@ -539,13 +512,11 @@ export default function HomePage() {
                   {isJoining ? (
                     <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
                   ) : (
-                    language === 'ar' ? 'ادفع الآن' : 'Pay Now'
+                    t('home.payNow')
                   )}
                 </Button>
                 <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-                  {language === 'ar' 
-                    ? 'الخصم يتم من رصيد Nova فقط'
-                    : 'Deducted from Nova balance only'}
+                  {t('home.deductNote')}
                 </p>
               </>
             )}

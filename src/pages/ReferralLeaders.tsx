@@ -2,8 +2,11 @@
  * ReferralLeaders — لوحة متصدري الإحالات
  * ترتيب عالمي + حسب كل دولة
  * جوائز: 1: 1000 Nova | 2-5: 500 | 6-10: 200
+ * Uses server-side RPCs (get_referral_leaders / get_top_referral_countries)
+ * instead of fetching all profiles in the frontend.
  */
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Trophy, Globe, Flag, Loader2, Gift, ChevronDown } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
@@ -31,67 +34,30 @@ const PRIZE_NOVA: Record<number, number> = {
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 async function fetchLeaders(country?: string): Promise<Leader[]> {
-  let q = supabase
-    .from('profiles')
-    .select('user_id, display_name, avatar_url, country, referred_by');
-
-  if (country) q = q.eq('country', country);
-
-  const { data } = await q;
-  if (!data) return [];
-
-  // Count referrals per user
-  const countMap = new Map<string, number>();
-  for (const row of data) {
-    if (row.referred_by) {
-      countMap.set(row.referred_by, (countMap.get(row.referred_by) ?? 0) + 1);
-    }
-  }
-
-  // Build profile map
-  const profileMap = new Map<string, { display_name: string; avatar_url: string | null; country: string | null }>();
-  for (const row of data) {
-    if (!profileMap.has(row.user_id)) {
-      profileMap.set(row.user_id, { display_name: row.display_name ?? '?', avatar_url: row.avatar_url, country: row.country });
-    }
-  }
-
-  return [...countMap.entries()]
-    .map(([uid, cnt]) => {
-      const p = profileMap.get(uid);
-      return {
-        user_id: uid,
-        display_name: p?.display_name ?? '?',
-        avatar_url: p?.avatar_url ?? null,
-        country: p?.country ?? null,
-        referral_count: cnt,
-        rank: 0,
-      };
-    })
-    .sort((a, b) => b.referral_count - a.referral_count)
-    .slice(0, 50)
-    .map((l, i) => ({ ...l, rank: i + 1 }));
+  const { data, error } = await supabase.rpc('get_referral_leaders', {
+    p_country: country ?? null,
+    p_limit: 50,
+  });
+  if (error || !data) return [];
+  return (data as Leader[]).map((l) => ({
+    ...l,
+    referral_count: Number(l.referral_count),
+    rank: Number(l.rank),
+  }));
 }
 
 async function fetchTopCountries(): Promise<Array<{ country: string; count: number }>> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('country')
-    .not('referred_by', 'is', null)
-    .not('country', 'is', null);
-  if (!data) return [];
-  const map = new Map<string, number>();
-  for (const row of data) {
-    if (row.country) map.set(row.country, (map.get(row.country) ?? 0) + 1);
-  }
-  return [...map.entries()]
-    .map(([country, count]) => ({ country, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 20);
+  const { data, error } = await supabase.rpc('get_top_referral_countries', { p_limit: 20 });
+  if (error || !data) return [];
+  return (data as Array<{ country: string; ref_count: number }>).map((r) => ({
+    country: r.country,
+    count: Number(r.ref_count),
+  }));
 }
 
 // ── LeaderRow ──────────────────────────────────────────────────────────────
-function LeaderRow({ l, isRTL, isMe }: { l: Leader; isRTL: boolean; isMe: boolean }) {
+function LeaderRow({ l, isMe }: { l: Leader; isMe: boolean }) {
+  const { t } = useTranslation();
   const prize = PRIZE_NOVA[l.rank];
   return (
     <motion.div
@@ -116,7 +82,7 @@ function LeaderRow({ l, isRTL, isMe }: { l: Leader; isRTL: boolean; isMe: boolea
       {/* Info */}
       <div className="flex-1 min-w-0">
         <p className={`text-xs font-semibold truncate ${isMe ? 'text-nova' : ''}`}>
-          {l.display_name} {isMe ? (isRTL ? '(أنت)' : '(you)') : ''}
+          {l.display_name} {isMe ? `(${t('common.you')})` : ''}
         </p>
         {l.country && <p className="text-[10px] text-muted-foreground">{l.country}</p>}
       </div>
@@ -124,7 +90,7 @@ function LeaderRow({ l, isRTL, isMe }: { l: Leader; isRTL: boolean; isMe: boolea
       {/* Count + Prize */}
       <div className="text-right shrink-0">
         <p className="text-xs font-bold">
-          {l.referral_count} {isRTL ? 'إحالة' : 'refs'}
+          {l.referral_count} {t('referral.refs')}
         </p>
         {prize && (
           <p className="text-[10px] text-nova font-medium">И {prize}</p>
@@ -136,6 +102,7 @@ function LeaderRow({ l, isRTL, isMe }: { l: Leader; isRTL: boolean; isMe: boolea
 
 // ── Main ──────────────────────────────────────────────────────────────────
 export default function ReferralLeaders() {
+  const { t } = useTranslation();
   const { language } = useLanguage();
   const { user } = useUser();
   const isRTL = language === 'ar';
@@ -179,7 +146,7 @@ export default function ReferralLeaders() {
 
   return (
     <div className="min-h-screen bg-background pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
-      <InnerPageHeader title={isRTL ? '🏆 متصدرو الإحالات' : '🏆 Referral Leaders'} />
+      <InnerPageHeader title={t('referral.leaders.title')} />
 
       <main className="px-4 pt-4 pb-20 space-y-4">
         {/* Prize info banner */}
@@ -190,25 +157,23 @@ export default function ReferralLeaders() {
         >
           <div className="flex items-center gap-2">
             <Gift className="w-5 h-5 text-yellow-500" />
-            <p className="font-bold text-sm">
-              {isRTL ? 'جوائز شهرية للمتصدرين' : 'Monthly Prizes for Leaders'}
-            </p>
+            <p className="font-bold text-sm">{t('referral.leaders.monthlyPrizes')}</p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
             <div className="bg-yellow-500/10 rounded-lg p-2">
               <p className="text-base">🥇</p>
               <p className="font-bold">И 1000</p>
-              <p className="text-muted-foreground text-[10px]">{isRTL ? 'الأول' : '1st'}</p>
+              <p className="text-muted-foreground text-[10px]">{t('referral.leaders.rank1st')}</p>
             </div>
             <div className="bg-muted/40 rounded-lg p-2">
               <p className="text-base">🥈🥉</p>
               <p className="font-bold">И 500</p>
-              <p className="text-muted-foreground text-[10px]">{isRTL ? '2-5' : '2nd-5th'}</p>
+              <p className="text-muted-foreground text-[10px]">{t('referral.leaders.rank2to5')}</p>
             </div>
             <div className="bg-muted/40 rounded-lg p-2">
               <p className="text-base">🏅</p>
               <p className="font-bold">И 200</p>
-              <p className="text-muted-foreground text-[10px]">{isRTL ? '6-10' : '6th-10th'}</p>
+              <p className="text-muted-foreground text-[10px]">{t('referral.leaders.rank6to10')}</p>
             </div>
           </div>
         </motion.div>
@@ -222,11 +187,11 @@ export default function ReferralLeaders() {
             <TabsList className="w-full grid grid-cols-2 mb-4">
               <TabsTrigger value="global" className="text-xs gap-1">
                 <Globe className="w-3.5 h-3.5" />
-                {isRTL ? 'عالمي' : 'Global'}
+                {t('referral.leaders.global')}
               </TabsTrigger>
               <TabsTrigger value="country" className="text-xs gap-1">
                 <Flag className="w-3.5 h-3.5" />
-                {isRTL ? 'حسب الدولة' : 'By Country'}
+                {t('referral.leaders.byCountry')}
               </TabsTrigger>
             </TabsList>
 
@@ -236,17 +201,15 @@ export default function ReferralLeaders() {
                 <CardContent className="p-0">
                   <div className="px-4 py-3 bg-gradient-to-r from-yellow-500/10 to-background border-b border-border/50 flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-yellow-500" />
-                    <p className="font-bold text-sm">
-                      {isRTL ? 'الترتيب العالمي' : 'Global Rankings'}
-                    </p>
+                    <p className="font-bold text-sm">{t('referral.leaders.globalRankings')}</p>
                   </div>
                   {globalLeaders.length === 0 ? (
                     <div className="text-center py-10 text-muted-foreground text-sm">
-                      {isRTL ? 'لا توجد بيانات بعد' : 'No data yet'}
+                      {t('common.noData')}
                     </div>
                   ) : (
                     globalLeaders.slice(0, 20).map((l) => (
-                      <LeaderRow key={l.user_id} l={l} isRTL={isRTL} isMe={l.user_id === user.id} />
+                      <LeaderRow key={l.user_id} l={l} isMe={l.user_id === user.id} />
                     ))
                   )}
                 </CardContent>
@@ -263,7 +226,7 @@ export default function ReferralLeaders() {
                   onClick={() => setShowCountries(!showCountries)}
                 >
                   <span className="text-sm">
-                    {selectedCountry || (isRTL ? 'اختر دولة' : 'Select country')}
+                    {selectedCountry || t('referral.leaders.selectCountry')}
                   </span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${showCountries ? 'rotate-180' : ''}`} />
                 </Button>
@@ -302,16 +265,16 @@ export default function ReferralLeaders() {
                     <div className="px-4 py-3 bg-gradient-to-r from-blue-500/10 to-background border-b border-border/50 flex items-center gap-2">
                       <Flag className="w-4 h-4 text-blue-500" />
                       <p className="font-bold text-sm">
-                        {selectedCountry || (isRTL ? 'اختر دولة' : 'Select a country')}
+                        {selectedCountry || t('referral.leaders.selectCountry')}
                       </p>
                     </div>
                     {countryLeaders.length === 0 ? (
                       <div className="text-center py-10 text-muted-foreground text-sm">
-                        {isRTL ? 'اختر دولة لعرض الترتيب' : 'Select a country to view rankings'}
+                        {t('referral.leaders.selectCountryHint')}
                       </div>
                     ) : (
                       countryLeaders.slice(0, 10).map((l) => (
-                        <LeaderRow key={l.user_id} l={l} isRTL={isRTL} isMe={l.user_id === user.id} />
+                        <LeaderRow key={l.user_id} l={l} isMe={l.user_id === user.id} />
                       ))
                     )}
                   </CardContent>

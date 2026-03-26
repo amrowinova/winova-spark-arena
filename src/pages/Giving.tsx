@@ -17,6 +17,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { useGiving, SUPPORT_AMOUNTS, type Family, type SupportAmount } from '@/hooks/useGiving';
+import { PINVerifyDialog } from '@/components/security/PINVerifyDialog';
 
 const FAVORITES_KEY = 'giving_favorites';
 
@@ -181,6 +182,7 @@ export default function GivingPage() {
   const [done, setDone] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(loadFavorites);
   const [tab, setTab] = useState<'all' | 'favorites'>('all');
+  const [pinOpen, setPinOpen] = useState(false);
 
   useEffect(() => {
     fetchFamilies();
@@ -211,7 +213,7 @@ export default function GivingPage() {
     ? families.filter((f) => favorites.has(f.id))
     : families;
 
-  const handleSupport = async () => {
+  const executeSupport = async () => {
     if (!selectedFamily) return;
     const result = await supportFamily(selectedFamily.id, selectedAmount);
     if (result.success) {
@@ -224,6 +226,11 @@ export default function GivingPage() {
     } else {
       showError(result.error || t('common.error'));
     }
+  };
+
+  const handleSupport = () => {
+    if (!selectedFamily) return;
+    setPinOpen(true);
   };
 
   return (
@@ -400,6 +407,14 @@ export default function GivingPage() {
           </AnimatePresence>
         </DialogContent>
       </Dialog>
+
+      <PINVerifyDialog
+        open={pinOpen}
+        onOpenChange={setPinOpen}
+        onVerified={executeSupport}
+        actionLabel={`Donate ${selectedAmount} Nova`}
+        actionLabelAr={`تبرع بـ ${selectedAmount} Nova`}
+      />
 
       <BottomNav />
     </div>
