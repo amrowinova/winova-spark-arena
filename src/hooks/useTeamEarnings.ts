@@ -24,32 +24,19 @@ export function useTeamEarnings() {
 
     try {
       setLoading(true);
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const { data, error } = await supabase.rpc('get_team_earnings_summary', {
+        p_user_id: user.id,
+      });
 
-      const { data } = await supabase
-        .from('transactions')
-        .select('amount, created_at')
-        .eq('user_id', user.id)
-        .eq('type', 'team_earnings');
-
+      if (error) throw error;
       if (!data) return;
 
-      const total = data.reduce((sum, t) => sum + (t.amount || 0), 0);
-      const thisMonth = data
-        .filter(t => t.created_at >= startOfMonth)
-        .reduce((sum, t) => sum + (t.amount || 0), 0);
-      const lastMonth = data
-        .filter(t => t.created_at >= startOfLastMonth && t.created_at < endOfLastMonth)
-        .reduce((sum, t) => sum + (t.amount || 0), 0);
-
+      // RPC returns: { total_earned, today_earned, week_earned, month_earned, tx_count }
       setSummary({
-        totalEarned: total,
-        thisMonth,
-        lastMonth,
-        totalTransactions: data.length,
+        totalEarned: Number(data.total_earned ?? 0),
+        thisMonth: Number(data.month_earned ?? 0),
+        lastMonth: 0, // not provided by RPC; kept for interface compat
+        totalTransactions: Number(data.tx_count ?? 0),
       });
     } catch (err) {
       console.error('useTeamEarnings error:', err);

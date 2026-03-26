@@ -4,8 +4,9 @@
  */
 import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Users, MapPin, Star, TrendingUp, Bookmark, BookmarkCheck, X, CheckCircle2 } from 'lucide-react';
+import { Heart, Users, MapPin, Star, TrendingUp, Bookmark, BookmarkCheck, X, CheckCircle2, PlusCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -17,21 +18,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { useGiving, SUPPORT_AMOUNTS, type Family, type SupportAmount } from '@/hooks/useGiving';
-
-const FAVORITES_KEY = 'giving_favorites';
-
-function loadFavorites(): Set<string> {
-  try {
-    const raw = localStorage.getItem(FAVORITES_KEY);
-    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-function saveFavorites(ids: Set<string>) {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...ids]));
-}
+import { PINVerifyDialog } from '@/components/security/PINVerifyDialog';
 
 function NeedBar({ score }: { score: number }) {
   const color =
@@ -174,26 +161,17 @@ export default function GivingPage() {
   const { success: showSuccess, error: showError } = useBanner();
   const isRTL = language === 'ar' || language === 'ur' || language === 'fa';
 
-  const { families, loading, supporting, fetchFamilies, supportFamily } = useGiving();
+  const { families, loading, supporting, favorites, fetchFamilies, supportFamily, toggleFavorite } = useGiving();
 
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [selectedAmount, setSelectedAmount] = useState<SupportAmount>(5);
   const [done, setDone] = useState(false);
-  const [favorites, setFavorites] = useState<Set<string>>(loadFavorites);
   const [tab, setTab] = useState<'all' | 'favorites'>('all');
+  const [pinOpen, setPinOpen] = useState(false);
 
   useEffect(() => {
     fetchFamilies();
   }, [fetchFamilies]);
-
-  const toggleFav = (id: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      saveFavorites(next);
-      return next;
-    });
-  };
 
   // Country trends: sum total_received per country, top 5
   const countryTrends = useMemo(() => {
@@ -211,7 +189,7 @@ export default function GivingPage() {
     ? families.filter((f) => favorites.has(f.id))
     : families;
 
-  const handleSupport = async () => {
+  const executeSupport = async () => {
     if (!selectedFamily) return;
     const result = await supportFamily(selectedFamily.id, selectedAmount);
     if (result.success) {
@@ -226,6 +204,11 @@ export default function GivingPage() {
     }
   };
 
+  const handleSupport = () => {
+    if (!selectedFamily) return;
+    setPinOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <InnerPageHeader title={t('giving.title')} />
@@ -235,6 +218,13 @@ export default function GivingPage() {
         <div className="rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 p-5 text-white text-center shadow-md">
           <Heart className="h-8 w-8 mx-auto mb-2 fill-white" />
           <p className="font-bold text-lg">{t('giving.title')}</p>
+          <Link
+            to="/giving/register"
+            className="inline-flex items-center gap-1.5 mt-3 px-4 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition-colors"
+          >
+            <PlusCircle className="h-4 w-4" />
+            {isRTL ? 'تسجيل عائلة محتاجة' : 'Register a Family in Need'}
+          </Link>
           <p className="text-sm text-white/80 mt-1">{t('giving.subtitle')}</p>
         </div>
 
@@ -312,7 +302,7 @@ export default function GivingPage() {
                 isRTL={isRTL}
                 isFav={favorites.has(family.id)}
                 onSelect={setSelectedFamily}
-                onToggleFav={toggleFav}
+                onToggleFav={toggleFavorite}
               />
             ))}
           </div>
@@ -400,6 +390,14 @@ export default function GivingPage() {
           </AnimatePresence>
         </DialogContent>
       </Dialog>
+
+      <PINVerifyDialog
+        open={pinOpen}
+        onOpenChange={setPinOpen}
+        onVerified={executeSupport}
+        actionLabel={`Donate ${selectedAmount} Nova`}
+        actionLabelAr={`تبرع بـ ${selectedAmount} Nova`}
+      />
 
       <BottomNav />
     </div>

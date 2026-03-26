@@ -72,7 +72,10 @@ import Agents from "./pages/Agents";
 import AgentReservationChat from "./pages/AgentReservationChat";
 import AgentDashboard from "./pages/AgentDashboard";
 import AdminAgents from "./pages/admin/AdminAgents";
+import AdminFamilies from "./pages/admin/AdminFamilies";
 import Giving from "./pages/Giving";
+import FamilyRegister from "./pages/FamilyRegister";
+import DailyMissions from "./pages/DailyMissions";
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
@@ -159,6 +162,8 @@ const App = () => {
                             <Route path="/agents/r/:reservationId" element={<AuthGuard><AgentReservationChat /></AuthGuard>} />
                             <Route path="/agent-dashboard" element={<AuthGuard><AgentDashboard /></AuthGuard>} />
                             <Route path="/giving" element={<AuthGuard><Giving /></AuthGuard>} />
+                            <Route path="/giving/register" element={<AuthGuard><FamilyRegister /></AuthGuard>} />
+                            <Route path="/missions" element={<AuthGuard><DailyMissions /></AuthGuard>} />
 
                             {/* Support Panel routes - require support role */}
                             <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />
@@ -182,7 +187,8 @@ const App = () => {
                             <Route path="/admin/commissions" element={<AdminGuard><AdminCommissions /></AdminGuard>} />
                             <Route path="/admin/kyc" element={<AdminGuard><AdminKYC /></AdminGuard>} />
                             <Route path="/admin/agents" element={<AdminGuard><AdminAgents /></AdminGuard>} />
-                            
+                            <Route path="/admin/families" element={<AdminGuard><AdminFamilies /></AdminGuard>} />
+
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />
                           </Routes>
