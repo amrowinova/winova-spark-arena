@@ -4,8 +4,9 @@
  */
 import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Users, MapPin, Star, TrendingUp, Bookmark, BookmarkCheck, X, CheckCircle2 } from 'lucide-react';
+import { Heart, Users, MapPin, Star, TrendingUp, Bookmark, BookmarkCheck, X, CheckCircle2, PlusCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -242,6 +243,13 @@ export default function GivingPage() {
         <div className="rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 p-5 text-white text-center shadow-md">
           <Heart className="h-8 w-8 mx-auto mb-2 fill-white" />
           <p className="font-bold text-lg">{t('giving.title')}</p>
+          <Link
+            to="/giving/register"
+            className="inline-flex items-center gap-1.5 mt-3 px-4 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition-colors"
+          >
+            <PlusCircle className="h-4 w-4" />
+            {isRTL ? 'تسجيل عائلة محتاجة' : 'Register a Family in Need'}
+          </Link>
           <p className="text-sm text-white/80 mt-1">{t('giving.subtitle')}</p>
         </div>
 
