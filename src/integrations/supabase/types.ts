@@ -59,6 +59,56 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_deposit_requests: {
+        Row: {
+          admin_notes: string | null
+          agent_id: string
+          amount_local: number | null
+          amount_nova: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          payment_method: string
+          payment_reference: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          agent_id: string
+          amount_local?: number | null
+          amount_nova: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          payment_method: string
+          payment_reference: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          agent_id?: string
+          amount_local?: number | null
+          amount_nova?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          payment_method?: string
+          payment_reference?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_deposit_requests_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_health_checks: {
         Row: {
           agent_function: string
@@ -155,6 +205,41 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_system_msg: boolean
+          reservation_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_system_msg?: boolean
+          reservation_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_system_msg?: boolean
+          reservation_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "agent_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_performance_metrics: {
         Row: {
           agent_function: string
@@ -199,6 +284,146 @@ export type Database = {
           time_since_last_success_minutes?: number | null
         }
         Relationships: []
+      }
+      agent_reservations: {
+        Row: {
+          agent_confirmed_at: string | null
+          agent_id: string
+          agent_user_id: string | null
+          commission_nova: number
+          commission_pct: number
+          created_at: string
+          dispute_reason: string | null
+          dispute_resolution: string | null
+          escrow_deadline: string | null
+          escrow_holder: string | null
+          expires_at: string
+          extension_minutes: number | null
+          extension_requested_by: string | null
+          extension_status: string | null
+          fiat_amount: number | null
+          fiat_currency: string | null
+          id: string
+          notes: string | null
+          nova_amount: number
+          reject_reason: string | null
+          status: string
+          type: string
+          updated_at: string
+          user_confirmed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_confirmed_at?: string | null
+          agent_id: string
+          agent_user_id?: string | null
+          commission_nova?: number
+          commission_pct?: number
+          created_at?: string
+          dispute_reason?: string | null
+          dispute_resolution?: string | null
+          escrow_deadline?: string | null
+          escrow_holder?: string | null
+          expires_at?: string
+          extension_minutes?: number | null
+          extension_requested_by?: string | null
+          extension_status?: string | null
+          fiat_amount?: number | null
+          fiat_currency?: string | null
+          id?: string
+          notes?: string | null
+          nova_amount: number
+          reject_reason?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+          user_confirmed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_confirmed_at?: string | null
+          agent_id?: string
+          agent_user_id?: string | null
+          commission_nova?: number
+          commission_pct?: number
+          created_at?: string
+          dispute_reason?: string | null
+          dispute_resolution?: string | null
+          escrow_deadline?: string | null
+          escrow_holder?: string | null
+          expires_at?: string
+          extension_minutes?: number | null
+          extension_requested_by?: string | null
+          extension_status?: string | null
+          fiat_amount?: number | null
+          fiat_currency?: string | null
+          id?: string
+          notes?: string | null
+          nova_amount?: number
+          reject_reason?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_confirmed_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_reservations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_reviews: {
+        Row: {
+          agent_id: string
+          comment: string
+          created_at: string
+          has_issue: boolean
+          id: string
+          rating: number
+          reservation_id: string
+          reviewer_id: string
+        }
+        Insert: {
+          agent_id: string
+          comment?: string
+          created_at?: string
+          has_issue?: boolean
+          id?: string
+          rating: number
+          reservation_id: string
+          reviewer_id: string
+        }
+        Update: {
+          agent_id?: string
+          comment?: string
+          created_at?: string
+          has_issue?: boolean
+          id?: string
+          rating?: number
+          reservation_id?: string
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_reviews_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_reviews_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "agent_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agent_schedules: {
         Row: {
@@ -254,6 +479,78 @@ export type Database = {
           schedule_cron?: string
           schedule_label?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      agents: {
+        Row: {
+          avg_rating: number
+          avg_response_time_seconds: number | null
+          bio: string | null
+          city: string
+          commission_pct: number
+          country: string
+          created_at: string
+          district: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          shop_name: string
+          status: string
+          total_cancellations: number
+          total_completed: number
+          total_disputes: number
+          total_reviews: number
+          trust_score: number
+          updated_at: string
+          user_id: string
+          whatsapp: string
+        }
+        Insert: {
+          avg_rating?: number
+          avg_response_time_seconds?: number | null
+          bio?: string | null
+          city?: string
+          commission_pct?: number
+          country?: string
+          created_at?: string
+          district?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          shop_name: string
+          status?: string
+          total_cancellations?: number
+          total_completed?: number
+          total_disputes?: number
+          total_reviews?: number
+          trust_score?: number
+          updated_at?: string
+          user_id: string
+          whatsapp: string
+        }
+        Update: {
+          avg_rating?: number
+          avg_response_time_seconds?: number | null
+          bio?: string | null
+          city?: string
+          commission_pct?: number
+          country?: string
+          created_at?: string
+          district?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          shop_name?: string
+          status?: string
+          total_cancellations?: number
+          total_completed?: number
+          total_disputes?: number
+          total_reviews?: number
+          trust_score?: number
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string
         }
         Relationships: []
       }
