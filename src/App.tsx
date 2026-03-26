@@ -73,6 +73,7 @@ import AgentReservationChat from "./pages/AgentReservationChat";
 import AgentDashboard from "./pages/AgentDashboard";
 import AdminAgents from "./pages/admin/AdminAgents";
 import AdminFamilies from "./pages/admin/AdminFamilies";
+import AdminCountryCodes from "./pages/admin/AdminCountryCodes";
 import Giving from "./pages/Giving";
 import FamilyRegister from "./pages/FamilyRegister";
 import DailyMissions from "./pages/DailyMissions";
@@ -188,6 +189,7 @@ const App = () => {
                             <Route path="/admin/kyc" element={<AdminGuard><AdminKYC /></AdminGuard>} />
                             <Route path="/admin/agents" element={<AdminGuard><AdminAgents /></AdminGuard>} />
                             <Route path="/admin/families" element={<AdminGuard><AdminFamilies /></AdminGuard>} />
+                            <Route path="/admin/country-codes" element={<AdminGuard><AdminCountryCodes /></AdminGuard>} />
 
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />

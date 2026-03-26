@@ -22,6 +22,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { useAgents, type AgentProfile, type AgentDetail } from '@/hooks/useAgents';
 import { useAgentReservations } from '@/hooks/useAgentReservations';
+import { ApplyAgentForm } from '@/components/agents/ApplyAgentForm';
 
 const STATUS_COLORS: Record<string, string> = {
   pending:   'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
@@ -78,18 +79,7 @@ export default function AgentsPage() {
   const [gpsActive, setGpsActive]   = useState(false);
   const [gpsCoords, setGpsCoords]   = useState<{ lat: number; lng: number } | null>(null);
 
-  // Apply-as-agent form
-  const [applyShop, setApplyShop]       = useState('');
-  const [applyWA, setApplyWA]           = useState('');
-  const [applyCountry, setApplyCountry] = useState('');
-  const [applyCity, setApplyCity]       = useState('');
-  const [applyBio, setApplyBio]         = useState('');
-  const [applying, setApplying]         = useState(false);
-  const [applyLat, setApplyLat]         = useState<number | null>(null);
-  const [applyLng, setApplyLng]         = useState<number | null>(null);
-  const [applyCities, setApplyCities]   = useState<typeof cities>([]);
-
-  // Create reservation dialog
+  // Apply-as-agent — no longer inline, use ApplyAgentForm component
   const [selectedAgent, setSelectedAgent] = useState<AgentDetail | null>(null);
   const [bookDialogOpen, setBookDialogOpen] = useState(false);
   const [bookType, setBookType]     = useState<'deposit' | 'withdraw'>('deposit');
@@ -128,22 +118,6 @@ export default function AgentsPage() {
     }
   };
 
-  const handleApplyCountryChange = async (code: string) => {
-    const found = countries.find(c => c.code === code);
-    setApplyCountry(code);
-    setApplyCity('');
-    // set WhatsApp prefix
-    if (found) setApplyWA(found.phone_code);
-    if (code) {
-      const { data } = await import('@/integrations/supabase/client').then(m =>
-        m.supabase.rpc('get_cities_by_country', { p_country_code: code })
-      );
-      setApplyCities((data as typeof cities) ?? []);
-    } else {
-      setApplyCities([]);
-    }
-  };
-
   const handleSearch = () => {
     if (!country) {
       showError(isRTL ? 'اختر البلد' : 'Select a country');
@@ -173,18 +147,6 @@ export default function AgentsPage() {
         showError(isRTL ? 'تعذّر الحصول على موقعك' : 'Could not get your location');
       },
       { timeout: 8000, maximumAge: 60000 }
-    );
-  };
-
-  const handleCaptureApplyLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setApplyLat(pos.coords.latitude);
-        setApplyLng(pos.coords.longitude);
-      },
-      () => showError(isRTL ? 'تعذّر الحصول على موقعك' : 'Could not get your location'),
-      { timeout: 8000 }
     );
   };
 
@@ -230,32 +192,6 @@ export default function AgentsPage() {
     setBookDialogOpen(false);
     fetchMyReservations();
     if (result.reservation_id) navigate(`/agents/r/${result.reservation_id}`);
-  };
-
-  const handleApply = async () => {
-    if (!applyShop.trim() || !applyWA.trim() || !applyCountry || !applyCity) {
-      showError(isRTL ? 'أكمل جميع الحقول المطلوبة' : 'Fill all required fields');
-      return;
-    }
-    setApplying(true);
-    const selectedCountry = countries.find(c => c.code === applyCountry);
-    const selectedCity    = applyCities.find(c => c.id === applyCity);
-    const result = await applyAsAgent({
-      shop_name: applyShop,
-      whatsapp:  applyWA,
-      country:   selectedCountry?.name_ar ?? applyCountry,
-      city:      selectedCity?.name_ar ?? applyCity,
-      bio:       applyBio || undefined,
-      latitude:  applyLat ?? undefined,
-      longitude: applyLng ?? undefined,
-    });
-    setApplying(false);
-    if (!result.success) {
-      showError(result.error ?? (isRTL ? 'فشل التقديم' : 'Application failed'));
-      return;
-    }
-    showSuccess(isRTL ? '✅ تم إرسال طلبك — سيراجعه الفريق' : '✅ Application submitted for review');
-    fetchMyAgentProfile();
   };
 
   const commission = selectedAgent
@@ -504,95 +440,7 @@ export default function AgentsPage() {
                 )}
               </Card>
             ) : (
-              <Card className="p-4 space-y-4">
-                <div className="text-center">
-                  <p className="text-2xl mb-1">🏪</p>
-                  <p className="font-bold text-foreground">
-                    {isRTL ? 'أصبح وكيلاً في WeNova' : 'Become a WeNova Agent'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {isRTL
-                      ? 'ساعد المستخدمين في شحن وسحب Nova واكسب عمولة على كل عملية'
-                      : 'Help users deposit/withdraw Nova and earn commission on every operation'}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Input
-                    placeholder={isRTL ? 'اسم المحل *' : 'Shop name *'}
-                    value={applyShop}
-                    onChange={(e) => setApplyShop(e.target.value)}
-                    className="h-10"
-                  />
-                  {/* Country dropdown */}
-                  <Select value={applyCountry} onValueChange={handleApplyCountryChange}>
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder={isRTL ? 'اختر البلد *' : 'Select country *'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map(c => (
-                        <SelectItem key={c.code} value={c.code}>
-                          {isRTL ? c.name_ar : c.name_en} ({c.phone_code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {/* City dropdown */}
-                  <Select
-                    value={applyCity}
-                    onValueChange={setApplyCity}
-                    disabled={applyCities.length === 0}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder={isRTL ? 'اختر المدينة *' : 'Select city *'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {applyCities.map(c => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {isRTL ? c.name_ar : c.name_en}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {/* WhatsApp with auto prefix */}
-                  <Input
-                    placeholder={isRTL ? 'رقم واتساب *' : 'WhatsApp number *'}
-                    value={applyWA}
-                    onChange={(e) => setApplyWA(e.target.value)}
-                    className="h-10"
-                    dir="ltr"
-                  />
-                  <Input
-                    placeholder={isRTL ? 'نبذة عنك (اختياري)' : 'Bio (optional)'}
-                    value={applyBio}
-                    onChange={(e) => setApplyBio(e.target.value)}
-                    className="h-10"
-                  />
-                  {/* GPS location for shop */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={`w-full h-9 text-xs gap-1.5 ${applyLat ? 'border-green-500 text-green-600' : ''}`}
-                    onClick={handleCaptureApplyLocation}
-                  >
-                    <LocateFixed className="h-3.5 w-3.5" />
-                    {applyLat
-                      ? (isRTL ? `✓ تم تحديد موقع المحل (${applyLat.toFixed(3)}, ${applyLng?.toFixed(3)})` : `✓ Location set (${applyLat.toFixed(3)}, ${applyLng?.toFixed(3)})`)
-                      : (isRTL ? 'تحديد موقع المحل 📍 (اختياري)' : 'Pin shop location 📍 (optional)')}
-                  </Button>
-                </div>
-
-                <Button
-                  className="w-full h-11 font-bold"
-                  onClick={handleApply}
-                  disabled={applying}
-                >
-                  {applying
-                    ? <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    : (isRTL ? 'قدّم طلبك الآن' : 'Submit Application')}
-                </Button>
-              </Card>
+              <ApplyAgentForm onSuccess={fetchMyAgentProfile} />
             )}
           </TabsContent>
         </Tabs>
