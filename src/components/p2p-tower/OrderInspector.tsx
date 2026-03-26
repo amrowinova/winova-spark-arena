@@ -57,20 +57,18 @@ export function OrderInspector({ open, onClose, data, loading }: Props) {
         if (error) throw error;
         toast.success('Escrow released');
       } else if (action === 'freeze_creator') {
-        await supabase.from('wallets').update({
-          is_frozen: true,
-          frozen_at: new Date().toISOString(),
-          frozen_by: user.id,
-          frozen_reason: `Admin freeze from P2P tower: order ${order.id.slice(0, 8)}`,
-        }).eq('user_id', order.creator_id);
+        const { data: fr, error: ferr } = await supabase.rpc('admin_freeze_wallet', {
+          p_target_user_id: order.creator_id,
+          p_reason: `Admin freeze from P2P tower: order ${order.id.slice(0, 8)}`,
+        });
+        if (ferr || !fr?.success) throw ferr ?? new Error(fr?.error ?? 'Freeze failed');
         toast.success('Creator wallet frozen');
       } else if (action === 'freeze_executor' && order.executor_id) {
-        await supabase.from('wallets').update({
-          is_frozen: true,
-          frozen_at: new Date().toISOString(),
-          frozen_by: user.id,
-          frozen_reason: `Admin freeze from P2P tower: order ${order.id.slice(0, 8)}`,
-        }).eq('user_id', order.executor_id);
+        const { data: fr, error: ferr } = await supabase.rpc('admin_freeze_wallet', {
+          p_target_user_id: order.executor_id,
+          p_reason: `Admin freeze from P2P tower: order ${order.id.slice(0, 8)}`,
+        });
+        if (ferr || !fr?.success) throw ferr ?? new Error(fr?.error ?? 'Freeze failed');
         toast.success('Executor wallet frozen');
       }
 

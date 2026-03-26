@@ -120,6 +120,11 @@ export async function executeTransfer(
     logActivity({ user_id: senderId, action_type: 'transfer', entity_type: 'wallet', success: true, duration_ms: Date.now() - t0, after_state: { sender_balance_after: result.sender_balance_after, recipient_balance_after: result.recipient_balance_after } as any });
     logMoneyFlow({ operation: 'transfer', from_user: senderId, to_user: recipientId, amount, currency, reference_type: referenceType, reference_id: referenceId });
 
+    // Track daily mission progress (transfer_nova) — fire-and-forget, only for Nova transfers
+    if (currency === 'nova') {
+      supabase.rpc('record_mission_progress', { p_mission_code: 'transfer_nova', p_increment: 1 }).catch(() => {});
+    }
+
     return {
       success: true,
       senderLedgerId: result.sender_ledger_id,
