@@ -1,5 +1,9 @@
-import { useState, useCallback } from 'react';
+/**
+ * useGiving — Families data + support + favorites (now stored in DB via RPC)
+ */
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface FamilyMedia {
   id: string;
@@ -27,9 +31,29 @@ export const SUPPORT_AMOUNTS = [1, 5, 10, 20] as const;
 export type SupportAmount = typeof SUPPORT_AMOUNTS[number];
 
 export function useGiving() {
+  const { user } = useAuth();
   const [families, setFamilies] = useState<Family[]>([]);
   const [loading, setLoading] = useState(false);
   const [supporting, setSupporting] = useState(false);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  // Load favorites from DB on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.rpc('get_user_favorites').then(({ data }) => {
+      if (Array.isArray(data)) setFavorites(new Set(data as string[]));
+    });
+  }, [user?.id]);
+
+  const toggleFavorite = useCallback(async (familyId: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(familyId)) next.delete(familyId); else next.add(familyId);
+      // Persist to DB (fire-and-forget)
+      void supabase.rpc('save_user_favorites', { p_family_ids: [...next] });
+      return next;
+    });
+  }, []);
 
   const fetchFamilies = useCallback(async () => {
     setLoading(true);
@@ -42,7 +66,6 @@ export function useGiving() {
 
       if (error || !fams) return;
 
-      // Fetch media for all families
       const ids = fams.map((f) => f.id);
       const { data: media } = await supabase
         .from('family_media')
@@ -55,9 +78,7 @@ export function useGiving() {
         mediaMap[m.family_id].push(m as FamilyMedia);
       });
 
-      setFamilies(
-        fams.map((f) => ({ ...f, media: mediaMap[f.id] || [] })) as Family[]
-      );
+      setFamilies(fams.map((f) => ({ ...f, media: mediaMap[f.id] || [] })) as Family[]);
     } finally {
       setLoading(false);
     }
@@ -74,12 +95,9 @@ export function useGiving() {
         if (error) return { success: false, error: error.message };
         const result = data as { success: boolean; error?: string };
         if (result.success) {
-          // Refresh totals locally
           setFamilies((prev) =>
             prev.map((f) =>
-              f.id === familyId
-                ? { ...f, total_received: f.total_received + amount }
-                : f
+              f.id === familyId ? { ...f, total_received: f.total_received + amount } : f
             )
           );
         }
@@ -93,5 +111,5 @@ export function useGiving() {
     []
   );
 
-  return { families, loading, supporting, fetchFamilies, supportFamily };
+  return { families, loading, supporting, favorites, fetchFamilies, supportFamily, toggleFavorite };
 }

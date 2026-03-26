@@ -82,9 +82,10 @@ export function useWallet() {
     }
 
     fetchWallet();
-    fetchTransactions();
     fetchLedgerEntries();
-  }, [user, fetchWallet, fetchTransactions, fetchLedgerEntries]);
+    // Note: fetchTransactions kept for backward compat but not called on mount
+    // since useWalletHistory is the canonical source for transaction history.
+  }, [user, fetchWallet, fetchLedgerEntries]);
 
   // Subscribe ONLY to ledger inserts for real-time transaction list updates.
   // Wallet balance sync (UPDATE on wallets table) is owned by UserContext

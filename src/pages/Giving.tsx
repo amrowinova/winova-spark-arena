@@ -20,21 +20,6 @@ import { useBanner } from '@/contexts/BannerContext';
 import { useGiving, SUPPORT_AMOUNTS, type Family, type SupportAmount } from '@/hooks/useGiving';
 import { PINVerifyDialog } from '@/components/security/PINVerifyDialog';
 
-const FAVORITES_KEY = 'giving_favorites';
-
-function loadFavorites(): Set<string> {
-  try {
-    const raw = localStorage.getItem(FAVORITES_KEY);
-    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-function saveFavorites(ids: Set<string>) {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...ids]));
-}
-
 function NeedBar({ score }: { score: number }) {
   const color =
     score >= 90 ? 'bg-red-500' : score >= 70 ? 'bg-orange-400' : 'bg-yellow-400';
@@ -176,27 +161,17 @@ export default function GivingPage() {
   const { success: showSuccess, error: showError } = useBanner();
   const isRTL = language === 'ar' || language === 'ur' || language === 'fa';
 
-  const { families, loading, supporting, fetchFamilies, supportFamily } = useGiving();
+  const { families, loading, supporting, favorites, fetchFamilies, supportFamily, toggleFavorite } = useGiving();
 
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [selectedAmount, setSelectedAmount] = useState<SupportAmount>(5);
   const [done, setDone] = useState(false);
-  const [favorites, setFavorites] = useState<Set<string>>(loadFavorites);
   const [tab, setTab] = useState<'all' | 'favorites'>('all');
   const [pinOpen, setPinOpen] = useState(false);
 
   useEffect(() => {
     fetchFamilies();
   }, [fetchFamilies]);
-
-  const toggleFav = (id: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      saveFavorites(next);
-      return next;
-    });
-  };
 
   // Country trends: sum total_received per country, top 5
   const countryTrends = useMemo(() => {
@@ -327,7 +302,7 @@ export default function GivingPage() {
                 isRTL={isRTL}
                 isFav={favorites.has(family.id)}
                 onSelect={setSelectedFamily}
-                onToggleFav={toggleFav}
+                onToggleFav={toggleFavorite}
               />
             ))}
           </div>
