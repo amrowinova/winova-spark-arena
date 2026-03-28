@@ -432,7 +432,7 @@ export default function ContestsPage() {
       setPrizePool(result.new_prize_pool || prizePool);
 
       // Track daily mission progress — fire-and-forget
-      supabase.rpc('record_mission_progress' as any, { p_mission_code: 'join_contest', p_increment: 1 }).catch(() => {});
+      ;(supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => Promise<unknown>)('record_mission_progress', { p_mission_code: 'join_contest', p_increment: 1 }).catch(() => {});
 
       setParticipants(prev => {
         const newParticipant: Participant = {
@@ -533,11 +533,11 @@ export default function ContestsPage() {
       logActivity({ user_id: authUser.id, action_type: 'contest_vote', entity_type: 'contest', entity_id: activeContestId, success: true, duration_ms: Date.now() - t0, after_state: { contestant: selectedParticipant.id, votes_cast: voteCount } as any });
       logMoneyFlow({ operation: 'contest_vote', from_user: authUser.id, amount: voteCount, currency: 'aura', reference_type: 'contest', reference_id: activeContestId });
 
-      // Track meal impact from votes
-      supabase.rpc('track_vote_meal_impact' as any, { p_votes_count: voteCount }).catch(() => {});
+      // Track meal impact from votes — fire-and-forget
+      ;(supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => Promise<unknown>)('track_vote_meal_impact', { p_votes_count: voteCount }).catch(() => {});
 
       // Track daily mission progress (vote_5 = cast 5 votes) — fire-and-forget
-      supabase.rpc('record_mission_progress' as any, { p_mission_code: 'vote_5', p_increment: voteCount }).catch(() => {});
+      ;(supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => Promise<unknown>)('record_mission_progress', { p_mission_code: 'vote_5', p_increment: voteCount }).catch(() => {});
 
       if (isStage1) {
         setUsedVotesStage1(prev => prev + voteCount);

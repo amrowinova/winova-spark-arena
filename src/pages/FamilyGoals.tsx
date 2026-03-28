@@ -92,7 +92,8 @@ export default function FamilyGoalsPage() {
           goal_amount: amount,
           deadline: newDeadline
         })
-        .eq('id', familyId);
+        .eq('id', familyId)
+        .eq('user_id', user!.id); // explicit ownership — defense in depth
 
       if (error) throw error;
 

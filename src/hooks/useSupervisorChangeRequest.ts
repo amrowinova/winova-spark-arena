@@ -25,7 +25,7 @@ export function useSupervisorChangeRequest() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const { data, error: rpcError } = await (supabase.rpc as any)('get_my_supervisor_requests', {
+      const { data, error: rpcError } = await (supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)('get_my_supervisor_requests', {
         p_user_id: user.id,
       });
       if (!rpcError) setRequests((data as SupervisorRequest[]) || []);
@@ -43,7 +43,7 @@ export function useSupervisorChangeRequest() {
     setSubmitting(true);
     setError(null);
     try {
-      const { data, error: rpcError } = await (supabase.rpc as any)('submit_supervisor_change_request', {
+      const { data, error: rpcError } = await (supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)('submit_supervisor_change_request', {
         p_user_id: user.id,
         p_new_referral_code: newReferralCode,
         p_reason: reason || null,

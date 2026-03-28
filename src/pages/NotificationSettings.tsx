@@ -240,30 +240,52 @@ export default function NotificationSettings() {
             </div>
             
             {localSettings.quiet_hours_enabled && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="quiet-hours-start">
-                    {isRTL ? 'وقت البدء' : 'Start Time'}
-                  </Label>
-                  <Input
-                    id="quiet-hours-start"
-                    type="time"
-                    value={localSettings.quiet_hours_start?.substring(0, 5)}
-                    onChange={(e) => handleInputChange('quiet_hours_start', e.target.value + ':00')}
-                  />
+              <>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  {isRTL
+                    ? `توقيتك المحلي (UTC${new Date().getTimezoneOffset() <= 0 ? '+' : ''}${-(new Date().getTimezoneOffset() / 60)})`
+                    : `Your local time (UTC${new Date().getTimezoneOffset() <= 0 ? '+' : ''}${-(new Date().getTimezoneOffset() / 60)})`}
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="quiet-hours-start">
+                      {isRTL ? 'وقت البدء' : 'Start Time'}
+                    </Label>
+                    <Input
+                      id="quiet-hours-start"
+                      type="time"
+                      value={localSettings.quiet_hours_start?.substring(0, 5)}
+                      onChange={(e) => {
+                        // Convert local time → UTC before storing
+                        const [h, m] = e.target.value.split(':').map(Number);
+                        const offsetMins = new Date().getTimezoneOffset();
+                        const utcMins = (h * 60 + m + offsetMins + 1440) % 1440;
+                        const utcH = String(Math.floor(utcMins / 60)).padStart(2, '0');
+                        const utcM = String(utcMins % 60).padStart(2, '0');
+                        handleInputChange('quiet_hours_start', `${utcH}:${utcM}:00`);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quiet-hours-end">
+                      {isRTL ? 'وقت الانتهاء' : 'End Time'}
+                    </Label>
+                    <Input
+                      id="quiet-hours-end"
+                      type="time"
+                      value={localSettings.quiet_hours_end?.substring(0, 5)}
+                      onChange={(e) => {
+                        const [h, m] = e.target.value.split(':').map(Number);
+                        const offsetMins = new Date().getTimezoneOffset();
+                        const utcMins = (h * 60 + m + offsetMins + 1440) % 1440;
+                        const utcH = String(Math.floor(utcMins / 60)).padStart(2, '0');
+                        const utcM = String(utcMins % 60).padStart(2, '0');
+                        handleInputChange('quiet_hours_end', `${utcH}:${utcM}:00`);
+                      }}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="quiet-hours-end">
-                    {isRTL ? 'وقت الانتهاء' : 'End Time'}
-                  </Label>
-                  <Input
-                    id="quiet-hours-end"
-                    type="time"
-                    value={localSettings.quiet_hours_end?.substring(0, 5)}
-                    onChange={(e) => handleInputChange('quiet_hours_end', e.target.value + ':00')}
-                  />
-                </div>
-              </div>
+              </>
             )}
           </div>
         </Card>

@@ -62,6 +62,12 @@ export function WinnerChoosesDialog({
       return;
     }
 
+    const pct = Number(donationPercentage);
+    if (!Number.isFinite(pct) || pct < 1 || pct > 100) {
+      showError(isRTL ? 'نسبة التبرع يجب أن تكون بين 1% و100%' : 'Donation percentage must be between 1% and 100%');
+      return;
+    }
+
     setDonating(true);
     try {
       // RPC not yet in generated types

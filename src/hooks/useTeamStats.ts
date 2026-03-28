@@ -60,7 +60,7 @@ export function useTeamStats() {
       setError(null);
 
       // Single merged RPC — falls back to 4 parallel RPCs if not available
-      const mergedResult = await (supabase.rpc as any)('get_all_team_data', { p_user_id: user.id });
+      const mergedResult = await (supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)('get_all_team_data', { p_user_id: user.id });
 
       if (!mergedResult.error && mergedResult.data) {
         const d = mergedResult.data as {

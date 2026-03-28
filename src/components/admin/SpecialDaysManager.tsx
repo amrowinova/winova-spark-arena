@@ -131,7 +131,36 @@ export function SpecialDaysManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // ── Validation ───────────────────────────────────────────────────
+    if (!formData.name.trim() || !formData.name_ar.trim()) {
+      showError(isRTL ? 'الاسم بالعربي والإنجليزي مطلوبان' : 'Both Arabic and English names are required');
+      return;
+    }
+    if (!formData.date) {
+      showError(isRTL ? 'التاريخ مطلوب' : 'Date is required');
+      return;
+    }
+    // Prevent past dates (only on new entries, not edits)
+    if (!editingDay) {
+      const today = new Date().toISOString().split('T')[0];
+      if (formData.date < today) {
+        showError(isRTL ? 'لا يمكن إضافة يوم خاص في الماضي' : 'Cannot add a special day in the past');
+        return;
+      }
+    }
+    const entryFeeVal = formData.entry_fee ? parseFloat(formData.entry_fee) : null;
+    const multiplierVal = formData.prize_multiplier ? parseFloat(formData.prize_multiplier) : null;
+    if (entryFeeVal !== null && entryFeeVal < 0) {
+      showError(isRTL ? 'رسوم الدخول يجب أن تكون 0 أو أكثر' : 'Entry fee must be 0 or more');
+      return;
+    }
+    if (multiplierVal !== null && multiplierVal <= 0) {
+      showError(isRTL ? 'مضاعف الجائزة يجب أن يكون أكبر من 0' : 'Prize multiplier must be greater than 0');
+      return;
+    }
+    // ─────────────────────────────────────────────────────────────────
+
     try {
       const submitData = {
         name: formData.name,
