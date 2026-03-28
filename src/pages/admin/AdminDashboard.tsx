@@ -287,6 +287,14 @@ export default function AdminDashboard() {
             <Button
               variant="outline"
               className="h-auto py-3 flex-col gap-1"
+              onClick={() => navigate('/admin/analytics')}
+            >
+              <BarChart3 className="w-5 h-5 text-cyan-500" />
+              <span className="text-xs">{isRTL ? 'التحليلات' : 'Analytics'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex-col gap-1"
               onClick={() => navigate('/admin/roles')}
             >
               <Shield className="w-5 h-5 text-indigo-500" />

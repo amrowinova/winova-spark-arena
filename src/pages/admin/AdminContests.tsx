@@ -36,6 +36,7 @@ import { arSA } from 'date-fns/locale';
 import { useContestConfig, saveContestConfig } from '@/hooks/useContestConfig';
 import { DEFAULT_CONTEST_CONFIG, enrichDistribution } from '@/lib/contestModel';
 import { useQueryClient } from '@tanstack/react-query';
+import { SpecialDaysManager } from '@/components/admin/SpecialDaysManager';
 
 interface Contest {
   id: string;
@@ -778,6 +779,9 @@ export default function AdminContests() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Special Days Manager */}
+      <SpecialDaysManager />
     </div>
   );
 }

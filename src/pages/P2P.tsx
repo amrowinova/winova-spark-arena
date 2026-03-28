@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { OnboardingTip } from '@/components/ui/OnboardingTip';
 import { 
   Plus, ShoppingCart, Send, ArrowLeft,
-  Star, AlertCircle, Loader2, Info
+  Star, AlertCircle, Loader2, Info, MapPin, Filter
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
@@ -23,6 +23,7 @@ import { useBanner } from '@/contexts/BannerContext';
 import { KYCStatusBanner } from '@/components/kyc/KYCStatusBanner';
 import { useP2PMarketplace, MarketplaceOrder } from '@/hooks/useP2PMarketplace';
 import { useP2PDatabase } from '@/hooks/useP2PDatabase';
+import { supabase } from '@/integrations/supabase/client';
 
 import {
   p2pParticipantFromOfferUser,
@@ -133,6 +134,14 @@ function P2PContent() {
   const [activeChatOrder, setActiveChatOrder] = useState<P2POrder | null>(null);
   const [showCompletedScreen, setShowCompletedScreen] = useState(false);
   const [isExecutingOrder, setIsExecutingOrder] = useState(false);
+  
+  // Agent system state
+  const [nearestAgents, setNearestAgents] = useState<any[]>([]);
+  const [showAgentsModal, setShowAgentsModal] = useState(false);
+  const [selectedAmount, setSelectedAmount] = useState<string>('');
+  const [customAmount, setCustomAmount] = useState<string>('');
+  const [agentsOnlyFilter, setAgentsOnlyFilter] = useState(false);
+  const [loadingAgents, setLoadingAgents] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -491,6 +500,125 @@ function P2PContent() {
     }
   };
 
+  // Agent system functions
+  const handleBuyFromNearestAgent = async () => {
+    if (!navigator.geolocation) {
+      showError(isRTL ? 'الموقع الجغرافي غير مدعوم في متصفحك' : 'Geolocation is not supported by your browser');
+      return;
+    }
+
+    setLoadingAgents(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          // Use direct SQL query instead of RPC for now
+          const { data, error } = await supabase
+            .from('agents')
+            .select('*')
+            .eq('status', 'active')
+            .not('latitude', 'is', null)
+            .not('longitude', 'is', null)
+            .limit(3);
+
+          if (error) throw error;
+          
+          // Calculate distances manually
+          const agentsWithDistance = (data || []).map((agent: any) => {
+            const distance = calculateDistance(
+              position.coords.latitude,
+              position.coords.longitude,
+              agent.latitude,
+              agent.longitude
+            );
+            return { ...agent, distance_km: distance };
+          }).sort((a, b) => a.distance_km - b.distance_km);
+
+          setNearestAgents(agentsWithDistance);
+          setShowAgentsModal(true);
+        } catch (error) {
+          console.error('Error fetching nearest agents:', error);
+          showError(isRTL ? 'حدث خطأ في البحث عن الوكلاء' : 'Error finding agents');
+        } finally {
+          setLoadingAgents(false);
+        }
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        showError(isRTL ? 'لا يمكن الحصول على موقعك الحالي' : 'Cannot get your current location');
+        setLoadingAgents(false);
+      }
+    );
+  };
+
+  // Helper function to calculate distance between two points
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const handleCreateAgentOrder = async (agent: any, amount: number) => {
+    try {
+      if (!authUser?.id) {
+        showError(isRTL ? 'يجب تسجيل الدخول أولاً' : 'You must be logged in first');
+        return;
+      }
+
+      // Use placeholder participant for agent since we don't have full User object
+      const seller = p2pPlaceholderParticipant('seller', currentCountry.name);
+      seller.id = agent.user_id;
+      seller.name = agent.shop_name;
+      seller.nameAr = agent.shop_name;
+      seller.avatar = '🏪';
+      
+      const buyer = p2pParticipantFromUser(user);
+
+      const paymentDetails = {
+        bankName: 'Agent Transfer',
+        accountNumber: agent.whatsapp,
+        accountHolder: agent.shop_name,
+        isLocked: false
+      };
+
+      const created = await createOrder({
+        type: 'buy',
+        amount,
+        price: agent.exchange_rate || currentCountry.novaRate,
+        total: amount * (agent.exchange_rate || currentCountry.novaRate),
+        currency: currentCountry.currency,
+        currencySymbol: currentCountry.currencySymbol,
+        seller,
+        buyer,
+        paymentDetails,
+      });
+
+      if (!created) {
+        showError(isRTL ? 'فشل إنشاء الطلب' : 'Order creation failed');
+        return;
+      }
+
+      showSuccess(isRTL ? 'تم إنشاء الطلب بنجاح!' : 'Order created successfully!');
+      setShowAgentsModal(false);
+      setSelectedTab('orders');
+    } catch (error) {
+      console.error('Error creating agent order:', error);
+      showError(isRTL ? 'حدث خطأ في إنشاء الطلب' : 'Error creating order');
+    }
+  };
+
+  const getAmountValue = () => {
+    if (selectedAmount === 'custom') {
+      return parseFloat(customAmount) || 0;
+    }
+    return parseFloat(selectedAmount) || 0;
+  };
+
   // Order Completed Screen
   if (showCompletedScreen && activeChatOrder) {
     return (
@@ -766,6 +894,33 @@ function P2PContent() {
 
           {/* Buy Tab - Real marketplace orders (users selling Nova, you can buy) */}
           <TabsContent value="buy" className="mt-4 space-y-3">
+            {/* Buy from nearest agent button */}
+            <Button 
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2"
+              onClick={handleBuyFromNearestAgent}
+              disabled={loadingAgents}
+            >
+              {loadingAgents ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4" />
+              )}
+              {isRTL ? 'شراء من أقرب وكيل' : 'Buy from Nearest Agent'}
+            </Button>
+
+            {/* Agents only filter */}
+            <Button 
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => setAgentsOnlyFilter(!agentsOnlyFilter)}
+            >
+              <Filter className="h-4 w-4" />
+              {agentsOnlyFilter 
+                ? (isRTL ? 'عرض كل العروض' : 'Show All Offers')
+                : (isRTL ? 'وكلاء فقط' : 'Agents Only')
+              }
+            </Button>
+
             {/* Create Buy Order Button - Always visible */}
             <Button 
               className="w-full bg-success hover:bg-success/90 text-success-foreground gap-2"
@@ -935,6 +1090,113 @@ function P2PContent() {
         onConfirm={handleConfirmSell}
         isSubmitting={isCreatingOrder}
       />
+
+      {/* Nearest Agents Modal */}
+      {showAgentsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-xl font-semibold mb-4">
+                {isRTL ? 'أقرب الوكلاء' : 'Nearest Agents'}
+              </h3>
+              
+              {nearestAgents.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  {isRTL ? 'لا يوجد وكلاء في منطقتك' : 'No agents in your area'}
+                </p>
+              ) : (
+                <div className="space-y-4 mb-4 max-h-60 overflow-y-auto">
+                  {nearestAgents.map((agent) => (
+                    <Card key={agent.id} className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold">{agent.shop_name}</h4>
+                        <span className="text-sm text-gray-500">
+                          {agent.distance_km?.toFixed(1)} {isRTL ? 'كم' : 'km'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-1">{agent.city}</p>
+                      <p className="text-sm text-gray-600 mb-1">📱 {agent.whatsapp}</p>
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm">
+                          ⭐ {agent.avg_rating?.toFixed(1)} | 🔒 {agent.trust_score}
+                        </div>
+                        <div className="text-sm font-semibold">
+                          {agent.exchange_rate ? 
+                            `${currentCountry.currencySymbol} ${agent.exchange_rate}` : 
+                            isRTL ? 'غير محدد' : 'Not set'
+                          }
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* Amount Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">
+                  {isRTL ? 'المبلغ:' : 'Amount:'}
+                </label>
+                <div className="grid grid-cols-4 gap-2 mb-2">
+                  {['10', '50', '100'].map((amount) => (
+                    <Button
+                      key={amount}
+                      variant={selectedAmount === amount ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedAmount(amount)}
+                    >
+                      {amount}
+                    </Button>
+                  ))}
+                  <Button
+                    variant={selectedAmount === 'custom' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedAmount('custom')}
+                  >
+                    {isRTL ? 'مخصص' : 'Custom'}
+                  </Button>
+                </div>
+                
+                {selectedAmount === 'custom' && (
+                  <Input
+                    type="number"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder={isRTL ? 'أدخل المبلغ' : 'Enter amount'}
+                    className="w-full"
+                  />
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    if (nearestAgents.length > 0 && getAmountValue() > 0) {
+                      handleCreateAgentOrder(nearestAgents[0], getAmountValue());
+                    } else {
+                      showError(isRTL ? 'يرجى اختيار وكيل ومبلغ صحيح' : 'Please select an agent and valid amount');
+                    }
+                  }}
+                  className="flex-1"
+                  disabled={nearestAgents.length === 0 || getAmountValue() <= 0}
+                >
+                  {isRTL ? 'إنشاء طلب شراء' : 'Create Buy Order'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAgentsModal(false);
+                    setSelectedAmount('');
+                    setCustomAmount('');
+                  }}
+                >
+                  {isRTL ? 'إلغاء' : 'Cancel'}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
       
       <BottomNav />
     </div>

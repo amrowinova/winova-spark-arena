@@ -22,6 +22,7 @@ import { LuckyLeadersCard } from '@/components/home/LuckyLeadersCard';
 import { TopWinnersCard } from '@/components/home/TopWinnersCard';
 import { ContestJoinCard } from '@/components/home/ContestJoinCard';
 import { SocialProofTicker } from '@/components/home/SocialProofTicker';
+import { LiveImpactTicker } from '@/components/home/LiveImpactTicker';
 import { getContestTiming, getSaudiDateStr } from '@/lib/contestTiming';
 import { getDeviceFingerprint } from '@/lib/deviceFingerprint';
 
@@ -428,6 +429,11 @@ export default function HomePage() {
         {/* Social Proof Ticker */}
         <motion.div variants={itemVariants}>
           <SocialProofTicker />
+        </motion.div>
+
+        {/* Live Impact Ticker */}
+        <motion.div variants={itemVariants}>
+          <LiveImpactTicker />
         </motion.div>
 
         {/* Daily Contest Card - Most prominent */}

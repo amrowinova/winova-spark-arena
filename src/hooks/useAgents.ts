@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { notificationService } from '@/lib/notificationService';
 
 export interface Country {
   id: string;
@@ -172,6 +173,23 @@ export function useAgents() {
       p_reason:   reason ?? null,
     });
     if (rpcErr) return { success: false, error: rpcErr.message };
+    
+    // Send notification if action was successful
+    if (data && (data as { success: boolean }).success) {
+      // Get agent details for notification
+      const agentDetail = await getAgentDetail(agentId);
+      if (agentDetail) {
+        if (action === 'approve') {
+          // Notify agent about approval
+          await notificationService.notifyAgentApplicationApproved({
+            userId: agentDetail.user_id,
+            shopName: agentDetail.shop_name,
+          });
+        }
+        // Could also add suspension notification here if needed
+      }
+    }
+    
     return data as { success: boolean; error?: string };
   }, []);
 

@@ -23,6 +23,7 @@ export interface Family {
   need_score: number;
   status: 'active' | 'supported' | 'pending';
   total_received: number;
+  goal_amount?: number;
   created_at: string;
   media?: FamilyMedia[];
 }

@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { logActivity, logMoneyFlow, logFailure } from '@/lib/ai/logger';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Ban, Trophy, Clock, Users, Gift, Timer, CalendarClock } from 'lucide-react';
+import { Info, Ban, Trophy, Clock, Users, Gift, Timer, CalendarClock, Heart } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
+import { LiveStream } from '@/components/contest/LiveStream';
 import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -31,6 +32,7 @@ import {
   type ContestPhase
 } from '@/lib/contestTiming';
 import { useFridayContest } from '@/hooks/useFridayContest';
+import { WinnerChoosesDialog } from '@/components/contests/WinnerChoosesDialog';
 
 // Contest Components
 import {
@@ -129,6 +131,7 @@ export default function ContestsPage() {
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+  const [winnerChoosesOpen, setWinnerChoosesOpen] = useState(false);
 
   // Phase checks
   const currentPhase = timing.currentPhase;
@@ -429,7 +432,7 @@ export default function ContestsPage() {
       setPrizePool(result.new_prize_pool || prizePool);
 
       // Track daily mission progress — fire-and-forget
-      supabase.rpc('record_mission_progress', { p_mission_code: 'join_contest', p_increment: 1 }).catch(() => {});
+      supabase.rpc('record_mission_progress' as any, { p_mission_code: 'join_contest', p_increment: 1 }).catch(() => {});
 
       setParticipants(prev => {
         const newParticipant: Participant = {
@@ -530,8 +533,11 @@ export default function ContestsPage() {
       logActivity({ user_id: authUser.id, action_type: 'contest_vote', entity_type: 'contest', entity_id: activeContestId, success: true, duration_ms: Date.now() - t0, after_state: { contestant: selectedParticipant.id, votes_cast: voteCount } as any });
       logMoneyFlow({ operation: 'contest_vote', from_user: authUser.id, amount: voteCount, currency: 'aura', reference_type: 'contest', reference_id: activeContestId });
 
+      // Track meal impact from votes
+      supabase.rpc('track_vote_meal_impact' as any, { p_votes_count: voteCount }).catch(() => {});
+
       // Track daily mission progress (vote_5 = cast 5 votes) — fire-and-forget
-      supabase.rpc('record_mission_progress', { p_mission_code: 'vote_5', p_increment: voteCount }).catch(() => {});
+      supabase.rpc('record_mission_progress' as any, { p_mission_code: 'vote_5', p_increment: voteCount }).catch(() => {});
 
       if (isStage1) {
         setUsedVotesStage1(prev => prev + voteCount);
@@ -778,25 +784,45 @@ export default function ContestsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Card className={`p-4 ${index === 0 ? 'bg-nova/10 border-nova/30' : 'bg-card'}`}>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold ${
-                          index === 0 ? 'bg-nova/20 text-nova' : 
-                          index === 1 ? 'bg-muted text-foreground' :
-                          index === 2 ? 'bg-amber-500/20 text-amber-500' :
-                          'bg-muted/50 text-muted-foreground'
-                        }`}>
-                          {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${winner.rank}`}
+                    <Card className={`p-4 border-2 ${
+                      index === 0 ? 'border-nova bg-nova/5' : 'border-muted'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                            index === 0 ? 'bg-nova text-nova-foreground' : 'bg-muted'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold">{winner.name}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {winner.country} • {winner.votes} {language === 'ar' ? 'صوت' : 'votes'}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className="font-bold">{winner.name}</p>
-                          <p className="text-xs text-muted-foreground">@{winner.username}</p>
-                        </div>
-                        <div className="text-end">
-                          <p className="font-bold text-nova">И {prizeAmount.toFixed(0)}</p>
-                          <p className="text-xs text-muted-foreground">{prizePercent}%</p>
+                        <div className="text-right">
+                          <div className="font-bold text-lg">
+                            И {prizeAmount.toLocaleString()}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {prizePercent}% {language === 'ar' ? 'من الجائزة' : 'of prize'}
+                          </p>
                         </div>
                       </div>
+                      
+                      {/* Winner Chooses Button for First Place */}
+                      {index === 0 && winner.id === authUser?.id && (
+                        <div className="mt-3 pt-3 border-t">
+                          <Button
+                            onClick={() => setWinnerChoosesOpen(true)}
+                            className="w-full gap-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600"
+                          >
+                            <Heart className="h-4 w-4" />
+                            {language === 'ar' ? 'تبرع بجزء من جائزتك' : 'Donate Part of Your Prize'}
+                          </Button>
+                        </div>
+                      )}
                     </Card>
                   </motion.div>
                 );
@@ -1128,6 +1154,13 @@ export default function ContestsPage() {
           hasJoined={hasJoined}
         />
 
+        {/* Live Stream - Top 5 Contestants */}
+        <LiveStream
+          contestId={activeContestId || ''}
+          isActive={isStage1 || isFinal}
+          stage={isStage1 ? 'stage1' : 'final'}
+        />
+
         {/* Stage-specific Info Boxes */}
         {isStage1 && (
           <motion.div
@@ -1339,6 +1372,17 @@ export default function ContestsPage() {
           receipt={selectedReceipt}
           open={receiptDialogOpen}
           onClose={() => setReceiptDialogOpen(false)}
+        />
+      )}
+
+      {/* Winner Chooses Dialog */}
+      {isResults && winners.length > 0 && winners[0]?.id === authUser?.id && (
+        <WinnerChoosesDialog
+          open={winnerChoosesOpen}
+          onClose={() => setWinnerChoosesOpen(false)}
+          contestId={activeContestId || ''}
+          prizeAmount={prizePool}
+          contestTitle={language === 'ar' ? 'مسابقة اليوم' : "Today's Contest"}
         />
       )}
 

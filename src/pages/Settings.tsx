@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { PINSetupDialog } from '@/components/security/PINSetupDialog';
+import { ChangePasswordDialog } from '@/components/security/ChangePasswordDialog';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, Lock, Shield, Eye, Bell, Wallet, ArrowLeftRight, Info,
@@ -59,6 +60,7 @@ export default function Settings() {
   const { success: showSuccess, error: showError } = useBanner();
   const { isGranted: pushGranted, isDenied: pushDenied, supported: pushSupported, requestPermission: requestPush } = usePushNotifications();
   const [pinSetupOpen, setPinSetupOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [openSections, setOpenSections] = useState<string[]>(['account']);
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
     '2fa': false,
@@ -149,7 +151,7 @@ export default function Settings() {
       titleAr: 'الحساب',
       items: [
         { id: 'accountInfo', icon: User, titleEn: 'Account Info', titleAr: 'معلومات الحساب', descriptionEn: 'Name, photo, username', descriptionAr: 'الاسم، الصورة، اسم المستخدم', type: 'link', comingSoon: true },
-        { id: 'changePassword', icon: Key, titleEn: 'Change Password', titleAr: 'تغيير كلمة المرور', type: 'link', comingSoon: true },
+        { id: 'changePassword', icon: Key, titleEn: 'Change Password', titleAr: 'تغيير كلمة المرور', type: 'link' },
         { id: 'loginMethods', icon: Smartphone, titleEn: 'Login Methods', titleAr: 'وسائل تسجيل الدخول', descriptionEn: 'Google, Apple, Email', descriptionAr: 'Google, Apple, البريد', type: 'link', comingSoon: true },
         { id: 'verifyEmail', icon: Mail, titleEn: 'Verify Email', titleAr: 'توثيق البريد الإلكتروني', type: 'link', verified: true, comingSoon: true },
         { id: 'verifyPhone', icon: Phone, titleEn: 'Verify Phone', titleAr: 'توثيق رقم الهاتف', descriptionEn: 'Optional', descriptionAr: 'اختياري', type: 'link', comingSoon: true },
@@ -193,6 +195,7 @@ export default function Settings() {
       titleEn: 'Notifications',
       titleAr: 'الإشعارات',
       items: [
+        { id: 'notificationSettings', icon: Bell, titleEn: 'Notification Settings', titleAr: 'إعدادات الإشعارات', descriptionEn: 'Manage all notification preferences', descriptionAr: 'إدارة جميع تفضيلات الإشعارات', type: 'link', route: '/settings/notifications' },
         { id: 'contestNotif', icon: Trophy, titleEn: 'Contest Notifications', titleAr: 'إشعارات المسابقات', type: 'toggle', value: true },
         { id: 'earningsNotif', icon: DollarSign, titleEn: 'Earnings & Votes', titleAr: 'الأرباح والتصويت', type: 'toggle', value: true },
         { id: 'p2pNotif', icon: ArrowLeftRight, titleEn: 'P2P Notifications', titleAr: 'إشعارات P2P', type: 'toggle', value: true },
@@ -251,6 +254,7 @@ export default function Settings() {
     
     const handleClick = () => {
       if (item.id === 'transactionPin') { setPinSetupOpen(true); return; }
+      if (item.id === 'changePassword') { setChangePasswordOpen(true); return; }
       if (!item.comingSoon && item.route) {
         navigate(item.route);
       }
@@ -390,6 +394,10 @@ export default function Settings() {
       <PINSetupDialog
         open={pinSetupOpen}
         onOpenChange={setPinSetupOpen}
+      />
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
       />
     </div>
   );

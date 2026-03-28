@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Heart, Users, MapPin, Image, Send, CheckCircle2, Loader2, Plus, X } from 'lucide-react';
+import { Heart, Users, MapPin, Image, Send, CheckCircle2, Loader2, Plus, X, Upload, Camera } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -34,26 +34,93 @@ export default function FamilyRegister() {
     contact_phone: '',
   });
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const set = (k: keyof typeof form, v: string | number) =>
     setForm((p) => ({ ...p, [k]: v }));
 
+  // Handle file upload
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    
+    // Check total photos limit
+    if (photoUrls.length + files.length > 3) {
+      showError(isRTL ? 'الحد الأقصى 3 صور' : 'Maximum 3 photos allowed');
+      return;
+    }
+
+    setUploading(true);
+    
+    try {
+      const uploadPromises = files.map(async (file) => {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          throw new Error(isRTL ? 'يرجى اختيار ملفات صور فقط' : 'Please select image files only');
+        }
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error(isRTL ? 'حجم الصورة يجب أن يكون أقل من 5 ميجابايت' : 'Image size must be less than 5MB');
+        }
+
+        // Generate unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `family-photos/${fileName}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('family-media')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('family-media')
+          .getPublicUrl(filePath);
+
+        return urlData.publicUrl;
+      });
+
+      const urls = await Promise.all(uploadPromises);
+      setPhotoUrls(prev => [...prev, ...urls]);
+      setUploadedFiles(prev => [...prev, ...files]);
+      showSuccess(isRTL ? 'تم رفع الصور بنجاح' : 'Photos uploaded successfully');
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      showError(error instanceof Error ? error.message : (isRTL ? 'فشل رفع الصور' : 'Failed to upload photos'));
+    } finally {
+      setUploading(false);
+      // Reset file input
+      event.target.value = '';
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotoUrls(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const addPhoto = () => {
     const url = newPhotoUrl.trim();
     if (!url) return;
-    if (photoUrls.length >= 5) {
-      showError(t('familyRegister.maxPhotos'));
+    if (photoUrls.length >= 3) {
+      showError(isRTL ? 'الحد الأقصى 3 صور' : 'Maximum 3 photos allowed');
       return;
     }
     setPhotoUrls((p) => [...p, url]);
     setNewPhotoUrl('');
   };
-
-  const removePhoto = (i: number) =>
-    setPhotoUrls((p) => p.filter((_, idx) => idx !== i));
 
   const handleSubmit = async () => {
     if (!form.head_name.trim() || !form.country.trim() || !form.city.trim() || !form.story.trim()) {
@@ -67,19 +134,24 @@ export default function FamilyRegister() {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.rpc('submit_family_request', {
-        p_head_name:     form.head_name.trim(),
-        p_country:       form.country.trim(),
-        p_city:          form.city.trim(),
-        p_story:         form.story.trim(),
-        p_members_count: form.members_count,
-        p_contact_phone: form.contact_phone.trim() || null,
-        p_photo_urls:    photoUrls,
-      });
+      // Insert directly into family_requests table for now
+      const { data, error } = await supabase
+        .from('family_requests')
+        .insert({
+          head_name: form.head_name.trim(),
+          country: form.country.trim(),
+          city: form.city.trim(),
+          story: form.story.trim(),
+          members_count: form.members_count,
+          contact_phone: form.contact_phone.trim() || null,
+          photo_urls: photoUrls,
+          status: 'pending',
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        })
+        .select()
+        .single();
 
       if (error) throw error;
-      const result = data as { success: boolean; error?: string };
-      if (!result.success) throw new Error(result.error);
 
       setDone(true);
       showSuccess(t('familyRegister.submitSuccess'));
@@ -212,8 +284,39 @@ export default function FamilyRegister() {
               <Label className="text-sm font-medium flex items-center gap-1.5">
                 <Image className="h-3.5 w-3.5 text-muted-foreground" />
                 {t('familyRegister.photos')}
-                <span className="text-xs text-muted-foreground font-normal">({t('familyRegister.photosMax')})</span>
+                <span className="text-xs text-muted-foreground font-normal">({isRTL ? 'الحد الأقصى 3 صور' : 'Max 3 photos'})</span>
               </Label>
+              
+              {/* File Upload Button */}
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                <input
+                  type="file"
+                  id="photo-upload"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  disabled={uploading || photoUrls.length >= 3}
+                />
+                <label
+                  htmlFor="photo-upload"
+                  className={`flex flex-col items-center justify-center cursor-pointer ${
+                    uploading || photoUrls.length >= 3 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50'
+                  } transition-colors`}
+                >
+                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm font-medium">
+                    {uploading ? (isRTL ? 'جاري الرفع...' : 'Uploading...') : 
+                     photoUrls.length >= 3 ? (isRTL ? 'تم الوصول للحد الأقصى' : 'Maximum reached') :
+                     (isRTL ? 'انقر لرفع الصور' : 'Click to upload photos')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isRTL ? 'JPG, PNG, GIF (حتى 5MB)' : 'JPG, PNG, GIF (up to 5MB)'}
+                  </p>
+                </label>
+              </div>
+
+              {/* Manual URL Input (fallback) */}
               <div className="flex gap-2">
                 <Input
                   value={newPhotoUrl}

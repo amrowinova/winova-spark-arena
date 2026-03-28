@@ -24,62 +24,78 @@ import { AppErrorBoundary } from "@/components/common/AppErrorBoundary";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import "@/lib/i18n/index";
 
-// Pages
-import Index from "./pages/Index";
-import Contests from "./pages/Contests";
-import Winners from "./pages/Winners";
-import Team from "./pages/Team";
-import Wallet from "./pages/Wallet";
-import Chat from "./pages/Chat";
-import P2P from "./pages/P2P";
-import Spotlight from "./pages/Spotlight";
-import Profile from "./pages/Profile";
-import PublicProfile from "./pages/PublicProfile";
-import Notifications from "./pages/Notifications";
-import HallOfFame from "./pages/HallOfFame";
-import LuckyLeaders from "./pages/LuckyLeaders";
-import Settings from "./pages/Settings";
-import Help from "./pages/Help";
-import NotFound from "./pages/NotFound";
-import PayUser from "./pages/PayUser";
-import ReferralLanding from "./pages/ReferralLanding";
-import Referral from "./pages/Referral";
-import ReferralLeaders from "./pages/ReferralLeaders";
+// Lazy loaded pages for better performance
+const Index = lazy(() => import("./pages/Index"));
+const Contests = lazy(() => import("./pages/Contests"));
+const Winners = lazy(() => import("./pages/Winners"));
+const Team = lazy(() => import("./pages/Team"));
+const Wallet = lazy(() => import("./pages/Wallet"));
+const Chat = lazy(() => import("./pages/Chat"));
+const P2P = lazy(() => import("./pages/P2P"));
+const Spotlight = lazy(() => import("./pages/Spotlight"));
+const Profile = lazy(() => import("./pages/Profile"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const HallOfFame = lazy(() => import("./pages/HallOfFame"));
+const LuckyLeaders = lazy(() => import("./pages/LuckyLeaders"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
+const Help = lazy(() => import("./pages/Help"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const PayUser = lazy(() => import("./pages/PayUser"));
+const ReferralLanding = lazy(() => import("./pages/ReferralLanding"));
+const Referral = lazy(() => import("./pages/Referral"));
+const ReferralLeaders = lazy(() => import("./pages/ReferralLeaders"));
+const ApplyAgent = lazy(() => import("./pages/ApplyAgent"));
+const KYCPage = lazy(() => import("./pages/KYCPage"));
+const Agents = lazy(() => import("./pages/Agents"));
+const AgentReservationChat = lazy(() => import("./pages/AgentReservationChat"));
+const AgentDashboard = lazy(() => import("./pages/AgentDashboard"));
+const Giving = lazy(() => import("./pages/Giving"));
+const MyImpact = lazy(() => import("./pages/MyImpact"));
+const FamilyRegister = lazy(() => import("./pages/FamilyRegister"));
+const FamilyThankYou = lazy(() => import("./pages/FamilyThankYou"));
+const FamilyGoals = lazy(() => import("./pages/FamilyGoals"));
+const DailyMissions = lazy(() => import("./pages/DailyMissions"));
+const CountryGoodnessWar = lazy(() => import("./pages/CountryGoodnessWar"));
 
-// Support Pages
-import SupportDashboard from "./pages/support/SupportDashboard";
-import SupportTicketDetail from "./pages/support/SupportTicketDetail";
-import SupportDisputes from "./pages/support/SupportDisputes";
-import SupportDisputeDetail from "./pages/support/SupportDisputeDetail";
-import SupportUsers from "./pages/support/SupportUsers";
-import SupportStaffRatings from "./pages/support/SupportStaffRatings";
+// Lazy loaded admin pages
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminWallets = lazy(() => import("./pages/admin/AdminWallets"));
+const AdminRoles = lazy(() => import("./pages/admin/AdminRoles"));
+const AdminProposals = lazy(() => import("./pages/admin/AdminProposals"));
+const AdminP2P = lazy(() => import("./pages/admin/AdminP2P"));
+const AdminPricing = lazy(() => import("./pages/admin/AdminPricing"));
+const AdminChangeRequests = lazy(() => import("./pages/admin/AdminChangeRequests"));
+const AdminContests = lazy(() => import("./pages/admin/AdminContests"));
+const AdminCycles = lazy(() => import("./pages/admin/AdminCycles"));
+const AdminBroadcast = lazy(() => import("./pages/admin/AdminBroadcast"));
+const AdminCommissions = lazy(() => import("./pages/admin/AdminCommissions"));
+const AdminKYC = lazy(() => import("./pages/admin/AdminKYC"));
+const AdminAgents = lazy(() => import("./pages/admin/AdminAgents"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminFamilies = lazy(() => import("./pages/admin/AdminFamilies"));
+const AdminCountryCodes = lazy(() => import("./pages/admin/AdminCountryCodes"));
 
-// Admin Pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminWallets from "./pages/admin/AdminWallets";
-import AdminRoles from "./pages/admin/AdminRoles";
-import AdminProposals from "./pages/admin/AdminProposals";
-import AdminP2P from "./pages/admin/AdminP2P";
-import AdminPricing from "./pages/admin/AdminPricing";
-import AdminChangeRequests from "./pages/admin/AdminChangeRequests";
-import AdminContests from "./pages/admin/AdminContests";
-import AdminCycles from "./pages/admin/AdminCycles";
-import AdminBroadcast from "./pages/admin/AdminBroadcast";
-import AdminCommissions from "./pages/admin/AdminCommissions";
-import AdminKYC from "./pages/admin/AdminKYC";
-import KYCPage from "./pages/KYCPage";
-import Agents from "./pages/Agents";
-import AgentReservationChat from "./pages/AgentReservationChat";
-import AgentDashboard from "./pages/AgentDashboard";
-import AdminAgents from "./pages/admin/AdminAgents";
-import AdminFamilies from "./pages/admin/AdminFamilies";
-import AdminCountryCodes from "./pages/admin/AdminCountryCodes";
-import Giving from "./pages/Giving";
-import FamilyRegister from "./pages/FamilyRegister";
-import DailyMissions from "./pages/DailyMissions";
+// Lazy loaded support pages
+const SupportDashboard = lazy(() => import("./pages/support/SupportDashboard"));
+const SupportTicketDetail = lazy(() => import("./pages/support/SupportTicketDetail"));
+const SupportDisputes = lazy(() => import("./pages/support/SupportDisputes"));
+const SupportDisputeDetail = lazy(() => import("./pages/support/SupportDisputeDetail"));
+const SupportUsers = lazy(() => import("./pages/support/SupportUsers"));
+const SupportStaffRatings = lazy(() => import("./pages/support/SupportStaffRatings"));
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
+
+import { Suspense, lazy } from "react";
+
+// Loading component for lazy loaded pages
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+  </div>
+);
 
 
 const queryClient = new QueryClient({
@@ -130,13 +146,13 @@ const App = () => {
                           <Toaster position="top-center" richColors />
                           <Routes>
                             {/* Public routes */}
-                            <Route path="/" element={<Index />} />
-                            <Route path="/hall-of-fame" element={<HallOfFame />} />
-                            <Route path="/winners" element={<Winners />} />
-                            <Route path="/help" element={<Help />} />
-                            <Route path="/user/:userId" element={<PublicProfile />} />
-                            <Route path="/pay/:username" element={<PayUser />} />
-                            <Route path="/ref/:code" element={<ReferralLanding />} />
+                            <Route path="/" element={<Suspense fallback={<PageLoader />}><Index /></Suspense>} />
+                            <Route path="/hall-of-fame" element={<Suspense fallback={<PageLoader />}><HallOfFame /></Suspense>} />
+                            <Route path="/winners" element={<Suspense fallback={<PageLoader />}><Winners /></Suspense>} />
+                            <Route path="/help" element={<Suspense fallback={<PageLoader />}><Help /></Suspense>} />
+                            <Route path="/user/:userId" element={<Suspense fallback={<PageLoader />}><PublicProfile /></Suspense>} />
+                            <Route path="/pay/:username" element={<Suspense fallback={<PageLoader />}><PayUser /></Suspense>} />
+                            <Route path="/ref/:code" element={<Suspense fallback={<PageLoader />}><ReferralLanding /></Suspense>} />
 
                             {/* Policy pages - public, no login required */}
                             <Route path="/terms" element={<Terms />} />
@@ -146,53 +162,60 @@ const App = () => {
                             <Route path="/contact" element={<Contact />} />
                             
                             {/* Protected routes - require authentication */}
-                            <Route path="/contests" element={<AuthGuard><Contests /></AuthGuard>} />
-                            <Route path="/team" element={<AuthGuard><Team /></AuthGuard>} />
-                            <Route path="/wallet" element={<AuthGuard><Wallet /></AuthGuard>} />
-                            <Route path="/chat" element={<AuthGuard><Chat /></AuthGuard>} />
-                            <Route path="/p2p" element={<AuthGuard><P2P /></AuthGuard>} />
-                            <Route path="/spotlight" element={<AuthGuard><Spotlight /></AuthGuard>} />
-                            <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
-                            <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
-                            <Route path="/lucky-leaders" element={<AuthGuard><LuckyLeaders /></AuthGuard>} />
-                            <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
-                            <Route path="/referral" element={<AuthGuard><Referral /></AuthGuard>} />
-                            <Route path="/referral-leaders" element={<AuthGuard><ReferralLeaders /></AuthGuard>} />
-                            <Route path="/kyc" element={<AuthGuard><KYCPage /></AuthGuard>} />
-                            <Route path="/agents" element={<AuthGuard><Agents /></AuthGuard>} />
-                            <Route path="/agents/r/:reservationId" element={<AuthGuard><AgentReservationChat /></AuthGuard>} />
-                            <Route path="/agent-dashboard" element={<AuthGuard><AgentDashboard /></AuthGuard>} />
-                            <Route path="/giving" element={<AuthGuard><Giving /></AuthGuard>} />
-                            <Route path="/giving/register" element={<AuthGuard><FamilyRegister /></AuthGuard>} />
-                            <Route path="/missions" element={<AuthGuard><DailyMissions /></AuthGuard>} />
+                            <Route path="/contests" element={<AuthGuard><Suspense fallback={<PageLoader />}><Contests /></Suspense></AuthGuard>} />
+                            <Route path="/team" element={<AuthGuard><Suspense fallback={<PageLoader />}><Team /></Suspense></AuthGuard>} />
+                            <Route path="/wallet" element={<AuthGuard><Suspense fallback={<PageLoader />}><Wallet /></Suspense></AuthGuard>} />
+                            <Route path="/chat" element={<AuthGuard><Suspense fallback={<PageLoader />}><Chat /></Suspense></AuthGuard>} />
+                            <Route path="/p2p" element={<AuthGuard><Suspense fallback={<PageLoader />}><P2P /></Suspense></AuthGuard>} />
+                            <Route path="/spotlight" element={<AuthGuard><Suspense fallback={<PageLoader />}><Spotlight /></Suspense></AuthGuard>} />
+                            <Route path="/profile" element={<AuthGuard><Suspense fallback={<PageLoader />}><Profile /></Suspense></AuthGuard>} />
+                            <Route path="/notifications" element={<AuthGuard><Suspense fallback={<PageLoader />}><Notifications /></Suspense></AuthGuard>} />
+                            <Route path="/lucky-leaders" element={<AuthGuard><Suspense fallback={<PageLoader />}><LuckyLeaders /></Suspense></AuthGuard>} />
+                            <Route path="/settings" element={<AuthGuard><Suspense fallback={<PageLoader />}><Settings /></Suspense></AuthGuard>} />
+                            <Route path="/settings/notifications" element={<AuthGuard><Suspense fallback={<PageLoader />}><NotificationSettings /></Suspense></AuthGuard>} />
+                            <Route path="/referral" element={<AuthGuard><Suspense fallback={<PageLoader />}><Referral /></Suspense></AuthGuard>} />
+                            <Route path="/referral-leaders" element={<AuthGuard><Suspense fallback={<PageLoader />}><ReferralLeaders /></Suspense></AuthGuard>} />
+                            <Route path="/apply-agent" element={<AuthGuard><Suspense fallback={<PageLoader />}><ApplyAgent /></Suspense></AuthGuard>} />
+                            <Route path="/kyc" element={<AuthGuard><Suspense fallback={<PageLoader />}><KYCPage /></Suspense></AuthGuard>} />
+                            <Route path="/agents" element={<AuthGuard><Suspense fallback={<PageLoader />}><Agents /></Suspense></AuthGuard>} />
+                            <Route path="/agents/r/:reservationId" element={<AuthGuard><Suspense fallback={<PageLoader />}><AgentReservationChat /></Suspense></AuthGuard>} />
+                            <Route path="/agent-dashboard" element={<AuthGuard><Suspense fallback={<PageLoader />}><AgentDashboard /></Suspense></AuthGuard>} />
+                            <Route path="/giving" element={<AuthGuard><Suspense fallback={<PageLoader />}><Giving /></Suspense></AuthGuard>} />
+                            <Route path="/my-impact" element={<AuthGuard><Suspense fallback={<PageLoader />}><MyImpact /></Suspense></AuthGuard>} />
+                            <Route path="/giving/register" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyRegister /></Suspense></AuthGuard>} />
+                            <Route path="/giving/thank-you" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyThankYou /></Suspense></AuthGuard>} />
+                            <Route path="/giving/goals" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyGoals /></Suspense></AuthGuard>} />
+                            <Route path="/missions" element={<AuthGuard><Suspense fallback={<PageLoader />}><DailyMissions /></Suspense></AuthGuard>} />
+                            <Route path="/country-goodness-war" element={<AuthGuard><Suspense fallback={<PageLoader />}><CountryGoodnessWar /></Suspense></AuthGuard>} />
 
                             {/* Support Panel routes - require support role */}
-                            <Route path="/support" element={<SupportGuard><SupportDashboard /></SupportGuard>} />
-                            <Route path="/support/ticket/:ticketId" element={<SupportGuard><SupportTicketDetail /></SupportGuard>} />
-                            <Route path="/support/disputes" element={<SupportGuard><SupportDisputes /></SupportGuard>} />
-                            <Route path="/support/disputes/:orderId" element={<SupportGuard><SupportDisputeDetail /></SupportGuard>} />
-                            <Route path="/support/users" element={<SupportGuard><SupportUsers /></SupportGuard>} />
-                            <Route path="/support/staff-ratings" element={<SupportGuard><SupportStaffRatings /></SupportGuard>} />
+                            <Route path="/support" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportDashboard /></Suspense></SupportGuard>} />
+                            <Route path="/support/ticket/:ticketId" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportTicketDetail /></Suspense></SupportGuard>} />
+                            <Route path="/support/disputes" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportDisputes /></Suspense></SupportGuard>} />
+                            <Route path="/support/disputes/:orderId" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportDisputeDetail /></Suspense></SupportGuard>} />
+                            <Route path="/support/users" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportUsers /></Suspense></SupportGuard>} />
+                            <Route path="/support/staff-ratings" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportStaffRatings /></Suspense></SupportGuard>} />
 
                             {/* Admin Panel routes - require admin role */}
-                            <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
-                            <Route path="/admin/wallets" element={<AdminGuard><AdminWallets /></AdminGuard>} />
-                            <Route path="/admin/roles" element={<AdminGuard><AdminRoles /></AdminGuard>} />
-                            <Route path="/admin/proposals" element={<AdminGuard><AdminProposals /></AdminGuard>} />
-                            <Route path="/admin/p2p" element={<AdminGuard><AdminP2P /></AdminGuard>} />
-                            <Route path="/admin/pricing" element={<AdminGuard><AdminPricing /></AdminGuard>} />
-                            <Route path="/admin/change-requests" element={<AdminGuard><AdminChangeRequests /></AdminGuard>} />
-                            <Route path="/admin/contests" element={<AdminGuard><AdminContests /></AdminGuard>} />
-                            <Route path="/admin/cycles" element={<AdminGuard><AdminCycles /></AdminGuard>} />
-                            <Route path="/admin/broadcast" element={<AdminGuard><AdminBroadcast /></AdminGuard>} />
-                            <Route path="/admin/commissions" element={<AdminGuard><AdminCommissions /></AdminGuard>} />
-                            <Route path="/admin/kyc" element={<AdminGuard><AdminKYC /></AdminGuard>} />
-                            <Route path="/admin/agents" element={<AdminGuard><AdminAgents /></AdminGuard>} />
-                            <Route path="/admin/families" element={<AdminGuard><AdminFamilies /></AdminGuard>} />
-                            <Route path="/admin/country-codes" element={<AdminGuard><AdminCountryCodes /></AdminGuard>} />
+                            <Route path="/admin" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></AdminGuard>} />
+                            <Route path="/admin/wallets" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminWallets /></Suspense></AdminGuard>} />
+                            <Route path="/admin/roles" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminRoles /></Suspense></AdminGuard>} />
+                            <Route path="/admin/proposals" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminProposals /></Suspense></AdminGuard>} />
+                            <Route path="/admin/p2p" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminP2P /></Suspense></AdminGuard>} />
+                            <Route path="/admin/pricing" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminPricing /></Suspense></AdminGuard>} />
+                            <Route path="/admin/change-requests" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminChangeRequests /></Suspense></AdminGuard>} />
+                            <Route path="/admin/contests" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminContests /></Suspense></AdminGuard>} />
+                            <Route path="/admin/cycles" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCycles /></Suspense></AdminGuard>} />
+                            <Route path="/admin/broadcast" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminBroadcast /></Suspense></AdminGuard>} />
+                            <Route path="/admin/commissions" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCommissions /></Suspense></AdminGuard>} />
+                            <Route path="/admin/kyc" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminKYC /></Suspense></AdminGuard>} />
+                            <Route path="/admin/analytics" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense></AdminGuard>} />
+                            <Route path="/admin/agents" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminAgents /></Suspense></AdminGuard>} />
+                            <Route path="/admin/families" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminFamilies /></Suspense></AdminGuard>} />
+                            <Route path="/admin/country-codes" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCountryCodes /></Suspense></AdminGuard>} />
 
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                            <Route path="*" element={<NotFound />} />
+                            <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
                           </Routes>
                         </BrowserRouter>
                       </TooltipProvider>
