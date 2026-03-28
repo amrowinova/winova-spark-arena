@@ -106,9 +106,9 @@ export default function ErrorMonitorPage() {
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    fetchErrorData();
+    await fetchErrorData();
   };
 
   const handleResolveError = async (errorId: string) => {

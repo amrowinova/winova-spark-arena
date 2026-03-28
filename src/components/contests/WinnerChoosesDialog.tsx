@@ -64,11 +64,14 @@ export function WinnerChoosesDialog({
 
     setDonating(true);
     try {
-      const { data, error } = await supabase.rpc('winner_donate_to_family' as any, {
-        p_contest_id: contestId,
-        p_family_id: selectedFamily,
-        p_donation_percentage: donationPercentage
-      });
+      // RPC not yet in generated types
+      const { data, error } = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)(
+        'winner_donate_to_family', {
+          p_contest_id: contestId,
+          p_family_id: selectedFamily,
+          p_donation_percentage: donationPercentage,
+        }
+      );
 
       if (error) {
         showError(error.message);

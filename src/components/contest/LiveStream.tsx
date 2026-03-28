@@ -57,45 +57,44 @@ export function LiveStream({ contestId, isActive, stage }: LiveStreamProps) {
     // Initial fetch
     fetchTopContestants();
 
-    // Set up real-time subscription
-    const subscription = supabase
+    // Set up real-time subscription for votes + presence (viewer count)
+    const channel = supabase
       .channel(`contest-live-${contestId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'contest_entries',
-        filter: `contest_id=eq.${contestId}`
-      }, (payload: any) => {
+        filter: `contest_id=eq.${contestId}`,
+      }, (payload: Record<string, unknown>) => {
         handleRealtimeUpdate(payload);
       })
-      .subscribe();
-
-    subscriptionRef.current = subscription;
-
-    // Update viewer count simulation
-    const viewerInterval = setInterval(() => {
-      setViewerCount(prev => {
-        const change = Math.floor(Math.random() * 20) - 10;
-        return Math.max(100, prev + change);
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        setViewerCount(Object.keys(state).length);
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsConnected(true);
+          setStreamStatus('live');
+          // Track this viewer
+          void channel.track({ online_at: new Date().toISOString() });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setIsConnected(false);
+          setStreamStatus('ended');
+        }
       });
-    }, 5000);
 
-    // Update time
+    subscriptionRef.current = channel;
+
+    // Update clock
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
-    // Simulate connection
-    setTimeout(() => {
-      setIsConnected(true);
-      setStreamStatus('live');
-    }, 2000);
 
     return () => {
       if (subscriptionRef.current) {
         supabase.removeChannel(subscriptionRef.current);
       }
-      clearInterval(viewerInterval);
       clearInterval(timeInterval);
     };
   }, [isActive, contestId]);

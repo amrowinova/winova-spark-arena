@@ -74,6 +74,7 @@ const AdminCommissions = lazy(() => import("./pages/admin/AdminCommissions"));
 const AdminKYC = lazy(() => import("./pages/admin/AdminKYC"));
 const AdminAgents = lazy(() => import("./pages/admin/AdminAgents"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const ErrorMonitor = lazy(() => import("./pages/ErrorMonitor"));
 const AdminFamilies = lazy(() => import("./pages/admin/AdminFamilies"));
 const AdminCountryCodes = lazy(() => import("./pages/admin/AdminCountryCodes"));
 
@@ -183,7 +184,7 @@ const App = () => {
                             <Route path="/giving" element={<AuthGuard><Suspense fallback={<PageLoader />}><Giving /></Suspense></AuthGuard>} />
                             <Route path="/my-impact" element={<AuthGuard><Suspense fallback={<PageLoader />}><MyImpact /></Suspense></AuthGuard>} />
                             <Route path="/giving/register" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyRegister /></Suspense></AuthGuard>} />
-                            <Route path="/giving/thank-you" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyThankYou /></Suspense></AuthGuard>} />
+                            <Route path="/giving/thank-you/:familyId" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyThankYou /></Suspense></AuthGuard>} />
                             <Route path="/giving/goals" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyGoals /></Suspense></AuthGuard>} />
                             <Route path="/missions" element={<AuthGuard><Suspense fallback={<PageLoader />}><DailyMissions /></Suspense></AuthGuard>} />
                             <Route path="/country-goodness-war" element={<AuthGuard><Suspense fallback={<PageLoader />}><CountryGoodnessWar /></Suspense></AuthGuard>} />
@@ -210,6 +211,7 @@ const App = () => {
                             <Route path="/admin/commissions" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCommissions /></Suspense></AdminGuard>} />
                             <Route path="/admin/kyc" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminKYC /></Suspense></AdminGuard>} />
                             <Route path="/admin/analytics" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense></AdminGuard>} />
+                            <Route path="/admin/error-monitor" element={<AdminGuard><Suspense fallback={<PageLoader />}><ErrorMonitor /></Suspense></AdminGuard>} />
                             <Route path="/admin/agents" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminAgents /></Suspense></AdminGuard>} />
                             <Route path="/admin/families" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminFamilies /></Suspense></AdminGuard>} />
                             <Route path="/admin/country-codes" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCountryCodes /></Suspense></AdminGuard>} />

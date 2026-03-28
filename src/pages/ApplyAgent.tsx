@@ -47,7 +47,7 @@ export default function ApplyAgentPage() {
               </h1>
               <p className="text-muted-foreground">
                 {isRTL 
-                  ? 'شكراً لتقديمك طلب成为一名 WeNova agent. سيقوم فريقنا بمراجعة طلبك والتواصل معك قريباً.'
+                  ? 'شكراً لتقديمك طلب أن تصبح وكيلاً لـ WeNova. سيقوم فريقنا بمراجعة طلبك والتواصل معك قريباً.'
                   : 'Thank you for applying to become a WeNova agent. Our team will review your application and contact you soon.'
                 }
               </p>

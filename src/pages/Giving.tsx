@@ -293,14 +293,16 @@ export default function GivingPage() {
       return;
     }
 
-    // Call the enhanced donation RPC
-    const { data, error } = await supabase.rpc('donate_to_family' as any, {
-      p_family_id: selectedFamily.id,
-      p_amount: amount,
-      p_anonymous: anonymous,
-      p_message: message || null,
-      p_donor_name: donorName || null
-    });
+    // RPC not yet in generated types
+    const { data, error } = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)(
+      'donate_to_family', {
+        p_family_id: selectedFamily.id,
+        p_amount: amount,
+        p_anonymous: anonymous,
+        p_message: message || null,
+        p_donor_name: donorName || null,
+      }
+    );
 
     if (error) {
       showError(error.message);

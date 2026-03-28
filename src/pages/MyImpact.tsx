@@ -46,14 +46,16 @@ export default function MyImpactPage() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_user_donation_impact' as any, {
-        p_user_id: user.id
-      });
+      // RPC not yet in generated types — cast to unknown first then to expected shape
+      const { data, error } = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)(
+        'get_user_donation_impact', { p_user_id: user.id }
+      );
 
       if (error) throw error;
 
-      const impactData = data[0];
-      setImpact(impactData);
+      const rows = data as Array<Record<string, unknown>>;
+      const impactData = rows?.[0] ?? null;
+      setImpact(impactData as typeof impact);
 
       // Generate share URL for total impact
       const baseUrl = window.location.origin;
