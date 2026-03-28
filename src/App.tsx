@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -88,8 +88,6 @@ const SupportStaffRatings = lazy(() => import("./pages/support/SupportStaffRatin
 
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
-
-import { Suspense, lazy } from "react";
 
 // Loading component for lazy loaded pages
 const PageLoader = () => (
