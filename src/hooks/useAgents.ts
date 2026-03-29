@@ -101,19 +101,21 @@ export function useAgents() {
   const searchAgents = useCallback(async (params: {
     country?: string;
     city?: string;
-    latitude?: number;
-    longitude?: number;
   }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: rpcErr } = await supabase.rpc('get_nearby_agents', {
-        p_country:   params.country   ?? null,
-        p_city:      params.city      ?? null,
-        p_latitude:  params.latitude  ?? null,
-        p_longitude: params.longitude ?? null,
-        p_limit:     30,
-      });
+      let query = supabase
+        .from('agents')
+        .select('id, shop_name, city, country, district, bio, status, avg_rating, trust_score, exchange_rate, commission_pct, whatsapp, user_id, completed_orders, dispute_count')
+        .eq('status', 'active')
+        .order('avg_rating', { ascending: false })
+        .limit(50);
+
+      if (params.country) query = query.ilike('country', params.country);
+      if (params.city)    query = query.ilike('city', params.city);
+
+      const { data, error: rpcErr } = await query;
       if (rpcErr) throw rpcErr;
       setAgents((data as AgentProfile[]) ?? []);
     } catch (e) {

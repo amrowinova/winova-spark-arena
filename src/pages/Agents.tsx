@@ -133,7 +133,7 @@ export default function AgentsPage() {
         setGpsCoords({ lat, lng });
         setGpsActive(true);
         setGpsLoading(false);
-        searchAgents({ latitude: lat, longitude: lng });
+        searchAgents({});
       },
       () => {
         setGpsLoading(false);
