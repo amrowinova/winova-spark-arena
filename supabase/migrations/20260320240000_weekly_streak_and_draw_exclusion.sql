@@ -65,6 +65,7 @@ $$;
 GRANT EXECUTE ON FUNCTION public.update_weekly_streaks(UUID, INTEGER) TO service_role;
 
 -- ── 3. get_team_hierarchy — add weekly_streak column ────────
+DROP FUNCTION IF EXISTS public.get_team_hierarchy(UUID, INT);
 CREATE OR REPLACE FUNCTION public.get_team_hierarchy(
   p_leader_id UUID,
   p_max_depth INT DEFAULT 5
