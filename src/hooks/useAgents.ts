@@ -1,7 +1,11 @@
-import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { notificationService } from '@/lib/notificationService';
+import { useAgents } from './useAgentsRebuilt';
+
+/**
+ * useAgents - Temporary redirect to rebuilt version
+ * This file redirects to the rebuilt useAgentsRebuilt hook
+ */
+
+export { useAgents };
 
 export interface Country {
   id: string;
