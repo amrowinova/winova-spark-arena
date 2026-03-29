@@ -227,7 +227,7 @@ export default function AgentsPage() {
                     <SelectItem value="__all__">
                       {isRTL ? '🌍 جميع الدول' : '🌍 All Countries'}
                     </SelectItem>
-                    {countries.map(c => (
+                    {countries.filter(c => !!c.code).map(c => (
                       <SelectItem key={c.code} value={c.code}>
                         {isRTL ? c.name_ar : c.name_en}
                       </SelectItem>
@@ -246,7 +246,7 @@ export default function AgentsPage() {
                     <SelectItem value="__all_cities__">
                       {isRTL ? '🏙️ جميع المدن' : '🏙️ All Cities'}
                     </SelectItem>
-                    {searchCities.map(c => (
+                    {searchCities.filter(c => !!c.id).map(c => (
                       <SelectItem key={c.id} value={c.id}>
                         {isRTL ? c.name_ar : c.name_en}
                       </SelectItem>
