@@ -525,20 +525,4 @@ EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success', false, 'error', 
 END; $$;
 
 -- ── Grants ────────────────────────────────────────────────
-GRANT EXECUTE ON FUNCTION public.apply_as_agent                TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_my_agent_profile          TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_nearby_agents             TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.get_agent_detail              TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.create_agent_reservation      TO authenticated;
-GRANT EXECUTE ON FUNCTION public.agent_respond_reservation     TO authenticated;
-GRANT EXECUTE ON FUNCTION public.confirm_agent_reservation     TO authenticated;
-GRANT EXECUTE ON FUNCTION public.cancel_agent_reservation      TO authenticated;
-GRANT EXECUTE ON FUNCTION public.raise_agent_dispute           TO authenticated;
-GRANT EXECUTE ON FUNCTION public.submit_agent_review           TO authenticated;
-GRANT EXECUTE ON FUNCTION public.rate_user_by_agent            TO authenticated;
-GRANT EXECUTE ON FUNCTION public.send_agent_message            TO authenticated;
-GRANT EXECUTE ON FUNCTION public.request_extension             TO authenticated;
-GRANT EXECUTE ON FUNCTION public.respond_extension             TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_reservation_with_messages TO authenticated;
-GRANT EXECUTE ON FUNCTION public.admin_manage_agent            TO authenticated;
-GRANT EXECUTE ON FUNCTION public.admin_resolve_agent_dispute   TO authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;

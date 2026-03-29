@@ -399,10 +399,4 @@ CREATE POLICY "agent_deposit_requests_select_own" ON public.agent_deposit_reques
 -- ============================================================
 -- 9. GRANT PERMISSIONS
 -- ============================================================
-GRANT EXECUTE ON FUNCTION public.apply_as_agent TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_active_agents TO authenticated;
-GRANT EXECUTE ON FUNCTION public.admin_get_all_agents TO authenticated;
-GRANT EXECUTE ON FUNCTION public.agent_request_deposit TO authenticated;
-GRANT EXECUTE ON FUNCTION public.admin_get_deposit_requests TO authenticated;
-GRANT EXECUTE ON FUNCTION public.admin_approve_deposit TO authenticated;
-GRANT EXECUTE ON FUNCTION public.admin_manage_agent TO authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;

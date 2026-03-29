@@ -200,14 +200,7 @@ END;
 $$;
 
 -- Grant execute permissions to authenticated users
-GRANT EXECUTE ON FUNCTION get_active_agents() TO authenticated;
-GRANT EXECUTE ON FUNCTION get_my_agent_profile() TO authenticated;
-GRANT EXECUTE ON FUNCTION agent_request_deposit(BIGINT, TEXT, TEXT) TO authenticated;
-GRANT EXECUTE ON FUNCTION get_countries() TO authenticated;
-GRANT EXECUTE ON FUNCTION get_cities_by_country(TEXT) TO authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
 
 -- Grant execute permissions to service_role for admin functions
-GRANT EXECUTE ON FUNCTION admin_get_all_agents() TO service_role;
-GRANT EXECUTE ON FUNCTION admin_get_deposit_requests(TEXT) TO service_role;
-GRANT EXECUTE ON FUNCTION admin_approve_deposit(TEXT, TEXT) TO service_role;
-GRANT EXECUTE ON FUNCTION admin_manage_agent(TEXT, TEXT) TO service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
