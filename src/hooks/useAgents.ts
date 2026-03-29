@@ -241,12 +241,7 @@ export function useAgents() {
   ): Promise<DepositRequest[]> => {
     let query = supabase
       .from('agent_deposit_requests')
-      .select(`
-        id, amount_nova, amount_local, payment_method, payment_reference,
-        admin_notes, status, created_at, completed_at, agent_id, user_id,
-        agents ( shop_name, country, city ),
-        wallets ( balance )
-      `)
+      .select('id, amount_nova, amount_local, payment_method, payment_reference, admin_notes, status, created_at, completed_at, agent_id, user_id, agents(shop_name, country, city)')
       .order('created_at', { ascending: false });
 
     if (status !== 'all') query = query.eq('status', status);
@@ -257,7 +252,6 @@ export function useAgents() {
     return ((data ?? []) as unknown[]).map((r) => {
       const row = r as Record<string, unknown>;
       const agent = row.agents as Record<string, unknown> | null;
-      const wallet = row.wallets as Record<string, unknown> | null;
       return {
         id:                row.id as string,
         agent_id:          row.agent_id as string,
@@ -272,7 +266,6 @@ export function useAgents() {
         agent_shop_name:   agent?.shop_name as string | undefined,
         agent_country:     agent?.country as string | undefined,
         agent_city:        agent?.city as string | undefined,
-        agent_balance:     wallet?.balance as number | undefined,
       } as DepositRequest;
     });
   }, []);
