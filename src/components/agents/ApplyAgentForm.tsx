@@ -155,7 +155,11 @@ export function ApplyAgentForm({ onSuccess }: ApplyAgentFormProps) {
       return;
     }
 
-    showSuccess(isRTL ? '✅ تم إرسال طلبك — سيراجعه الفريق' : '✅ Application submitted for review');
+    showSuccess(
+      isRTL 
+        ? '🎉 تم إرسال طلبك بنجاح! سيقوم فريق WINOVA بمراجعته خلال 24 ساعة. ستصلك إشعارات بتحديثات حالة الطلب.'
+        : '🎉 Application submitted successfully! The WINOVA team will review it within 24 hours. You will receive notifications about status updates.'
+    );
     onSuccess();
   };
 

@@ -1,23 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { useParams } from 'react-router-dom';
-import { Heart, Camera, Video, MessageSquare, Send, X, Upload, Play } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Heart, Camera, Video, MessageSquare, Send, X, Upload, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useBanner } from '@/contexts/BannerContext';
 import { supabase } from '@/integrations/supabase/client';
-
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50 MB
 
 interface ThankYouMessage {
   id: string;
@@ -33,7 +31,6 @@ export default function FamilyThankYouPage() {
   const { language } = useLanguage();
   const { user } = useUser();
   const { success: showSuccess, error: showError } = useBanner();
-  const { familyId } = useParams<{ familyId: string }>();
   const isRTL = language === 'ar' || language === 'ur' || language === 'fa';
 
   const [messages, setMessages] = useState<ThankYouMessage[]>([]);
@@ -43,73 +40,62 @@ export default function FamilyThankYouPage() {
   const [messageType, setMessageType] = useState<'text' | 'image' | 'video'>('text');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
-  const previewUrlRef = useRef<string>('');
   const [uploading, setUploading] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState<string>('');
 
-  // Revoke ObjectURL on unmount to prevent memory leak
   useEffect(() => {
-    return () => {
-      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
-    };
+    fetchMessages();
   }, []);
 
-  useEffect(() => {
-    if (familyId) fetchMessages();
-    else setLoading(false);
-  }, [familyId]);
-
   const fetchMessages = async () => {
-    if (!user || !familyId) return;
+    if (!user) return;
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('family_thank_you_messages')
         .select('*')
-        .eq('family_id', familyId)
+        .eq('family_id', user.id) // Assuming user is a family member
         .eq('status', 'active')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setMessages(data || []);
+      setMessages((data as ThankYouMessage[]) || []);
     } catch (error) {
+      console.error('Error fetching messages:', error);
       showError(isRTL ? 'فشل تحميل رسائل الشكر' : 'Failed to load thank you messages');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
-    const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
-
+    // Validate file type
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    
     if (!isImage && !isVideo) {
-      showError(isRTL
-        ? 'نوع الملف غير مدعوم. يُسمح فقط بـ JPG، PNG، GIF، WebP، MP4، MOV'
-        : 'Unsupported file type. Allowed: JPG, PNG, GIF, WebP, MP4, MOV');
+      showError(isRTL ? 'يرجى اختيار صورة أو فيديو' : 'Please select an image or video');
       return;
     }
 
-    const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
+    // Validate file size (10MB for images, 50MB for videos)
+    const maxSize = isImage ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
     if (file.size > maxSize) {
-      showError(isRTL
-        ? `حجم الملف كبير جداً (الحد الأقصى ${isImage ? '10' : '50'}MB)`
-        : `File too large (max ${isImage ? '10' : '50'}MB)`);
+      showError(isRTL ? `حجم الملف كبير جداً (${isImage ? '10MB' : '50MB'} max)` : 
+                 `File too large (${isImage ? '10MB' : '50MB'} max)`);
       return;
     }
 
-    // Revoke previous ObjectURL before creating new one
-    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
-
-    const url = URL.createObjectURL(file);
-    previewUrlRef.current = url;
-    setPreviewUrl(url);
     setMediaFile(file);
     setMessageType(isImage ? 'image' : 'video');
+    
+    // Create preview
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
   };
 
   const uploadMedia = async (file: File): Promise<string> => {
@@ -154,9 +140,9 @@ export default function FamilyThankYouPage() {
         setUploading(false);
       }
 
-      // Submit message using RPC — pass the actual family ID from URL params
-      const { data, error } = await supabase.rpc('submit_family_thank_you', {
-        p_family_id: familyId,
+      // Submit message using RPC
+      const { data, error } = await (supabase as any).rpc('submit_family_thank_you', {
+        p_family_id: user?.id,
         p_message_type: messageType,
         p_content: newMessage.trim() || (mediaUrl ? 'Media message' : ''),
         p_media_url: mediaUrl || null
@@ -166,8 +152,7 @@ export default function FamilyThankYouPage() {
 
       showSuccess(isRTL ? 'تم إرسال رسالة الشكر بنجاح' : 'Thank you message sent successfully');
       
-      // Reset form — revoke ObjectURL
-      if (previewUrlRef.current) { URL.revokeObjectURL(previewUrlRef.current); previewUrlRef.current = ''; }
+      // Reset form
       setNewMessage('');
       setMediaFile(null);
       setPreviewUrl('');
@@ -191,7 +176,7 @@ export default function FamilyThankYouPage() {
 
   const deleteMessage = async (messageId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('family_thank_you_messages')
         .update({ status: 'archived' })
         .eq('id', messageId);
@@ -326,7 +311,6 @@ export default function FamilyThankYouPage() {
                       variant="destructive"
                       className="absolute top-2 right-2"
                       onClick={() => {
-                        if (previewUrlRef.current) { URL.revokeObjectURL(previewUrlRef.current); previewUrlRef.current = ''; }
                         setPreviewUrl('');
                         setMediaFile(null);
                       }}

@@ -22,6 +22,17 @@ interface CountryStats {
   last_rank_update: string;
 }
 
+// Type for Supabase result
+interface ResultOne {
+  country_code: string;
+  country_name: string;
+  total_donations: number;
+  total_votes: number;
+  total_families_supported: number;
+  weekly_rank: number;
+  last_rank_update: string;
+}
+
 export default function CountryGoodnessWarPage() {
   const { language } = useLanguage();
   const { user } = useUser();
@@ -41,7 +52,7 @@ export default function CountryGoodnessWarPage() {
 
   const fetchCountryStats = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('country_goodness_stats')
         .select('*')
         .order('weekly_rank', { ascending: true })
@@ -49,16 +60,16 @@ export default function CountryGoodnessWarPage() {
 
       if (error) throw error;
 
-      const countryData = data || [];
+      const countryData = (data as ResultOne[] as CountryStats[]) || [];
       setCountries(countryData);
       setLastUpdated(new Date().toLocaleTimeString());
 
       // Find user's country
       if (user) {
         const userCountryData = countryData.find(c => 
-          c.country_code === user.country_code
+          c.country_code === user.country
         );
-        setUserCountry(userCountryData || null);
+        setUserCountry(userCountryData as CountryStats || null);
       }
     } catch (error) {
       console.error('Error fetching country stats:', error);

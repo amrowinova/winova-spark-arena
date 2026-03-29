@@ -34,7 +34,7 @@ const mainItems = [
   { icon: Trophy, path: '/winners', labelEn: 'Contest History', labelAr: 'سجل المسابقات والفائزين', emoji: '🏆' },
   { icon: ArrowLeftRight, path: '/p2p', labelEn: 'P2P', labelAr: 'P2P', emoji: '🔁' },
   { icon: Heart, path: '/giving', labelEn: 'Giving', labelAr: 'العطاء', emoji: '❤️' },
-  { icon: Store, path: '/apply-agent', labelEn: 'Become an Agent', labelAr: 'كن وكيلاً', emoji: '🏪' },
+  { icon: Store, path: '/agents', labelEn: 'Find Agents', labelAr: 'البحث عن وكلاء', emoji: '🏪' },
 ];
 
 // Secondary menu items
