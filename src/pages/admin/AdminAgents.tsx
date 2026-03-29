@@ -190,13 +190,21 @@ export default function AdminAgents() {
   }, [depositFilter, loadDeposits]);
 
   const load = useCallback(async () => {
+    console.log('AdminAgents: Loading all data...');
     setLoading(true);
-    const [agentsData] = await Promise.all([
-      getAllAgentsForAdmin(),
-      loadDeposits(),
-    ]);
-    setAllAgents(agentsData);
-    setLoading(false);
+    try {
+      const [agentsData] = await Promise.all([
+        getAllAgentsForAdmin(),
+        loadDeposits(),
+      ]);
+      console.log('AdminAgents: Agents loaded:', agentsData?.length || 0);
+      console.log('AdminAgents: Sample agent:', agentsData?.[0]);
+      setAllAgents(agentsData);
+      setLoading(false);
+    } catch (e) {
+      console.error('AdminAgents: Error loading data:', e);
+      setLoading(false);
+    }
   }, [getAllAgentsForAdmin, loadDeposits]);
 
   useEffect(() => { void load(); }, [load]);
@@ -238,12 +246,14 @@ export default function AdminAgents() {
   };
 
   const handleApprove = async (id: string) => {
+    console.log('AdminAgents: Approving agent:', id);
     setActionLoading(true);
     const result = await adminManageAgent(id, 'approve');
     if (!result.success) {
       showError(result.error ?? (isRTL ? 'فشل قبول الوكيل' : 'Failed to approve agent'));
     } else {
       showSuccess(isRTL ? '✅ تم قبول الوكيل بنجاح' : '✅ Agent approved');
+      console.log('AdminAgents: Agent approved, reloading data...');
     }
     await load();
     setActionLoading(false);

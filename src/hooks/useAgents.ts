@@ -216,12 +216,38 @@ export function useAgents() {
   }, []);
 
   const getAllAgentsForAdmin = useCallback(async (): Promise<AgentProfile[]> => {
-    const { data, error: err } = await supabase
-      .from('agents')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (err) return [];
-    return (data ?? []) as AgentProfile[];
+    console.log('getAllAgentsForAdmin: Fetching all agents for admin...');
+    try {
+      // Try the direct admin RPC first
+      const { data, error: rpcErr } = await (supabase as any).rpc('admin_get_all_agents_direct');
+      
+      if (rpcErr) {
+        console.error('getAllAgentsForAdmin: RPC Error, falling back to direct query:', rpcErr);
+        // Fallback to direct query
+        const { data: fallbackData, error: err } = await supabase
+          .from('agents')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (err) {
+          console.error('getAllAgentsForAdmin: Fallback also failed:', err);
+          return [];
+        }
+        
+        console.log('getAllAgentsForAdmin: Fallback successful, agents fetched:', fallbackData?.length || 0);
+        console.log('getAllAgentsForAdmin: Sample agent:', fallbackData?.[0]);
+        
+        return (fallbackData ?? []) as AgentProfile[];
+      }
+      
+      console.log('getAllAgentsForAdmin: RPC successful, agents fetched:', data?.length || 0);
+      console.log('getAllAgentsForAdmin: Sample agent:', data?.[0]);
+      
+      return (data ?? []) as AgentProfile[];
+    } catch (e) {
+      console.error('getAllAgentsForAdmin: Exception:', e);
+      return [];
+    }
   }, []);
 
   // ── Countries & Cities ────────────────────────────────────────────────────
