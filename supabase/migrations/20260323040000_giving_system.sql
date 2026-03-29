@@ -7,7 +7,7 @@ ALTER TYPE public.ledger_entry_type ADD VALUE IF NOT EXISTS 'giving_donation';
 
 -- ── Tables ────────────────────────────────────────────────
 
-CREATE TABLE public.families (
+CREATE TABLE IF NOT EXISTS public.families (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   nova_id        TEXT        UNIQUE NOT NULL,
   head_name      TEXT        NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE public.families (
   updated_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE public.family_media (
+CREATE TABLE IF NOT EXISTS public.family_media (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   family_id  UUID        NOT NULL REFERENCES public.families(id) ON DELETE CASCADE,
   type       TEXT        NOT NULL CHECK (type IN ('image','video')),
@@ -31,7 +31,7 @@ CREATE TABLE public.family_media (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE public.family_supports (
+CREATE TABLE IF NOT EXISTS public.family_supports (
   id           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   family_id    UUID          NOT NULL REFERENCES public.families(id) ON DELETE CASCADE,
   from_user_id UUID          NOT NULL REFERENCES public.users(id)    ON DELETE CASCADE,
