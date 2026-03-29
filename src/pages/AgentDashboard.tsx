@@ -227,9 +227,11 @@ export default function AgentDashboard() {
       showError(isRTL ? 'أدخل رقم المرجع' : 'Enter reference number');
       return;
     }
+    console.log('AgentDashboard: Requesting deposit:', { amt, depositMethod, depositRef });
     setDepositLoading(true);
     const result = await requestDeposit(amt, depositMethod, depositRef.trim());
     setDepositLoading(false);
+    console.log('AgentDashboard: Deposit request result:', result);
     if (!result.success) {
       showError(result.error ?? (isRTL ? 'فشل الطلب' : 'Request failed'));
       return;

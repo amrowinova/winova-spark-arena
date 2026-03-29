@@ -90,6 +90,7 @@ export default function AgentsPage() {
   const [booking, setBooking]       = useState(false);
 
   useEffect(() => {
+    console.log('AgentsPage: Initial load starting...');
     fetchMyAgentProfile();
     fetchMyReservations();
     fetchCountries();
@@ -97,6 +98,11 @@ export default function AgentsPage() {
     getAllActiveAgents();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Log agents data when it changes
+  useEffect(() => {
+    console.log('AgentsPage: Agents data updated:', agents);
+  }, [agents]);
 
   const handleCountryChange = async (code: string) => {
     // '__all__' means "جميع الدول"

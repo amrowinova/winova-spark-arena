@@ -168,18 +168,26 @@ export default function AdminAgents() {
   const [rejectReason, setRejectReason] = useState('');
 
   const loadDeposits = useCallback(async () => {
+    console.log('Loading deposits for filter:', depositFilter);
     const data = await adminGetDepositRequests(depositFilter);
+    console.log('Deposits loaded:', data);
     setDeposits(data);
   }, [adminGetDepositRequests, depositFilter]);
 
-  // Auto-refresh deposits every 30 seconds
+  // Auto-refresh deposits every 10 seconds for real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
+      console.log('Auto-refreshing deposits...');
       loadDeposits();
-    }, 30000); // 30 seconds
+    }, 10000); // 10 seconds for faster updates
 
     return () => clearInterval(interval);
   }, [loadDeposits]);
+
+  // Also refresh deposits when filter changes
+  useEffect(() => {
+    loadDeposits();
+  }, [depositFilter, loadDeposits]);
 
   const load = useCallback(async () => {
     setLoading(true);

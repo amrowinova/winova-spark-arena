@@ -124,15 +124,21 @@ export function useAgents() {
     }
   }, []);
 
-  // New function to get all active agents without filters
+  // New function to get all active agents without filters - using simple RPC
   const getAllActiveAgents = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: rpcErr } = await (supabase as any).rpc('get_all_active_agents');
-      if (rpcErr) throw rpcErr;
+      console.log('Fetching all active agents...');
+      const { data, error: rpcErr } = await (supabase as any).rpc('get_all_agents_json');
+      if (rpcErr) {
+        console.error('RPC Error:', rpcErr);
+        throw rpcErr;
+      }
+      console.log('Agents data received:', data);
       setAgents((data as AgentProfile[]) ?? []);
     } catch (e) {
+      console.error('Error fetching agents:', e);
       setError((e as Error).message);
     } finally {
       setLoading(false);
