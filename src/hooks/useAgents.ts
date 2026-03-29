@@ -239,8 +239,42 @@ export function useAgents() {
   const adminGetDepositRequests = useCallback(async (
     status: string = 'pending'
   ): Promise<DepositRequest[]> => {
-    const { data } = await supabase.rpc('admin_get_all_deposit_requests', { p_status: status });
-    return (data as DepositRequest[]) ?? [];
+    let query = supabase
+      .from('agent_deposit_requests')
+      .select(`
+        id, amount_nova, amount_local, payment_method, payment_reference,
+        admin_notes, status, created_at, completed_at, agent_id, user_id,
+        agents ( shop_name, country, city ),
+        wallets ( balance )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (status !== 'all') query = query.eq('status', status);
+
+    const { data, error } = await query;
+    if (error) { console.error('adminGetDepositRequests:', error); return []; }
+
+    return ((data ?? []) as unknown[]).map((r) => {
+      const row = r as Record<string, unknown>;
+      const agent = row.agents as Record<string, unknown> | null;
+      const wallet = row.wallets as Record<string, unknown> | null;
+      return {
+        id:                row.id as string,
+        agent_id:          row.agent_id as string,
+        amount_nova:       row.amount_nova as number,
+        amount_local:      row.amount_local as number | null,
+        payment_method:    row.payment_method as string,
+        payment_reference: row.payment_reference as string,
+        admin_notes:       row.admin_notes as string | null,
+        status:            row.status as DepositRequest['status'],
+        created_at:        row.created_at as string,
+        completed_at:      row.completed_at as string | null,
+        agent_shop_name:   agent?.shop_name as string | undefined,
+        agent_country:     agent?.country as string | undefined,
+        agent_city:        agent?.city as string | undefined,
+        agent_balance:     wallet?.balance as number | undefined,
+      } as DepositRequest;
+    });
   }, []);
 
   const adminApproveDeposit = useCallback(async (
