@@ -34,6 +34,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useBanner } from '@/contexts/BannerContext';
+import { useOnboarding } from '@/hooks/useOnboarding';
+import { InteractiveOnboarding } from '@/components/onboarding/InteractiveOnboarding';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -55,10 +57,11 @@ const formatBalance = (value: number): string => {
 
 export default function HomePage() {
   const { t } = useTranslation();
+  const { user } = useUser();
   const { language } = useLanguage();
+  const { shouldShowOnboarding } = useOnboarding();
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
-  const { user } = useUser();
   const { chats: p2pChats } = useP2PSafe();
   const { success: showSuccess, error: showError } = useBanner();
   const { openAuthFlow } = useAuthRequired();
@@ -435,6 +438,13 @@ export default function HomePage() {
         <motion.div variants={itemVariants}>
           <LiveImpactTicker />
         </motion.div>
+
+        {/* Interactive Onboarding - Show for new subscribers */}
+        {shouldShowOnboarding && (
+          <motion.div variants={itemVariants}>
+            <InteractiveOnboarding />
+          </motion.div>
+        )}
 
         {/* Daily Contest Card - Most prominent */}
         <motion.div variants={itemVariants}>

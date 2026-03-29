@@ -1,0 +1,10 @@
+{
+  "nav": {
+    "home": "Home",
+    "contests": "Contests",
+    "chat": "Chat",
+    "team": "Team",
+    "spotlight": "Spotlight",
+    "agents": "Agents"
+  }
+}

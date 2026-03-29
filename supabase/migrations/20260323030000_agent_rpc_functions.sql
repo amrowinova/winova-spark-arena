@@ -241,8 +241,4 @@ END;
 $$;
 
 -- ── Grants ────────────────────────────────────────────────
-GRANT EXECUTE ON FUNCTION public.apply_as_agent        TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_my_agent_profile  TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_nearby_agents     TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.create_agent_reservation TO authenticated;
-GRANT EXECUTE ON FUNCTION public.admin_manage_agent    TO authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;

@@ -43,7 +43,7 @@ import {
   P2PPaymentCard, 
   P2PSystemMessage 
 } from '@/components/p2p';
-import { P2PStatusActions } from '@/components/p2p/P2PStatusActions';
+import { VirtualizedMessageList } from '@/components/chat/VirtualizedMessageList';
 import { useBanner } from '@/contexts/BannerContext';
 
 import type { UserRank } from '@/contexts/UserContext';
@@ -1007,68 +1007,43 @@ function ChatContent() {
           )}
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-1">
-              {isTeamChat ? (
-                // Team Chat: Mixed human + system messages
-                teamContent.allContent.map((item, idx) => (
-                  item.type === 'system' ? (
-                    <SystemMessageBubble key={`sys-${item.data.id}`} message={item.data} />
-                  ) : (
-                    <div
-                      key={item.data.id}
-                      ref={(el) => {
-                        if (el) messageRefs.current.set(item.data.id, el);
-                      }}
-                      className="transition-colors duration-500 rounded-lg"
-                    >
-                      <MessageBubble
-                        message={item.data}
-                        onReply={handleReply}
-                        onForward={handleForward}
-                        onCopy={handleCopy}
-                        onDelete={handleDelete}
-                        onPin={handlePin}
-                        onReact={handleReact}
-                        onScrollToMessage={scrollToMessage}
-                        onTransactionClick={(receipt) => {
-                          setSelectedReceipt(receipt);
-                          setReceiptDialogOpen(true);
-                        }}
-                      />
-                    </div>
-                  )
-                ))
-              ) : (
-                // DM Chat: Only human messages
-                activeChat.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    ref={(el) => {
-                      if (el) messageRefs.current.set(msg.id, el);
-                    }}
-                    className="transition-colors duration-500 rounded-lg"
-                  >
-                    <MessageBubble
-                      message={msg}
-                      onReply={handleReply}
-                      onForward={handleForward}
-                      onCopy={handleCopy}
-                      onDelete={handleDelete}
-                      onPin={handlePin}
-                      onReact={handleReact}
-                      onScrollToMessage={scrollToMessage}
-                      onTransactionClick={(receipt) => {
-                        setSelectedReceipt(receipt);
-                        setReceiptDialogOpen(true);
-                      }}
-                    />
-                  </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
+          <div className="flex-1">
+            {isTeamChat ? (
+              <VirtualizedMessageList
+                messages={teamContent.allContent.filter(item => item.type !== 'system').map(item => ({
+                  id: item.data.id,
+                  userId: item.data.sender_id,
+                  username: item.data.sender_username,
+                  avatar: item.data.sender_avatar,
+                  country: item.data.sender_country || '',
+                  message: item.data.content,
+                  timestamp: new Date(item.data.created_at),
+                  isOwn: item.data.sender_id === user?.id
+                }))}
+                height={400}
+                onScrollToBottom={() => {
+                  // Scroll to bottom logic
+                }}
+              />
+            ) : (
+              <VirtualizedMessageList
+                messages={activeChat.messages.map(msg => ({
+                  id: msg.id,
+                  userId: msg.sender_id,
+                  username: msg.sender_username,
+                  avatar: msg.sender_avatar,
+                  country: msg.sender_country || '',
+                  message: msg.content,
+                  timestamp: new Date(msg.created_at),
+                  isOwn: msg.sender_id === user?.id
+                }))}
+                height={400}
+                onScrollToBottom={() => {
+                  // Scroll to bottom logic
+                }}
+              />
+            )}
+          </div>
 
           {/* Reply Bar */}
           {replyTo && (
