@@ -107,13 +107,29 @@ export function useAgents() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: rpcErr } = await supabase.rpc('get_nearby_agents', {
-        p_country:   params.country   ?? null,
-        p_city:      params.city      ?? null,
-        p_latitude:  params.latitude  ?? null,
-        p_longitude: params.longitude ?? null,
+      // Use the fixed RPC for better reliability
+      const { data, error: rpcErr } = await (supabase as any).rpc('get_nearby_agents_fixed', {
+        p_country:   params.country   || null,
+        p_city:      params.city      || null,
+        p_latitude:  params.latitude  || null,
+        p_longitude: params.longitude || null,
         p_limit:     30,
       });
+      if (rpcErr) throw rpcErr;
+      setAgents((data as AgentProfile[]) ?? []);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // New function to get all active agents without filters
+  const getAllActiveAgents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: rpcErr } = await (supabase as any).rpc('get_all_active_agents');
       if (rpcErr) throw rpcErr;
       setAgents((data as AgentProfile[]) ?? []);
     } catch (e) {
@@ -268,7 +284,7 @@ export function useAgents() {
   return {
     agents, loading, error, myAgentProfile,
     countries, cities,
-    searchAgents, getAgentDetail, applyAsAgent,
+    searchAgents, getAllActiveAgents, getAgentDetail, applyAsAgent,
     fetchMyAgentProfile, adminManageAgent, getAllAgentsForAdmin,
     fetchCountries, fetchCities,
     requestDeposit, fetchMyDepositRequests,

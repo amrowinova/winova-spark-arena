@@ -172,6 +172,15 @@ export default function AdminAgents() {
     setDeposits(data);
   }, [adminGetDepositRequests, depositFilter]);
 
+  // Auto-refresh deposits every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadDeposits();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [loadDeposits]);
+
   const load = useCallback(async () => {
     setLoading(true);
     const [agentsData] = await Promise.all([

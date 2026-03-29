@@ -63,7 +63,8 @@ export default function AgentsPage() {
   const {
     agents, loading: agentsLoading, myAgentProfile,
     countries, cities,
-    searchAgents, fetchMyAgentProfile, getAgentDetail, applyAsAgent,
+    searchAgents, getAllActiveAgents, getAgentDetail, applyAsAgent,
+    fetchMyAgentProfile, adminManageAgent, getAllAgentsForAdmin,
     fetchCountries, fetchCities,
   } = useAgents();
 
@@ -92,8 +93,8 @@ export default function AgentsPage() {
     fetchMyAgentProfile();
     fetchMyReservations();
     fetchCountries();
-    // Load all agents on mount — no country filter
-    searchAgents({});
+    // Load all active agents on mount - no filters
+    getAllActiveAgents();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -104,7 +105,7 @@ export default function AgentsPage() {
     setCity('');
     if (val) {
       const { data } = await import('@/integrations/supabase/client').then(m =>
-        m.supabase.rpc('get_cities_by_country', { p_country_code: val })
+        (m.supabase as any).rpc('get_cities_by_country', { p_country_code: val })
       );
       setSearchCities((data as typeof cities) ?? []);
     } else {
@@ -115,10 +116,15 @@ export default function AgentsPage() {
   const handleSearch = () => {
     setGpsActive(false);
     setGpsCoords(null);
-    searchAgents({
-      country: country || undefined,
-      city: city || undefined,
-    });
+    if (country || city) {
+      searchAgents({
+        country: country || undefined,
+        city: city || undefined,
+      });
+    } else {
+      // If no filters, show all active agents
+      getAllActiveAgents();
+    }
   };
 
   const handleGpsSearch = () => {
