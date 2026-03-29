@@ -39,7 +39,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation();
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('winova-language');
-    return (saved as Language) || 'ar';
+    const valid = SUPPORTED_LANGUAGES.map(l => l.code);
+    return (valid.includes(saved as Language) ? saved as Language : null) || 'ar';
   });
 
   const currentLanguage = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
