@@ -107,9 +107,9 @@ export function useAgents() {
     try {
       let query = supabase
         .from('agents')
-        .select('id, shop_name, city, country, district, bio, status, avg_rating, trust_score, exchange_rate, commission_pct, whatsapp, user_id, completed_orders, dispute_count')
+        .select('*')
         .eq('status', 'active')
-        .order('avg_rating', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(50);
 
       if (params.country) query = query.ilike('country', params.country);
