@@ -200,6 +200,8 @@ export default function AdminAgents() {
     setAdminNotes('');
     setSelectedDeposit(null);
     await loadDeposits();
+    // Refresh agents to show updated balance
+    await load();
   };
 
   const handleRejectDeposit = async () => {
