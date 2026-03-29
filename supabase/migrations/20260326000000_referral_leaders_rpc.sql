@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION get_referral_leaders(
 )
 RETURNS TABLE (
   user_id        uuid,
-  display_name   text,
+  name           text,
   avatar_url     text,
   country        text,
   referral_count bigint,
@@ -23,7 +23,7 @@ SET search_path = public
 AS $$
   SELECT
     p.user_id,
-    p.display_name,
+    p.name,
     p.avatar_url,
     p.country,
     COUNT(r.user_id) AS referral_count,
@@ -32,7 +32,7 @@ AS $$
   INNER JOIN profiles r ON r.referred_by = p.user_id
   WHERE
     (p_country IS NULL OR p.country = p_country)
-  GROUP BY p.user_id, p.display_name, p.avatar_url, p.country
+  GROUP BY p.user_id, p.name, p.avatar_url, p.country
   ORDER BY referral_count DESC
   LIMIT p_limit;
 $$;
