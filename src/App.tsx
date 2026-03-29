@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -88,8 +88,6 @@ const SupportStaffRatings = lazy(() => import("./pages/support/SupportStaffRatin
 // Policy Pages
 import { Terms, Privacy, Refund, AML, Contact } from "./pages/policies";
 
-import { Suspense, lazy } from "react";
-
 // Loading component for lazy loaded pages
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -97,12 +95,11 @@ const PageLoader = () => (
   </div>
 );
 
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,       // 30s before refetching in background
-      retry: 1,                // 1 retry on failure (not 3)
+      staleTime: 30_000,
+      retry: 1,
       refetchOnWindowFocus: false,
     },
     mutations: {
@@ -112,7 +109,6 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  // Clear React Query cache on auth state changes; clean up listener on unmount
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
@@ -123,113 +119,113 @@ const App = () => {
   }, []);
 
   return (
-  <AppErrorBoundary>
-  <QueryClientProvider client={queryClient}>
-    <LanguageProvider>
-      <AuthProvider>
-        <AuthRequiredProvider>
-          <UserProvider>
-            <NotificationProvider>
-              <BannerProvider>
-                <TransactionProvider>
-                  <P2PProvider>
-                    <SupportProvider>
-                      <TooltipProvider>
-                        <BrowserRouter>
-                          <GlobalAuthGuard />
-                          <ProfileEnsureWrapper />
-                          <ChatNotificationHandler />
-                          <PushNotificationHandler />
-                          <PushPermissionPrompt />
-                          <OnboardingFlow />
-                          <InlineBanner />
-                          <Toaster position="top-center" richColors />
-                          <Routes>
-                            {/* Public routes */}
-                            <Route path="/" element={<Suspense fallback={<PageLoader />}><Index /></Suspense>} />
-                            <Route path="/hall-of-fame" element={<Suspense fallback={<PageLoader />}><HallOfFame /></Suspense>} />
-                            <Route path="/winners" element={<Suspense fallback={<PageLoader />}><Winners /></Suspense>} />
-                            <Route path="/help" element={<Suspense fallback={<PageLoader />}><Help /></Suspense>} />
-                            <Route path="/user/:userId" element={<Suspense fallback={<PageLoader />}><PublicProfile /></Suspense>} />
-                            <Route path="/pay/:username" element={<Suspense fallback={<PageLoader />}><PayUser /></Suspense>} />
-                            <Route path="/ref/:code" element={<Suspense fallback={<PageLoader />}><ReferralLanding /></Suspense>} />
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <LanguageProvider>
+          <AuthProvider>
+            <AuthRequiredProvider>
+              <UserProvider>
+                <NotificationProvider>
+                  <BannerProvider>
+                    <TransactionProvider>
+                      <P2PProvider>
+                        <SupportProvider>
+                          <TooltipProvider>
+                            <BrowserRouter>
+                              <GlobalAuthGuard />
+                              <ProfileEnsureWrapper />
+                              <ChatNotificationHandler />
+                              <PushNotificationHandler />
+                              <PushPermissionPrompt />
+                              <OnboardingFlow />
+                              <InlineBanner />
+                              <Toaster position="top-center" richColors />
+                              <Routes>
+                                {/* Public routes */}
+                                <Route path="/" element={<Suspense fallback={<PageLoader />}><Index /></Suspense>} />
+                                <Route path="/hall-of-fame" element={<Suspense fallback={<PageLoader />}><HallOfFame /></Suspense>} />
+                                <Route path="/winners" element={<Suspense fallback={<PageLoader />}><Winners /></Suspense>} />
+                                <Route path="/help" element={<Suspense fallback={<PageLoader />}><Help /></Suspense>} />
+                                <Route path="/user/:userId" element={<Suspense fallback={<PageLoader />}><PublicProfile /></Suspense>} />
+                                <Route path="/pay/:username" element={<Suspense fallback={<PageLoader />}><PayUser /></Suspense>} />
+                                <Route path="/ref/:code" element={<Suspense fallback={<PageLoader />}><ReferralLanding /></Suspense>} />
 
-                            {/* Policy pages - public, no login required */}
-                            <Route path="/terms" element={<Terms />} />
-                            <Route path="/privacy" element={<Privacy />} />
-                            <Route path="/refund" element={<Refund />} />
-                            <Route path="/aml" element={<AML />} />
-                            <Route path="/contact" element={<Contact />} />
-                            
-                            {/* Protected routes - require authentication */}
-                            <Route path="/contests" element={<AuthGuard><Suspense fallback={<PageLoader />}><Contests /></Suspense></AuthGuard>} />
-                            <Route path="/team" element={<AuthGuard><Suspense fallback={<PageLoader />}><Team /></Suspense></AuthGuard>} />
-                            <Route path="/wallet" element={<AuthGuard><Suspense fallback={<PageLoader />}><Wallet /></Suspense></AuthGuard>} />
-                            <Route path="/chat" element={<AuthGuard><Suspense fallback={<PageLoader />}><Chat /></Suspense></AuthGuard>} />
-                            <Route path="/p2p" element={<AuthGuard><Suspense fallback={<PageLoader />}><P2P /></Suspense></AuthGuard>} />
-                            <Route path="/spotlight" element={<AuthGuard><Suspense fallback={<PageLoader />}><Spotlight /></Suspense></AuthGuard>} />
-                            <Route path="/profile" element={<AuthGuard><Suspense fallback={<PageLoader />}><Profile /></Suspense></AuthGuard>} />
-                            <Route path="/notifications" element={<AuthGuard><Suspense fallback={<PageLoader />}><Notifications /></Suspense></AuthGuard>} />
-                            <Route path="/lucky-leaders" element={<AuthGuard><Suspense fallback={<PageLoader />}><LuckyLeaders /></Suspense></AuthGuard>} />
-                            <Route path="/settings" element={<AuthGuard><Suspense fallback={<PageLoader />}><Settings /></Suspense></AuthGuard>} />
-                            <Route path="/settings/notifications" element={<AuthGuard><Suspense fallback={<PageLoader />}><NotificationSettings /></Suspense></AuthGuard>} />
-                            <Route path="/referral" element={<AuthGuard><Suspense fallback={<PageLoader />}><Referral /></Suspense></AuthGuard>} />
-                            <Route path="/referral-leaders" element={<AuthGuard><Suspense fallback={<PageLoader />}><ReferralLeaders /></Suspense></AuthGuard>} />
-                            <Route path="/apply-agent" element={<AuthGuard><Suspense fallback={<PageLoader />}><ApplyAgent /></Suspense></AuthGuard>} />
-                            <Route path="/kyc" element={<AuthGuard><Suspense fallback={<PageLoader />}><KYCPage /></Suspense></AuthGuard>} />
-                            <Route path="/agents" element={<AuthGuard><Suspense fallback={<PageLoader />}><Agents /></Suspense></AuthGuard>} />
-                            <Route path="/agents/r/:reservationId" element={<AuthGuard><Suspense fallback={<PageLoader />}><AgentReservationChat /></Suspense></AuthGuard>} />
-                            <Route path="/agent-dashboard" element={<AuthGuard><Suspense fallback={<PageLoader />}><AgentDashboard /></Suspense></AuthGuard>} />
-                            <Route path="/giving" element={<AuthGuard><Suspense fallback={<PageLoader />}><Giving /></Suspense></AuthGuard>} />
-                            <Route path="/my-impact" element={<AuthGuard><Suspense fallback={<PageLoader />}><MyImpact /></Suspense></AuthGuard>} />
-                            <Route path="/giving/register" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyRegister /></Suspense></AuthGuard>} />
-                            <Route path="/giving/thank-you" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyThankYou /></Suspense></AuthGuard>} />
-                            <Route path="/giving/goals" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyGoals /></Suspense></AuthGuard>} />
-                            <Route path="/missions" element={<AuthGuard><Suspense fallback={<PageLoader />}><DailyMissions /></Suspense></AuthGuard>} />
-                            <Route path="/country-goodness-war" element={<AuthGuard><Suspense fallback={<PageLoader />}><CountryGoodnessWar /></Suspense></AuthGuard>} />
+                                {/* Policy pages - public, no login required */}
+                                <Route path="/terms" element={<Terms />} />
+                                <Route path="/privacy" element={<Privacy />} />
+                                <Route path="/refund" element={<Refund />} />
+                                <Route path="/aml" element={<AML />} />
+                                <Route path="/contact" element={<Contact />} />
+                                
+                                {/* Protected routes - require authentication */}
+                                <Route path="/contests" element={<AuthGuard><Suspense fallback={<PageLoader />}><Contests /></Suspense></AuthGuard>} />
+                                <Route path="/team" element={<AuthGuard><Suspense fallback={<PageLoader />}><Team /></Suspense></AuthGuard>} />
+                                <Route path="/wallet" element={<AuthGuard><Suspense fallback={<PageLoader />}><Wallet /></Suspense></AuthGuard>} />
+                                <Route path="/chat" element={<AuthGuard><Suspense fallback={<PageLoader />}><Chat /></Suspense></AuthGuard>} />
+                                <Route path="/p2p" element={<AuthGuard><Suspense fallback={<PageLoader />}><P2P /></Suspense></AuthGuard>} />
+                                <Route path="/spotlight" element={<AuthGuard><Suspense fallback={<PageLoader />}><Spotlight /></Suspense></AuthGuard>} />
+                                <Route path="/profile" element={<AuthGuard><Suspense fallback={<PageLoader />}><Profile /></Suspense></AuthGuard>} />
+                                <Route path="/notifications" element={<AuthGuard><Suspense fallback={<PageLoader />}><Notifications /></Suspense></AuthGuard>} />
+                                <Route path="/lucky-leaders" element={<AuthGuard><Suspense fallback={<PageLoader />}><LuckyLeaders /></Suspense></AuthGuard>} />
+                                <Route path="/settings" element={<AuthGuard><Suspense fallback={<PageLoader />}><Settings /></Suspense></AuthGuard>} />
+                                <Route path="/settings/notifications" element={<AuthGuard><Suspense fallback={<PageLoader />}><NotificationSettings /></Suspense></AuthGuard>} />
+                                <Route path="/referral" element={<AuthGuard><Suspense fallback={<PageLoader />}><Referral /></Suspense></AuthGuard>} />
+                                <Route path="/referral-leaders" element={<AuthGuard><Suspense fallback={<PageLoader />}><ReferralLeaders /></Suspense></AuthGuard>} />
+                                <Route path="/apply-agent" element={<AuthGuard><Suspense fallback={<PageLoader />}><ApplyAgent /></Suspense></AuthGuard>} />
+                                <Route path="/kyc" element={<AuthGuard><Suspense fallback={<PageLoader />}><KYCPage /></Suspense></AuthGuard>} />
+                                <Route path="/agents" element={<AuthGuard><Suspense fallback={<PageLoader />}><Agents /></Suspense></AuthGuard>} />
+                                <Route path="/agents/r/:reservationId" element={<AuthGuard><Suspense fallback={<PageLoader />}><AgentReservationChat /></Suspense></AuthGuard>} />
+                                <Route path="/agent-dashboard" element={<AuthGuard><Suspense fallback={<PageLoader />}><AgentDashboard /></Suspense></AuthGuard>} />
+                                <Route path="/giving" element={<AuthGuard><Suspense fallback={<PageLoader />}><Giving /></Suspense></AuthGuard>} />
+                                <Route path="/my-impact" element={<AuthGuard><Suspense fallback={<PageLoader />}><MyImpact /></Suspense></AuthGuard>} />
+                                <Route path="/giving/register" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyRegister /></Suspense></AuthGuard>} />
+                                <Route path="/giving/thank-you" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyThankYou /></Suspense></AuthGuard>} />
+                                <Route path="/giving/goals" element={<AuthGuard><Suspense fallback={<PageLoader />}><FamilyGoals /></Suspense></AuthGuard>} />
+                                <Route path="/missions" element={<AuthGuard><Suspense fallback={<PageLoader />}><DailyMissions /></Suspense></AuthGuard>} />
+                                <Route path="/country-goodness-war" element={<AuthGuard><Suspense fallback={<PageLoader />}><CountryGoodnessWar /></Suspense></AuthGuard>} />
 
-                            {/* Support Panel routes - require support role */}
-                            <Route path="/support" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportDashboard /></Suspense></SupportGuard>} />
-                            <Route path="/support/ticket/:ticketId" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportTicketDetail /></Suspense></SupportGuard>} />
-                            <Route path="/support/disputes" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportDisputes /></Suspense></SupportGuard>} />
-                            <Route path="/support/disputes/:orderId" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportDisputeDetail /></Suspense></SupportGuard>} />
-                            <Route path="/support/users" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportUsers /></Suspense></SupportGuard>} />
-                            <Route path="/support/staff-ratings" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportStaffRatings /></Suspense></SupportGuard>} />
+                                {/* Support Panel routes - require support role */}
+                                <Route path="/support" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportDashboard /></Suspense></SupportGuard>} />
+                                <Route path="/support/ticket/:ticketId" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportTicketDetail /></Suspense></SupportGuard>} />
+                                <Route path="/support/disputes" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportDisputes /></Suspense></SupportGuard>} />
+                                <Route path="/support/disputes/:orderId" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportDisputeDetail /></Suspense></SupportGuard>} />
+                                <Route path="/support/users" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportUsers /></Suspense></SupportGuard>} />
+                                <Route path="/support/staff-ratings" element={<SupportGuard><Suspense fallback={<PageLoader />}><SupportStaffRatings /></Suspense></SupportGuard>} />
 
-                            {/* Admin Panel routes - require admin role */}
-                            <Route path="/admin" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></AdminGuard>} />
-                            <Route path="/admin/wallets" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminWallets /></Suspense></AdminGuard>} />
-                            <Route path="/admin/roles" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminRoles /></Suspense></AdminGuard>} />
-                            <Route path="/admin/proposals" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminProposals /></Suspense></AdminGuard>} />
-                            <Route path="/admin/p2p" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminP2P /></Suspense></AdminGuard>} />
-                            <Route path="/admin/pricing" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminPricing /></Suspense></AdminGuard>} />
-                            <Route path="/admin/change-requests" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminChangeRequests /></Suspense></AdminGuard>} />
-                            <Route path="/admin/contests" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminContests /></Suspense></AdminGuard>} />
-                            <Route path="/admin/cycles" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCycles /></Suspense></AdminGuard>} />
-                            <Route path="/admin/broadcast" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminBroadcast /></Suspense></AdminGuard>} />
-                            <Route path="/admin/commissions" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCommissions /></Suspense></AdminGuard>} />
-                            <Route path="/admin/kyc" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminKYC /></Suspense></AdminGuard>} />
-                            <Route path="/admin/analytics" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense></AdminGuard>} />
-                            <Route path="/admin/agents" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminAgents /></Suspense></AdminGuard>} />
-                            <Route path="/admin/families" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminFamilies /></Suspense></AdminGuard>} />
-                            <Route path="/admin/country-codes" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCountryCodes /></Suspense></AdminGuard>} />
+                                {/* Admin Panel routes - require admin role */}
+                                <Route path="/admin" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></AdminGuard>} />
+                                <Route path="/admin/wallets" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminWallets /></Suspense></AdminGuard>} />
+                                <Route path="/admin/roles" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminRoles /></Suspense></AdminGuard>} />
+                                <Route path="/admin/proposals" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminProposals /></Suspense></AdminGuard>} />
+                                <Route path="/admin/p2p" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminP2P /></Suspense></AdminGuard>} />
+                                <Route path="/admin/pricing" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminPricing /></Suspense></AdminGuard>} />
+                                <Route path="/admin/change-requests" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminChangeRequests /></Suspense></AdminGuard>} />
+                                <Route path="/admin/contests" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminContests /></Suspense></AdminGuard>} />
+                                <Route path="/admin/cycles" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCycles /></Suspense></AdminGuard>} />
+                                <Route path="/admin/broadcast" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminBroadcast /></Suspense></AdminGuard>} />
+                                <Route path="/admin/commissions" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCommissions /></Suspense></AdminGuard>} />
+                                <Route path="/admin/kyc" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminKYC /></Suspense></AdminGuard>} />
+                                <Route path="/admin/analytics" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense></AdminGuard>} />
+                                <Route path="/admin/agents" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminAgents /></Suspense></AdminGuard>} />
+                                <Route path="/admin/families" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminFamilies /></Suspense></AdminGuard>} />
+                                <Route path="/admin/country-codes" element={<AdminGuard><Suspense fallback={<PageLoader />}><AdminCountryCodes /></Suspense></AdminGuard>} />
 
-                            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                            <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
-                          </Routes>
-                        </BrowserRouter>
-                      </TooltipProvider>
-                    </SupportProvider>
-                  </P2PProvider>
-                </TransactionProvider>
-              </BannerProvider>
-            </NotificationProvider>
-          </UserProvider>
-        </AuthRequiredProvider>
-      </AuthProvider>
-    </LanguageProvider>
-  </QueryClientProvider>
-  </AppErrorBoundary>
+                                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                                <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
+                              </Routes>
+                            </BrowserRouter>
+                          </TooltipProvider>
+                        </SupportProvider>
+                      </P2PProvider>
+                    </TransactionProvider>
+                  </BannerProvider>
+                </NotificationProvider>
+              </UserProvider>
+            </AuthRequiredProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   );
 };
 

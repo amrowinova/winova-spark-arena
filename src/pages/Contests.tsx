@@ -6,10 +6,20 @@ import { Info, Ban, Trophy, Clock, Users, Gift, Timer, CalendarClock, Heart } fr
 import { InnerPageHeader } from '@/components/layout/InnerPageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { ReceiptDialog } from '@/components/common/ReceiptCard';
 import { LiveStream } from '@/components/contest/LiveStream';
+import { VoteRacing } from '@/components/contest/VoteRacing';
+import { LiveFeed } from '@/components/contest/LiveFeed';
+import { PowerUpsPanel } from '@/components/contest/PowerUpsPanel';
+import { MysteryBoxes } from '@/components/contest/MysteryBoxes';
+import { WinnersReveal } from '@/components/contest/WinnersReveal';
+import { TemporaryHallOfFame } from '@/components/contest/TemporaryHallOfFame';
+import { ContestStatistics } from '@/components/contest/ContestStatistics';
+import { useTieBreaker } from '@/hooks/useTieBreaker';
+import { useContestPowerUps } from '@/hooks/useContestPowerUps';
 import { useUser } from '@/contexts/UserContext';
 import { useTransactions, Receipt } from '@/contexts/TransactionContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -63,6 +73,7 @@ interface Winner {
   prize: number;
   votes: number;
   country: string;
+  avatar: string;
 }
 
 const formatBalance = (value: number): string => {
@@ -79,6 +90,8 @@ export default function ContestsPage() {
   const { user, spendAura, spendNova } = useUser();
   const { createTransaction } = useTransactions();
   const { success: showSuccess, error: showError } = useBanner();
+  
+  const isRTL = language === 'ar' || language === 'ur' || language === 'fa';
 
   // Friday Free Contest
   const { fridayContest, joining: fridayJoining, isFridayKSA, isTomorrowFridayKSA, joinFridayContest } = useFridayContest();
@@ -132,6 +145,51 @@ export default function ContestsPage() {
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [winnerChoosesOpen, setWinnerChoosesOpen] = useState(false);
+  
+  // Winners reveal state
+  const [showWinnersReveal, setShowWinnersReveal] = useState(false);
+  const [showHallOfFame, setShowHallOfFame] = useState(false);
+  const [showMysteryBoxes, setShowMysteryBoxes] = useState(false);
+  const [showStatistics, setShowStatistics] = useState(false);
+  
+  // Tie breaker state
+  const tiedParticipants = winners.filter(w => {
+    // Check for ties in top 3 ranks
+    const sameRank = winners.filter(winner => winner.rank === w.rank);
+    return w.rank <= 3 && sameRank.length > 1;
+  });
+  
+  const {
+    needsTieBreaker: tieBreakerNeeded,
+    activeRound,
+    timeRemaining: tieBreakTimeRemaining,
+    isVoting: tieBreakerVoting,
+    startTieBreaker,
+    voteInTieBreaker,
+    completeTieBreaker
+  } = useTieBreaker({
+    contestId: activeContestId || '',
+    tiedParticipants,
+    isRTL,
+    onTieBreakComplete: (winnerId) => {
+      // Update winners after tie break
+      showSuccess(
+        isRTL 
+          ? '🎉 تم حسم التعادل بنجاح!'
+          : '🎉 Tie break completed successfully!'
+      );
+    }
+  });
+  
+  // Power-ups hook (moved after state initialization)
+  const { 
+    detectMomentum, 
+    hasAvailablePowerUps 
+  } = useContestPowerUps({ 
+    contestId: activeContestId || '', 
+    participantId: selectedParticipant?.id,
+    isRTL 
+  });
 
   // Phase checks
   const currentPhase = timing.currentPhase;
@@ -141,6 +199,30 @@ export default function ContestsPage() {
   const isFinal = currentPhase === 'final';
   const isResults = currentPhase === 'results';
   const entryFee = 10;
+
+  // Show mystery boxes 3 minutes before contest ends
+  useEffect(() => {
+    if (isStage1 || isFinal) {
+      const timeUntilEnd = timing.timeRemaining;
+      if (timeUntilEnd <= 180000 && timeUntilEnd > 0) { // 3 minutes in milliseconds
+        setShowMysteryBoxes(true);
+      }
+    }
+  }, [timing, isStage1, isFinal]);
+
+  // Trigger winners reveal when contest ends
+  useEffect(() => {
+    if (isResults && winners.length > 0) {
+      setShowWinnersReveal(true);
+      setShowMysteryBoxes(false);
+    }
+  }, [isResults, winners]);
+
+  // Calculate prize distribution
+  const getPrizeDistribution = () => {
+    if (prizePool === 0) return [0, 0, 0, 0, 0];
+    return PRIZE_DISTRIBUTION.map(percentage => Math.floor(prizePool * percentage / 100));
+  };
 
   // Update timing every second — stop when results are live (no countdown needed)
   useEffect(() => {
@@ -432,7 +514,7 @@ export default function ContestsPage() {
       setPrizePool(result.new_prize_pool || prizePool);
 
       // Track daily mission progress — fire-and-forget
-      supabase.rpc('record_mission_progress' as any, { p_mission_code: 'join_contest', p_increment: 1 }).catch(() => {});
+      supabase.rpc('record_mission_progress' as any, { p_mission_code: 'join_contest', p_increment: 1 }).match(() => {});
 
       setParticipants(prev => {
         const newParticipant: Participant = {
@@ -534,10 +616,15 @@ export default function ContestsPage() {
       logMoneyFlow({ operation: 'contest_vote', from_user: authUser.id, amount: voteCount, currency: 'aura', reference_type: 'contest', reference_id: activeContestId });
 
       // Track meal impact from votes
-      supabase.rpc('track_vote_meal_impact' as any, { p_votes_count: voteCount }).catch(() => {});
+      supabase.rpc('track_vote_meal_impact' as any, { p_votes_count: voteCount }).match(() => {});
 
       // Track daily mission progress (vote_5 = cast 5 votes) — fire-and-forget
-      supabase.rpc('record_mission_progress' as any, { p_mission_code: 'vote_5', p_increment: voteCount }).catch(() => {});
+      supabase.rpc('record_mission_progress' as any, { p_mission_code: 'vote_5', p_increment: voteCount }).match(() => {});
+
+      // Detect momentum for power-ups
+      if (authUser) {
+        detectMomentum(authUser.id, selectedParticipant.id);
+      }
 
       if (isStage1) {
         setUsedVotesStage1(prev => prev + voteCount);
@@ -1154,12 +1241,271 @@ export default function ContestsPage() {
           hasJoined={hasJoined}
         />
 
+        {/* Vote Racing - Live Vote Progress */}
+        {(isStage1 || isFinal) && participants.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <VoteRacing
+              participants={participants}
+              isRTL={isRTL}
+              onRankChange={(oldRank, newRank, participant) => {
+                // Show notification for rank changes
+                const change = newRank - oldRank;
+                if (change < 0) { // Improved rank
+                  showSuccess(
+                    isRTL 
+                      ? `🎉 ${participant.name} يتقدم إلى المركز ${newRank}!`
+                      : `🎉 ${participant.name} advances to rank ${newRank}!`
+                  );
+                }
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* Live Feed - Real-time Updates */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <LiveFeed
+            isRTL={isRTL}
+            participants={participants}
+          />
+        </motion.div>
+
         {/* Live Stream - Top 5 Contestants */}
         <LiveStream
           contestId={activeContestId || ''}
           isActive={isStage1 || isFinal}
           stage={isStage1 ? 'stage1' : 'final'}
         />
+
+        {/* Power-ups Panel - Free and Fair */}
+        {(isStage1 || isFinal) && hasJoined && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <PowerUpsPanel
+              contestId={activeContestId || ''}
+              participantId={selectedParticipant?.id}
+              isRTL={isRTL}
+              onPowerUpUsed={(type) => {
+                showSuccess(
+                  isRTL 
+                    ? `🎉 تم استخدام ${type} بنجاح!`
+                    : `🎉 ${type} used successfully!`
+                );
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* Mystery Boxes - 3 minutes before contest ends */}
+        {showMysteryBoxes && !isResults && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <MysteryBoxes
+              prizes={getPrizeDistribution()}
+              winners={winners.slice(0, 5).map(w => w.name)}
+              isRTL={isRTL}
+              showBefore={true}
+              onBoxOpen={(rank) => {
+                showSuccess(
+                  isRTL 
+                    ? `🎉 تم فتح صندوق المركز ${rank}!`
+                    : `🎉 Opened rank ${rank} box!`
+                );
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* Contest Statistics - After Results */}
+        {isResults && showStatistics && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <ContestStatistics
+              contestId={activeContestId || ''}
+              winners={winners.slice(0, 5)}
+              isRTL={isRTL}
+            />
+          </motion.div>
+        )}
+
+        {/* Tie Breaker - For Top 3 Ranks */}
+        {isResults && tieBreakerNeeded && !activeRound && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="bg-gradient-to-br from-orange-50 to-red-50 border-orange-200">
+              <CardContent className="p-6 text-center">
+                <div className="mb-4">
+                  <div className="text-6xl mb-2">🔥</div>
+                  <h3 className="text-xl font-bold text-orange-600 mb-2">
+                    {isRTL ? 'جولة فاصلة!' : 'Tie Breaker!'}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {isRTL 
+                      ? 'تعادل في المراكز الأولى! جولة فاصلة 60 ثانية.' 
+                      : 'Tie in top ranks! 60-second tie-breaker round.'
+                    }
+                  </p>
+                </div>
+                
+                <div className="space-y-2 mb-4">
+                  {tiedParticipants.map((participant) => (
+                    <div key={participant.id} className="flex items-center justify-between p-2 bg-white/50 rounded-lg">
+                      <span className="font-medium">{participant.name}</span>
+                      <Badge variant="outline">
+                        {isRTL ? `المركز ${participant.rank}` : `Rank ${participant.rank}`}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+                
+                <Button
+                  className="w-full bg-orange-500 hover:bg-orange-600"
+                  onClick={startTieBreaker}
+                  disabled={tieBreakerVoting}
+                >
+                  {tieBreakerVoting ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  ) : null}
+                  {isRTL ? 'بدء الجولة الفاصلة' : 'Start Tie-Breaker'}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Active Tie Breaker Round */}
+        {activeRound && activeRound.status === 'active' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-red-200">
+              <CardContent className="p-6">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-2">⚡</div>
+                  <h3 className="text-lg font-bold text-red-600 mb-2">
+                    {isRTL ? 'الجولة الفاصلة نشطة!' : 'Tie-Breaker Round Active!'}
+                  </h3>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {tieBreakTimeRemaining}s
+                  </div>
+                  <p className="text-muted-foreground">
+                    {isRTL ? 'الوقت المتبقي' : 'Time Remaining'}
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  {tiedParticipants.map((participant) => (
+                    <Button
+                      key={participant.id}
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => voteInTieBreaker(participant.id, 1)}
+                      disabled={tieBreakerVoting}
+                    >
+                      {isRTL ? `صوت لـ ${participant.name}` : `Vote for ${participant.name}`}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Winners Reveal - Dramatic Progressive Reveal */}
+        {showWinnersReveal && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <WinnersReveal
+              winners={winners.slice(0, 5).map(w => ({
+                rank: w.rank,
+                name: w.name,
+                username: w.username,
+                votes: w.votes,
+                prize: w.prize || 0,
+                avatar: w.avatar || '👤',
+                country: w.country || 'Unknown'
+              }))}
+              isRTL={isRTL}
+              onRevealComplete={() => {
+                // Show Hall of Fame after reveal
+                setTimeout(() => {
+                  setShowHallOfFame(true);
+                }, 1000);
+                
+                // Show statistics after Hall of Fame
+                setTimeout(() => {
+                  setShowStatistics(true);
+                }, 35000); // After 30 seconds Hall of Fame
+              }}
+              onCelebrate={(rank) => {
+                showSuccess(
+                  isRTL 
+                    ? `🎉 احتفال بالمركز ${rank}!`
+                    : `🎉 Celebrating rank ${rank}!`
+                );
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* Temporary Hall of Fame */}
+        {showHallOfFame && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <TemporaryHallOfFame
+              winners={winners.slice(0, 3).map(w => ({
+                rank: w.rank,
+                name: w.name,
+                username: w.username,
+                votes: w.votes,
+                prize: w.prize || 0,
+                avatar: w.avatar || '👤',
+                country: w.country || 'Unknown'
+              }))}
+              isRTL={isRTL}
+              onCelebrate={(rank) => {
+                showSuccess(
+                  isRTL 
+                    ? `🎉 احتفال بالمركز ${rank}!`
+                    : `🎉 Celebrating rank ${rank}!`
+                );
+              }}
+              onComplete={() => {
+                // Hide Hall of Fame after 30 seconds
+                setShowHallOfFame(false);
+              }}
+              duration={30}
+            />
+          </motion.div>
+        )}
 
         {/* Stage-specific Info Boxes */}
         {isStage1 && (

@@ -242,7 +242,7 @@ export default function MyImpactPage() {
                 {isRTL ? 'آخر التبرعات' : 'Recent Donations'}
               </h3>
               
-              {impact.recent_donations.length === 0 ? (
+              {impact.recentDonations.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Heart className="h-8 w-8 mx-auto mb-2 opacity-30" />
                   <p>{isRTL ? 'لا توجد تبرعات بعد' : 'No donations yet'}</p>

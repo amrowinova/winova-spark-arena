@@ -52,7 +52,7 @@ export default function FamilyThankYouPage() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('family_thank_you_messages')
         .select('*')
         .eq('family_id', user.id) // Assuming user is a family member
@@ -60,7 +60,7 @@ export default function FamilyThankYouPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setMessages(data || []);
+      setMessages((data as ThankYouMessage[]) || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
       showError(isRTL ? 'فشل تحميل رسائل الشكر' : 'Failed to load thank you messages');
@@ -141,7 +141,7 @@ export default function FamilyThankYouPage() {
       }
 
       // Submit message using RPC
-      const { data, error } = await supabase.rpc('submit_family_thank_you', {
+      const { data, error } = await (supabase as any).rpc('submit_family_thank_you', {
         p_family_id: user?.id,
         p_message_type: messageType,
         p_content: newMessage.trim() || (mediaUrl ? 'Media message' : ''),
@@ -176,7 +176,7 @@ export default function FamilyThankYouPage() {
 
   const deleteMessage = async (messageId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('family_thank_you_messages')
         .update({ status: 'archived' })
         .eq('id', messageId);
