@@ -83,8 +83,8 @@ export default function AgentsPage() {
       agent.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
       agent.country.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesCountry = !selectedCountry || agent.country === selectedCountry;
-    const matchesCity = !selectedCity || agent.city === selectedCity;
+    const matchesCountry = selectedCountry === 'all' || !selectedCountry || agent.country === selectedCountry;
+    const matchesCity = selectedCity === 'all' || !selectedCity || agent.city === selectedCity;
     
     return matchesSearch && matchesCountry && matchesCity;
   });
@@ -93,7 +93,7 @@ export default function AgentsPage() {
   const handleCountryChange = async (countryCode: string) => {
     setSelectedCountry(countryCode);
     setSelectedCity('');
-    if (countryCode) {
+    if (countryCode && countryCode !== 'all') {
       await getCities(countryCode);
     }
   };
@@ -202,7 +202,7 @@ export default function AgentsPage() {
                     <SelectValue placeholder={isRTL ? 'جميع الدول' : 'All countries'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{isRTL ? 'جميع الدول' : 'All countries'}</SelectItem>
+                    <SelectItem value="all">{isRTL ? 'جميع الدول' : 'All countries'}</SelectItem>
                     {countries.map((country) => (
                       <SelectItem key={country.code} value={country.code}>
                         {isRTL ? country.name_ar : country.name_en}
@@ -216,7 +216,7 @@ export default function AgentsPage() {
                     <SelectValue placeholder={isRTL ? 'جميع المدن' : 'All cities'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{isRTL ? 'جميع المدن' : 'All cities'}</SelectItem>
+                    <SelectItem value="all">{isRTL ? 'جميع المدن' : 'All cities'}</SelectItem>
                     {cities.map((city) => (
                       <SelectItem key={city.id} value={city.id}>
                         {isRTL ? city.name_ar : city.name_en}
