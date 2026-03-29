@@ -6,7 +6,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/winova-spark-arena/' : '/',
+  base: '/', // Fixed for Vercel deployment
   server: {
     host: "0.0.0.0",
     port: 8080,
