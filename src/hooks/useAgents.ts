@@ -239,19 +239,32 @@ export function useAgents() {
   const adminGetDepositRequests = useCallback(async (
     status: string = 'pending'
   ): Promise<DepositRequest[]> => {
+    // Step 1: get deposit requests
     let query = supabase
       .from('agent_deposit_requests')
-      .select('id, amount_nova, amount_local, payment_method, payment_reference, admin_notes, status, created_at, completed_at, agent_id, user_id, agents(shop_name, country, city)')
+      .select('id, amount_nova, amount_local, payment_method, payment_reference, admin_notes, status, created_at, completed_at, agent_id, user_id')
       .order('created_at', { ascending: false });
 
     if (status !== 'all') query = query.eq('status', status);
 
     const { data, error } = await query;
     if (error) { console.error('adminGetDepositRequests:', error); return []; }
+    if (!data || data.length === 0) return [];
 
-    return ((data ?? []) as unknown[]).map((r) => {
-      const row = r as Record<string, unknown>;
-      const agent = row.agents as Record<string, unknown> | null;
+    // Step 2: get agent info for each unique agent_id
+    const agentIds = [...new Set(data.map((r) => (r as Record<string, unknown>).agent_id as string))];
+    const { data: agentsData } = await supabase
+      .from('agents')
+      .select('id, shop_name, country, city')
+      .in('id', agentIds);
+
+    const agentMap = new Map((agentsData ?? []).map((a) => {
+      const ag = a as Record<string, unknown>;
+      return [ag.id as string, ag];
+    }));
+
+    return (data as Record<string, unknown>[]).map((row) => {
+      const agent = agentMap.get(row.agent_id as string);
       return {
         id:                row.id as string,
         agent_id:          row.agent_id as string,
