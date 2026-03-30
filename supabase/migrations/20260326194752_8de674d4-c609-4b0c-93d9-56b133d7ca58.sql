@@ -108,7 +108,7 @@ ALTER TABLE public.agent_reservations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can read own reservations"
   ON public.agent_reservations FOR SELECT
-  USING (user_id = auth.uid() OR agent_user_id = auth.uid() OR public.has_role(auth.uid(), 'admin'));
+  USING (user_id = auth.uid() OR agent_id = auth.uid() OR public.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Users can insert reservations"
   ON public.agent_reservations FOR INSERT
@@ -116,7 +116,7 @@ CREATE POLICY "Users can insert reservations"
 
 CREATE POLICY "Participants and admins can update reservations"
   ON public.agent_reservations FOR UPDATE
-  USING (user_id = auth.uid() OR agent_user_id = auth.uid() OR public.has_role(auth.uid(), 'admin'));
+  USING (user_id = auth.uid() OR agent_id = auth.uid() OR public.has_role(auth.uid(), 'admin'));
 
 -- 4. Agent messages
 CREATE TABLE IF NOT EXISTS public.agent_messages (
@@ -136,7 +136,7 @@ CREATE POLICY "Reservation participants can read messages"
     EXISTS (
       SELECT 1 FROM public.agent_reservations ar
       WHERE ar.id = reservation_id
-      AND (ar.user_id = auth.uid() OR ar.agent_user_id = auth.uid() OR public.has_role(auth.uid(), 'admin'))
+      AND (ar.user_id = auth.uid() OR ar.agent_id = auth.uid() OR public.has_role(auth.uid(), 'admin'))
     )
   );
 
@@ -147,7 +147,7 @@ CREATE POLICY "Reservation participants can send messages"
     AND EXISTS (
       SELECT 1 FROM public.agent_reservations ar
       WHERE ar.id = reservation_id
-      AND (ar.user_id = auth.uid() OR ar.agent_user_id = auth.uid())
+      AND (ar.user_id = auth.uid() OR ar.agent_id = auth.uid())
     )
   );
 
